@@ -1,0 +1,140 @@
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
+import { Header } from '@/components/Header';
+import { InviteCard } from '@/components/InviteCard';
+import { Screen } from '@/components/Screen';
+import type { RsvpStatus } from '@/types/event';
+import { useAuth } from '@/hooks/useAuth';
+import { useEvents } from '@/hooks/useEvents';
+import { getEventType } from '@/utils/eventTypes';
+import { SELF_GUEST_ID } from '@/utils/guests';
+import { colors, spacing } from '@/utils/theme';
+
+export default function InviteScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { getEvent, respondToInvite, hydrated, isOwner } = useEvents();
+  const { mode } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const event = getEvent(id);
+
+  if (event === undefined) {
+    return (
+      <Screen>
+        <Header title={hydrated ? 'Invitation not found' : 'Opening invitation…'} showBack />
+        {hydrated ? (
+          <Text style={styles.note}>
+            This invitation link is no longer available on this device.
+          </Text>
+        ) : null}
+      </Screen>
+    );
+  }
+
+  // The organizer reaches this same screen via "Preview as guest" (dashboard and
+  // the create-event flow's share step) — never a real RSVP, and an event_guests
+  // insert for the organizer's own id is rejected by RLS ("guest claims own
+  // invite" requires not is_event_organizer). Keep the buttons visible so they can
+  // see what guests see, but never let a tap reach respondToInvite.
+  const owner = isOwner(event);
+
+  // In Supabase mode, RLS already limits a non-organizer's event.guests to just
+  // their own row, so [0] is "my" row; local mode still uses the single-device
+  // sentinel guest.
+  const myRsvp = owner
+    ? undefined
+    : mode === 'supabase'
+      ? event.guests[0]
+      : event.guests.find((guest) => guest.id === SELF_GUEST_ID);
+  const type = getEventType(event.type);
+  const showChoices = myRsvp === undefined || editing;
+
+  const respond = (status: Exclude<RsvpStatus, 'pending'>) => {
+    if (owner) return;
+    respondToInvite(event.id, status);
+    setEditing(false);
+  };
+
+  return (
+    <Screen
+      gradient={type.gradient}
+      footer={
+        showChoices ? (
+          owner ? (
+            <Button label="Go to your event" onPress={() => router.push(`/guest/${event.id}`)} />
+          ) : (
+            <>
+              <Button
+                label="Confirm attendance"
+                variant="success"
+                onPress={() => respond('confirmed')}
+              />
+              <Button label="Can't make it" variant="danger" onPress={() => respond('declined')} />
+            </>
+          )
+        ) : (
+          <>
+            <Button
+              label="Deschide pagina evenimentului"
+              onPress={() => router.push(`/guest/${event.id}`)}
+            />
+            <Button label="Change my answer" variant="ghost" onPress={() => setEditing(true)} />
+          </>
+        )
+      }
+      contentStyle={styles.content}
+    >
+      <View style={styles.spacer} />
+      <InviteCard event={event} />
+
+      {myRsvp !== undefined && !editing ? (
+        <Card style={styles.confirmation}>
+          <Text style={styles.confirmationEmoji}>
+            {myRsvp.status === 'confirmed' ? '🎉' : '💌'}
+          </Text>
+          <Text style={styles.confirmationTitle}>
+            {myRsvp.status === 'confirmed' ? "You're on the list!" : 'Thanks for letting us know'}
+          </Text>
+          <Text style={styles.confirmationBody}>
+            {myRsvp.status === 'confirmed'
+              ? `We can't wait to see you at ${event.name}.`
+              : `You'll be missed at ${event.name}.`}
+          </Text>
+        </Card>
+      ) : null}
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: {
+    gap: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  spacer: {
+    height: spacing.lg,
+  },
+  confirmation: {
+    alignItems: 'center',
+  },
+  confirmationEmoji: {
+    fontSize: 32,
+  },
+  confirmationTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  confirmationBody: {
+    fontSize: 14,
+    color: colors.muted,
+    textAlign: 'center',
+  },
+  note: {
+    fontSize: 14,
+    color: colors.muted,
+  },
+});

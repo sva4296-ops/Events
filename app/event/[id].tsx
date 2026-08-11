@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -19,6 +20,7 @@ import { shareInvite } from '@/utils/invite';
 import { colors, radius, spacing } from '@/utils/theme';
 
 export default function EventDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, hydrated, removeGuest, isOwner } = useEvents();
   const event = getEvent(id);
@@ -56,7 +58,7 @@ export default function EventDetailScreen() {
   if (event === undefined) {
     return (
       <Screen>
-        <Header title="Event not found" showBack />
+        <Header title={t('event.notFound')} showBack />
       </Screen>
     );
   }
@@ -68,15 +70,15 @@ export default function EventDetailScreen() {
     <Screen
       footer={
         <>
-          <Button label="Share invitation" onPress={() => void shareInvite(event)} />
+          <Button label={t('event.shareInvitation')} onPress={() => void shareInvite(event)} />
           <Button
-            label="Preview as guest"
+            label={t('event.previewAsGuest')}
             variant="secondary"
             onPress={() => router.push({ pathname: '/invite/[id]', params: { id: event.id } })}
           />
           {owner ? (
             <Button
-              label="Edit event"
+              label={t('event.editEvent')}
               variant="ghost"
               onPress={() => router.push(`/edit-event/${event.id}`)}
             />
@@ -92,19 +94,19 @@ export default function EventDetailScreen() {
 
       <View style={styles.stats}>
         <StatCard
-          label="Confirmed"
+          label={t('common.confirmed')}
           value={counts.confirmed}
           tint={colors.success}
           background={colors.successSoft}
         />
         <StatCard
-          label="Pending"
+          label={t('common.pending')}
           value={counts.pending}
           tint={colors.warning}
           background={colors.warningSoft}
         />
         <StatCard
-          label="Declined"
+          label={t('common.declined')}
           value={counts.declined}
           tint={colors.declined}
           background={colors.declinedSoft}
@@ -113,7 +115,7 @@ export default function EventDetailScreen() {
 
       <View style={styles.section}>
         <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>Guest list · {counts.total}</Text>
+          <Text style={styles.sectionTitle}>{t('event.guestListTitle', { count: counts.total })}</Text>
           {owner ? (
             <TouchableOpacity
               style={styles.add}
@@ -129,11 +131,11 @@ export default function EventDetailScreen() {
 
         {event.guests.length === 0 ? (
           <EmptyState
-            message="No guests invited yet."
+            message={t('event.noGuestsYet')}
             action={
               owner ? (
                 <Button
-                  label="Invite a guest"
+                  label={t('event.inviteGuest')}
                   onPress={() => router.push(`/add-guest/${event.id}`)}
                 />
               ) : undefined
@@ -147,13 +149,13 @@ export default function EventDetailScreen() {
                 enabled={owner}
                 actions={[
                   {
-                    label: 'Elimină',
+                    label: t('event.removeGuestAction'),
                     icon: 'user-x',
                     tone: 'delete',
                     onPress: () =>
                       confirmDelete(
-                        'Elimini invitatul?',
-                        `${guest.name} nu va mai apărea în lista de invitați.`,
+                        t('event.removeGuestTitle'),
+                        t('event.removeGuestBody', { name: guest.name }),
                         () => removeGuest(event.id, guest.id),
                       ),
                   },

@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '@/components/BackButton';
@@ -14,6 +15,7 @@ import { getEventType } from '@/utils/eventTypes';
 import { colors, spacing } from '@/utils/theme';
 
 export default function InviteScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, respondToInvite, hydrated, isOwner } = useEvents();
   const [editing, setEditing] = useState(false);
@@ -27,14 +29,10 @@ export default function InviteScreen() {
     return (
       <Screen>
         <Header
-          title={hydrated ? 'Invitation not found' : 'Opening invitation…'}
+          title={hydrated ? t('rsvp.notFoundTitle') : t('rsvp.openingTitle')}
           showBack={canGoBack}
         />
-        {hydrated ? (
-          <Text style={styles.note}>
-            This invitation link is no longer available on this device.
-          </Text>
-        ) : null}
+        {hydrated ? <Text style={styles.note}>{t('rsvp.notFoundNote')}</Text> : null}
       </Screen>
     );
   }
@@ -70,26 +68,26 @@ export default function InviteScreen() {
       footer={
         showChoices ? (
           owner ? (
-            <Button label="Go to your event" onPress={() => router.push(`/guest/${event.id}`)} />
+            <Button label={t('rsvp.goToYourEvent')} onPress={() => router.push(`/guest/${event.id}`)} />
           ) : (
             <>
               <Button
-                label="Confirm attendance"
+                label={t('rsvp.confirmAttendance')}
                 variant="success"
                 onPress={() => respond('confirmed')}
               />
-              <Button label="Can't make it" variant="neutral" onPress={() => respond('declined')} />
+              <Button label={t('rsvp.cantMakeIt')} variant="neutral" onPress={() => respond('declined')} />
             </>
           )
         ) : (
           <>
             {myRsvp?.status === 'confirmed' ? (
               <Button
-                label="Deschide pagina evenimentului"
+                label={t('rsvp.openEventPage')}
                 onPress={() => router.push(`/guest/${event.id}`)}
               />
             ) : null}
-            <Button label="Change my answer" variant="ghost" onPress={() => setEditing(true)} />
+            <Button label={t('rsvp.changeMyAnswer')} variant="ghost" onPress={() => setEditing(true)} />
           </>
         )
       }
@@ -107,12 +105,12 @@ export default function InviteScreen() {
             {myRsvp.status === 'confirmed' ? '🎉' : '💌'}
           </Text>
           <Text style={styles.confirmationTitle}>
-            {myRsvp.status === 'confirmed' ? "You're on the list!" : 'Thanks for letting us know'}
+            {myRsvp.status === 'confirmed' ? t('rsvp.confirmedTitle') : t('rsvp.declinedTitle')}
           </Text>
           <Text style={styles.confirmationBody}>
             {myRsvp.status === 'confirmed'
-              ? `We can't wait to see you at ${event.name}.`
-              : `You'll be missed at ${event.name}.`}
+              ? t('rsvp.confirmedBody', { eventName: event.name })
+              : t('rsvp.declinedBody', { eventName: event.name })}
           </Text>
         </Card>
       ) : null}

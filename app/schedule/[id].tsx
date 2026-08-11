@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -12,6 +13,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { parseTimeString, toTimeString } from '@/utils/dateInput';
 
 export default function ScheduleItemScreen() {
+  const { t } = useTranslation();
   const { id, itemId } = useLocalSearchParams<{ id: string; itemId?: string }>();
   const { getEvent, isOwner } = useEvents();
   const event = getEvent(id);
@@ -26,7 +28,11 @@ export default function ScheduleItemScreen() {
   if (!isOwner(event) || content === null) {
     return (
       <Screen>
-        <Header title="Not available" subtitle="Only the organizer can edit the schedule." showBack />
+        <Header
+          title={t('common.notAvailable')}
+          subtitle={t('scheduleForm.notAvailableSubtitle')}
+          showBack
+        />
       </Screen>
     );
   }
@@ -44,31 +50,36 @@ export default function ScheduleItemScreen() {
       <Screen
         footer={
           <Button
-            label={existing === null ? 'Add to schedule' : 'Save changes'}
+            label={existing === null ? t('scheduleForm.addButton') : t('common.saveChanges')}
             disabled={title.trim().length === 0}
             onPress={save}
           />
         }
       >
         <Header
-          title={existing === null ? 'Add a schedule item' : 'Edit schedule item'}
-          subtitle="Guests will see this on the Detalii tab."
+          title={existing === null ? t('scheduleForm.addTitle') : t('scheduleForm.editTitle')}
+          subtitle={t('common.guestsSeeOnDetalii')}
           showBack
         />
 
         <DateTimeField
-          label="Time"
+          label={t('scheduleForm.timeLabel')}
           mode="time"
           value={parseTimeString(time)}
-          displayValue={time.trim().length === 0 ? 'Select a time' : time}
+          displayValue={time.trim().length === 0 ? t('scheduleForm.selectTime') : time}
           onChange={(selected) => setTime(toTimeString(selected))}
         />
-        <Field label="Title" value={title} onChangeText={setTitle} placeholder="Ceremonie" />
         <Field
-          label="Where"
+          label={t('scheduleForm.titleLabel')}
+          value={title}
+          onChangeText={setTitle}
+          placeholder={t('scheduleForm.titlePlaceholder')}
+        />
+        <Field
+          label={t('scheduleForm.whereLabel')}
           value={location}
           onChangeText={setLocation}
-          placeholder="Biserica Sfântul Nicolae"
+          placeholder={t('scheduleForm.wherePlaceholder')}
         />
       </Screen>
     </KeyboardAvoidingView>

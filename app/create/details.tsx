@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -12,6 +13,7 @@ import { parseIsoDate, toIsoDate } from '@/utils/dateInput';
 import { formatEventDate } from '@/utils/format';
 
 export default function EventDetailsScreen() {
+  const { t } = useTranslation();
   const { draft, updateDraft } = useEventDraft();
   const cancel = useCancelCreate();
   const canContinue = draft.name.trim().length > 0 && draft.date.trim().length > 0;
@@ -24,15 +26,15 @@ export default function EventDetailsScreen() {
       <Screen
         footer={
           <Button
-            label="Preview invitation"
+            label={t('createWizard.detailsButton')}
             disabled={!canContinue}
             onPress={() => router.push('/create/preview')}
           />
         }
       >
         <Header
-          title="The details"
-          subtitle="Everything your guests need to know."
+          title={t('createWizard.detailsTitle')}
+          subtitle={t('createWizard.detailsSubtitle')}
           showBack
           onClose={cancel}
           step={2}
@@ -40,29 +42,31 @@ export default function EventDetailsScreen() {
         />
 
         <Field
-          label="Event name"
+          label={t('editEventForm.nameLabel')}
           value={draft.name}
           onChangeText={(name) => updateDraft({ name })}
-          placeholder="Ana & Mihai"
+          placeholder={t('createWizard.namePlaceholder')}
         />
         <DateTimeField
-          label="Date"
+          label={t('editEventForm.dateLabel')}
           mode="date"
           value={parseIsoDate(draft.date)}
-          displayValue={draft.date.trim().length === 0 ? 'Select a date' : formatEventDate(draft.date)}
+          displayValue={
+            draft.date.trim().length === 0 ? t('editEventForm.selectDate') : formatEventDate(draft.date)
+          }
           onChange={(selected) => updateDraft({ date: toIsoDate(selected) })}
         />
         <Field
-          label="Location"
+          label={t('editEventForm.locationLabel')}
           value={draft.location}
           onChangeText={(location) => updateDraft({ location })}
-          placeholder="Casa Regală, Brașov"
+          placeholder={t('createWizard.locationPlaceholder')}
         />
         <Field
-          label="Welcome message"
+          label={t('editEventForm.welcomeMessageLabel')}
           value={draft.welcomeMessage}
           onChangeText={(welcomeMessage) => updateDraft({ welcomeMessage })}
-          placeholder="We'd love to have you with us on our special day."
+          placeholder={t('createWizard.welcomeMessagePlaceholder')}
           multiline
         />
       </Screen>

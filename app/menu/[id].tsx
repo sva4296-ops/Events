@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -10,6 +11,7 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 
 export default function MenuScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, isOwner } = useEvents();
   const event = getEvent(id);
@@ -22,7 +24,11 @@ export default function MenuScreen() {
   if (!isOwner(event) || content === null) {
     return (
       <Screen>
-        <Header title="Not available" subtitle="Only the organizer can edit the menu." showBack />
+        <Header
+          title={t('common.notAvailable')}
+          subtitle={t('menuForm.notAvailableSubtitle')}
+          showBack
+        />
       </Screen>
     );
   }
@@ -39,26 +45,31 @@ export default function MenuScreen() {
       style={styles.fill}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Screen footer={<Button label="Save menu" disabled={!valid} onPress={save} />}>
+      <Screen footer={<Button label={t('menuForm.saveButton')} disabled={!valid} onPress={save} />}>
         <Header
-          title={content.menu === null ? 'Set the menu' : 'Edit the menu'}
-          subtitle="Guests will see this on the Detalii tab."
+          title={content.menu === null ? t('menuForm.setTitle') : t('menuForm.editTitle')}
+          subtitle={t('common.guestsSeeOnDetalii')}
           showBack
         />
 
         <Field
-          label="Antreu"
+          label={t('detalii.courseStarter')}
           value={starter}
           onChangeText={setStarter}
-          placeholder="Supă cremă de dovleac"
+          placeholder={t('menuForm.starterPlaceholder')}
         />
         <Field
-          label="Fel principal"
+          label={t('detalii.courseMain')}
           value={main}
           onChangeText={setMain}
-          placeholder="Piept de rață cu piure de cartofi"
+          placeholder={t('menuForm.mainPlaceholder')}
         />
-        <Field label="Desert" value={dessert} onChangeText={setDessert} placeholder="Tort de ciocolată" />
+        <Field
+          label={t('detalii.courseDessert')}
+          value={dessert}
+          onChangeText={setDessert}
+          placeholder={t('menuForm.dessertPlaceholder')}
+        />
       </Screen>
     </KeyboardAvoidingView>
   );

@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
@@ -14,8 +15,26 @@ import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
 
+/**
+ * These are the *stored* values in `event_guests.dietary_preferences` (and
+ * what `toggleDietary` compares against) — not display text. They must stay
+ * stable across languages: an existing row's stored 'Fără gluten' has to
+ * keep matching this list regardless of the active UI language, or switching
+ * languages would silently un-select every guest's saved preference. Only
+ * the rendered label is translated — see DIETARY_LABEL_KEY below.
+ */
 const DIETARY_OPTIONS = ['Vegetarian', 'Vegan', 'Fără gluten', 'Fără lactoză'] as const;
 
+const DIETARY_LABEL_KEY: Record<(typeof DIETARY_OPTIONS)[number], string> = {
+  Vegetarian: 'detalii.dietaryVegetarian',
+  Vegan: 'detalii.dietaryVegan',
+  'Fără gluten': 'detalii.dietaryGlutenFree',
+  'Fără lactoză': 'detalii.dietaryDairyFree',
+};
+
+/** Matches the vendor's own (user-typed) category text, so this stays
+ * Romanian-keyword-based regardless of UI language — see the file-level note
+ * on never translating user-generated content. */
 function vendorIcon(category: string): string {
   const normalized = category.toLowerCase();
   if (normalized.includes('foto') || normalized.includes('video')) return '📷';
@@ -39,10 +58,12 @@ function vendorIcon(category: string): string {
  * container styles the real sections render into so nothing shifts on load.
  */
 function DetaliiSkeleton() {
+  const { t } = useTranslation();
+
   return (
     <GuestScreen transparent>
       <View style={styles.section}>
-        <SectionLabel>PROGRAMUL ZILEI</SectionLabel>
+        <SectionLabel>{t('detalii.schedule')}</SectionLabel>
         <View style={styles.stack}>
           <View style={styles.scheduleCard}>
             <Skeleton width={62} height={19} radius={4} />
@@ -62,7 +83,7 @@ function DetaliiSkeleton() {
       </View>
 
       <View style={styles.section}>
-        <SectionLabel>LOCAȚIE & CUM AJUNGI</SectionLabel>
+        <SectionLabel>{t('detalii.venue')}</SectionLabel>
         <View style={styles.mapCard}>
           <Skeleton height={170} radius={0} />
           <View style={styles.venueBody}>
@@ -73,7 +94,7 @@ function DetaliiSkeleton() {
       </View>
 
       <View style={styles.section}>
-        <SectionLabel>MENIUL SERII</SectionLabel>
+        <SectionLabel>{t('detalii.menu')}</SectionLabel>
         <View style={styles.menuCard}>
           <View style={styles.courseRow}>
             <Skeleton height={13} width={80} radius={4} />
@@ -91,7 +112,7 @@ function DetaliiSkeleton() {
       </View>
 
       <View style={styles.section}>
-        <SectionLabel>AȘEZAREA LA MESE</SectionLabel>
+        <SectionLabel>{t('detalii.seating')}</SectionLabel>
         <View style={styles.stack}>
           <View style={styles.rowCard}>
             <Skeleton height={16} width="45%" radius={4} />
@@ -105,7 +126,7 @@ function DetaliiSkeleton() {
       </View>
 
       <View style={styles.section}>
-        <SectionLabel>CAZARE RECOMANDATĂ</SectionLabel>
+        <SectionLabel>{t('detalii.accommodation')}</SectionLabel>
         <View style={styles.stack}>
           <View style={styles.rowCard}>
             <Skeleton height={16} width="50%" radius={4} />
@@ -115,7 +136,7 @@ function DetaliiSkeleton() {
       </View>
 
       <View style={styles.section}>
-        <SectionLabel>CEI CARE FAC TOTUL POSIBIL</SectionLabel>
+        <SectionLabel>{t('detalii.vendors')}</SectionLabel>
         <View style={styles.stack}>
           <View style={styles.vendorCard}>
             <Skeleton width={40} height={40} radius={gRadius.pill} />
@@ -131,6 +152,7 @@ function DetaliiSkeleton() {
 }
 
 export default function DetaliiScreen() {
+  const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { isOwner, updateMyDietaryPreferences } = useEvents();
   const {
@@ -163,7 +185,7 @@ export default function DetaliiScreen() {
     <GuestScreen transparent>
       <View style={styles.section}>
         <View style={styles.sectionHead}>
-          <SectionLabel>PROGRAMUL ZILEI</SectionLabel>
+          <SectionLabel>{t('detalii.schedule')}</SectionLabel>
           {owner ? (
             <TouchableOpacity
               style={styles.edit}
@@ -178,14 +200,10 @@ export default function DetaliiScreen() {
         </View>
         {content.schedule.length === 0 ? (
           <EmptyState
-            message={
-              owner
-                ? 'Nu ai adăugat încă programul zilei.'
-                : 'Programul nu a fost publicat încă.'
-            }
+            message={owner ? t('detalii.scheduleEmptyOwner') : t('detalii.scheduleEmptyGuest')}
             action={
               owner ? (
-                <GuestButton label="Adaugă programul" onPress={() => router.push(`/schedule/${id}`)} />
+                <GuestButton label={t('detalii.addSchedule')} onPress={() => router.push(`/schedule/${id}`)} />
               ) : undefined
             }
           />
@@ -197,19 +215,19 @@ export default function DetaliiScreen() {
                 enabled={owner}
                 actions={[
                   {
-                    label: 'Editează',
+                    label: t('common.edit'),
                     icon: 'edit-2',
                     tone: 'edit',
                     onPress: () => router.push(`/schedule/${id}?itemId=${item.id}`),
                   },
                   {
-                    label: 'Șterge',
+                    label: t('common.delete'),
                     icon: 'trash-2',
                     tone: 'delete',
                     onPress: () =>
                       confirmDelete(
-                        'Ștergi acest moment din program?',
-                        `„${item.title}” va dispărea din programul zilei.`,
+                        t('detalii.deleteScheduleTitle'),
+                        t('detalii.deleteScheduleBody', { title: item.title }),
                         () => deleteScheduleItem(item.id),
                       ),
                   },
@@ -229,14 +247,14 @@ export default function DetaliiScreen() {
       </View>
 
       <View style={styles.section}>
-        <SectionLabel>LOCAȚIE & CUM AJUNGI</SectionLabel>
+        <SectionLabel>{t('detalii.venue')}</SectionLabel>
         {!hasVenue ? (
           <EmptyState
-            message={owner ? 'Nu ai setat încă locația.' : 'Locația nu a fost publicată încă.'}
+            message={owner ? t('detalii.venueEmptyOwner') : t('detalii.venueEmptyGuest')}
             action={
               owner ? (
                 <GuestButton
-                  label="Setează locația"
+                  label={t('detalii.setVenue')}
                   onPress={() => router.push(`/venue/${id}`)}
                 />
               ) : undefined
@@ -280,7 +298,7 @@ export default function DetaliiScreen() {
 
       <View style={styles.section}>
         <View style={styles.sectionHead}>
-          <SectionLabel>MENIUL SERII</SectionLabel>
+          <SectionLabel>{t('detalii.menu')}</SectionLabel>
           {owner && content.menu !== null ? (
             <TouchableOpacity
               style={styles.edit}
@@ -293,29 +311,27 @@ export default function DetaliiScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
-        <Text style={styles.sectionDescription}>
-          Ce se servește și preferințele alimentare ale invitaților.
-        </Text>
+        <Text style={styles.sectionDescription}>{t('detalii.menuDescription')}</Text>
 
         {content.menu === null ? (
           <EmptyState
-            message={owner ? 'Nu ai adăugat încă meniul.' : 'Meniul nu a fost publicat încă.'}
+            message={owner ? t('detalii.menuEmptyOwner') : t('detalii.menuEmptyGuest')}
             action={
-              owner ? <GuestButton label="Adaugă meniul" onPress={() => router.push(`/menu/${id}`)} /> : undefined
+              owner ? <GuestButton label={t('detalii.addMenu')} onPress={() => router.push(`/menu/${id}`)} /> : undefined
             }
           />
         ) : (
           <View style={styles.menuCard}>
             <View style={styles.courseRow}>
-              <Text style={styles.courseLabel}>Antreu</Text>
+              <Text style={styles.courseLabel}>{t('detalii.courseStarter')}</Text>
               <Text style={styles.courseValue}>{content.menu.starter || '—'}</Text>
             </View>
             <View style={styles.courseRow}>
-              <Text style={styles.courseLabel}>Fel principal</Text>
+              <Text style={styles.courseLabel}>{t('detalii.courseMain')}</Text>
               <Text style={styles.courseValue}>{content.menu.main || '—'}</Text>
             </View>
             <View style={styles.courseRow}>
-              <Text style={styles.courseLabel}>Desert</Text>
+              <Text style={styles.courseLabel}>{t('detalii.courseDessert')}</Text>
               <Text style={styles.courseValue}>{content.menu.dessert || '—'}</Text>
             </View>
 
@@ -332,7 +348,9 @@ export default function DetaliiScreen() {
                       accessibilityRole="button"
                       accessibilityState={{ selected: active }}
                     >
-                      <Text style={[styles.pillText, active && styles.pillTextActive]}>{option}</Text>
+                      <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                        {t(DIETARY_LABEL_KEY[option])}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -344,7 +362,7 @@ export default function DetaliiScreen() {
 
       <View style={styles.section}>
         <View style={styles.sectionHead}>
-          <SectionLabel>AȘEZAREA LA MESE</SectionLabel>
+          <SectionLabel>{t('detalii.seating')}</SectionLabel>
           {owner ? (
             <TouchableOpacity
               style={styles.edit}
@@ -357,13 +375,13 @@ export default function DetaliiScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
-        <Text style={styles.sectionDescription}>Cine stă la fiecare masă în seara evenimentului.</Text>
+        <Text style={styles.sectionDescription}>{t('detalii.seatingDescription')}</Text>
 
         {content.seatingTables.length === 0 ? (
           <EmptyState
-            message={owner ? 'Nu ai organizat încă mesele.' : 'Așezarea la mese nu a fost publicată încă.'}
+            message={owner ? t('detalii.seatingEmptyOwner') : t('detalii.seatingEmptyGuest')}
             action={
-              owner ? <GuestButton label="Adaugă o masă" onPress={() => router.push(`/table/${id}`)} /> : undefined
+              owner ? <GuestButton label={t('detalii.addTable')} onPress={() => router.push(`/table/${id}`)} /> : undefined
             }
           />
         ) : (
@@ -374,19 +392,19 @@ export default function DetaliiScreen() {
                 enabled={owner}
                 actions={[
                   {
-                    label: 'Editează',
+                    label: t('common.edit'),
                     icon: 'edit-2',
                     tone: 'edit',
                     onPress: () => router.push(`/table/${id}?itemId=${table.id}`),
                   },
                   {
-                    label: 'Șterge',
+                    label: t('common.delete'),
                     icon: 'trash-2',
                     tone: 'delete',
                     onPress: () =>
                       confirmDelete(
-                        'Ștergi această masă?',
-                        `„${table.name}” va dispărea din așezarea la mese.`,
+                        t('detalii.deleteTableTitle'),
+                        t('detalii.deleteTableBody', { name: table.name }),
                         () => deleteSeatingTable(table.id),
                       ),
                   },
@@ -395,9 +413,7 @@ export default function DetaliiScreen() {
                 <View style={styles.rowCard}>
                   <Text style={styles.rowTitle}>{table.name}</Text>
                   {table.label.length > 0 ? <Text style={styles.rowSubtitle}>{table.label}</Text> : null}
-                  <Text style={styles.rowMeta}>
-                    {table.seat_count} {table.seat_count === 1 ? 'loc' : 'locuri'}
-                  </Text>
+                  <Text style={styles.rowMeta}>{t('detalii.seatCount', { count: table.seat_count })}</Text>
                 </View>
               </SwipeableRow>
             ))}
@@ -407,7 +423,7 @@ export default function DetaliiScreen() {
 
       <View style={styles.section}>
         <View style={styles.sectionHead}>
-          <SectionLabel>CAZARE RECOMANDATĂ</SectionLabel>
+          <SectionLabel>{t('detalii.accommodation')}</SectionLabel>
           {owner ? (
             <TouchableOpacity
               style={styles.edit}
@@ -420,14 +436,14 @@ export default function DetaliiScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
-        <Text style={styles.sectionDescription}>Unde pot sta invitații care vin de departe.</Text>
+        <Text style={styles.sectionDescription}>{t('detalii.accommodationDescription')}</Text>
 
         {content.accommodations.length === 0 ? (
           <EmptyState
-            message={owner ? 'Nu ai adăugat opțiuni de cazare.' : 'Opțiunile de cazare nu au fost publicate încă.'}
+            message={owner ? t('detalii.accommodationEmptyOwner') : t('detalii.accommodationEmptyGuest')}
             action={
               owner ? (
-                <GuestButton label="Adaugă cazare" onPress={() => router.push(`/accommodation/${id}`)} />
+                <GuestButton label={t('detalii.addAccommodation')} onPress={() => router.push(`/accommodation/${id}`)} />
               ) : undefined
             }
           />
@@ -439,19 +455,19 @@ export default function DetaliiScreen() {
                 enabled={owner}
                 actions={[
                   {
-                    label: 'Editează',
+                    label: t('common.edit'),
                     icon: 'edit-2',
                     tone: 'edit',
                     onPress: () => router.push(`/accommodation/${id}?itemId=${entry.id}`),
                   },
                   {
-                    label: 'Șterge',
+                    label: t('common.delete'),
                     icon: 'trash-2',
                     tone: 'delete',
                     onPress: () =>
                       confirmDelete(
-                        'Ștergi această opțiune de cazare?',
-                        `„${entry.name}” va dispărea din lista de cazare.`,
+                        t('detalii.deleteAccommodationTitle'),
+                        t('detalii.deleteAccommodationBody', { name: entry.name }),
                         () => deleteAccommodation(entry.id),
                       ),
                   },
@@ -474,7 +490,7 @@ export default function DetaliiScreen() {
 
       <View style={styles.section}>
         <View style={styles.sectionHead}>
-          <SectionLabel>CEI CARE FAC TOTUL POSIBIL</SectionLabel>
+          <SectionLabel>{t('detalii.vendors')}</SectionLabel>
           {owner ? (
             <TouchableOpacity
               style={styles.edit}
@@ -487,15 +503,13 @@ export default function DetaliiScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
-        <Text style={styles.sectionDescription}>
-          Furnizorii care au ajutat să prindă viață seara aceasta.
-        </Text>
+        <Text style={styles.sectionDescription}>{t('detalii.vendorsDescription')}</Text>
 
         {content.vendors.length === 0 ? (
           <EmptyState
-            message={owner ? 'Niciun furnizor adăugat.' : 'Niciun furnizor publicat încă.'}
+            message={owner ? t('detalii.vendorsEmptyOwner') : t('detalii.vendorsEmptyGuest')}
             action={
-              owner ? <GuestButton label="Adaugă furnizor" onPress={() => router.push(`/vendor/${id}`)} /> : undefined
+              owner ? <GuestButton label={t('detalii.addVendor')} onPress={() => router.push(`/vendor/${id}`)} /> : undefined
             }
           />
         ) : (
@@ -507,19 +521,19 @@ export default function DetaliiScreen() {
                   enabled={owner}
                   actions={[
                     {
-                      label: 'Editează',
+                      label: t('common.edit'),
                       icon: 'edit-2',
                       tone: 'edit',
                       onPress: () => router.push(`/vendor/${id}?itemId=${vendor.id}`),
                     },
                     {
-                      label: 'Șterge',
+                      label: t('common.delete'),
                       icon: 'trash-2',
                       tone: 'delete',
                       onPress: () =>
                         confirmDelete(
-                          'Ștergi acest furnizor?',
-                          `„${vendor.name}” va dispărea din listă.`,
+                          t('detalii.deleteVendorTitle'),
+                          t('detalii.deleteVendorBody', { name: vendor.name }),
                           () => deleteVendor(vendor.id),
                         ),
                     },
@@ -542,16 +556,14 @@ export default function DetaliiScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={`Vezi ${vendor.name}`}
                       >
-                        <Text style={styles.vendorLink}>Vezi</Text>
+                        <Text style={styles.vendorLink}>{t('detalii.vendorLink')}</Text>
                       </TouchableOpacity>
                     ) : null}
                   </View>
                 </SwipeableRow>
               ))}
             </View>
-            <Text style={styles.vendorCaption}>
-              Furnizorii tag-uiți își promovează serviciile — fiecare aduce clienți noi pe platformă.
-            </Text>
+            <Text style={styles.vendorCaption}>{t('detalii.vendorCaption')}</Text>
           </>
         )}
       </View>

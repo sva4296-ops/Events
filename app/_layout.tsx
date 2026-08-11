@@ -1,3 +1,6 @@
+// Side-effect import — initializes i18next before anything below renders.
+import '@/utils/i18n';
+
 import {
   PlayfairDisplay_400Regular,
   PlayfairDisplay_500Medium_Italic,

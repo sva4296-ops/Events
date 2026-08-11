@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -11,6 +12,7 @@ import { buildInviteLink, shareInvite } from '@/utils/invite';
 import { colors, radius, spacing } from '@/utils/theme';
 
 export default function ShareScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent } = useEvents();
   const { resetDraft } = useEventDraft();
@@ -19,7 +21,7 @@ export default function ShareScreen() {
   if (event === undefined) {
     return (
       <Screen>
-        <Header title="Invitation not found" showBack />
+        <Header title={t('rsvp.notFoundTitle')} showBack />
       </Screen>
     );
   }
@@ -35,32 +37,30 @@ export default function ShareScreen() {
     <Screen
       footer={
         <>
-          <Button label="Share invitation" onPress={() => void shareInvite(event)} />
-          <Button label="Done" variant="ghost" onPress={goToDashboard} />
+          <Button label={t('event.shareInvitation')} onPress={() => void shareInvite(event)} />
+          <Button label={t('common.done')} variant="ghost" onPress={goToDashboard} />
         </>
       }
     >
       <Header
-        title="Your invitation is ready 🎉"
-        subtitle="Share the link with your guests — they can RSVP straight from it."
+        title={t('createWizard.shareTitle')}
+        subtitle={t('createWizard.shareSubtitle')}
         step={4}
         totalSteps={4}
       />
 
       <Card>
-        <Text style={styles.cardLabel}>Invite link</Text>
+        <Text style={styles.cardLabel}>{t('createWizard.inviteLinkLabel')}</Text>
         <View style={styles.linkBox}>
           <Text style={styles.link} numberOfLines={2}>
             {link}
           </Text>
         </View>
-        <Text style={styles.hint}>
-          v1 uses a local deep link — no server yet, so it opens the invite on this device.
-        </Text>
+        <Text style={styles.hint}>{t('createWizard.linkHint')}</Text>
       </Card>
 
       <Button
-        label="Preview as guest"
+        label={t('event.previewAsGuest')}
         variant="secondary"
         onPress={() => router.push({ pathname: '/invite/[id]', params: { id: event.id } })}
       />

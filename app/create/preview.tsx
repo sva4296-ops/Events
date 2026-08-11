@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -12,6 +13,7 @@ import { colors, spacing } from '@/utils/theme';
 import { reportSupabaseError } from '@/utils/reportError';
 
 export default function PreviewScreen() {
+  const { t } = useTranslation();
   const { draft } = useEventDraft();
   const { createEvent } = useEvents();
   const cancel = useCancelCreate();
@@ -27,12 +29,12 @@ export default function PreviewScreen() {
 
   return (
     <Screen
-      footer={<Button label="Generate invite" onPress={() => void handleGenerate()} />}
+      footer={<Button label={t('createWizard.previewButton')} onPress={() => void handleGenerate()} />}
       contentStyle={styles.content}
     >
       <Header
-        title="How it will look"
-        subtitle="This is what your guests will see when they open the invitation."
+        title={t('createWizard.previewTitle')}
+        subtitle={t('createWizard.previewSubtitle')}
         showBack
         onClose={cancel}
         step={3}
@@ -41,7 +43,7 @@ export default function PreviewScreen() {
 
       <InviteCard event={draft} />
 
-      <Text style={styles.note}>Need a change? Go back and edit the details.</Text>
+      <Text style={styles.note}>{t('createWizard.previewNote')}</Text>
     </Screen>
   );
 }

@@ -1,7 +1,7 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { RsvpStatus } from '@/types/event';
-import { RSVP_LABEL } from '@/utils/format';
 import { colors, radius, spacing } from '@/utils/theme';
 
 const TONES: Record<RsvpStatus, { text: string; background: string }> = {
@@ -13,11 +13,12 @@ const TONES: Record<RsvpStatus, { text: string; background: string }> = {
 };
 
 export function RsvpBadge({ status }: { status: RsvpStatus }) {
+  const { t } = useTranslation();
   const tone = TONES[status];
 
   return (
     <View style={[styles.badge, { backgroundColor: tone.background }]}>
-      <Text style={[styles.text, { color: tone.text }]}>{RSVP_LABEL[status]}</Text>
+      <Text style={[styles.text, { color: tone.text }]}>{t(`common.${status}`)}</Text>
     </View>
   );
 }

@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -13,6 +14,7 @@ import { parseIsoDate, toIsoDate } from '@/utils/dateInput';
 import { reportSupabaseError } from '@/utils/reportError';
 
 export default function EditEventScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, updateEvent, isOwner } = useEvents();
   const event = getEvent(id);
@@ -25,7 +27,11 @@ export default function EditEventScreen() {
   if (event === undefined || !isOwner(event)) {
     return (
       <Screen>
-        <Header title="Not available" subtitle="Only the organizer can edit this event." showBack />
+        <Header
+          title={t('common.notAvailable')}
+          subtitle={t('editEventForm.notAvailableSubtitle')}
+          showBack
+        />
       </Screen>
     );
   }
@@ -47,25 +53,25 @@ export default function EditEventScreen() {
       <Screen
         footer={
           <Button
-            label="Save changes"
+            label={t('common.saveChanges')}
             disabled={name.trim().length === 0}
             onPress={() => void save()}
           />
         }
       >
-        <Header title="Edit event" subtitle="Update what your guests see." showBack />
+        <Header title={t('editEventForm.title')} subtitle={t('editEventForm.subtitle')} showBack />
 
-        <Field label="Event name" value={name} onChangeText={setName} />
+        <Field label={t('editEventForm.nameLabel')} value={name} onChangeText={setName} />
         <DateTimeField
-          label="Date"
+          label={t('editEventForm.dateLabel')}
           mode="date"
           value={parseIsoDate(date)}
-          displayValue={date.trim().length === 0 ? 'Select a date' : formatEventDate(date)}
+          displayValue={date.trim().length === 0 ? t('editEventForm.selectDate') : formatEventDate(date)}
           onChange={(selected) => setDate(toIsoDate(selected))}
         />
-        <Field label="Location" value={location} onChangeText={setLocation} />
+        <Field label={t('editEventForm.locationLabel')} value={location} onChangeText={setLocation} />
         <Field
-          label="Welcome message"
+          label={t('editEventForm.welcomeMessageLabel')}
           value={welcomeMessage}
           onChangeText={setWelcomeMessage}
           multiline

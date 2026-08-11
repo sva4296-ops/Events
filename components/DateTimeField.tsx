@@ -57,6 +57,15 @@ export function DateTimeField({ label, value, mode, displayValue, onChange, hint
           mode={mode}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={handleChange}
+          // iOS only — the picker otherwise follows the device's system
+          // appearance, not this app's own (possibly overridden) theme state,
+          // which is exactly what made the wheel unreadable in dark mode.
+          // Android has no equivalent prop in this library: its native dialog
+          // is themed by the app's Android theme resource, resolved at the
+          // native/activity level, not switchable from this in-app JS toggle
+          // without native code changes this project hasn't made — see
+          // CLAUDE.md for why that's flagged rather than silently attempted.
+          themeVariant={Platform.OS === 'ios' ? tokens.mode : undefined}
         />
       ) : null}
       {show && Platform.OS === 'ios' ? (

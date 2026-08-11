@@ -798,8 +798,25 @@ iOS with a "Done" button to collapse it, the native imperative dialog on Android
 select). Values are still plain strings in the data model (`AppEvent.date` as `YYYY-MM-DD`,
 `ScheduleItem.time` as `HH:MM`) — only the *input method* changed; `utils/dateInput.ts` converts
 between those strings and the `Date` object the picker needs. Used in `edit-event/[id].tsx` (date),
-`create/details.tsx` (date), and `schedule/[id].tsx` (time). Display formatting elsewhere is
-untouched (`utils/format.ts` → `formatEventDate`).
+`create/details.tsx` (date), and `schedule/[id].tsx` (time) — this is the *only* place in the app that
+imports `DateTimePicker` directly (checked), so it was a single-component fix. Display formatting
+elsewhere is untouched (`utils/format.ts` → `formatEventDate`).
+
+**iOS picker theming — fixed; Android picker theming — a real library limitation, not fixed.** The
+picker used to render with no `themeVariant`, so it fell back to the device's system light/dark
+setting rather than this app's own theme state — normally harmless, but this app's dark mode is an
+explicit in-app override (see §2's `useTheme`) that can disagree with the system setting entirely, and
+when it did, the iOS spinner rendered dark text on a dark background. Fixed by passing
+`themeVariant={tokens.mode}` on iOS. **Android has no equivalent prop** —
+`@react-native-community/datetimepicker`'s `AndroidNativeProps` type has nothing theme-related; the
+Android dialog is themed by the app's native Android theme resource, resolved at the activity level,
+not switchable from a JS-side runtime toggle without native code changes (an Android `styles.xml`/
+`values-night` change plus an activity recreation, or a native module) that this project hasn't made.
+Not attempted blind — this is a genuine platform/library constraint, checked against the library's own
+type definitions rather than guessed at. On a device where the OS is already in dark mode, Android's
+dialog will likely still read fine (it follows the *device* setting, just not this app's independent
+override); the failure case is specifically Android + app dark mode + device still in light mode, which
+remains unfixed.
 
 ---
 
@@ -1046,9 +1063,61 @@ the platform sans-serif. `fonts.displayBold` / `displayItalic` / `displayRegular
 
 ### Tab bar
 
-Full-width dark navy (`#1B2237`), 96px tall, hairline top border and an upward shadow. Active tab =
-solid purple pill behind a white Feather icon; inactive = muted white outline icons. **It is not
-floating, suspended or rounded** — earlier descriptions of it that way were aspirational.
+**Now genuinely a floating pill — took three passes to get right.** This file used to say "it is not
+floating, suspended or rounded — earlier descriptions of it that way were aspirational," because every
+prior prompt asking for that shape was checked against git history and found to never have actually
+landed. It's built for real now: `borderRadius: 20` on all four corners, `height: 74` (down from the
+old edge-to-edge 96), `position: 'absolute'`, `left`/`right: gSpace.xl` for the horizontal margin —
+**`gSpace.xl`, not an arbitrary constant**, matching `GuestScreen`'s and `EventHeaderBar`'s own
+`paddingHorizontal` exactly (both already used it) so the bar's edges line up with card/section edges
+above it. An earlier version of this used a flat `18` here, close to `gSpace.xl`'s `20` but not equal
+to it — close enough to not typecheck-fail, wrong enough to visibly not line up with content edges once
+actually looked at.
+
+**The first attempt used a non-absolute bar with `marginHorizontal`/`marginBottom`, relying on React
+Navigation's automatic content-inset behavior instead of manual positioning — it looked floating in
+principle but shipped with two real bugs:** a stray white hairline above the bar, and an oversized,
+unbalanced gap below it down to the screen edge. Root cause of both: React Navigation's `BottomTabBar`
+applies its own default border-top and its own automatic safe-area-bottom handling to the tab bar
+container *underneath* whatever custom `tabBarStyle` you pass, in non-absolute mode. My added
+`marginBottom: insets.bottom + 14` didn't replace that automatic safe-area handling, it stacked on top
+of it — double-counting the inset. And omitting `borderTopWidth`/`borderTopColor` from my style object
+doesn't cancel the library's own default border; a key absent from a later object in a merged style
+array doesn't override a value an earlier one set.
+
+**The fix is the standard React Navigation recipe for a floating tab bar: `position: 'absolute'`,
+plus `borderTopWidth: 0` set explicitly (not omitted) to actually cancel the default border.**
+Absolute positioning takes the bar out of react-navigation's automatic safe-area/height computation
+entirely, so there's no longer anything to double-count or fight — `bottom: insets.bottom +
+floatingTabBar.gap` (10px) is the *only* source of the bottom offset now, computed inline via
+`useSafeAreaInsets()` since it has to react to the actual device inset (large on a notch/Dynamic Island
+device, ~0 on an older home-button one) rather than a flat constant. Shadow
+(`shadowColor`/`-Radius`/`-Offset`/`elevation`) is static; only `shadowOpacity` is mode-dependent (0.18
+light / 0.4 dark) since a plain dark shadow reads very differently against a light versus dark page.
+
+**Taking the bar out of layout flow this way means every guest screen now has to clear it manually —
+`floatingTabBar` (`utils/guestTheme.ts`, `{ height: 74, gap: 10 }`) is the shared source both
+`app/guest/[id]/_layout.tsx` and every consumer below read, so the two can't drift out of sync.**
+`GuestScreen`'s default `paddingBottom` is now `insets.bottom + floatingTabBar.gap +
+floatingTabBar.height + gSpace.lg` instead of the old flat `gSpace.xxl` — applies to all 6 tabs, plus
+`checkout/[id].tsx` (the one `GuestScreen` consumer outside the tabs navigator, where the extra padding
+is a harmless overshoot on a stub screen, not a bug). Acasă's owner-only FAB (`bottom`) and its
+FAB-clearing `contentStyle` (`paddingBottom`) are both computed from the same `floatingTabBar` constant
+via a local `tabBarClearance` value, replacing the old flat `92`/`gSpace.xl` numbers — the only other
+bottom-anchored absolute element across the 6 tabs (checked; nothing else in Detalii/Fond/Chat/Live/
+Album is screen-bottom-anchored).
+
+**Tab touch targets are unaffected by any of this — reasoned, not device-verified.** Individual tab
+buttons are laid out by React Navigation inside the bar container as a normal internal row, a layer this
+pass never touched (no changes to `tabBarItemStyle`, `iconWrap`, icon sizes, or label styles). The bar
+has no `overflow: 'hidden'`, so the rounded corners clip rendering only at the exact corner pixels,
+never the touch region, and every tab's icon+label already sits well inside the rounded box via
+existing padding. This is source-level reasoning, not a tap-tested result — same caveat as the rest of
+this file, no device or simulator run has happened in any session so far.
+
+Fill color and active/inactive styling are unchanged across both passes — `tokens.tabBar.background`/
+`active`/`inactive` (see §5's Warm Story section), solid `accentPrimary` pill behind the active icon,
+gold icon on top.
 
 ### Component patterns
 

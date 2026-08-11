@@ -1,13 +1,14 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Tabs, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventHeaderBar } from '@/components/guest/EventHeaderBar';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { useTheme } from '@/hooks/useTheme';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
-import { guest, gRadius } from '@/utils/guestTheme';
+import { floatingTabBar, guest, gRadius, gSpace } from '@/utils/guestTheme';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -24,6 +25,7 @@ export default function GuestEventLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, hydrated, isOwner } = useEvents();
   const { tokens } = useTheme();
+  const insets = useSafeAreaInsets();
 
   if (!hydrated || id === undefined) {
     return <View style={[styles.blank, { backgroundColor: tokens.background[0] }]} />;
@@ -43,7 +45,14 @@ export default function GuestEventLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarStyle: [styles.bar, { backgroundColor: tokens.tabBar.background }],
+            tabBarStyle: [
+              styles.bar,
+              {
+                backgroundColor: tokens.tabBar.background,
+                bottom: insets.bottom + floatingTabBar.gap,
+                shadowOpacity: tokens.mode === 'dark' ? 0.4 : 0.18,
+              },
+            ],
             tabBarActiveTintColor: tokens.tabBar.active,
             tabBarInactiveTintColor: tokens.tabBar.inactive,
             tabBarLabelStyle: styles.label,
@@ -87,15 +96,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: guest.cream,
   },
+  // Floating pill, not edge-to-edge: `position: 'absolute'` so the exact
+  // recipe React Navigation's own docs use for a floating tab bar — taking it
+  // out of the default automatic-safe-area/height computation entirely,
+  // rather than fighting that computation with a margin on a normal-flow
+  // sibling (that's what produced the double-counted gap and the stray
+  // default hairline border in the previous attempt: `borderTopWidth: 0`
+  // below explicitly cancels react-navigation's own default border, which
+  // omitting the property does not — an unset key in a merged style array
+  // doesn't override a value the library's own base style already set).
+  // `bottom` is set inline (needs the device's actual safe-area inset).
   bar: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.12)',
-    height: 96,
+    position: 'absolute',
+    // Matches GuestScreen's/EventHeaderBar's own paddingHorizontal (gSpace.xl)
+    // so the bar's edges line up with card/section edges above it, rather
+    // than an arbitrary margin unique to the tab bar.
+    left: gSpace.xl,
+    right: gSpace.xl,
+    borderRadius: 20,
+    borderTopWidth: 0,
+    height: floatingTabBar.height,
+    marginHorizontal: 20,
     paddingTop: 12,
     shadowColor: '#000000',
-    shadowOpacity: 0.2,
     shadowRadius: 16,
-    shadowOffset: { width: 0, height: -5 },
+    shadowOffset: { width: 0, height: 8 },
     elevation: 14,
   },
   item: {

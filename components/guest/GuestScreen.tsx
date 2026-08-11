@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { closeOpenSwipeRow } from '@/components/SwipeableRow';
 import { useTheme } from '@/hooks/useTheme';
-import { gSpace } from '@/utils/guestTheme';
+import { floatingTabBar, gSpace } from '@/utils/guestTheme';
 
 interface GuestScreenProps {
   children?: ReactNode;
@@ -25,7 +25,14 @@ export function GuestScreen({
 }: GuestScreenProps) {
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
-  const padding = { paddingTop: (topInset ? insets.top : 0) + gSpace.lg };
+  // The floating tabs bar is `position: 'absolute'` (see app/guest/[id]/_layout.tsx),
+  // so it no longer reserves layout space automatically — every guest screen's own
+  // scroll content has to clear it manually. Harmless overshoot on the one GuestScreen
+  // consumer outside the tabs (checkout/[id].tsx, a stub with no floating bar above it).
+  const padding = {
+    paddingTop: (topInset ? insets.top : 0) + gSpace.lg,
+    paddingBottom: insets.bottom + floatingTabBar.gap + floatingTabBar.height + gSpace.lg,
+  };
   const pageStyle = transparent
     ? styles.pageTransparent
     : [styles.page, { backgroundColor: tokens.background[0] }];

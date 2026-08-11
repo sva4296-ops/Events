@@ -2,6 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandFlourish } from '@/components/BrandFlourish';
 import { EmptyState } from '@/components/EmptyState';
@@ -15,7 +16,7 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
-import { fonts, gSpace } from '@/utils/guestTheme';
+import { floatingTabBar, fonts, gSpace } from '@/utils/guestTheme';
 import { themeRadius } from '@/utils/themeTokens';
 
 export default function AcasaScreen() {
@@ -23,10 +24,14 @@ export default function AcasaScreen() {
   const { id, event } = useGuestEvent();
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
+  const insets = useSafeAreaInsets();
   const { content, toggleReaction, hasReacted, reactionCount, deleteMoment } =
     useEventContent(id);
 
   const owner = isOwner(event);
+  // Distance from the true screen bottom up to the floating tabs bar's top
+  // edge — the FAB and this screen's own extra bottom padding both build on it.
+  const tabBarClearance = insets.bottom + floatingTabBar.gap + floatingTabBar.height;
 
   if (content === null) {
     return (
@@ -40,7 +45,10 @@ export default function AcasaScreen() {
 
   return (
     <View style={styles.wrap}>
-      <GuestScreen contentStyle={owner ? styles.contentWithFab : undefined} transparent>
+      <GuestScreen
+        contentStyle={owner ? { paddingBottom: tabBarClearance + gSpace.xxl + 58 } : undefined}
+        transparent
+      >
         <SectionLabel>{t('acasa.sectionLabel')}</SectionLabel>
 
         {content.moments.length === 0 ? (
@@ -105,7 +113,7 @@ export default function AcasaScreen() {
 
       {owner ? (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: tokens.accentPrimary }]}
+          style={[styles.fab, { backgroundColor: tokens.accentPrimary, bottom: tabBarClearance + gSpace.md }]}
           onPress={() => router.push(`/post-moment/${id}`)}
           activeOpacity={0.85}
           accessibilityRole="button"
@@ -121,9 +129,6 @@ export default function AcasaScreen() {
 const styles = StyleSheet.create({
   wrap: {
     flex: 1,
-  },
-  contentWithFab: {
-    paddingBottom: 92,
   },
   promo: {
     borderRadius: themeRadius.lg,
@@ -148,7 +153,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: gSpace.xl,
-    bottom: gSpace.xl,
     width: 58,
     height: 58,
     borderRadius: themeRadius.pill,

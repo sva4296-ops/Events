@@ -5,9 +5,10 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
-import { GuestRow } from '@/components/GuestRow';
+import { GuestRow, GuestRowSkeleton } from '@/components/GuestRow';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
+import { Skeleton } from '@/components/Skeleton';
 import { StatCard } from '@/components/StatCard';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { confirmDelete } from '@/utils/confirm';
@@ -19,9 +20,38 @@ import { colors, radius, spacing } from '@/utils/theme';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, removeGuest, isOwner } = useEvents();
+  const { getEvent, hydrated, removeGuest, isOwner } = useEvents();
   const event = getEvent(id);
   const owner = isOwner(event);
+
+  // Before the initial fetch settles, `getEvent` can't tell "still loading"
+  // from "no such event" — `hydrated` is what actually distinguishes them.
+  if (!hydrated) {
+    return (
+      <Screen>
+        <View style={styles.headerSkeleton}>
+          <Skeleton width={40} height={40} radius={radius.pill} />
+          <Skeleton height={28} width="70%" radius={6} />
+          <Skeleton height={15} width="45%" radius={4} />
+        </View>
+
+        <View style={styles.stats}>
+          <Skeleton height={78} radius={radius.md} style={styles.statSkeleton} />
+          <Skeleton height={78} radius={radius.md} style={styles.statSkeleton} />
+          <Skeleton height={78} radius={radius.md} style={styles.statSkeleton} />
+        </View>
+
+        <View style={styles.section}>
+          <Skeleton height={13} width={120} radius={4} />
+          <Card>
+            <GuestRowSkeleton />
+            <GuestRowSkeleton />
+            <GuestRowSkeleton />
+          </Card>
+        </View>
+      </Screen>
+    );
+  }
 
   if (event === undefined) {
     return (
@@ -76,8 +106,8 @@ export default function EventDetailScreen() {
         <StatCard
           label="Declined"
           value={counts.declined}
-          tint={colors.danger}
-          background={colors.dangerSoft}
+          tint={colors.declined}
+          background={colors.declinedSoft}
         />
       </View>
 
@@ -140,6 +170,13 @@ export default function EventDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerSkeleton: {
+    paddingTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  statSkeleton: {
+    flex: 1,
+  },
   stats: {
     flexDirection: 'row',
     gap: spacing.md,

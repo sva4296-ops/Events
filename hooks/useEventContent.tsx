@@ -1,27 +1,9 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 
-import { localRepository, type Actor } from '@/data/eventContentRepository';
-import { remoteRepository } from '@/data/remoteEventContentRepository';
+import { remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
 import { useAuth } from '@/hooks/useAuth';
-import type {
-  Accommodation,
-  EventContent,
-  ReactionType,
-  ScheduleItem,
-  SeatingTable,
-  Vendor,
-  Venue,
-} from '@/types/guest';
-import { createId } from '@/utils/id';
+import type { DetailsContent, EventContent, ReactionType, Venue } from '@/types/guest';
 import { reportSupabaseError } from '@/utils/reportError';
 
 export interface FundInput {
@@ -66,94 +48,83 @@ export interface VendorInput {
   external_url: string;
 }
 
-interface StoreValue {
-  byEvent: Record<string, EventContent>;
-  ensure: (eventId: string) => void;
-  update: (eventId: string, updater: (content: EventContent) => EventContent) => void;
-  mode: 'supabase' | 'local';
-}
-
-const StoreContext = createContext<StoreValue | null>(null);
+/** Which of the three cached slices a given remote write should invalidate. */
+type ContentCategory = 'social' | 'details' | 'contributions';
 
 /**
- * Content lives at the app root, not inside the tabs, so owner screens outside
- * the tab navigator (edit event, schedule, venue, fund, post a moment) mutate the
- * same content state.
+ * Per-event content — no Context/Provider anymore (see useEvents.tsx for the
+ * same change and why it's safe: the TanStack Query cache is already global,
+ * so screens outside the guest tabs, e.g. edit-event/schedule/venue/fund/
+ * post-moment, share the same cached content as the tabs without needing a
+ * store mounted above them).
+ *
+ * Three independent queries, not one, so each data-freshness category can
+ * have its own staleTime — see the comment above each useQuery call below.
+ * `content` is still the single merged EventContent every screen has always
+ * read; only the caching underneath it is split.
  */
-export function EventContentProvider({ children }: { children: ReactNode }) {
-  const { user, mode } = useAuth();
-  const [byEvent, setByEvent] = useState<Record<string, EventContent>>({});
-  const requested = useRef(new Set<string>());
-
-  // Drop cached content when the session changes so nothing leaks between accounts.
-  // Consumers re-request on their next render because their effect watches `content`.
-  const userId = user?.id;
-  const lastUserId = useRef<string | undefined>(userId);
-
-  useEffect(() => {
-    if (lastUserId.current === userId) return;
-    lastUserId.current = userId;
-    requested.current.clear();
-    setByEvent({});
-  }, [userId]);
-
-  const ensure = useCallback(
-    (eventId: string) => {
-      if (requested.current.has(eventId)) return;
-      requested.current.add(eventId);
-
-      const loader = mode === 'supabase' ? remoteRepository.load : localRepository.load;
-      void loader(eventId)
-        .then((loaded) => {
-          setByEvent((current) => ({ ...current, [eventId]: loaded }));
-        })
-        .catch((error: unknown) => {
-          requested.current.delete(eventId);
-          reportSupabaseError(error);
-        });
-    },
-    [mode],
-  );
-
-  const update = useCallback(
-    (eventId: string, updater: (content: EventContent) => EventContent) => {
-      setByEvent((current) => {
-        const existing = current[eventId];
-        if (existing === undefined) return current;
-        return { ...current, [eventId]: updater(existing) };
-      });
-    },
-    [],
-  );
-
-  const value = useMemo<StoreValue>(
-    () => ({ byEvent, ensure, update, mode }),
-    [byEvent, ensure, update, mode],
-  );
-
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
-}
-
 export function useEventContent(eventId: string) {
-  const store = useContext(StoreContext);
-  if (store === null) {
-    throw new Error('useEventContent must be used inside <EventContentProvider>');
-  }
-
   const { user } = useAuth();
-  const { byEvent, ensure, update, mode } = store;
-  const content = byEvent[eventId] ?? null;
+  const queryClient = useQueryClient();
+
+  const socialKey = useMemo(() => ['eventContent', 'social', eventId] as const, [eventId]);
+  const detailsKey = useMemo(() => ['eventContent', 'details', eventId] as const, [eventId]);
+  const contributionsKey = useMemo(
+    () => ['eventContent', 'contributions', eventId] as const,
+    [eventId],
+  );
+
+  const socialQuery = useQuery({
+    queryKey: socialKey,
+    queryFn: () => remoteRepository.loadSocial(eventId),
+    enabled: eventId.length > 0,
+    /**
+     * Moments, reactions, messages, photos — the "would be Realtime-backed"
+     * category (Infinity staleTime, cache updated by a subscription event
+     * rather than a timer). No Realtime subscriptions exist in this codebase
+     * (see CLAUDE.md §7), so Infinity here would mean another guest's
+     * message/photo/moment never appears until this device's own next
+     * mutation invalidates the key — a real regression, not a tuning win.
+     * Using the same 30s + explicit-invalidation treatment as category 3
+     * instead, until Realtime is actually built.
+     */
+    staleTime: 30_000,
+  });
+
+  const detailsQuery = useQuery({
+    queryKey: detailsKey,
+    queryFn: () => remoteRepository.loadDetails(eventId),
+    enabled: eventId.length > 0,
+    // Schedule, venue, menu, seating, accommodations, vendors, fund settings —
+    // owner-edited, rarely changing. Every mutation that touches this data
+    // already invalidates this key explicitly, so a longer staleTime here
+    // only affects how soon *other* devices/sessions notice an edit, not the
+    // editor's own screen.
+    staleTime: 3 * 60_000,
+  });
+
+  const contributionsQuery = useQuery({
+    queryKey: contributionsKey,
+    queryFn: () => remoteRepository.loadContributions(eventId),
+    enabled: eventId.length > 0,
+    // User-action-driven list, same category as the guest list — see
+    // hooks/useEvents.tsx. Nothing writes contributions client-side today
+    // (no Stripe integration — see CLAUDE.md §7), so this is mostly future-
+    // proofing: once a webhook can write here, staleTime is the safety net
+    // that surfaces a contribution made from another device without a
+    // client-side mutation to invalidate on this device's behalf.
+    staleTime: 30_000,
+  });
+
+  const content: EventContent | null =
+    socialQuery.data !== undefined && detailsQuery.data !== undefined && contributionsQuery.data !== undefined
+      ? { ...socialQuery.data, ...detailsQuery.data, ...contributionsQuery.data }
+      : null;
 
   const actor: Actor = useMemo(
     () => ({ id: user?.id ?? 'anonymous', label: user?.email ?? 'Tu' }),
     [user],
   );
-
-  // Depends on `content` so it re-requests after the cache is dropped on a session
-  // change; `ensure` de-dupes, so this settles after one load.
-  useEffect(() => {
-    if (eventId.length > 0 && content === null) ensure(eventId);
-  }, [eventId, ensure, content]);
 
   const hasReacted = useCallback(
     (momentId: string, reaction: ReactionType) =>
@@ -174,87 +145,58 @@ export function useEventContent(eventId: string) {
     [content],
   );
 
-  /** Re-reads this event's content from Supabase and replaces the cached copy — the
-   * source of truth after any remote write, since remote writes aren't optimistic. */
-  const refreshContent = useCallback(async () => {
-    const fresh = await remoteRepository.load(eventId);
-    update(eventId, () => fresh);
-  }, [eventId, update]);
-
-  const runRemote = useCallback(
-    (mutate: () => Promise<void>) => {
-      void mutate()
-        .then(refreshContent)
-        .catch((error: unknown) => reportSupabaseError(error));
+  /**
+   * Replaces the old runRemote(mutate().then(refreshContent)) pattern:
+   * invalidateQueries marks the affected category stale and triggers a
+   * refetch for every mounted observer of that key, instead of one manual
+   * reload of the whole (now-split) content bag. `category` picks which of
+   * the three keys actually needs to refetch, so e.g. saving a schedule item
+   * never invalidates (and re-fetches) messages/photos/moments.
+   */
+  const remoteMutation = useMutation({
+    mutationFn: ({ write }: { write: () => Promise<void>; category: ContentCategory }) => write(),
+    onSuccess: (_result, { category }) => {
+      const key = category === 'social' ? socialKey : category === 'details' ? detailsKey : contributionsKey;
+      void queryClient.invalidateQueries({ queryKey: key });
     },
-    [refreshContent],
+    onError: (error: unknown) => reportSupabaseError(error),
+  });
+  const runRemote = useCallback(
+    (write: () => Promise<void>, category: ContentCategory) => remoteMutation.mutate({ write, category }),
+    [remoteMutation],
   );
 
   const actions = useMemo(
     () => ({
       toggleReaction: (momentId: string, reaction: ReactionType) => {
-        if (mode === 'supabase') {
-          const already = hasReacted(momentId, reaction);
-          runRemote(() =>
+        const already = hasReacted(momentId, reaction);
+        runRemote(
+          () =>
             already
               ? remoteRepository.removeReaction(momentId, reaction, actor)
               : remoteRepository.addReaction(momentId, reaction, actor),
-          );
-          return;
-        }
-
-        update(eventId, (current) => {
-          const existing = current.reactions.find(
-            (entry) =>
-              entry.moment_id === momentId &&
-              entry.reaction_type === reaction &&
-              entry.user_id === actor.id,
-          );
-          return existing !== undefined
-            ? { ...current, reactions: current.reactions.filter((e) => e.id !== existing.id) }
-            : {
-                ...current,
-                reactions: [
-                  ...current.reactions,
-                  localRepository.toggleReaction(momentId, reaction, actor),
-                ],
-              };
-        });
+          'social',
+        );
       },
 
       sendMessage: (text: string) => {
         const trimmed = text.trim();
         if (trimmed.length === 0) return;
-
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.sendMessage(eventId, trimmed, actor));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          messages: [...current.messages, localRepository.sendMessage(eventId, trimmed, actor)],
-        }));
+        runRemote(() => remoteRepository.sendMessage(eventId, trimmed, actor), 'social');
       },
 
       addPhoto: (url: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.addPhoto(eventId, url, actor));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          photos: [localRepository.addPhoto(eventId, url, actor), ...current.photos],
-        }));
+        runRemote(() => remoteRepository.addPhoto(eventId, url, actor), 'social');
       },
 
-      /** Local-only: nothing writes contributions client-side even against Supabase —
-       * the schema has no insert policy on purpose, contributions land via a Stripe
-       * webhook using the service role. Unused today since checkout is a stub. */
+      /** Stubbed: the `contributions` table has no client insert policy, on
+       * purpose — a contribution is meant to land via a Stripe webhook using
+       * the service role, never the client (see CLAUDE.md §3). There is no
+       * remote counterpart to call here, so this patches the cache directly;
+       * unused today since checkout is still a placeholder. */
       contribute: (amount: number) =>
-        update(eventId, (current) =>
-          current.fund === null
+        queryClient.setQueryData<DetailsContent>(detailsKey, (current) =>
+          current === undefined || current.fund === null
             ? current
             : {
                 ...current,
@@ -262,249 +204,83 @@ export function useEventContent(eventId: string) {
               },
         ),
 
-      /** Optimistic prepend in local mode; a refetch in Supabase mode. */
       addMoment: (title: string, photoUrl: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.createMoment(eventId, title, photoUrl, actor));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          moments: [
-            localRepository.createMoment(eventId, title, photoUrl, actor),
-            ...current.moments,
-          ],
-        }));
+        runRemote(() => remoteRepository.createMoment(eventId, title, photoUrl, actor), 'social');
       },
 
       saveFund: (input: FundInput) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.saveFund(eventId, input, content?.fund?.id ?? null));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          fund:
-            current.fund === null
-              ? localRepository.createFund(eventId, input)
-              : { ...current.fund, ...input },
-        }));
+        runRemote(() => remoteRepository.saveFund(eventId, input, content?.fund?.id ?? null), 'details');
       },
 
       deleteFund: () => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteFund(eventId));
-          return;
-        }
-
-        update(eventId, (current) => ({ ...current, fund: null, contributions: [] }));
+        runRemote(() => remoteRepository.deleteFund(eventId), 'details');
       },
 
       saveScheduleItem: (item: ScheduleItemInput) => {
-        if (mode === 'supabase') {
-          runRemote(() =>
-            remoteRepository.saveScheduleItem(eventId, item, content?.schedule.length ?? 0),
-          );
-          return;
-        }
-
-        update(eventId, (current) => {
-          const id = item.id ?? createId();
-          const next: ScheduleItem = {
-            id,
-            event_id: eventId,
-            time: item.time,
-            title: item.title,
-            location: item.location,
-          };
-          const schedule =
-            item.id === null
-              ? [...current.schedule, next]
-              : current.schedule.map((entry) => (entry.id === id ? next : entry));
-          return { ...current, schedule };
-        });
+        runRemote(
+          () => remoteRepository.saveScheduleItem(eventId, item, content?.schedule.length ?? 0),
+          'details',
+        );
       },
 
       deleteScheduleItem: (itemId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteScheduleItem(itemId));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          schedule: current.schedule.filter((item) => item.id !== itemId),
-        }));
+        runRemote(() => remoteRepository.deleteScheduleItem(itemId), 'details');
       },
 
       deleteMoment: (momentId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteMoment(momentId));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          moments: current.moments.filter((moment) => moment.id !== momentId),
-          reactions: current.reactions.filter((entry) => entry.moment_id !== momentId),
-        }));
+        runRemote(() => remoteRepository.deleteMoment(momentId), 'social');
       },
 
       deleteMessage: (messageId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteMessage(messageId));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          messages: current.messages.filter((message) => message.id !== messageId),
-        }));
+        runRemote(() => remoteRepository.deleteMessage(messageId), 'social');
       },
 
       deletePhoto: (photoId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deletePhoto(photoId));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          photos: current.photos.filter((photo) => photo.id !== photoId),
-        }));
+        runRemote(() => remoteRepository.deletePhoto(photoId), 'social');
       },
 
       updateVenue: (venue: Venue) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.updateVenue(venue));
-          return;
-        }
-
-        update(eventId, (current) => ({ ...current, venue }));
+        runRemote(() => remoteRepository.updateVenue(venue), 'details');
       },
 
       saveMenu: (input: MenuInput) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.saveMenu(eventId, input));
-          return;
-        }
-
-        update(eventId, (current) => ({ ...current, menu: { event_id: eventId, ...input } }));
+        runRemote(() => remoteRepository.saveMenu(eventId, input), 'details');
       },
 
       saveSeatingTable: (item: SeatingTableInput) => {
-        if (mode === 'supabase') {
-          runRemote(() =>
-            remoteRepository.saveSeatingTable(eventId, item, content?.seatingTables.length ?? 0),
-          );
-          return;
-        }
-
-        update(eventId, (current) => {
-          const id = item.id ?? createId();
-          const next: SeatingTable = {
-            id,
-            event_id: eventId,
-            name: item.name,
-            label: item.label,
-            seat_count: item.seat_count,
-          };
-          const seatingTables =
-            item.id === null
-              ? [...current.seatingTables, next]
-              : current.seatingTables.map((entry) => (entry.id === id ? next : entry));
-          return { ...current, seatingTables };
-        });
+        runRemote(
+          () => remoteRepository.saveSeatingTable(eventId, item, content?.seatingTables.length ?? 0),
+          'details',
+        );
       },
 
       deleteSeatingTable: (tableId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteSeatingTable(tableId));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          seatingTables: current.seatingTables.filter((table) => table.id !== tableId),
-        }));
+        runRemote(() => remoteRepository.deleteSeatingTable(tableId), 'details');
       },
 
       saveAccommodation: (item: AccommodationInput) => {
-        if (mode === 'supabase') {
-          runRemote(() =>
-            remoteRepository.saveAccommodation(eventId, item, content?.accommodations.length ?? 0),
-          );
-          return;
-        }
-
-        update(eventId, (current) => {
-          const id = item.id ?? createId();
-          const next: Accommodation = {
-            id,
-            event_id: eventId,
-            name: item.name,
-            detail_line: item.detail_line,
-            price_line: item.price_line,
-          };
-          const accommodations =
-            item.id === null
-              ? [...current.accommodations, next]
-              : current.accommodations.map((entry) => (entry.id === id ? next : entry));
-          return { ...current, accommodations };
-        });
+        runRemote(
+          () => remoteRepository.saveAccommodation(eventId, item, content?.accommodations.length ?? 0),
+          'details',
+        );
       },
 
       deleteAccommodation: (accommodationId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteAccommodation(accommodationId));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          accommodations: current.accommodations.filter((entry) => entry.id !== accommodationId),
-        }));
+        runRemote(() => remoteRepository.deleteAccommodation(accommodationId), 'details');
       },
 
       saveVendor: (item: VendorInput) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.saveVendor(eventId, item, content?.vendors.length ?? 0));
-          return;
-        }
-
-        update(eventId, (current) => {
-          const id = item.id ?? createId();
-          const next: Vendor = {
-            id,
-            event_id: eventId,
-            name: item.name,
-            category: item.category,
-            handle: item.handle,
-            external_url: item.external_url,
-          };
-          const vendors =
-            item.id === null
-              ? [...current.vendors, next]
-              : current.vendors.map((entry) => (entry.id === id ? next : entry));
-          return { ...current, vendors };
-        });
+        runRemote(
+          () => remoteRepository.saveVendor(eventId, item, content?.vendors.length ?? 0),
+          'details',
+        );
       },
 
       deleteVendor: (vendorId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteVendor(vendorId));
-          return;
-        }
-
-        update(eventId, (current) => ({
-          ...current,
-          vendors: current.vendors.filter((vendor) => vendor.id !== vendorId),
-        }));
+        runRemote(() => remoteRepository.deleteVendor(vendorId), 'details');
       },
     }),
-    [eventId, update, actor, mode, hasReacted, runRemote, content],
+    [eventId, actor, hasReacted, runRemote, content, queryClient, detailsKey],
   );
 
   return { content, hasReacted, reactionCount, ...actions };

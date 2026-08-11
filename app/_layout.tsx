@@ -4,6 +4,7 @@ import {
   PlayfairDisplay_600SemiBold,
   useFonts,
 } from '@expo-google-fonts/playfair-display';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
@@ -14,9 +15,32 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthGate } from '@/components/AuthGate';
 import { BrandSplash } from '@/components/BrandSplash';
 import { AuthProvider } from '@/hooks/useAuth';
-import { EventContentProvider } from '@/hooks/useEventContent';
 import { EventDraftProvider } from '@/hooks/useEventDraft';
-import { EventsProvider } from '@/hooks/useEvents';
+
+/**
+ * Baseline only — every query below overrides staleTime (and gcTime where it
+ * should differ) for its own data-freshness category; see hooks/useEvents.tsx
+ * and hooks/useEventContent.tsx. `refetchOnWindowFocus` is a browser-tab
+ * concept with no RN equivalent, so it's off rather than silently inert.
+ * Mutations never auto-retry — retrying a failed insert/update against
+ * Supabase risks a duplicate write, unlike a read.
+ */
+function createQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60_000,
+        gcTime: 5 * 60_000,
+        refetchOnReconnect: true,
+        refetchOnWindowFocus: false,
+        retry: 2,
+      },
+      mutations: {
+        retry: 0,
+      },
+    },
+  });
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -25,6 +49,7 @@ export default function RootLayout() {
     PlayfairDisplay_600SemiBold,
   });
 
+  const [queryClient] = useState(createQueryClient);
   const [splashVisible, setSplashVisible] = useState(true);
 
   // Nothing to route here anymore — AuthGate decides Auth vs Onboarding vs
@@ -38,11 +63,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <EventsProvider>
-          <EventContentProvider>
-            <EventDraftProvider>
-              <AuthGate>
+        <EventDraftProvider>
+          <AuthGate>
             <StatusBar style="dark" />
             <View style={styles.root}>
               <Stack
@@ -52,11 +76,10 @@ export default function RootLayout() {
                 <BrandSplash onReveal={handleReveal} onFinished={handleFinished} />
               ) : null}
             </View>
-              </AuthGate>
-            </EventDraftProvider>
-          </EventContentProvider>
-        </EventsProvider>
+          </AuthGate>
+        </EventDraftProvider>
       </AuthProvider>
+      </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

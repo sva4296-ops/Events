@@ -5,7 +5,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
-import { MomentCard } from '@/components/guest/MomentCard';
+import { MomentCard, MomentCardSkeleton } from '@/components/guest/MomentCard';
 import { SectionLabel } from '@/components/guest/SectionLabel';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { confirmDelete } from '@/utils/confirm';
@@ -22,7 +22,15 @@ export default function AcasaScreen() {
 
   const owner = isOwner(event);
 
-  if (content === null) return <GuestScreen transparent />;
+  if (content === null) {
+    return (
+      <GuestScreen transparent>
+        <SectionLabel>POVESTEA NOASTRĂ</SectionLabel>
+        <MomentCardSkeleton />
+        <MomentCardSkeleton />
+      </GuestScreen>
+    );
+  }
 
   return (
     <View style={styles.wrap}>

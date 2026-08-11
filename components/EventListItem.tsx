@@ -2,6 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { Skeleton } from '@/components/Skeleton';
 import type { AppEvent } from '@/types/event';
 import { getEventType } from '@/utils/eventTypes';
 import { countRsvps, eventSubtitle } from '@/utils/format';
@@ -37,6 +38,21 @@ export function EventListItem({ event, onPress }: { event: AppEvent; onPress: ()
 
       <Feather name="chevron-right" size={20} color={colors.faint} />
     </TouchableOpacity>
+  );
+}
+
+/** Same row/badge/info dimensions as the real row above, so nothing shifts when data lands. */
+export function EventListItemSkeleton() {
+  return (
+    <View style={styles.row}>
+      <Skeleton width={52} height={52} radius={radius.md} />
+      <View style={styles.info}>
+        <Skeleton height={16} width="70%" radius={4} />
+        <Skeleton height={13} width="50%" radius={4} />
+        <Skeleton height={12} width="35%" radius={4} />
+      </View>
+      <Skeleton width={20} height={20} radius={10} />
+    </View>
   );
 }
 

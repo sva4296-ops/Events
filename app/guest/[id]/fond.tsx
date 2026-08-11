@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { ProgressBar } from '@/components/guest/ProgressBar';
+import { Skeleton } from '@/components/Skeleton';
 import { confirmDelete } from '@/utils/confirm';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
@@ -18,7 +19,19 @@ export default function FondScreen() {
   const { isOwner } = useEvents();
   const { content, deleteFund } = useEventContent(id);
 
-  if (content === null) return <GuestScreen transparent />;
+  if (content === null) {
+    return (
+      <GuestScreen contentStyle={styles.page} transparent>
+        <View style={styles.card}>
+          <Skeleton height={11} width="50%" radius={4} />
+          <Skeleton height={14} width="85%" radius={4} />
+          <Skeleton height={40} width="60%" radius={6} />
+          <Skeleton height={10} radius={gRadius.pill} style={styles.skeletonTrack} />
+          <Skeleton height={13} width="70%" radius={4} />
+        </View>
+      </GuestScreen>
+    );
+  }
 
   const owner = isOwner(event);
   const { fund } = content;
@@ -114,6 +127,9 @@ const styles = StyleSheet.create({
   page: {
     justifyContent: 'center',
     flexGrow: 1,
+  },
+  skeletonTrack: {
+    alignSelf: 'stretch',
   },
   card: {
     backgroundColor: guest.white,

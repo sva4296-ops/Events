@@ -5,6 +5,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { PhotoTile } from '@/components/guest/PhotoTile';
+import { Skeleton } from '@/components/Skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -21,6 +22,7 @@ export default function LiveScreen() {
   const owner = isOwner(event);
 
   const liveUrl = buildInviteLink(id);
+  const loading = content === null;
   const photos = content?.photos ?? [];
   const [hero, ...rest] = photos;
 
@@ -52,7 +54,9 @@ export default function LiveScreen() {
         </View>
 
         <View style={styles.grid}>
-          {hero !== undefined ? (
+          {loading ? (
+            <Skeleton height={140} radius={gRadius.md} />
+          ) : hero !== undefined ? (
             <PhotoTile
               photo={hero}
               style={styles.hero}
@@ -63,7 +67,15 @@ export default function LiveScreen() {
             <View style={[styles.hero, styles.placeholder]} />
           )}
 
-          {rest.length > 0 ? (
+          {loading ? (
+            <View style={styles.small}>
+              <Skeleton width={56} height={56} radius={gRadius.sm} />
+              <Skeleton width={56} height={56} radius={gRadius.sm} />
+              <Skeleton width={56} height={56} radius={gRadius.sm} />
+            </View>
+          ) : null}
+
+          {!loading && rest.length > 0 ? (
             <ScrollView
               style={styles.thumbScroll}
               contentContainerStyle={styles.small}

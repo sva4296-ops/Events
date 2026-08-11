@@ -9,12 +9,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { colors, radius, spacing } from '@/utils/theme';
 
 export default function ProfileScreen() {
-  const { user, mode, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   return (
     <Screen
       footer={
-        mode === 'supabase' && user !== null ? (
+        user !== null ? (
           <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
         ) : undefined
       }
@@ -27,10 +27,8 @@ export default function ProfileScreen() {
             <Feather name="user" size={20} color={colors.primary} />
           </View>
           <View style={styles.info}>
-            <Text style={styles.email}>{user?.email ?? 'Local account'}</Text>
-            <Text style={styles.meta}>
-              {mode === 'supabase' ? 'Signed in with Supabase' : 'Local device account'}
-            </Text>
+            <Text style={styles.email}>{user?.email ?? 'Account'}</Text>
+            <Text style={styles.meta}>Signed in with Supabase</Text>
           </View>
         </View>
       </Card>

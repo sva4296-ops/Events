@@ -2,29 +2,34 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Header } from '@/components/Header';
 import { InviteCard } from '@/components/InviteCard';
 import { Screen } from '@/components/Screen';
 import type { RsvpStatus } from '@/types/event';
-import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { getEventType } from '@/utils/eventTypes';
-import { SELF_GUEST_ID } from '@/utils/guests';
 import { colors, spacing } from '@/utils/theme';
 
 export default function InviteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, respondToInvite, hydrated, isOwner } = useEvents();
-  const { mode } = useAuth();
   const [editing, setEditing] = useState(false);
   const event = getEvent(id);
+  // A cold-open deep link (opened straight into this route, no session and no
+  // screen underneath it) has nothing to go back to — showing a back button
+  // there would do nothing, so it's hidden rather than shown-but-dead.
+  const canGoBack = router.canGoBack();
 
   if (event === undefined) {
     return (
       <Screen>
-        <Header title={hydrated ? 'Invitation not found' : 'Opening invitation…'} showBack />
+        <Header
+          title={hydrated ? 'Invitation not found' : 'Opening invitation…'}
+          showBack={canGoBack}
+        />
         {hydrated ? (
           <Text style={styles.note}>
             This invitation link is no longer available on this device.
@@ -41,16 +46,17 @@ export default function InviteScreen() {
   // see what guests see, but never let a tap reach respondToInvite.
   const owner = isOwner(event);
 
-  // In Supabase mode, RLS already limits a non-organizer's event.guests to just
-  // their own row, so [0] is "my" row; local mode still uses the single-device
-  // sentinel guest.
-  const myRsvp = owner
-    ? undefined
-    : mode === 'supabase'
-      ? event.guests[0]
-      : event.guests.find((guest) => guest.id === SELF_GUEST_ID);
+  // RLS already limits a non-organizer's event.guests to just their own row,
+  // so [0] is "my" row.
+  const myRsvp = owner ? undefined : event.guests[0];
   const type = getEventType(event.type);
-  const showChoices = myRsvp === undefined || editing;
+  // A guest invited by email already has an `event_guests` row *before* they
+  // ever respond — its rsvp_status is 'pending'. `myRsvp !== undefined` alone
+  // only means "a row exists," not "they answered," so it can't gate the
+  // confirmed/declined UI on its own — that previously showed the decline
+  // copy (and an "Open event page" button) for a genuinely unanswered invite.
+  const responded = myRsvp !== undefined && myRsvp.status !== 'pending';
+  const showChoices = !responded || editing;
 
   const respond = (status: Exclude<RsvpStatus, 'pending'>) => {
     if (owner) return;
@@ -72,25 +78,30 @@ export default function InviteScreen() {
                 variant="success"
                 onPress={() => respond('confirmed')}
               />
-              <Button label="Can't make it" variant="danger" onPress={() => respond('declined')} />
+              <Button label="Can't make it" variant="neutral" onPress={() => respond('declined')} />
             </>
           )
         ) : (
           <>
-            <Button
-              label="Deschide pagina evenimentului"
-              onPress={() => router.push(`/guest/${event.id}`)}
-            />
+            {myRsvp?.status === 'confirmed' ? (
+              <Button
+                label="Deschide pagina evenimentului"
+                onPress={() => router.push(`/guest/${event.id}`)}
+              />
+            ) : null}
             <Button label="Change my answer" variant="ghost" onPress={() => setEditing(true)} />
           </>
         )
       }
       contentStyle={styles.content}
     >
-      <View style={styles.spacer} />
-      <InviteCard event={event} />
+      <View>
+        {canGoBack ? <BackButton style={styles.back} /> : null}
+        <View style={styles.spacer} />
+        <InviteCard event={event} />
+      </View>
 
-      {myRsvp !== undefined && !editing ? (
+      {responded && !editing ? (
         <Card style={styles.confirmation}>
           <Text style={styles.confirmationEmoji}>
             {myRsvp.status === 'confirmed' ? '🎉' : '💌'}
@@ -113,6 +124,12 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.lg,
     paddingBottom: spacing.xl,
+  },
+  back: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    zIndex: 2,
   },
   spacer: {
     height: spacing.lg,

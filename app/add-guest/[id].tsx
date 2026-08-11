@@ -17,7 +17,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function AddGuestScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, isOwner, addGuest } = useEvents();
-  const { user, mode } = useAuth();
+  const { user } = useAuth();
   const event = getEvent(id);
 
   const [email, setEmail] = useState('');
@@ -29,18 +29,6 @@ export default function AddGuestScreen() {
     return (
       <Screen>
         <Header title="Not available" subtitle="Only the organizer can invite guests." showBack />
-      </Screen>
-    );
-  }
-
-  if (mode !== 'supabase') {
-    return (
-      <Screen>
-        <Header
-          title="Not available"
-          subtitle="Inviting by email needs a signed-in account — this device is running without one."
-          showBack
-        />
       </Screen>
     );
   }

@@ -15,6 +15,11 @@ export const colors = {
   dangerSoft: '#FCEDEC',
   warning: '#C98A16',
   warningSoft: '#FDF3E0',
+  /** A declined RSVP — a recorded, neutral outcome, not a warning or a
+   * destructive action, so it deliberately doesn't borrow `danger`. Red is
+   * reserved for delete actions only. */
+  declined: '#786FA0',
+  declinedSoft: '#EDEAF6',
 } as const;
 
 /** Default page background gradient. */

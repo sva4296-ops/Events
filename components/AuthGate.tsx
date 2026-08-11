@@ -15,7 +15,7 @@ const PUBLIC_SEGMENTS = new Set(['auth', 'onboarding', 'invite']);
  * "Auth" vs "Onboarding" vs "let it through."
  */
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { user, mode, loading, hasCompletedOnboarding } = useAuth();
+  const { user, loading, hasCompletedOnboarding } = useAuth();
   const segments = useSegments();
   // Tracks which signed-in user id has already had its onboarding status
   // checked this session, so the async check doesn't re-run on every
@@ -30,9 +30,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     if (user === null) {
       onboardingChecked.current = null;
-      // Without credentials there is nothing to authenticate against, so the
-      // gate stays open rather than locking the app out entirely.
-      if (mode === 'supabase' && !isPublic) {
+      if (!isPublic) {
         router.replace('/auth');
       }
       return;
@@ -44,7 +42,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     void hasCompletedOnboarding().then((completed) => {
       if (!completed) router.replace('/onboarding');
     });
-  }, [user, mode, loading, segments, hasCompletedOnboarding]);
+  }, [user, loading, segments, hasCompletedOnboarding]);
 
   return <>{children}</>;
 }

@@ -114,20 +114,41 @@ export interface Vendor {
   external_url: string;
 }
 
-/** Everything one guest event page needs, in a single bag. */
-export interface EventContent {
+/**
+ * The three data-freshness categories useEventContent fetches and caches
+ * independently — see hooks/useEventContent.tsx for the staleTime each gets.
+ * Together they're the same fields EventContent below has always had; this
+ * is only how they're partitioned for caching, not a change to what any
+ * screen reads (screens still read the merged `content: EventContent`).
+ */
+
+/** Everything that would be Realtime-pushed if Realtime subscriptions existed
+ * here (they don't — see CLAUDE.md §7). Highest-churn, most-social content. */
+export interface SocialContent {
   moments: Moment[];
   reactions: MomentReaction[];
   messages: Message[];
   photos: Photo[];
-  /** Null until the organizer sets one up. */
+}
+
+/** Owner-edited, rarely-changing settings — schedule, venue, menu, seating,
+ * accommodations, vendors, and the fund's own settings (not its contributions). */
+export interface DetailsContent {
   fund: Fund | null;
-  contributions: Contribution[];
   schedule: ScheduleItem[];
   venue: Venue;
-  /** Null until the organizer sets one up — same convention as fund/venue. */
   menu: Menu | null;
   seatingTables: SeatingTable[];
   accommodations: Accommodation[];
   vendors: Vendor[];
 }
+
+/** The fund's contribution list — a user-action-driven list, same category as
+ * the guest list, kept separate from the fund's own settings above. */
+export interface ContributionsContent {
+  contributions: Contribution[];
+}
+
+/** Everything one guest event page needs, in a single bag — the merge of the
+ * three categories above. */
+export type EventContent = SocialContent & DetailsContent & ContributionsContent;

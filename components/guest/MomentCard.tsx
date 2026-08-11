@@ -1,6 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { Skeleton } from '@/components/Skeleton';
 import type { Moment, ReactionType } from '@/types/guest';
 import { guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
 import { timeAgo } from '@/utils/relativeTime';
@@ -62,6 +63,25 @@ export function MomentCard({
           <Feather name="message-circle" size={14} color={guest.body} />
           <Text style={styles.commentsText}>Comentarii</Text>
         </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+/** Same head/photo/reaction-row dimensions as the real card above. */
+export function MomentCardSkeleton() {
+  return (
+    <View style={styles.card}>
+      <View style={styles.head}>
+        <Skeleton height={12} width="30%" radius={4} />
+        <Skeleton height={18} width="60%" radius={4} />
+      </View>
+
+      <Skeleton height={230} radius={0} />
+
+      <View style={styles.reactions}>
+        <Skeleton width={54} height={30} radius={gRadius.pill} />
+        <Skeleton width={54} height={30} radius={gRadius.pill} />
       </View>
     </View>
   );

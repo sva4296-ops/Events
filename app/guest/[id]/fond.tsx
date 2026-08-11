@@ -12,19 +12,32 @@ import { confirmDelete } from '@/utils/confirm';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
-import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { fonts, gRadius, gSpace } from '@/utils/guestTheme';
+import { themeRadius } from '@/utils/themeTokens';
 import { formatMoney } from '@/utils/money';
 
 export default function FondScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { isOwner } = useEvents();
+  const { tokens } = useTheme();
   const { content, deleteFund } = useEventContent(id);
+
+  const card = [
+    styles.card,
+    {
+      backgroundColor: tokens.surfaceElevated,
+      borderColor: tokens.surfaceBorder ?? 'transparent',
+      borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+    },
+    tokens.surfaceElevatedShadow ?? undefined,
+  ];
 
   if (content === null) {
     return (
       <GuestScreen contentStyle={styles.page} transparent>
-        <View style={styles.card}>
+        <View style={card}>
           <Skeleton height={11} width="50%" radius={4} />
           <Skeleton height={14} width="85%" radius={4} />
           <Skeleton height={40} width="60%" radius={6} />
@@ -67,43 +80,45 @@ export default function FondScreen() {
 
   return (
     <GuestScreen contentStyle={styles.page} transparent>
-      <View style={styles.card}>
+      <View style={card}>
         {owner ? (
           <View style={styles.ownerActions}>
             <TouchableOpacity
-              style={styles.edit}
+              style={[styles.edit, { backgroundColor: `${tokens.accentPrimary}22` }]}
               onPress={() => router.push(`/fund/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Editează fondul"
             >
-              <Feather name="edit-2" size={16} color={guest.purple} />
+              <Feather name="edit-2" size={16} color={tokens.accentPrimary} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.delete}
+              style={[styles.delete, { backgroundColor: tokens.destructiveSoft }]}
               onPress={removeFund}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Șterge fondul"
             >
-              <Feather name="trash-2" size={16} color={guest.live} />
+              <Feather name="trash-2" size={16} color={tokens.destructive} />
             </TouchableOpacity>
           </View>
         ) : null}
 
-        <Text style={styles.eyebrow}>{fund.title.toUpperCase()}</Text>
-        <Text style={styles.message}>{fund.description}</Text>
+        <Text style={[styles.eyebrow, { color: tokens.textSecondary }]}>{fund.title.toUpperCase()}</Text>
+        <Text style={[styles.message, { color: tokens.textSecondary }]}>{fund.description}</Text>
 
         <View style={styles.amounts}>
-          <Text style={styles.current}>{formatMoney(fund.current_amount, fund.currency)}</Text>
-          <Text style={styles.target}>
+          <Text style={[styles.current, { color: tokens.accentPrimary }]}>
+            {formatMoney(fund.current_amount, fund.currency)}
+          </Text>
+          <Text style={[styles.target, { color: tokens.textSecondary }]}>
             {t('fond.targetAmount', { amount: formatMoney(fund.target_amount, fund.currency) })}
           </Text>
         </View>
 
         <ProgressBar current={fund.current_amount} target={fund.target_amount} />
 
-        <Text style={styles.contributors}>
+        <Text style={[styles.contributors, { color: tokens.textSecondary }]}>
           {t('fond.contributorsCount', { count: contributorCount })}
         </Text>
 
@@ -116,7 +131,9 @@ export default function FondScreen() {
         ) : null}
       </View>
 
-      {!owner ? <Text style={styles.disclaimer}>{t('fond.disclaimer')}</Text> : null}
+      {!owner ? (
+        <Text style={[styles.disclaimer, { color: tokens.textSecondary }]}>{t('fond.disclaimer')}</Text>
+      ) : null}
     </GuestScreen>
   );
 }
@@ -130,12 +147,10 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   card: {
-    backgroundColor: guest.white,
-    borderRadius: gRadius.xl,
+    borderRadius: themeRadius.lg,
     padding: gSpace.xxl,
     alignItems: 'center',
     gap: gSpace.md,
-    ...gShadow,
   },
   ownerActions: {
     position: 'absolute',
@@ -148,7 +163,6 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: gRadius.pill,
-    backgroundColor: guest.purpleSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -156,7 +170,6 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: gRadius.pill,
-    backgroundColor: guest.blush,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -164,13 +177,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.4,
-    color: guest.faint,
     textAlign: 'center',
   },
   message: {
     fontSize: 14,
     lineHeight: 22,
-    color: guest.body,
     textAlign: 'center',
   },
   amounts: {
@@ -182,15 +193,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.displayBold,
     fontSize: 40,
     lineHeight: 48,
-    color: guest.purple,
   },
   target: {
     fontSize: 13,
-    color: guest.faint,
   },
   contributors: {
     fontSize: 13,
-    color: guest.body,
   },
   cta: {
     alignSelf: 'stretch',
@@ -198,7 +206,6 @@ const styles = StyleSheet.create({
   },
   disclaimer: {
     fontSize: 11,
-    color: guest.faint,
     textAlign: 'center',
   },
 });

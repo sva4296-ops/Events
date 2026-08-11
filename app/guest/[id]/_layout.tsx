@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { EventHeaderBar } from '@/components/guest/EventHeaderBar';
 import { ScreenBackground } from '@/components/ScreenBackground';
+import { useTheme } from '@/hooks/useTheme';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
 import { guest, gRadius } from '@/utils/guestTheme';
@@ -21,23 +22,30 @@ const TABS: readonly { name: string; label: string; icon: FeatherName }[] = [
 
 export default function GuestEventLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, hydrated } = useEvents();
+  const { getEvent, hydrated, isOwner } = useEvents();
+  const { tokens } = useTheme();
 
-  if (!hydrated || id === undefined) return <View style={styles.blank} />;
+  if (!hydrated || id === undefined) {
+    return <View style={[styles.blank, { backgroundColor: tokens.background[0] }]} />;
+  }
 
   const event = getEvent(id);
 
   return (
     <GuestEventProvider id={id}>
-      <View style={styles.shell}>
+      <View style={[styles.shell, { backgroundColor: tokens.background[0] }]}>
         <ScreenBackground />
-        <EventHeaderBar name={event?.name ?? 'Evenimentul nostru'} />
+        <EventHeaderBar
+          name={event?.name ?? 'Evenimentul nostru'}
+          id={id}
+          showManage={event !== undefined && isOwner(event)}
+        />
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarStyle: styles.bar,
-            tabBarActiveTintColor: guest.white,
-            tabBarInactiveTintColor: 'rgba(255,255,255,0.45)',
+            tabBarStyle: [styles.bar, { backgroundColor: tokens.tabBar.background }],
+            tabBarActiveTintColor: tokens.tabBar.active,
+            tabBarInactiveTintColor: tokens.tabBar.inactive,
             tabBarLabelStyle: styles.label,
             tabBarItemStyle: styles.item,
             sceneStyle: { backgroundColor: 'transparent' },
@@ -49,9 +57,15 @@ export default function GuestEventLayout() {
               name={tab.name}
               options={{
                 title: tab.label,
-                // Solid purple pill behind the active icon; muted outline when not.
+                // Solid accent pill behind the active icon (gold icon on top,
+                // per the Warm Story tab bar spec); muted outline when not.
                 tabBarIcon: ({ color, focused }) => (
-                  <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+                  <View
+                    style={[
+                      styles.iconWrap,
+                      focused && { backgroundColor: tokens.accentPrimary },
+                    ]}
+                  >
                     <Feather name={tab.icon} size={focused ? 22 : 20} color={color} />
                   </View>
                 ),
@@ -74,7 +88,6 @@ const styles = StyleSheet.create({
     backgroundColor: guest.cream,
   },
   bar: {
-    backgroundColor: guest.navy,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(255,255,255,0.12)',
     height: 96,
@@ -100,8 +113,5 @@ const styles = StyleSheet.create({
     borderRadius: gRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  iconWrapActive: {
-    backgroundColor: guest.purple,
   },
 });

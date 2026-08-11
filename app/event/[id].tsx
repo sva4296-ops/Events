@@ -14,15 +14,18 @@ import { StatCard } from '@/components/StatCard';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { confirmDelete } from '@/utils/confirm';
 import { useEvents } from '@/hooks/useEvents';
+import { useTheme } from '@/hooks/useTheme';
 import { countRsvps, eventSubtitle } from '@/utils/format';
 import { getEventType } from '@/utils/eventTypes';
 import { shareInvite } from '@/utils/invite';
-import { colors, radius, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 export default function EventDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, hydrated, removeGuest, isOwner } = useEvents();
+  const { tokens } = useTheme();
   const event = getEvent(id);
   const owner = isOwner(event);
 
@@ -32,15 +35,15 @@ export default function EventDetailScreen() {
     return (
       <Screen>
         <View style={styles.headerSkeleton}>
-          <Skeleton width={40} height={40} radius={radius.pill} />
+          <Skeleton width={40} height={40} radius={themeRadius.pill} />
           <Skeleton height={28} width="70%" radius={6} />
           <Skeleton height={15} width="45%" radius={4} />
         </View>
 
         <View style={styles.stats}>
-          <Skeleton height={78} radius={radius.md} style={styles.statSkeleton} />
-          <Skeleton height={78} radius={radius.md} style={styles.statSkeleton} />
-          <Skeleton height={78} radius={radius.md} style={styles.statSkeleton} />
+          <Skeleton height={78} radius={themeRadius.md} style={styles.statSkeleton} />
+          <Skeleton height={78} radius={themeRadius.md} style={styles.statSkeleton} />
+          <Skeleton height={78} radius={themeRadius.md} style={styles.statSkeleton} />
         </View>
 
         <View style={styles.section}>
@@ -76,13 +79,6 @@ export default function EventDetailScreen() {
             variant="secondary"
             onPress={() => router.push({ pathname: '/invite/[id]', params: { id: event.id } })}
           />
-          {owner ? (
-            <Button
-              label={t('event.editEvent')}
-              variant="ghost"
-              onPress={() => router.push(`/edit-event/${event.id}`)}
-            />
-          ) : null}
         </>
       }
     >
@@ -90,41 +86,56 @@ export default function EventDetailScreen() {
         title={`${type.emoji} ${event.name}`}
         subtitle={eventSubtitle(event)}
         showBack
+        right={
+          owner ? (
+            <TouchableOpacity
+              style={[styles.editHeaderButton, { backgroundColor: tokens.surfaceElevated }]}
+              onPress={() => router.push(`/edit-event/${event.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={t('event.editEvent')}
+              activeOpacity={0.7}
+            >
+              <Feather name="edit-2" size={18} color={tokens.textPrimary} />
+            </TouchableOpacity>
+          ) : undefined
+        }
       />
 
       <View style={styles.stats}>
         <StatCard
           label={t('common.confirmed')}
           value={counts.confirmed}
-          tint={colors.success}
-          background={colors.successSoft}
+          tint={tokens.statusConfirmed}
+          background={tokens.statusConfirmedSoft}
         />
         <StatCard
           label={t('common.pending')}
           value={counts.pending}
-          tint={colors.warning}
-          background={colors.warningSoft}
+          tint={tokens.statusPending}
+          background={tokens.statusPendingSoft}
         />
         <StatCard
           label={t('common.declined')}
           value={counts.declined}
-          tint={colors.declined}
-          background={colors.declinedSoft}
+          tint={tokens.statusDeclined}
+          background={tokens.statusDeclinedSoft}
         />
       </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>{t('event.guestListTitle', { count: counts.total })}</Text>
+          <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>
+            {t('event.guestListTitle', { count: counts.total })}
+          </Text>
           {owner ? (
             <TouchableOpacity
-              style={styles.add}
+              style={[styles.add, { backgroundColor: `${tokens.accentPrimary}22` }]}
               onPress={() => router.push(`/add-guest/${event.id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Invite a guest"
             >
-              <Feather name="user-plus" size={16} color={colors.primary} />
+              <Feather name="user-plus" size={16} color={tokens.accentPrimary} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -194,15 +205,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.faint,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   add: {
     width: 34,
     height: 34,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primarySoft,
+    borderRadius: themeRadius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editHeaderButton: {
+    width: 40,
+    height: 40,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },

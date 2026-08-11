@@ -19,7 +19,9 @@ import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
-import { colors, radius, spacing } from '@/utils/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 const PRESET_EMOJI = ['💍', '👰', '🎂', '📸', '💐', '🥂', '✨', '💜'];
 
@@ -27,6 +29,7 @@ export default function PostMomentScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, isOwner } = useEvents();
+  const { tokens } = useTheme();
   const event = getEvent(id);
   const { addMoment } = useEventContent(id ?? '');
 
@@ -91,7 +94,13 @@ export default function PostMomentScreen() {
           {PRESET_EMOJI.map((emoji) => (
             <TouchableOpacity
               key={emoji}
-              style={styles.emojiChip}
+              style={[
+                styles.emojiChip,
+                {
+                  backgroundColor: tokens.surface,
+                  borderColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
+                },
+              ]}
               onPress={() => setTitle((current) => `${current.trimEnd()} ${emoji}`.trim())}
               activeOpacity={0.7}
               accessibilityRole="button"
@@ -103,15 +112,23 @@ export default function PostMomentScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.picker}
+          style={[
+            styles.picker,
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
+            },
+          ]}
           onPress={() => void pickPhoto()}
           activeOpacity={0.8}
           accessibilityRole="button"
         >
           {photoUri === null ? (
             <View style={styles.pickerEmpty}>
-              <Feather name="image" size={22} color={colors.primary} />
-              <Text style={styles.pickerLabel}>{t('postMomentForm.choosePhoto')}</Text>
+              <Feather name="image" size={22} color={tokens.accentPrimary} />
+              <Text style={[styles.pickerLabel, { color: tokens.accentPrimary }]}>
+                {t('postMomentForm.choosePhoto')}
+              </Text>
             </View>
           ) : (
             <Image source={{ uri: photoUri }} style={styles.preview} />
@@ -134,10 +151,8 @@ const styles = StyleSheet.create({
   emojiChip: {
     width: 44,
     height: 44,
-    borderRadius: radius.pill,
-    backgroundColor: colors.card,
+    borderRadius: themeRadius.pill,
     borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -145,11 +160,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   picker: {
-    borderRadius: radius.md,
+    borderRadius: themeRadius.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
   },
   pickerEmpty: {
     height: 130,
@@ -160,7 +173,6 @@ const styles = StyleSheet.create({
   pickerLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.primary,
   },
   preview: {
     width: '100%',

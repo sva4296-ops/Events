@@ -10,7 +10,8 @@ import { Screen } from '@/components/Screen';
 import { checkGuestEmailInvited } from '@/data/eventsRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
-import { colors, spacing } from '@/utils/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { spacing } from '@/utils/theme';
 import { reportSupabaseError } from '@/utils/reportError';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -20,6 +21,7 @@ export default function AddGuestScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, isOwner, addGuest } = useEvents();
   const { user } = useAuth();
+  const { tokens } = useTheme();
   const event = getEvent(id);
 
   const [email, setEmail] = useState('');
@@ -106,7 +108,9 @@ export default function AddGuestScreen() {
           placeholder={t('addGuestForm.namePlaceholder')}
         />
 
-        {error !== null ? <Text style={styles.error}>{error}</Text> : null}
+        {error !== null ? (
+          <Text style={[styles.error, { color: tokens.destructive }]}>{error}</Text>
+        ) : null}
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -118,7 +122,6 @@ const styles = StyleSheet.create({
   },
   error: {
     fontSize: 13,
-    color: colors.danger,
     paddingHorizontal: spacing.xs,
   },
 });

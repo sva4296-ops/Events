@@ -11,13 +11,15 @@ import { InviteCard } from '@/components/InviteCard';
 import { Screen } from '@/components/Screen';
 import type { RsvpStatus } from '@/types/event';
 import { useEvents } from '@/hooks/useEvents';
+import { useTheme } from '@/hooks/useTheme';
 import { getEventType } from '@/utils/eventTypes';
-import { colors, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
 
 export default function InviteScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, respondToInvite, hydrated, isOwner } = useEvents();
+  const { tokens } = useTheme();
   const [editing, setEditing] = useState(false);
   const event = getEvent(id);
   // A cold-open deep link (opened straight into this route, no session and no
@@ -32,7 +34,9 @@ export default function InviteScreen() {
           title={hydrated ? t('rsvp.notFoundTitle') : t('rsvp.openingTitle')}
           showBack={canGoBack}
         />
-        {hydrated ? <Text style={styles.note}>{t('rsvp.notFoundNote')}</Text> : null}
+        {hydrated ? (
+          <Text style={[styles.note, { color: tokens.textSecondary }]}>{t('rsvp.notFoundNote')}</Text>
+        ) : null}
       </Screen>
     );
   }
@@ -104,10 +108,10 @@ export default function InviteScreen() {
           <Text style={styles.confirmationEmoji}>
             {myRsvp.status === 'confirmed' ? '🎉' : '💌'}
           </Text>
-          <Text style={styles.confirmationTitle}>
+          <Text style={[styles.confirmationTitle, { color: tokens.textPrimary }]}>
             {myRsvp.status === 'confirmed' ? t('rsvp.confirmedTitle') : t('rsvp.declinedTitle')}
           </Text>
-          <Text style={styles.confirmationBody}>
+          <Text style={[styles.confirmationBody, { color: tokens.textSecondary }]}>
             {myRsvp.status === 'confirmed'
               ? t('rsvp.confirmedBody', { eventName: event.name })
               : t('rsvp.declinedBody', { eventName: event.name })}
@@ -141,15 +145,12 @@ const styles = StyleSheet.create({
   confirmationTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.text,
   },
   confirmationBody: {
     fontSize: 14,
-    color: colors.muted,
     textAlign: 'center',
   },
   note: {
     fontSize: 14,
-    color: colors.muted,
   },
 });

@@ -8,14 +8,17 @@ import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
+import { useTheme } from '@/hooks/useTheme';
 import { buildInviteLink, shareInvite } from '@/utils/invite';
-import { colors, radius, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 export default function ShareScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent } = useEvents();
   const { resetDraft } = useEventDraft();
+  const { tokens } = useTheme();
   const event = getEvent(id);
 
   if (event === undefined) {
@@ -50,13 +53,15 @@ export default function ShareScreen() {
       />
 
       <Card>
-        <Text style={styles.cardLabel}>{t('createWizard.inviteLinkLabel')}</Text>
-        <View style={styles.linkBox}>
-          <Text style={styles.link} numberOfLines={2}>
+        <Text style={[styles.cardLabel, { color: tokens.textSecondary }]}>
+          {t('createWizard.inviteLinkLabel')}
+        </Text>
+        <View style={[styles.linkBox, { backgroundColor: `${tokens.accentPrimary}18` }]}>
+          <Text style={[styles.link, { color: tokens.accentPrimary }]} numberOfLines={2}>
             {link}
           </Text>
         </View>
-        <Text style={styles.hint}>{t('createWizard.linkHint')}</Text>
+        <Text style={[styles.hint, { color: tokens.textSecondary }]}>{t('createWizard.linkHint')}</Text>
       </Card>
 
       <Button
@@ -72,22 +77,18 @@ const styles = StyleSheet.create({
   cardLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.muted,
   },
   linkBox: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.sm,
+    borderRadius: themeRadius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
   link: {
     fontSize: 14,
-    color: colors.primary,
     fontWeight: '600',
   },
   hint: {
     fontSize: 12,
-    color: colors.faint,
     lineHeight: 17,
   },
 });

@@ -171,7 +171,10 @@
     "signedInWithSupabase": "Signed in with Supabase",
     "language": "Language",
     "languageEnglish": "English",
-    "languageRomanian": "Română"
+    "languageRomanian": "Română",
+    "theme": "Appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark"
   },
   "event": {
     "notFound": "Event not found",

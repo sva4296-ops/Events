@@ -1,6 +1,8 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, radius, spacing } from '@/utils/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 interface FieldProps {
   label: string;
@@ -23,15 +25,25 @@ export function Field({
   secure = false,
   keyboardType = 'default',
 }: FieldProps) {
+  const { tokens } = useTheme();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: tokens.textPrimary }]}>{label}</Text>
       <TextInput
-        style={[styles.input, multiline && styles.multiline]}
+        style={[
+          styles.input,
+          multiline && styles.multiline,
+          {
+            backgroundColor: tokens.surface,
+            borderColor: tokens.surfaceBorder ?? '#EAE4F0',
+            color: tokens.textPrimary,
+          },
+        ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.faint}
+        placeholderTextColor={tokens.textSecondary}
         multiline={multiline}
         textAlignVertical={multiline ? 'top' : 'center'}
         secureTextEntry={secure}
@@ -39,7 +51,9 @@ export function Field({
         autoCapitalize={secure || keyboardType !== 'default' ? 'none' : 'sentences'}
         accessibilityLabel={label}
       />
-      {hint !== undefined ? <Text style={styles.hint}>{hint}</Text> : null}
+      {hint !== undefined ? (
+        <Text style={[styles.hint, { color: tokens.textSecondary }]}>{hint}</Text>
+      ) : null}
     </View>
   );
 }
@@ -51,18 +65,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
   },
   input: {
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: themeRadius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     minHeight: 50,
     fontSize: 16,
-    color: colors.text,
   },
   multiline: {
     minHeight: 110,
@@ -70,6 +80,5 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: colors.faint,
   },
 });

@@ -1,8 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 
+import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeMeta } from '@/types/event';
-import { colors, radius, shadow, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 interface TypeTileProps {
   type: EventTypeMeta;
@@ -11,6 +13,8 @@ interface TypeTileProps {
 }
 
 export function TypeTile({ type, selected, onPress }: TypeTileProps) {
+  const { tokens } = useTheme();
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -18,12 +22,21 @@ export function TypeTile({ type, selected, onPress }: TypeTileProps) {
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={type.label}
-      style={[styles.tile, selected && { borderColor: type.accent }]}
+      style={[
+        styles.tile,
+        {
+          backgroundColor: tokens.surfaceElevated,
+          borderColor: selected ? type.accent : tokens.surfaceBorder ?? 'transparent',
+        },
+        tokens.surfaceElevatedShadow ?? undefined,
+      ]}
     >
       <LinearGradient colors={type.gradient} style={styles.gradient}>
         <Text style={styles.emoji}>{type.emoji}</Text>
       </LinearGradient>
-      <Text style={[styles.label, selected && { color: type.accent }]}>{type.label}</Text>
+      <Text style={[styles.label, { color: selected ? type.accent : tokens.textPrimary }]}>
+        {type.label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -35,16 +48,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     paddingVertical: spacing.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
+    borderRadius: themeRadius.lg,
     borderWidth: 2,
-    borderColor: 'transparent',
-    ...shadow,
   },
   gradient: {
     width: 52,
     height: 52,
-    borderRadius: radius.pill,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -54,6 +64,5 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.text,
   },
 });

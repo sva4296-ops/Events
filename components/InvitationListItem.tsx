@@ -3,10 +3,12 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { RsvpBadge } from '@/components/RsvpBadge';
 import { Skeleton } from '@/components/Skeleton';
+import { useTheme } from '@/hooks/useTheme';
 import type { Invitation } from '@/utils/invitations';
 import { getEventType } from '@/utils/eventTypes';
 import { formatEventDate } from '@/utils/format';
-import { colors, radius, shadow, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 export function InvitationListItem({
   invitation,
@@ -16,6 +18,7 @@ export function InvitationListItem({
   onPress: () => void;
 }) {
   const { event, guest } = invitation;
+  const { tokens } = useTheme();
   const type = getEventType(event.type);
 
   return (
@@ -24,17 +27,25 @@ export function InvitationListItem({
       activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityLabel={`${event.name}, ${guest.status}`}
-      style={styles.row}
+      style={[
+        styles.row,
+        {
+          backgroundColor: tokens.surfaceElevated,
+          borderColor: tokens.surfaceBorder ?? 'transparent',
+          borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+        },
+        tokens.surfaceElevatedShadow ?? undefined,
+      ]}
     >
       <LinearGradient colors={type.gradient} style={styles.badge}>
         <Text style={styles.emoji}>{type.emoji}</Text>
       </LinearGradient>
 
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
           {event.name}
         </Text>
-        <Text style={styles.date} numberOfLines={1}>
+        <Text style={[styles.date, { color: tokens.textSecondary }]} numberOfLines={1}>
           {formatEventDate(event.date)}
         </Text>
       </View>
@@ -48,12 +59,12 @@ export function InvitationListItem({
 export function InvitationListItemSkeleton() {
   return (
     <View style={styles.row}>
-      <Skeleton width={44} height={44} radius={radius.md} />
+      <Skeleton width={44} height={44} radius={themeRadius.md} />
       <View style={styles.info}>
         <Skeleton height={15} width="65%" radius={4} />
         <Skeleton height={12} width="40%" radius={4} />
       </View>
-      <Skeleton width={64} height={22} radius={radius.pill} />
+      <Skeleton width={64} height={22} radius={themeRadius.pill} />
     </View>
   );
 }
@@ -64,16 +75,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow,
+    borderRadius: themeRadius.lg,
   },
   badge: {
     width: 44,
     height: 44,
-    borderRadius: radius.md,
+    borderRadius: themeRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -87,10 +94,8 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
   },
   date: {
     fontSize: 12,
-    color: colors.muted,
   },
 });

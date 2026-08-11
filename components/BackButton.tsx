@@ -2,7 +2,8 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { StyleSheet, TouchableOpacity, type ViewStyle } from 'react-native';
 
-import { colors, radius } from '@/utils/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { themeRadius } from '@/utils/themeTokens';
 
 /**
  * The white-circle, dark-chevron back button — extracted from Header so
@@ -10,15 +11,17 @@ import { colors, radius } from '@/utils/theme';
  * use the exact same control, not a re-drawn one.
  */
 export function BackButton({ style }: { style?: ViewStyle }) {
+  const { tokens } = useTheme();
+
   return (
     <TouchableOpacity
-      style={[styles.control, style]}
+      style={[styles.control, { backgroundColor: tokens.surfaceElevated }, style]}
       onPress={() => router.back()}
       accessibilityRole="button"
       accessibilityLabel="Go back"
       activeOpacity={0.7}
     >
-      <Feather name="chevron-left" size={22} color={colors.text} />
+      <Feather name="chevron-left" size={22} color={tokens.textPrimary} />
     </TouchableOpacity>
   );
 }
@@ -27,8 +30,7 @@ const styles = StyleSheet.create({
   control: {
     width: 40,
     height: 40,
-    borderRadius: radius.pill,
-    backgroundColor: colors.card,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },

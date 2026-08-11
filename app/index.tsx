@@ -11,13 +11,16 @@ import { ScreenBackground } from '@/components/ScreenBackground';
 import { Screen } from '@/components/Screen';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
+import { useTheme } from '@/hooks/useTheme';
 import { myInvitations } from '@/utils/invitations';
-import { colors, radius, shadow, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
   const { events, hydrated, isOwner } = useEvents();
   const { resetDraft } = useEventDraft();
+  const { tokens } = useTheme();
 
   const ownedEvents = events.filter((event) => isOwner(event));
   const invitations = myInvitations(events, isOwner);
@@ -34,21 +37,25 @@ export default function DashboardScreen() {
         <BrandHeader
           right={
             <TouchableOpacity
-              style={styles.profile}
+              style={[styles.profile, { backgroundColor: `${tokens.accentPrimary}22` }]}
               onPress={() => router.push('/profile')}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Account"
             >
-              <Feather name="user" size={18} color={colors.primary} />
+              <Feather name="user" size={18} color={tokens.accentPrimary} />
             </TouchableOpacity>
           }
         />
-        <Text style={styles.tagline}>{t('home.tagline')}</Text>
+        <Text style={[styles.tagline, { color: tokens.textSecondary }]}>{t('home.tagline')}</Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('home.yourEvents')}</Text>
-          <Text style={styles.sectionHint}>{t('home.yourEventsHint')}</Text>
+          <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>
+            {t('home.yourEvents')}
+          </Text>
+          <Text style={[styles.sectionHint, { color: tokens.textSecondary }]}>
+            {t('home.yourEventsHint')}
+          </Text>
 
           {!hydrated ? (
             <>
@@ -68,15 +75,19 @@ export default function DashboardScreen() {
               <EventListItem
                 key={event.id}
                 event={event}
-                onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
+                onPress={() => router.push(`/guest/${event.id}`)}
               />
             ))
           )}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('home.myInvitations')}</Text>
-          <Text style={styles.sectionHint}>{t('home.myInvitationsHint')}</Text>
+          <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>
+            {t('home.myInvitations')}
+          </Text>
+          <Text style={[styles.sectionHint, { color: tokens.textSecondary }]}>
+            {t('home.myInvitationsHint')}
+          </Text>
 
           {!hydrated ? (
             <>
@@ -108,13 +119,13 @@ export default function DashboardScreen() {
       </Screen>
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: tokens.accentPrimary }]}
         onPress={startCreating}
         activeOpacity={0.85}
         accessibilityRole="button"
         accessibilityLabel="Create an event"
       >
-        <Feather name="plus" size={26} color={colors.onPrimary} />
+        <Feather name="plus" size={26} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   );
@@ -133,15 +144,13 @@ const styles = StyleSheet.create({
   profile: {
     width: 38,
     height: 38,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primarySoft,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tagline: {
     fontSize: 15,
     lineHeight: 21,
-    color: colors.muted,
     marginTop: -spacing.lg,
   },
   section: {
@@ -150,13 +159,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.faint,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   sectionHint: {
     fontSize: 13,
-    color: colors.muted,
     marginTop: -spacing.sm,
   },
   fab: {
@@ -165,11 +172,13 @@ const styles = StyleSheet.create({
     bottom: spacing.xxl,
     width: 60,
     height: 60,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow,
+    shadowColor: '#2B1A62',
     shadowOpacity: 0.22,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
 });

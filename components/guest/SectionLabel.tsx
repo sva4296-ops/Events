@@ -1,10 +1,11 @@
 import { StyleSheet, Text } from 'react-native';
 
-import { guest } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 /** Small uppercase eyebrow above each section. */
 export function SectionLabel({ children }: { children: string }) {
-  return <Text style={styles.label}>{children}</Text>;
+  const { tokens } = useTheme();
+  return <Text style={[styles.label, { color: tokens.textSecondary }]}>{children}</Text>;
 }
 
 const styles = StyleSheet.create({
@@ -12,6 +13,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.4,
-    color: guest.faint,
   },
 });

@@ -13,7 +13,9 @@ import { confirmDelete } from '@/utils/confirm';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
-import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { fonts, gRadius, gSpace } from '@/utils/guestTheme';
+import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
 /**
  * These are the *stored* values in `event_guests.dietary_preferences` (and
@@ -51,6 +53,16 @@ function vendorIcon(category: string): string {
   return '🏷️';
 }
 
+/** A card's surface treatment — same shape for every section's card style. */
+function cardStyle(tokens: ThemeTokens) {
+  return {
+    backgroundColor: tokens.surfaceElevated,
+    borderColor: tokens.surfaceBorder ?? 'transparent',
+    borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+    ...(tokens.surfaceElevatedShadow ?? {}),
+  };
+}
+
 /**
  * All six sections load together (one combined content fetch — see
  * useEventContent), so there's no per-section loading state to track; this
@@ -59,20 +71,21 @@ function vendorIcon(category: string): string {
  */
 function DetaliiSkeleton() {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
 
   return (
     <GuestScreen transparent>
       <View style={styles.section}>
         <SectionLabel>{t('detalii.schedule')}</SectionLabel>
         <View style={styles.stack}>
-          <View style={styles.scheduleCard}>
+          <View style={[styles.scheduleCard, cardStyle(tokens)]}>
             <Skeleton width={62} height={19} radius={4} />
             <View style={styles.scheduleBody}>
               <Skeleton height={16} width="60%" radius={4} />
               <Skeleton height={13} width="40%" radius={4} />
             </View>
           </View>
-          <View style={styles.scheduleCard}>
+          <View style={[styles.scheduleCard, cardStyle(tokens)]}>
             <Skeleton width={62} height={19} radius={4} />
             <View style={styles.scheduleBody}>
               <Skeleton height={16} width="45%" radius={4} />
@@ -84,7 +97,7 @@ function DetaliiSkeleton() {
 
       <View style={styles.section}>
         <SectionLabel>{t('detalii.venue')}</SectionLabel>
-        <View style={styles.mapCard}>
+        <View style={[styles.mapCard, cardStyle(tokens)]}>
           <Skeleton height={170} radius={0} />
           <View style={styles.venueBody}>
             <Skeleton height={20} width="50%" radius={4} />
@@ -95,7 +108,7 @@ function DetaliiSkeleton() {
 
       <View style={styles.section}>
         <SectionLabel>{t('detalii.menu')}</SectionLabel>
-        <View style={styles.menuCard}>
+        <View style={[styles.menuCard, cardStyle(tokens)]}>
           <View style={styles.courseRow}>
             <Skeleton height={13} width={80} radius={4} />
             <Skeleton height={14} width="40%" radius={4} />
@@ -114,11 +127,11 @@ function DetaliiSkeleton() {
       <View style={styles.section}>
         <SectionLabel>{t('detalii.seating')}</SectionLabel>
         <View style={styles.stack}>
-          <View style={styles.rowCard}>
+          <View style={[styles.rowCard, cardStyle(tokens)]}>
             <Skeleton height={16} width="45%" radius={4} />
             <Skeleton height={13} width="30%" radius={4} />
           </View>
-          <View style={styles.rowCard}>
+          <View style={[styles.rowCard, cardStyle(tokens)]}>
             <Skeleton height={16} width="55%" radius={4} />
             <Skeleton height={13} width="35%" radius={4} />
           </View>
@@ -128,7 +141,7 @@ function DetaliiSkeleton() {
       <View style={styles.section}>
         <SectionLabel>{t('detalii.accommodation')}</SectionLabel>
         <View style={styles.stack}>
-          <View style={styles.rowCard}>
+          <View style={[styles.rowCard, cardStyle(tokens)]}>
             <Skeleton height={16} width="50%" radius={4} />
             <Skeleton height={13} width="65%" radius={4} />
           </View>
@@ -138,7 +151,7 @@ function DetaliiSkeleton() {
       <View style={styles.section}>
         <SectionLabel>{t('detalii.vendors')}</SectionLabel>
         <View style={styles.stack}>
-          <View style={styles.vendorCard}>
+          <View style={[styles.vendorCard, cardStyle(tokens)]}>
             <Skeleton width={40} height={40} radius={gRadius.pill} />
             <View style={styles.vendorBody}>
               <Skeleton height={16} width="55%" radius={4} />
@@ -155,6 +168,7 @@ export default function DetaliiScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { isOwner, updateMyDietaryPreferences } = useEvents();
+  const { tokens } = useTheme();
   const {
     content,
     deleteScheduleItem,
@@ -181,6 +195,9 @@ export default function DetaliiScreen() {
     updateMyDietaryPreferences(id, next);
   };
 
+  const card = cardStyle(tokens);
+  const editButtonStyle = [styles.edit, { backgroundColor: `${tokens.accentPrimary}22` }];
+
   return (
     <GuestScreen transparent>
       <View style={styles.section}>
@@ -188,13 +205,13 @@ export default function DetaliiScreen() {
           <SectionLabel>{t('detalii.schedule')}</SectionLabel>
           {owner ? (
             <TouchableOpacity
-              style={styles.edit}
+              style={editButtonStyle}
               onPress={() => router.push(`/schedule/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Adaugă un moment în program"
             >
-              <Feather name="plus" size={16} color={guest.purple} />
+              <Feather name="plus" size={16} color={tokens.accentPrimary} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -233,11 +250,13 @@ export default function DetaliiScreen() {
                   },
                 ]}
               >
-                <View style={styles.scheduleCard}>
-                  <Text style={styles.time}>{item.time}</Text>
+                <View style={[styles.scheduleCard, card]}>
+                  <Text style={[styles.time, { color: tokens.accentPrimary }]}>{item.time}</Text>
                   <View style={styles.scheduleBody}>
-                    <Text style={styles.scheduleTitle}>{item.title}</Text>
-                    <Text style={styles.scheduleLocation}>{item.location}</Text>
+                    <Text style={[styles.scheduleTitle, { color: tokens.textPrimary }]}>{item.title}</Text>
+                    <Text style={[styles.scheduleLocation, { color: tokens.textSecondary }]}>
+                      {item.location}
+                    </Text>
                   </View>
                 </View>
               </SwipeableRow>
@@ -261,33 +280,35 @@ export default function DetaliiScreen() {
             }
           />
         ) : (
-          <View style={styles.mapCard}>
+          <View style={[styles.mapCard, card]}>
           {owner ? (
             <TouchableOpacity
-              style={styles.venueEdit}
+              style={[styles.venueEdit, { backgroundColor: tokens.surfaceElevated }]}
               onPress={() => router.push(`/venue/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Editează locația"
             >
-              <Feather name="edit-2" size={16} color={guest.purple} />
+              <Feather name="edit-2" size={16} color={tokens.accentPrimary} />
             </TouchableOpacity>
           ) : null}
-          <View style={styles.mapPreview}>
+          <View style={[styles.mapPreview, { backgroundColor: tokens.surface }]}>
             <Image source={{ uri: content.venue.map_image_url }} style={styles.map} />
-            <View style={styles.pin}>
+            <View style={[styles.pin, { backgroundColor: tokens.surfaceElevated }]}>
               <Text style={styles.pinText}>📍</Text>
             </View>
           </View>
 
           <View style={styles.venueBody}>
-            <Text style={styles.venueName}>{content.venue.name}</Text>
-            <Text style={styles.venueAddress}>{content.venue.address}</Text>
+            <Text style={[styles.venueName, { color: tokens.textPrimary }]}>{content.venue.name}</Text>
+            <Text style={[styles.venueAddress, { color: tokens.textSecondary }]}>
+              {content.venue.address}
+            </Text>
             <View style={styles.notes}>
               {content.venue.notes.map((note) => (
                 <View key={note} style={styles.noteRow}>
-                  <View style={styles.dot} />
-                  <Text style={styles.noteText}>{note}</Text>
+                  <View style={[styles.dot, { backgroundColor: tokens.accentGold }]} />
+                  <Text style={[styles.noteText, { color: tokens.textSecondary }]}>{note}</Text>
                 </View>
               ))}
             </View>
@@ -301,17 +322,19 @@ export default function DetaliiScreen() {
           <SectionLabel>{t('detalii.menu')}</SectionLabel>
           {owner && content.menu !== null ? (
             <TouchableOpacity
-              style={styles.edit}
+              style={editButtonStyle}
               onPress={() => router.push(`/menu/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Editează meniul"
             >
-              <Feather name="edit-2" size={16} color={guest.purple} />
+              <Feather name="edit-2" size={16} color={tokens.accentPrimary} />
             </TouchableOpacity>
           ) : null}
         </View>
-        <Text style={styles.sectionDescription}>{t('detalii.menuDescription')}</Text>
+        <Text style={[styles.sectionDescription, { color: tokens.textSecondary }]}>
+          {t('detalii.menuDescription')}
+        </Text>
 
         {content.menu === null ? (
           <EmptyState
@@ -321,18 +344,30 @@ export default function DetaliiScreen() {
             }
           />
         ) : (
-          <View style={styles.menuCard}>
+          <View style={[styles.menuCard, card]}>
             <View style={styles.courseRow}>
-              <Text style={styles.courseLabel}>{t('detalii.courseStarter')}</Text>
-              <Text style={styles.courseValue}>{content.menu.starter || '—'}</Text>
+              <Text style={[styles.courseLabel, { color: tokens.textSecondary }]}>
+                {t('detalii.courseStarter')}
+              </Text>
+              <Text style={[styles.courseValue, { color: tokens.textPrimary }]}>
+                {content.menu.starter || '—'}
+              </Text>
             </View>
             <View style={styles.courseRow}>
-              <Text style={styles.courseLabel}>{t('detalii.courseMain')}</Text>
-              <Text style={styles.courseValue}>{content.menu.main || '—'}</Text>
+              <Text style={[styles.courseLabel, { color: tokens.textSecondary }]}>
+                {t('detalii.courseMain')}
+              </Text>
+              <Text style={[styles.courseValue, { color: tokens.textPrimary }]}>
+                {content.menu.main || '—'}
+              </Text>
             </View>
             <View style={styles.courseRow}>
-              <Text style={styles.courseLabel}>{t('detalii.courseDessert')}</Text>
-              <Text style={styles.courseValue}>{content.menu.dessert || '—'}</Text>
+              <Text style={[styles.courseLabel, { color: tokens.textSecondary }]}>
+                {t('detalii.courseDessert')}
+              </Text>
+              <Text style={[styles.courseValue, { color: tokens.textPrimary }]}>
+                {content.menu.dessert || '—'}
+              </Text>
             </View>
 
             {!owner ? (
@@ -342,13 +377,19 @@ export default function DetaliiScreen() {
                   return (
                     <TouchableOpacity
                       key={option}
-                      style={[styles.pill, active && styles.pillActive]}
+                      style={[
+                        styles.pill,
+                        {
+                          backgroundColor: active ? tokens.accentPrimary : tokens.surface,
+                          borderColor: active ? tokens.accentPrimary : tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
+                        },
+                      ]}
                       onPress={() => toggleDietary(option)}
                       activeOpacity={0.75}
                       accessibilityRole="button"
                       accessibilityState={{ selected: active }}
                     >
-                      <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                      <Text style={[styles.pillText, { color: active ? '#FFFFFF' : tokens.textSecondary }]}>
                         {t(DIETARY_LABEL_KEY[option])}
                       </Text>
                     </TouchableOpacity>
@@ -365,17 +406,19 @@ export default function DetaliiScreen() {
           <SectionLabel>{t('detalii.seating')}</SectionLabel>
           {owner ? (
             <TouchableOpacity
-              style={styles.edit}
+              style={editButtonStyle}
               onPress={() => router.push(`/table/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Adaugă o masă"
             >
-              <Feather name="plus" size={16} color={guest.purple} />
+              <Feather name="plus" size={16} color={tokens.accentPrimary} />
             </TouchableOpacity>
           ) : null}
         </View>
-        <Text style={styles.sectionDescription}>{t('detalii.seatingDescription')}</Text>
+        <Text style={[styles.sectionDescription, { color: tokens.textSecondary }]}>
+          {t('detalii.seatingDescription')}
+        </Text>
 
         {content.seatingTables.length === 0 ? (
           <EmptyState
@@ -410,10 +453,14 @@ export default function DetaliiScreen() {
                   },
                 ]}
               >
-                <View style={styles.rowCard}>
-                  <Text style={styles.rowTitle}>{table.name}</Text>
-                  {table.label.length > 0 ? <Text style={styles.rowSubtitle}>{table.label}</Text> : null}
-                  <Text style={styles.rowMeta}>{t('detalii.seatCount', { count: table.seat_count })}</Text>
+                <View style={[styles.rowCard, card]}>
+                  <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{table.name}</Text>
+                  {table.label.length > 0 ? (
+                    <Text style={[styles.rowSubtitle, { color: tokens.textSecondary }]}>{table.label}</Text>
+                  ) : null}
+                  <Text style={[styles.rowMeta, { color: tokens.textSecondary }]}>
+                    {t('detalii.seatCount', { count: table.seat_count })}
+                  </Text>
                 </View>
               </SwipeableRow>
             ))}
@@ -426,17 +473,19 @@ export default function DetaliiScreen() {
           <SectionLabel>{t('detalii.accommodation')}</SectionLabel>
           {owner ? (
             <TouchableOpacity
-              style={styles.edit}
+              style={editButtonStyle}
               onPress={() => router.push(`/accommodation/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Adaugă cazare"
             >
-              <Feather name="plus" size={16} color={guest.purple} />
+              <Feather name="plus" size={16} color={tokens.accentPrimary} />
             </TouchableOpacity>
           ) : null}
         </View>
-        <Text style={styles.sectionDescription}>{t('detalii.accommodationDescription')}</Text>
+        <Text style={[styles.sectionDescription, { color: tokens.textSecondary }]}>
+          {t('detalii.accommodationDescription')}
+        </Text>
 
         {content.accommodations.length === 0 ? (
           <EmptyState
@@ -473,13 +522,15 @@ export default function DetaliiScreen() {
                   },
                 ]}
               >
-                <View style={styles.rowCard}>
-                  <Text style={styles.rowTitle}>{entry.name}</Text>
+                <View style={[styles.rowCard, card]}>
+                  <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{entry.name}</Text>
                   {entry.detail_line.length > 0 ? (
-                    <Text style={styles.rowSubtitle}>{entry.detail_line}</Text>
+                    <Text style={[styles.rowSubtitle, { color: tokens.textSecondary }]}>
+                      {entry.detail_line}
+                    </Text>
                   ) : null}
                   {entry.price_line.length > 0 ? (
-                    <Text style={styles.rowMeta}>{entry.price_line}</Text>
+                    <Text style={[styles.rowMeta, { color: tokens.textSecondary }]}>{entry.price_line}</Text>
                   ) : null}
                 </View>
               </SwipeableRow>
@@ -493,17 +544,19 @@ export default function DetaliiScreen() {
           <SectionLabel>{t('detalii.vendors')}</SectionLabel>
           {owner ? (
             <TouchableOpacity
-              style={styles.edit}
+              style={editButtonStyle}
               onPress={() => router.push(`/vendor/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Adaugă furnizor"
             >
-              <Feather name="plus" size={16} color={guest.purple} />
+              <Feather name="plus" size={16} color={tokens.accentPrimary} />
             </TouchableOpacity>
           ) : null}
         </View>
-        <Text style={styles.sectionDescription}>{t('detalii.vendorsDescription')}</Text>
+        <Text style={[styles.sectionDescription, { color: tokens.textSecondary }]}>
+          {t('detalii.vendorsDescription')}
+        </Text>
 
         {content.vendors.length === 0 ? (
           <EmptyState
@@ -539,13 +592,13 @@ export default function DetaliiScreen() {
                     },
                   ]}
                 >
-                  <View style={styles.vendorCard}>
-                    <View style={styles.vendorIconWrap}>
+                  <View style={[styles.vendorCard, card]}>
+                    <View style={[styles.vendorIconWrap, { backgroundColor: tokens.surface }]}>
                       <Text style={styles.vendorIcon}>{vendorIcon(vendor.category)}</Text>
                     </View>
                     <View style={styles.vendorBody}>
-                      <Text style={styles.rowTitle}>{vendor.name}</Text>
-                      <Text style={styles.rowSubtitle} numberOfLines={1}>
+                      <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{vendor.name}</Text>
+                      <Text style={[styles.rowSubtitle, { color: tokens.textSecondary }]} numberOfLines={1}>
                         {[vendor.category, vendor.handle].filter((part) => part.length > 0).join(' · ')}
                       </Text>
                     </View>
@@ -556,14 +609,18 @@ export default function DetaliiScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={`Vezi ${vendor.name}`}
                       >
-                        <Text style={styles.vendorLink}>{t('detalii.vendorLink')}</Text>
+                        <Text style={[styles.vendorLink, { color: tokens.accentPrimary }]}>
+                          {t('detalii.vendorLink')}
+                        </Text>
                       </TouchableOpacity>
                     ) : null}
                   </View>
                 </SwipeableRow>
               ))}
             </View>
-            <Text style={styles.vendorCaption}>{t('detalii.vendorCaption')}</Text>
+            <Text style={[styles.vendorCaption, { color: tokens.textSecondary }]}>
+              {t('detalii.vendorCaption')}
+            </Text>
           </>
         )}
       </View>
@@ -582,13 +639,11 @@ const styles = StyleSheet.create({
   },
   sectionDescription: {
     fontSize: 13,
-    color: guest.body,
   },
   edit: {
     width: 34,
     height: 34,
     borderRadius: gRadius.pill,
-    backgroundColor: guest.purpleSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -599,15 +654,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: gSpace.lg,
-    backgroundColor: guest.white,
-    borderRadius: gRadius.lg,
+    borderRadius: themeRadius.lg,
     padding: gSpace.xl,
-    ...gShadow,
   },
   time: {
     fontSize: 19,
     fontWeight: '800',
-    color: guest.purple,
     width: 62,
   },
   scheduleBody: {
@@ -617,17 +669,13 @@ const styles = StyleSheet.create({
   scheduleTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: guest.ink,
   },
   scheduleLocation: {
     fontSize: 13,
-    color: guest.body,
   },
   mapCard: {
-    backgroundColor: guest.white,
-    borderRadius: gRadius.lg,
+    borderRadius: themeRadius.lg,
     overflow: 'hidden',
-    ...gShadow,
   },
   venueEdit: {
     position: 'absolute',
@@ -637,14 +685,11 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: gRadius.pill,
-    backgroundColor: guest.white,
     alignItems: 'center',
     justifyContent: 'center',
-    ...gShadow,
   },
   mapPreview: {
     height: 170,
-    backgroundColor: guest.creamDeep,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -659,10 +704,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: gRadius.pill,
-    backgroundColor: guest.white,
     alignItems: 'center',
     justifyContent: 'center',
-    ...gShadow,
   },
   pinText: {
     fontSize: 20,
@@ -674,11 +717,9 @@ const styles = StyleSheet.create({
   venueName: {
     fontFamily: fonts.displayBold,
     fontSize: 20,
-    color: guest.ink,
   },
   venueAddress: {
     fontSize: 14,
-    color: guest.body,
   },
   notes: {
     marginTop: gSpace.md,
@@ -693,20 +734,16 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: gRadius.pill,
-    backgroundColor: guest.gold,
   },
   noteText: {
     flex: 1,
     fontSize: 13,
-    color: guest.body,
     lineHeight: 19,
   },
   menuCard: {
-    backgroundColor: guest.white,
-    borderRadius: gRadius.lg,
+    borderRadius: themeRadius.lg,
     padding: gSpace.xl,
     gap: gSpace.md,
-    ...gShadow,
   },
   courseRow: {
     flexDirection: 'row',
@@ -717,14 +754,12 @@ const styles = StyleSheet.create({
   courseLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: guest.faint,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   courseValue: {
     flex: 1,
     fontSize: 14,
-    color: guest.ink,
     textAlign: 'right',
   },
   pillRow: {
@@ -737,57 +772,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: gSpace.lg,
     paddingVertical: gSpace.sm,
     borderRadius: gRadius.pill,
-    backgroundColor: guest.creamDeep,
     borderWidth: 1,
-    borderColor: guest.line,
-  },
-  pillActive: {
-    backgroundColor: guest.purple,
-    borderColor: guest.purple,
   },
   pillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: guest.body,
-  },
-  pillTextActive: {
-    color: guest.white,
   },
   rowCard: {
-    backgroundColor: guest.white,
-    borderRadius: gRadius.lg,
+    borderRadius: themeRadius.lg,
     padding: gSpace.xl,
     gap: 2,
-    ...gShadow,
   },
   rowTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: guest.ink,
   },
   rowSubtitle: {
     fontSize: 13,
-    color: guest.body,
   },
   rowMeta: {
     fontSize: 12,
-    color: guest.faint,
     marginTop: 2,
   },
   vendorCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: gSpace.md,
-    backgroundColor: guest.white,
-    borderRadius: gRadius.lg,
+    borderRadius: themeRadius.lg,
     padding: gSpace.lg,
-    ...gShadow,
   },
   vendorIconWrap: {
     width: 40,
     height: 40,
     borderRadius: gRadius.pill,
-    backgroundColor: guest.creamDeep,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -801,12 +818,10 @@ const styles = StyleSheet.create({
   vendorLink: {
     fontSize: 13,
     fontWeight: '700',
-    color: guest.purple,
   },
   vendorCaption: {
     fontSize: 12,
     lineHeight: 17,
-    color: guest.faint,
     fontStyle: 'italic',
     paddingHorizontal: gSpace.xs,
   },

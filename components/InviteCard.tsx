@@ -1,33 +1,50 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useTheme } from '@/hooks/useTheme';
 import type { EventDraft } from '@/types/event';
 import { getEventType } from '@/utils/eventTypes';
 import { formatEventDate } from '@/utils/format';
-import { colors, radius, shadow, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 /** Accepts both a wizard draft and a saved event — the shapes overlap. */
 export function InviteCard({ event }: { event: EventDraft }) {
+  const { tokens } = useTheme();
   const type = getEventType(event.type);
   const name = event.name.trim();
   const location = event.location.trim();
   const message = event.welcomeMessage.trim();
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: tokens.surfaceElevated,
+          borderColor: tokens.surfaceBorder ?? 'transparent',
+          borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+        },
+        tokens.surfaceElevatedShadow ?? undefined,
+      ]}
+    >
       <LinearGradient colors={type.gradient} style={styles.cover}>
         <Text style={styles.emoji}>{type.emoji}</Text>
         <Text style={[styles.kicker, { color: type.accent }]}>{type.label.toUpperCase()}</Text>
       </LinearGradient>
 
       <View style={styles.body}>
-        <Text style={styles.name}>{name.length > 0 ? name : 'Your event name'}</Text>
-        <Text style={styles.meta}>{formatEventDate(event.date)}</Text>
-        {location.length > 0 ? <Text style={styles.meta}>{location}</Text> : null}
+        <Text style={[styles.name, { color: tokens.textPrimary }]}>
+          {name.length > 0 ? name : 'Your event name'}
+        </Text>
+        <Text style={[styles.meta, { color: tokens.textSecondary }]}>{formatEventDate(event.date)}</Text>
+        {location.length > 0 ? (
+          <Text style={[styles.meta, { color: tokens.textSecondary }]}>{location}</Text>
+        ) : null}
         {message.length > 0 ? (
           <>
-            <View style={styles.divider} />
-            <Text style={styles.message}>{message}</Text>
+            <View style={[styles.divider, { backgroundColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.08)' }]} />
+            <Text style={[styles.message, { color: tokens.textPrimary }]}>{message}</Text>
           </>
         ) : null}
       </View>
@@ -37,12 +54,8 @@ export function InviteCard({ event }: { event: EventDraft }) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
+    borderRadius: themeRadius.lg,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow,
   },
   cover: {
     height: 150,
@@ -66,25 +79,21 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.text,
     textAlign: 'center',
     letterSpacing: -0.4,
   },
   meta: {
     fontSize: 15,
-    color: colors.muted,
     textAlign: 'center',
   },
   divider: {
     height: 1,
     alignSelf: 'stretch',
-    backgroundColor: colors.border,
     marginVertical: spacing.md,
   },
   message: {
     fontSize: 15,
     lineHeight: 23,
-    color: colors.text,
     textAlign: 'center',
     fontStyle: 'italic',
   },

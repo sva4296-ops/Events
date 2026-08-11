@@ -7,7 +7,9 @@ import { Card } from '@/components/Card';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/hooks/useAuth';
-import { colors, radius, spacing } from '@/utils/theme';
+import { useTheme, type ThemeMode } from '@/hooks/useTheme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 import { setLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/utils/i18n';
 
 const LANGUAGE_LABEL_KEY: Record<SupportedLanguage, string> = {
@@ -15,9 +17,17 @@ const LANGUAGE_LABEL_KEY: Record<SupportedLanguage, string> = {
   ro: 'profile.languageRomanian',
 };
 
+const THEME_MODES: readonly ThemeMode[] = ['light', 'dark'];
+
+const THEME_LABEL_KEY: Record<ThemeMode, string> = {
+  light: 'profile.themeLight',
+  dark: 'profile.themeDark',
+};
+
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
+  const { tokens, mode, setThemeMode } = useTheme();
   const activeLanguage = i18n.language;
 
   return (
@@ -32,32 +42,85 @@ export default function ProfileScreen() {
 
       <Card>
         <View style={styles.row}>
-          <View style={styles.avatar}>
-            <Feather name="user" size={20} color={colors.primary} />
+          <View style={[styles.avatar, { backgroundColor: `${tokens.accentPrimary}22` }]}>
+            <Feather name="user" size={20} color={tokens.accentPrimary} />
           </View>
           <View style={styles.info}>
-            <Text style={styles.email}>{user?.email ?? t('profile.title')}</Text>
-            <Text style={styles.meta}>{t('profile.signedInWithSupabase')}</Text>
+            <Text style={[styles.email, { color: tokens.textPrimary }]}>
+              {user?.email ?? t('profile.title')}
+            </Text>
+            <Text style={[styles.meta, { color: tokens.textSecondary }]}>
+              {t('profile.signedInWithSupabase')}
+            </Text>
           </View>
         </View>
       </Card>
 
       <Card style={styles.languageCard}>
-        <Text style={styles.languageLabel}>{t('profile.language')}</Text>
+        <Text style={[styles.languageLabel, { color: tokens.textSecondary }]}>
+          {t('profile.language')}
+        </Text>
         <View style={styles.languageOptions}>
           {SUPPORTED_LANGUAGES.map((language) => {
             const active = activeLanguage === language;
             return (
               <TouchableOpacity
                 key={language}
-                style={[styles.languageOption, active && styles.languageOptionActive]}
+                style={[
+                  styles.languageOption,
+                  {
+                    borderColor: active ? tokens.accentPrimary : tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
+                    backgroundColor: active ? tokens.accentPrimary : tokens.surface,
+                  },
+                ]}
                 onPress={() => void setLanguage(language)}
                 activeOpacity={0.75}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={[styles.languageOptionText, active && styles.languageOptionTextActive]}>
+                <Text
+                  style={[
+                    styles.languageOptionText,
+                    { color: active ? '#FFFFFF' : tokens.textPrimary },
+                  ]}
+                >
                   {t(LANGUAGE_LABEL_KEY[language])}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </Card>
+
+      <Card style={styles.languageCard}>
+        <Text style={[styles.languageLabel, { color: tokens.textSecondary }]}>
+          {t('profile.theme')}
+        </Text>
+        <View style={styles.languageOptions}>
+          {THEME_MODES.map((themeMode) => {
+            const active = mode === themeMode;
+            return (
+              <TouchableOpacity
+                key={themeMode}
+                style={[
+                  styles.languageOption,
+                  {
+                    borderColor: active ? tokens.accentPrimary : tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
+                    backgroundColor: active ? tokens.accentPrimary : tokens.surface,
+                  },
+                ]}
+                onPress={() => setThemeMode(themeMode)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text
+                  style={[
+                    styles.languageOptionText,
+                    { color: active ? '#FFFFFF' : tokens.textPrimary },
+                  ]}
+                >
+                  {t(THEME_LABEL_KEY[themeMode])}
                 </Text>
               </TouchableOpacity>
             );
@@ -77,8 +140,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 46,
     height: 46,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primarySoft,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -89,11 +151,9 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
   },
   meta: {
     fontSize: 12,
-    color: colors.muted,
   },
   languageCard: {
     gap: spacing.md,
@@ -101,7 +161,6 @@ const styles = StyleSheet.create({
   languageLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.faint,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
@@ -112,23 +171,13 @@ const styles = StyleSheet.create({
   languageOption: {
     flex: 1,
     minHeight: 44,
-    borderRadius: radius.md,
+    borderRadius: themeRadius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  languageOptionActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   languageOptionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
-  },
-  languageOptionTextActive: {
-    color: colors.onPrimary,
   },
 });

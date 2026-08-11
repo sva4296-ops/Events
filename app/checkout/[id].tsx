@@ -4,7 +4,9 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
-import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { fonts, gSpace } from '@/utils/guestTheme';
+import { themeRadius } from '@/utils/themeTokens';
 
 /**
  * Placeholder for the Stripe flow. Next iteration: Stripe Connect onboarding for
@@ -12,17 +14,28 @@ import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
  */
 export default function CheckoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { tokens } = useTheme();
 
   return (
     <GuestScreen contentStyle={styles.page} topInset>
-      <View style={styles.card}>
-        <Feather name="credit-card" size={30} color={guest.purple} />
-        <Text style={styles.title}>Plata vine în curând</Text>
-        <Text style={styles.body}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: tokens.surfaceElevated,
+            borderColor: tokens.surfaceBorder ?? 'transparent',
+            borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+          },
+          tokens.surfaceElevatedShadow ?? undefined,
+        ]}
+      >
+        <Feather name="credit-card" size={30} color={tokens.accentPrimary} />
+        <Text style={[styles.title, { color: tokens.textPrimary }]}>Plata vine în curând</Text>
+        <Text style={[styles.body, { color: tokens.textSecondary }]}>
           Aici se va deschide Stripe Checkout. Momentan este doar un pas simulat — nu se face
           nicio plată reală.
         </Text>
-        <Text style={styles.meta}>Eveniment: {id}</Text>
+        <Text style={[styles.meta, { color: tokens.textSecondary }]}>Eveniment: {id}</Text>
       </View>
 
       <GuestButton label="Înapoi la fond" variant="outline" onPress={() => router.back()} />
@@ -36,26 +49,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   card: {
-    backgroundColor: guest.white,
-    borderRadius: gRadius.xl,
+    borderRadius: themeRadius.lg,
     padding: gSpace.xxl,
     alignItems: 'center',
     gap: gSpace.md,
-    ...gShadow,
   },
   title: {
     fontFamily: fonts.displayBold,
     fontSize: 22,
-    color: guest.ink,
   },
   body: {
     fontSize: 14,
     lineHeight: 21,
-    color: guest.body,
     textAlign: 'center',
   },
   meta: {
     fontSize: 11,
-    color: guest.faint,
   },
 });

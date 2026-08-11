@@ -11,14 +11,22 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
+import { useTheme } from '@/hooks/useTheme';
 import { fonts, guest, gRadius, gSpace } from '@/utils/guestTheme';
 import { buildInviteLink } from '@/utils/invite';
 
+/**
+ * Live's hero card is a deliberate, fixed "night broadcast" dark surface —
+ * not the app's light/dark theme. It stays guest.navy/guest.white regardless
+ * of the active theme, same as before this pass; only the page chrome around
+ * it (helper text) reads from useTheme().
+ */
 export default function LiveScreen() {
   const { t } = useTranslation();
   const { id, name, event } = useGuestEvent();
   const { user } = useAuth();
   const { isOwner } = useEvents();
+  const { tokens } = useTheme();
   const { content, addPhoto, deletePhoto } = useEventContent(id);
 
   const owner = isOwner(event);
@@ -111,7 +119,7 @@ export default function LiveScreen() {
         </View>
       </View>
 
-      <Text style={styles.helper}>{t('live.helper')}</Text>
+      <Text style={[styles.helper, { color: tokens.textSecondary }]}>{t('live.helper')}</Text>
 
       <GuestButton label={t('live.addPhoto')} onPress={() => void pickPhoto()} />
     </GuestScreen>
@@ -211,7 +219,6 @@ const styles = StyleSheet.create({
   },
   helper: {
     fontSize: 13,
-    color: guest.body,
     textAlign: 'center',
   },
 });

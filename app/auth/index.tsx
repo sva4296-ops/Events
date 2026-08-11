@@ -16,8 +16,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandHeader } from '@/components/BrandHeader';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import i18n from '@/utils/i18n';
-import { brand, fonts } from '@/utils/guestTheme';
+import { fonts } from '@/utils/guestTheme';
+import { themeRadius } from '@/utils/themeTokens';
 
 type Mode = 'sign-in' | 'sign-up';
 
@@ -61,6 +63,7 @@ export default function AuthScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { signIn, signUp } = useAuth();
+  const { tokens } = useTheme();
 
   const [mode, setMode] = useState<Mode>('sign-in');
   const [email, setEmail] = useState('');
@@ -135,59 +138,75 @@ export default function AuthScreen() {
           <BrandHeader size="sm" />
         </View>
 
-        <Text style={styles.headline}>
+        <Text style={[styles.headline, { color: tokens.textPrimary }]}>
           {isSignUp ? t('auth.createAccountHeadline') : t('auth.welcomeBackHeadline')}
         </Text>
-        <Text style={styles.sub}>
+        <Text style={[styles.sub, { color: tokens.textSecondary }]}>
           {isSignUp ? t('auth.createAccountSub') : t('auth.signInSub')}
         </Text>
 
         <View style={styles.form}>
           <View style={styles.field}>
-            <Text style={styles.label}>{t('auth.emailLabel')}</Text>
+            <Text style={[styles.label, { color: tokens.textPrimary }]}>{t('auth.emailLabel')}</Text>
             <TextInput
-              style={[styles.input, errors.email !== undefined && styles.inputError]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: tokens.surface,
+                  borderColor: errors.email !== undefined ? tokens.destructive : tokens.surfaceBorder ?? '#EAE4F0',
+                  color: tokens.textPrimary,
+                },
+              ]}
               value={email}
               onChangeText={(value) => {
                 setEmail(value);
                 setErrors((current) => ({ ...current, email: undefined }));
               }}
               placeholder={t('auth.emailPlaceholder')}
-              placeholderTextColor={brand.muted}
+              placeholderTextColor={tokens.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
               accessibilityLabel="Email"
             />
             {errors.email !== undefined ? (
-              <Text style={styles.error}>{errors.email}</Text>
+              <Text style={[styles.error, { color: tokens.destructive }]}>{errors.email}</Text>
             ) : null}
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>{t('auth.passwordLabel')}</Text>
+            <Text style={[styles.label, { color: tokens.textPrimary }]}>{t('auth.passwordLabel')}</Text>
             <TextInput
-              style={[styles.input, errors.password !== undefined && styles.inputError]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: tokens.surface,
+                  borderColor: errors.password !== undefined ? tokens.destructive : tokens.surfaceBorder ?? '#EAE4F0',
+                  color: tokens.textPrimary,
+                },
+              ]}
               value={password}
               onChangeText={(value) => {
                 setPassword(value);
                 setErrors((current) => ({ ...current, password: undefined }));
               }}
               placeholder={isSignUp ? t('auth.passwordPlaceholderSignUp') : t('auth.passwordPlaceholderSignIn')}
-              placeholderTextColor={brand.muted}
+              placeholderTextColor={tokens.textSecondary}
               secureTextEntry
               autoCapitalize="none"
               accessibilityLabel="Password"
             />
             {errors.password !== undefined ? (
-              <Text style={styles.error}>{errors.password}</Text>
+              <Text style={[styles.error, { color: tokens.destructive }]}>{errors.password}</Text>
             ) : null}
           </View>
 
-          {notice !== null ? <Text style={styles.notice}>{notice}</Text> : null}
+          {notice !== null ? (
+            <Text style={[styles.notice, { color: tokens.accentPrimary }]}>{notice}</Text>
+          ) : null}
 
           <TouchableOpacity
-            style={[styles.button, busy && styles.buttonBusy]}
+            style={[styles.button, { backgroundColor: tokens.accentPrimary }, busy && styles.buttonBusy]}
             onPress={() => void submit()}
             disabled={busy}
             activeOpacity={0.85}
@@ -206,9 +225,9 @@ export default function AuthScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={switchMode} activeOpacity={0.7} accessibilityRole="button">
-            <Text style={styles.toggle}>
+            <Text style={[styles.toggle, { color: tokens.textSecondary }]}>
               {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
-              <Text style={styles.toggleAccent}>
+              <Text style={[styles.toggleAccent, { color: tokens.accentPrimary }]}>
                 {isSignUp ? t('auth.signInToggle') : t('auth.signUpToggle')}
               </Text>
             </Text>
@@ -240,12 +259,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.displayBold,
     fontSize: 30,
     lineHeight: 40,
-    color: brand.navy,
   },
   sub: {
     fontSize: 14,
     lineHeight: 20,
-    color: brand.muted,
   },
   form: {
     marginTop: 28,
@@ -257,36 +274,26 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: brand.navy,
   },
   input: {
     minHeight: 52,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    borderRadius: themeRadius.md,
     borderWidth: 1,
-    borderColor: brand.lavender,
     paddingHorizontal: 18,
     fontSize: 15,
-    color: brand.navy,
-  },
-  inputError: {
-    borderColor: '#D9534F',
   },
   error: {
     fontSize: 12,
     lineHeight: 17,
-    color: '#D9534F',
     paddingHorizontal: 4,
   },
   notice: {
     fontSize: 13,
     lineHeight: 19,
-    color: brand.purple,
   },
   button: {
     minHeight: 54,
-    borderRadius: 999,
-    backgroundColor: brand.purple,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
@@ -301,12 +308,10 @@ const styles = StyleSheet.create({
   },
   toggle: {
     fontSize: 14,
-    color: brand.muted,
     textAlign: 'center',
     paddingVertical: 8,
   },
   toggleAccent: {
-    color: brand.purple,
     fontWeight: '700',
   },
 });

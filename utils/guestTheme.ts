@@ -51,7 +51,8 @@ export const fonts = {
 export const gRadius = {
   sm: 12,
   md: 18,
-  lg: 26,
+  // Warm Story pass: cards land in the 16-18px window, not the old 26.
+  lg: 18,
   xl: 32,
   pill: 999,
 } as const;

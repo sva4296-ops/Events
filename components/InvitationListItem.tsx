@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { RsvpBadge } from '@/components/RsvpBadge';
+import { Skeleton } from '@/components/Skeleton';
 import type { Invitation } from '@/utils/invitations';
 import { getEventType } from '@/utils/eventTypes';
 import { formatEventDate } from '@/utils/format';
@@ -40,6 +41,20 @@ export function InvitationListItem({
 
       <RsvpBadge status={guest.status} />
     </TouchableOpacity>
+  );
+}
+
+/** Same row/badge/info dimensions as the real row above, so nothing shifts when data lands. */
+export function InvitationListItemSkeleton() {
+  return (
+    <View style={styles.row}>
+      <Skeleton width={44} height={44} radius={radius.md} />
+      <View style={styles.info}>
+        <Skeleton height={15} width="65%" radius={4} />
+        <Skeleton height={12} width="40%" radius={4} />
+      </View>
+      <Skeleton width={64} height={22} radius={radius.pill} />
+    </View>
   );
 }
 

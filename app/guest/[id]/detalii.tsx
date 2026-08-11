@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { SectionLabel } from '@/components/guest/SectionLabel';
+import { Skeleton } from '@/components/Skeleton';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { confirmDelete } from '@/utils/confirm';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,6 +34,104 @@ function vendorIcon(category: string): string {
   return '🏷️';
 }
 
+/**
+ * All six sections load together (one combined content fetch — see
+ * useEventContent), so there's no per-section loading state to track; this
+ * mirrors the real layout of every section at once, reusing the same
+ * container styles the real sections render into so nothing shifts on load.
+ */
+function DetaliiSkeleton() {
+  return (
+    <GuestScreen transparent>
+      <View style={styles.section}>
+        <SectionLabel>PROGRAMUL ZILEI</SectionLabel>
+        <View style={styles.stack}>
+          <View style={styles.scheduleCard}>
+            <Skeleton width={62} height={19} radius={4} />
+            <View style={styles.scheduleBody}>
+              <Skeleton height={16} width="60%" radius={4} />
+              <Skeleton height={13} width="40%" radius={4} />
+            </View>
+          </View>
+          <View style={styles.scheduleCard}>
+            <Skeleton width={62} height={19} radius={4} />
+            <View style={styles.scheduleBody}>
+              <Skeleton height={16} width="45%" radius={4} />
+              <Skeleton height={13} width="55%" radius={4} />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <SectionLabel>LOCAȚIE & CUM AJUNGI</SectionLabel>
+        <View style={styles.mapCard}>
+          <Skeleton height={170} radius={0} />
+          <View style={styles.venueBody}>
+            <Skeleton height={20} width="50%" radius={4} />
+            <Skeleton height={14} width="70%" radius={4} />
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <SectionLabel>MENIUL SERII</SectionLabel>
+        <View style={styles.menuCard}>
+          <View style={styles.courseRow}>
+            <Skeleton height={13} width={80} radius={4} />
+            <Skeleton height={14} width="40%" radius={4} />
+          </View>
+          <View style={styles.courseRow}>
+            <Skeleton height={13} width={80} radius={4} />
+            <Skeleton height={14} width="40%" radius={4} />
+          </View>
+          <View style={styles.courseRow}>
+            <Skeleton height={13} width={80} radius={4} />
+            <Skeleton height={14} width="40%" radius={4} />
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <SectionLabel>AȘEZAREA LA MESE</SectionLabel>
+        <View style={styles.stack}>
+          <View style={styles.rowCard}>
+            <Skeleton height={16} width="45%" radius={4} />
+            <Skeleton height={13} width="30%" radius={4} />
+          </View>
+          <View style={styles.rowCard}>
+            <Skeleton height={16} width="55%" radius={4} />
+            <Skeleton height={13} width="35%" radius={4} />
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <SectionLabel>CAZARE RECOMANDATĂ</SectionLabel>
+        <View style={styles.stack}>
+          <View style={styles.rowCard}>
+            <Skeleton height={16} width="50%" radius={4} />
+            <Skeleton height={13} width="65%" radius={4} />
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <SectionLabel>CEI CARE FAC TOTUL POSIBIL</SectionLabel>
+        <View style={styles.stack}>
+          <View style={styles.vendorCard}>
+            <Skeleton width={40} height={40} radius={gRadius.pill} />
+            <View style={styles.vendorBody}>
+              <Skeleton height={16} width="55%" radius={4} />
+              <Skeleton height={13} width="70%" radius={4} />
+            </View>
+          </View>
+        </View>
+      </View>
+    </GuestScreen>
+  );
+}
+
 export default function DetaliiScreen() {
   const { id, event } = useGuestEvent();
   const { isOwner, updateMyDietaryPreferences } = useEvents();
@@ -45,7 +144,7 @@ export default function DetaliiScreen() {
     deleteVendor,
   } = useEventContent(id);
 
-  if (content === null) return <GuestScreen transparent />;
+  if (content === null) return <DetaliiSkeleton />;
 
   const owner = isOwner(event);
   const hasVenue = content.venue.name.trim().length > 0 || content.venue.address.trim().length > 0;

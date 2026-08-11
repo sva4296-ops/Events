@@ -3,9 +3,9 @@ import { router } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BrandHeader } from '@/components/BrandHeader';
-import { EventListItem } from '@/components/EventListItem';
+import { EventListItem, EventListItemSkeleton } from '@/components/EventListItem';
 import { HomeEmptyState } from '@/components/HomeEmptyState';
-import { InvitationListItem } from '@/components/InvitationListItem';
+import { InvitationListItem, InvitationListItemSkeleton } from '@/components/InvitationListItem';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/hooks/useAuth';
@@ -55,7 +55,12 @@ export default function DashboardScreen() {
           <Text style={styles.sectionTitle}>Your events</Text>
           <Text style={styles.sectionHint}>Events you host.</Text>
 
-          {!hydrated ? null : ownedEvents.length === 0 ? (
+          {!hydrated ? (
+            <>
+              <EventListItemSkeleton />
+              <EventListItemSkeleton />
+            </>
+          ) : ownedEvents.length === 0 ? (
             <HomeEmptyState
               icon="calendar"
               headline="Start your first story"
@@ -78,7 +83,12 @@ export default function DashboardScreen() {
           <Text style={styles.sectionTitle}>My invitations</Text>
           <Text style={styles.sectionHint}>Events you were invited to.</Text>
 
-          {!hydrated ? null : invitations.length === 0 ? (
+          {!hydrated ? (
+            <>
+              <InvitationListItemSkeleton />
+              <InvitationListItemSkeleton />
+            </>
+          ) : invitations.length === 0 ? (
             <HomeEmptyState
               icon="mail"
               headline="No invitations yet"

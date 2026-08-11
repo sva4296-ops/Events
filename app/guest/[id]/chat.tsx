@@ -11,7 +11,7 @@ import {
 
 import { EmptyState } from '@/components/EmptyState';
 import { GuestScreen } from '@/components/guest/GuestScreen';
-import { MessageBubble } from '@/components/guest/MessageBubble';
+import { MessageBubble, MessageBubbleSkeleton } from '@/components/guest/MessageBubble';
 import { SectionLabel } from '@/components/guest/SectionLabel';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,6 +40,14 @@ export default function ChatScreen() {
           <SectionLabel>GRUPUL NUNȚII</SectionLabel>
           <Text style={styles.subtitle}>Invitații vorbesc între ei și cu organizatorul</Text>
         </View>
+
+        {content === null ? (
+          <>
+            <MessageBubbleSkeleton bubbleWidth={150} />
+            <MessageBubbleSkeleton bubbleWidth={200} />
+            <MessageBubbleSkeleton bubbleWidth={120} />
+          </>
+        ) : null}
 
         {content !== null && content.messages.length === 0 ? (
           <EmptyState message="Niciun mesaj încă. Scrie primul!" />

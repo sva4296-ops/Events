@@ -6,6 +6,7 @@ import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { SectionLabel } from '@/components/guest/SectionLabel';
 import { PhotoTile } from '@/components/guest/PhotoTile';
+import { Skeleton } from '@/components/Skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
@@ -21,6 +22,7 @@ export default function AlbumScreen() {
 
   const owner = isOwner(event);
 
+  const loading = content === null;
   const photos = content?.photos ?? [];
   const attendees = event === undefined ? 0 : countRsvps(event.guests).confirmed;
 
@@ -44,7 +46,16 @@ export default function AlbumScreen() {
 
       <View style={styles.albumBlock}>
         <Text style={styles.albumTitle}>Albumul vostru</Text>
-        {photos.length === 0 ? (
+        {loading ? (
+          <View style={styles.grid}>
+            <Skeleton style={styles.tile} />
+            <Skeleton style={styles.tile} />
+            <Skeleton style={styles.tile} />
+            <Skeleton style={styles.tile} />
+            <Skeleton style={styles.tile} />
+            <Skeleton style={styles.tile} />
+          </View>
+        ) : photos.length === 0 ? (
           <EmptyState message="Nicio poză încă. Pozele adăugate în Live apar aici." />
         ) : (
           <View style={styles.grid}>

@@ -684,6 +684,31 @@ floating, suspended or rounded** — earlier descriptions of it that way were as
   a full-screen viewer instead (`PhotoTile`, used by Live and Album — see §4 Photo grids).
 - `Screen` / `GuestScreen` are the two page wrappers; `GuestScreen` deliberately omits the top safe-area
   inset because `EventHeaderBar` owns it (pass `topInset` for screens without that bar).
+- **`Skeleton`** (`components/Skeleton.tsx`) — the one loading-placeholder primitive: a shimmering
+  rounded rect (opacity pulse via reanimated, not a gradient sweep — simplest thing that reads as
+  "loading" with the animation tooling already in the project). Lavender-gray tone (`#E7E1F5`),
+  between `colors.border`/`primarySoft` and `guest.purpleSoft` so it reads on cream, white, and navy
+  alike. No default `height` — several skeletons (the Album grid tile) need `aspectRatio` from a passed
+  `style` to derive height instead, and a default would win over that. Every screen-specific skeleton
+  composes from it rather than drawing its own shapes. Two flavors of where they live: **colocated**
+  with the real component when one already exists as its own file — `EventListItemSkeleton`,
+  `InvitationListItemSkeleton`, `GuestRowSkeleton`, `MomentCardSkeleton`, `MessageBubbleSkeleton` are
+  exported alongside `EventListItem`/`InvitationListItem`/`GuestRow`/`MomentCard`/`MessageBubble` in
+  the same file, reusing that file's own `StyleSheet` objects so dimensions can't drift from the real
+  layout; **inline** in the screen itself when the real layout is drawn directly in the screen with no
+  separate component — Detalii's `DetaliiSkeleton`, Fond's inline card skeleton, and Live/Album's grid
+  skeletons all reuse that screen's own `styles.*` objects the same way. **No new loading-state
+  plumbing was added** — `useEvents().hydrated` and `useEventContent(id).content === null` already had
+  exactly the right semantics (true only during the *first* fetch with no cached data yet; both stay
+  "loaded"/non-null through a background refetch, since TanStack Query keeps previous data visible
+  during those) before skeletons existed, so every skeleton gate below is one of those two existing
+  flags, unchanged — this pass is presentational only. One deliberate deviation from a generic
+  "guest-list-row" skeleton shape: `GuestRowSkeleton` has no avatar circle, because the real `GuestRow`
+  doesn't either (just a name line + status pill) — matching the actual row's height took priority over
+  a generic prescription, to guarantee no layout shift when real rows replace it. `event/[id].tsx`
+  additionally now checks `hydrated` *before* its `event === undefined` bail-out (was previously
+  checked nowhere on that screen), since without it every event flashed "Event not found" during the
+  initial fetch — necessary to reach the guest-list skeleton at all, not a data-fetching change.
 
 ---
 

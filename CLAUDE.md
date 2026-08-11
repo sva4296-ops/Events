@@ -117,12 +117,41 @@ which screens see which data. `EventContentProvider` used to have to live at the
 venue, fund, post-moment); that constraint is gone now for the same reason.
 
 **Query keys:** `['events', mode, userId]` (one list per auth mode + signed-in user; local mode's
-"user" is the per-device identity — see §2 Auth flow) and `['eventContent', mode, eventId]` (the whole
-`EventContent` blob per event — moments, reactions, messages, photos, fund, contributions, schedule,
-venue, menu, seating tables, accommodations, vendors — still fetched as ten parallel queries by
-`remoteRepository.load` and cached as one object, unchanged from before). There is no separate
-`['event', eventId]` key: nothing fetches a single event independently of the list today, so `getEvent`
-still just derives from the cached `events` array, same as before.
+"user" is the per-device identity — see §2 Auth flow) and, per event, three separate keys instead of
+one — `['eventContent', 'social', mode, eventId]`, `['eventContent', 'details', mode, eventId]`,
+`['eventContent', 'contributions', mode, eventId]`. These three used to be a single combined
+`['eventContent', mode, eventId]` query (`remoteRepository.load`, ten parallel Supabase calls merged
+into one `EventContent` object); they were split so each could get its own `staleTime` — see the table
+below. `data/remoteEventContentRepository.ts` now exposes `loadSocial`/`loadDetails`/`loadContributions`
+instead of `load`, and `types/guest.ts` has `SocialContent`/`DetailsContent`/`ContributionsContent` as
+the three slices; `EventContent` is now `SocialContent & DetailsContent & ContributionsContent`, and
+`useEventContent`'s `content` is still that merged shape (`null` until all three queries have data at
+least once) — **no screen changed**, only what feeds `content` underneath it. `loadContributions` looks
+up the fund's id itself (a small extra `select`) rather than depending on `loadDetails`'s result, so
+the three stay independent queries rather than a waterfall. There is no separate `['event', eventId]`
+key: nothing fetches a single event independently of the list today, so `getEvent` still just derives
+from the cached `events` array, same as before.
+
+**`staleTime`/`gcTime` are explicit per query, not left on the global default** — the global
+`QueryClient` config (`app/_layout.tsx`: `staleTime: 60s`, `gcTime: 5min`, `refetchOnReconnect: true`,
+`refetchOnWindowFocus: false` — meaningless on RN, off rather than silently inert, `retry: 2`) is a
+baseline every query below overrides:
+
+| Query | staleTime | Why |
+| --- | --- | --- |
+| `events` | 30s | Bundles rarely-changing event fields (name/date/location) with the guest list + `rsvp_status`/dietary preferences, which change on guest action. One row, not two queries, so it takes the shorter of the two — every mutation touching it (`createEvent`, `updateEvent`, `removeGuest`, `addGuest`, `respondToInvite`, `updateMyDietaryPreferences`) already calls `invalidateQueries` in `onSuccess` too, so this is a drift safety net, not the primary update path |
+| `eventContent` / `social` (moments, reactions, messages, photos) | 30s | Would be `Infinity` if Realtime subscriptions pushed updates into this cache directly — they don't (§7) — so `Infinity` would mean another guest's message/photo/moment never appears on this device until *this* device's own next mutation happens to invalidate the key. Using the same 30s treatment as a user-action list instead, until Realtime is actually built |
+| `eventContent` / `details` (schedule, venue, menu, seating, accommodations, vendors, fund settings) | 3min | Owner-edited, rarely changing. Every mutation already invalidates this key explicitly, so the longer `staleTime` only affects how soon *other* devices/sessions notice an edit — switching between Detalii/Fond/other tabs within that window never triggers a background refetch |
+| `eventContent` / `contributions` | 30s | Same "safety net, not primary path" reasoning as `events` — moot today since nothing writes contributions client-side (§7), but set correctly for when a Stripe webhook does |
+
+**Not a query, so not in the table above:** session/identity data (current user, `has_completed_onboarding`).
+A pass that categorized query-caching behavior assumed these were `useQuery`-backed too (`staleTime:
+Infinity`, refetch only on explicit login/logout/signup/profile-update) — they're not; `useAuth` is
+still a plain Context provider, deliberately (see the hook table below). That target behavior is what
+it already does without any query involved: `onAuthStateChange` pushes session changes, nothing polls
+on a timer, and `hasCompletedOnboarding()` runs exactly once per signed-in session via the `AuthGate`
+ref. Converting session state to a query to formally match the category would be a bigger structural
+change than this config pass, for no behavioral gain.
 
 **Mutations replace the old manual "refetch after insert" convention with `invalidateQueries`.** Every
 Supabase-mode write in `useEvents`/`useEventContent` runs through a `useMutation`, and its `onSuccess`
@@ -136,9 +165,9 @@ mutations (`mode === 'local'`) don't need any of this — they patch the query c
 `queryClient.setQueryData` (and, for events, persist to AsyncStorage in the same call) since there's no
 server round trip to wait on. **No `services/` file and no direct `@/data/*` import was added to any
 screen by this pass** — the repository seam described just above this section is unchanged; only what's
-*inside* `useEvents.tsx`/`useEventContent.tsx` changed. `QueryClient` defaults (`app/_layout.tsx`):
-`staleTime: 30s`, `gcTime: 5min`, query `retry: 2`, **mutation `retry: 0`** (retrying a failed
-insert/update against Supabase risks a duplicate write, unlike a read).
+*inside* `useEvents.tsx`/`useEventContent.tsx` changed. See the `staleTime` table above for per-query
+config; **mutation `retry: 0`** globally (retrying a failed insert/update against Supabase risks a
+duplicate write, unlike a read).
 
 **Not done this pass, on purpose:** Supabase Realtime. The prompt that requested this migration assumed
 `messages`/`photos`/`moments`/`reactions` already had `supabase.channel()` subscriptions to wire into
@@ -149,7 +178,7 @@ was out of scope for an infra-only pass and would have been new functionality, n
 | --- | --- |
 | `useAuth` | Supabase session or a local fallback identity; `signIn/signUp/signOut`, `mode: 'supabase' \| 'local'`, `hasCompletedOnboarding`/`markOnboardingComplete`. Still a Context provider — session state is push-driven via `supabase.auth.onAuthStateChange`, not a fit for query-style pull fetching, and it isn't a resource that exhibited the staleness bug this pass fixes |
 | `useEvents` | The events list — AsyncStorage in local mode, Postgres in Supabase mode, `['events', mode, userId]` — `createEvent` (async), `updateEvent` (async), `respondToInvite`, `removeGuest`, `addGuest` (async, Supabase-only), `isOwner` |
-| `useEventContent` | Per-event content keyed by `['eventContent', mode, eventId]`: moments, reactions, messages, photos, fund, contributions, schedule, venue, plus all their mutations — local `setQueryData` or Supabase write-then-invalidate, per mode |
+| `useEventContent` | Per-event content, three queries keyed by category (`social`/`details`/`contributions`, see the table above) merged into one `content: EventContent \| null`, plus all their mutations — local `setQueryData` or Supabase write-then-invalidate (of the correct category key), per mode |
 | `useEventDraft` | The 4-step create-event wizard draft (in-memory, not persisted) — still a Context provider, this is genuinely ephemeral UI state, not a fetched resource |
 | `useGuestEvent` | Provides `{ id, name, event }` to the guest tabs, derived from `useEvents().getEvent(id)` — **see the gotcha below** |
 
@@ -334,6 +363,27 @@ just their own row.
 
 This is what actually completes the create-event flow: create → preview (`create/preview.tsx`) →
 share (`create/share.tsx`) → "Preview as guest" → this screen → into the real event dashboard.
+
+**Fixed — a genuinely `pending` invite rendered as if already declined.** A guest invited by email
+(`app/add-guest/[id].tsx`, §3 above) has a real `event_guests` row from the moment they're invited —
+`rsvp_status: 'pending'` — not just from the moment they respond. `showChoices` and the confirmation
+card were gated on `myRsvp !== undefined`, which conflates "a row exists" with "they answered": opening
+a never-responded invite made `myRsvp` defined immediately, skipped the Confirm/Decline buttons
+entirely, and fell into the confirmation card's `myRsvp.status === 'confirmed' ? … : …` ternary — since
+`'pending' !== 'confirmed'`, that unconditionally rendered the *declined* copy ("Thanks for letting us
+know" / "You'll be missed") for an invite nobody had touched yet, effectively auto-declining every
+guest who'd never opened the invite. A second bug rode along in the same branch: the post-response
+footer rendered "Deschide pagina evenimentului" unconditionally, so even a genuinely *declined* guest
+saw an event-access button — visibly contradictory alongside "You'll be missed," and wrong regardless,
+since declined guests aren't supposed to get event access at all. Both are fixed by a new `responded`
+flag (`myRsvp !== undefined && myRsvp.status !== 'pending'`) that actually means "answered," gating both
+the choices-vs-confirmation footer and the confirmation card; the access button is now additionally
+gated on `myRsvp?.status === 'confirmed'` specifically, so a declined guest's footer is just
+acknowledgment text + "Change my answer," nothing else. Local mode was never affected — its
+`SELF_GUEST_ID` row is only ever created at the moment of a real response (see `respondToInvite` in
+`hooks/useEvents.tsx`), so `myRsvp` genuinely was undefined there until an answer existed; this bug was
+Supabase-mode-only, specifically for invites created via "Add guest by email" rather than an in-app
+first response.
 
 **Fixed — Home's "My invitations" card ignored RSVP status entirely.** Tapping any invitation card
 navigated straight to `/guest/${event.id}` (the 6-tab event detail view) regardless of whether the
@@ -618,10 +668,23 @@ untouched (`utils/format.ts` → `formatEventDate`).
 | --- | --- | --- |
 | `utils/guestTheme.ts` → `brand` | Splash, Auth, onboarding, `BrandHeader`, `ScreenBackground` | cream `#FDF3EC`, gold `#F5C36B`, pink `#E8779E`, purple `#7F77DD`, navy `#2B2740`, lavender `#EAE4F0` |
 | `utils/guestTheme.ts` → `guest` | The 6 guest event tabs | cream `#FDF3EC`, purple `#6C4CE0`, gold `#E8B54B`, navy `#1B2237`, blush `#FBE3DD`, live red `#E8524F` |
-| `utils/theme.ts` → `colors` | Organizer screens (Home, create flow, edit forms, Profile) | primary `#6C4CE0`, success `#2E9E6B`, danger `#D9534F` |
+| `utils/theme.ts` → `colors` | Organizer screens (Home, create flow, edit forms, Profile) | primary `#6C4CE0`, success `#2E9E6B`, danger `#D9534F`, declined `#786FA0` |
 
 The purple differs between `brand` (`#7F77DD`) and `guest`/`colors` (`#6C4CE0`), as does the gold.
 Consolidating these is worthwhile but has not been done.
+
+**`colors.danger` is reserved for destructive delete actions only — a declined RSVP is not one.**
+`colors.declined`/`declinedSoft` (a muted lavender-gray, not a red) is the color for a declined-but-not-
+destructive outcome: `RsvpBadge`'s `declined` tone (used by both `InvitationListItem` on Home and
+`GuestRow` on the organizer dashboard — one badge, both call sites fixed together), the "Declined"
+`StatCard` on `event/[id].tsx`, and `Button`'s `neutral` variant (same outline shape as `danger`,
+recolored — used by `invite/[id].tsx`'s "Can't make it"). Before this pass all four borrowed
+`colors.danger`/`dangerSoft`, which read as a warning/error rather than a recorded, neutral choice.
+**One red usage was found and deliberately left alone**, since it's neither a delete action nor a
+declined-RSVP indicator: `app/add-guest/[id].tsx`'s inline field-validation error text
+(`colors.danger`) for "Enter a valid email address" / "This person is already invited." Conventional
+red-for-form-errors is a separate concern from this pass's declined-status scope — flagging it here
+rather than silently changing it.
 
 ### Typography
 
@@ -680,6 +743,12 @@ floating, suspended or rounded** — earlier descriptions of it that way were as
 - **Permanent icons stay** on singular, non-list items: the fund card's edit pencil and delete trash,
   the venue card's edit pencil, and the Detalii schedule section-header "+" (add, not edit — per-item
   edit/delete on existing schedule rows lives on `SwipeableRow` instead).
+- **`BackButton`** (`components/BackButton.tsx`) — the white-circle, dark-chevron back control, extracted
+  from `Header` (which still renders it via `showBack`) so a screen with a hero card instead of a title
+  — `app/invite/[id].tsx` — can use the identical control standalone, absolutely positioned top-left over
+  the hero rather than inside a `Header`. Both call sites gate it on `router.canGoBack()` rather than
+  always rendering it: a screen reached by a cold-open deep link (no session, nothing under it in the
+  stack) has nothing to go back to, and a back button that does nothing on tap is worse than no button.
 - **Photos use long-press**, never swipe — grid tiles are too small for horizontal gestures. Tap opens
   a full-screen viewer instead (`PhotoTile`, used by Live and Album — see §4 Photo grids).
 - `Screen` / `GuestScreen` are the two page wrappers; `GuestScreen` deliberately omits the top safe-area

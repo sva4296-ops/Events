@@ -3,7 +3,8 @@ import { supabase } from '@/data/supabaseClient';
 import type {
   Accommodation,
   Contribution,
-  EventContent,
+  ContributionsContent,
+  DetailsContent,
   Fund,
   Menu,
   Message,
@@ -13,6 +14,7 @@ import type {
   ReactionType,
   ScheduleItem,
   SeatingTable,
+  SocialContent,
   Vendor,
   Venue,
 } from '@/types/guest';
@@ -141,23 +143,16 @@ function mapVendor(row: VendorRow): Vendor {
   };
 }
 
-async function load(eventId: string): Promise<EventContent> {
+/**
+ * Moments/reactions/messages/photos — the highest-churn, most-social slice.
+ * Split out from the other two so it can be cached with its own staleTime;
+ * see hooks/useEventContent.tsx for why that's still a short one (no Realtime
+ * subscriptions push into this cache, despite the content).
+ */
+async function loadSocial(eventId: string): Promise<SocialContent> {
   const client = requireClient();
 
-  const [
-    scheduleRes,
-    venueRes,
-    momentsRes,
-    messagesRes,
-    photosRes,
-    fundRes,
-    menuRes,
-    seatingRes,
-    accommodationsRes,
-    vendorsRes,
-  ] = await Promise.all([
-    client.from('schedule_items').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
-    client.from('venue_info').select('*').eq('event_id', eventId).maybeSingle(),
+  const [momentsRes, messagesRes, photosRes] = await Promise.all([
     client
       .from('moments')
       .select('*, moment_reactions(*)')
@@ -165,25 +160,9 @@ async function load(eventId: string): Promise<EventContent> {
       .order('created_at', { ascending: false }),
     client.from('messages').select('*').eq('event_id', eventId).order('created_at', { ascending: true }),
     client.from('photos').select('*').eq('event_id', eventId).order('created_at', { ascending: false }),
-    client.from('fund').select('*').eq('event_id', eventId).maybeSingle(),
-    client.from('menu').select('*').eq('event_id', eventId).maybeSingle(),
-    client.from('seating_tables').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
-    client.from('accommodations').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
-    client.from('vendors').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
   ]);
 
-  for (const res of [
-    scheduleRes,
-    venueRes,
-    momentsRes,
-    messagesRes,
-    photosRes,
-    fundRes,
-    menuRes,
-    seatingRes,
-    accommodationsRes,
-    vendorsRes,
-  ]) {
+  for (const res of [momentsRes, messagesRes, photosRes]) {
     if (res.error) throw res.error;
   }
 
@@ -191,25 +170,45 @@ async function load(eventId: string): Promise<EventContent> {
   const moments = momentRows.map(mapMoment);
   const reactions = momentRows.flatMap((row) => row.moment_reactions.map((r) => mapReaction(row.id, r)));
 
-  const fundRow = fundRes.data as FundRow | null;
-  let contributions: Contribution[] = [];
-  if (fundRow !== null) {
-    const contribRes = await client
-      .from('contributions')
-      .select('*')
-      .eq('fund_id', fundRow.id)
-      .order('created_at', { ascending: false });
-    if (contribRes.error) throw contribRes.error;
-    contributions = (contribRes.data as ContributionRow[]).map(mapContribution);
-  }
-
   return {
     moments,
     reactions,
     messages: (messagesRes.data as MessageRow[]).map(mapMessage),
     photos: (photosRes.data as PhotoRow[]).map(mapPhoto),
+  };
+}
+
+/**
+ * Schedule, venue, menu, seating, accommodations, vendors, and the fund's own
+ * settings (title/description/target/current amount — not its contributions,
+ * see loadContributions below). All owner-edited, all rarely changing.
+ */
+async function loadDetails(eventId: string): Promise<DetailsContent> {
+  const client = requireClient();
+
+  const [scheduleRes, venueRes, fundRes, menuRes, seatingRes, accommodationsRes, vendorsRes] =
+    await Promise.all([
+      client
+        .from('schedule_items')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('sort_order', { ascending: true }),
+      client.from('venue_info').select('*').eq('event_id', eventId).maybeSingle(),
+      client.from('fund').select('*').eq('event_id', eventId).maybeSingle(),
+      client.from('menu').select('*').eq('event_id', eventId).maybeSingle(),
+      client.from('seating_tables').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
+      client.from('accommodations').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
+      client.from('vendors').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
+    ]);
+
+  for (const res of [scheduleRes, venueRes, fundRes, menuRes, seatingRes, accommodationsRes, vendorsRes]) {
+    if (res.error) throw res.error;
+  }
+
+  const fundRow = fundRes.data as FundRow | null;
+
+  return {
     fund: fundRow === null ? null : mapFund(fundRow),
-    contributions,
     schedule: (scheduleRes.data as ScheduleItemRow[]).map(mapSchedule),
     venue: mapVenue(eventId, venueRes.data as VenueInfoRow | null),
     menu: mapMenu(eventId, menuRes.data as MenuRow | null),
@@ -217,6 +216,33 @@ async function load(eventId: string): Promise<EventContent> {
     accommodations: (accommodationsRes.data as AccommodationRow[]).map(mapAccommodation),
     vendors: (vendorsRes.data as VendorRow[]).map(mapVendor),
   };
+}
+
+/**
+ * The fund's contribution list — a user-action-driven list, cached
+ * independently of the fund's own settings above. Looks up the fund id
+ * itself (a second, cheap read) rather than depending on loadDetails's
+ * result, so this query stays independent and gets its own staleTime.
+ */
+async function loadContributions(eventId: string): Promise<ContributionsContent> {
+  const client = requireClient();
+
+  const { data: fundRow, error: fundError } = await client
+    .from('fund')
+    .select('id')
+    .eq('event_id', eventId)
+    .maybeSingle();
+  if (fundError) throw fundError;
+  if (fundRow === null) return { contributions: [] };
+
+  const { data, error } = await client
+    .from('contributions')
+    .select('*')
+    .eq('fund_id', fundRow.id)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+
+  return { contributions: (data as ContributionRow[]).map(mapContribution) };
 }
 
 async function sendMessage(eventId: string, content: string, actor: Actor): Promise<void> {
@@ -481,7 +507,9 @@ async function deleteVendor(vendorId: string): Promise<void> {
 }
 
 export const remoteRepository = {
-  load,
+  loadSocial,
+  loadDetails,
+  loadContributions,
   sendMessage,
   deleteMessage,
   addReaction,

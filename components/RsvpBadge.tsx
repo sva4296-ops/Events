@@ -7,7 +7,9 @@ import { colors, radius, spacing } from '@/utils/theme';
 const TONES: Record<RsvpStatus, { text: string; background: string }> = {
   confirmed: { text: colors.success, background: colors.successSoft },
   pending: { text: colors.warning, background: colors.warningSoft },
-  declined: { text: colors.danger, background: colors.dangerSoft },
+  // A recorded, neutral outcome — not a warning or a destructive action, so
+  // this deliberately doesn't use colors.danger. Red is reserved for delete.
+  declined: { text: colors.declined, background: colors.declinedSoft },
 };
 
 export function RsvpBadge({ status }: { status: RsvpStatus }) {

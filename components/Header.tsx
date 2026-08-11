@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
-import { router } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { BackButton } from '@/components/BackButton';
 import { colors, radius, spacing } from '@/utils/theme';
 
 interface HeaderProps {
@@ -27,17 +27,7 @@ export function Header({
     <View style={styles.container}>
       {showBack || onClose !== undefined ? (
         <View style={styles.controls}>
-          {showBack ? (
-            <TouchableOpacity
-              style={styles.control}
-              onPress={() => router.back()}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              activeOpacity={0.7}
-            >
-              <Feather name="chevron-left" size={22} color={colors.text} />
-            </TouchableOpacity>
-          ) : null}
+          {showBack ? <BackButton /> : null}
 
           {onClose !== undefined ? (
             <TouchableOpacity

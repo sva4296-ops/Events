@@ -51,6 +51,19 @@ export function useEvents(): EventsResult {
     queryKey,
     queryFn: () => (mode === 'supabase' ? fetchEvents() : loadEvents()),
     enabled: mode === 'local' || userId !== null,
+    /**
+     * Category 3 (user-action-driven list): each AppEvent row bundles the
+     * event's own rarely-changing fields (name/date/location — category 2 on
+     * their own) together with its `guests` array (rsvp_status, dietary
+     * preferences — squarely category 3). They're one row, not two queries,
+     * so this uses the shorter, guest-list-appropriate staleTime rather than
+     * category 2's 3 minutes — every mutation that touches this key
+     * (createEvent, updateEvent, removeGuest, addGuest, respondToInvite,
+     * updateMyDietaryPreferences) already calls invalidateQueries in
+     * onSuccess too, so this staleTime is the drift safety net, not the
+     * primary update path.
+     */
+    staleTime: 30_000,
   });
 
   const events = eventsQuery.data ?? [];
@@ -284,6 +297,14 @@ export function useEvents(): EventsResult {
             : event,
         ),
       );
+    },
+    // Category 3 policy: the optimistic onMutate patch above already covers
+    // the common case instantly, but this still confirms against the server
+    // on success — a stale RLS-rejected write would otherwise look applied
+    // locally forever with nothing to correct it until the next unrelated
+    // refetch.
+    onSuccess: () => {
+      if (mode === 'supabase' && user !== null) void queryClient.invalidateQueries({ queryKey });
     },
     onError: (error) => {
       if (mode !== 'supabase' || user === null) return;

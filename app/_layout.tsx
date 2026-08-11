@@ -18,19 +18,22 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { EventDraftProvider } from '@/hooks/useEventDraft';
 
 /**
- * Mobile-tuned defaults: a short staleTime avoids a refetch on every screen
- * focus while a mutation's invalidateQueries() still forces a fresh read
- * immediately. Mutations never auto-retry — retrying a failed insert/update
- * against Supabase risks a duplicate write, unlike a read.
+ * Baseline only — every query below overrides staleTime (and gcTime where it
+ * should differ) for its own data-freshness category; see hooks/useEvents.tsx
+ * and hooks/useEventContent.tsx. `refetchOnWindowFocus` is a browser-tab
+ * concept with no RN equivalent, so it's off rather than silently inert.
+ * Mutations never auto-retry — retrying a failed insert/update against
+ * Supabase risks a duplicate write, unlike a read.
  */
 function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 30_000,
+        staleTime: 60_000,
         gcTime: 5 * 60_000,
-        retry: 2,
         refetchOnReconnect: true,
+        refetchOnWindowFocus: false,
+        retry: 2,
       },
       mutations: {
         retry: 0,

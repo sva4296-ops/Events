@@ -106,8 +106,8 @@ export default function EventDetailScreen() {
         <StatCard
           label="Declined"
           value={counts.declined}
-          tint={colors.danger}
-          background={colors.dangerSoft}
+          tint={colors.declined}
+          background={colors.declinedSoft}
         />
       </View>
 

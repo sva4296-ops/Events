@@ -1,12 +1,14 @@
 import type {
   Contribution,
-  EventContent,
+  ContributionsContent,
+  DetailsContent,
   Fund,
   Message,
   Moment,
   MomentReaction,
   Photo,
   ReactionType,
+  SocialContent,
 } from '@/types/guest';
 import { createId } from '@/utils/id';
 
@@ -30,7 +32,9 @@ export interface FundDraft {
  * Screens only ever touch this interface, so the swap stays contained here.
  */
 export interface EventContentRepository {
-  load: (eventId: string) => Promise<EventContent>;
+  loadSocial: (eventId: string) => Promise<SocialContent>;
+  loadDetails: (eventId: string) => Promise<DetailsContent>;
+  loadContributions: (eventId: string) => Promise<ContributionsContent>;
   sendMessage: (eventId: string, content: string, actor: Actor) => Message;
   toggleReaction: (momentId: string, reaction: ReactionType, actor: Actor) => MomentReaction;
   addPhoto: (eventId: string, url: string, actor: Actor) => Photo;
@@ -40,19 +44,25 @@ export interface EventContentRepository {
 }
 
 export const localRepository: EventContentRepository = {
-  load: async (eventId) => ({
+  loadSocial: async () => ({
     moments: [],
     reactions: [],
     messages: [],
     photos: [],
+  }),
+
+  loadDetails: async (eventId) => ({
     fund: null,
-    contributions: [],
     schedule: [],
     venue: { event_id: eventId, name: '', address: '', notes: [], map_image_url: '' },
     menu: null,
     seatingTables: [],
     accommodations: [],
     vendors: [],
+  }),
+
+  loadContributions: async () => ({
+    contributions: [],
   }),
 
   sendMessage: (eventId, content, actor) => ({

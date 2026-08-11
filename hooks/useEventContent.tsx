@@ -1,22 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
-import { localRepository, type Actor } from '@/data/eventContentRepository';
-import { remoteRepository } from '@/data/remoteEventContentRepository';
+import { remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
 import { useAuth } from '@/hooks/useAuth';
-import type {
-  Accommodation,
-  ContributionsContent,
-  DetailsContent,
-  EventContent,
-  ReactionType,
-  ScheduleItem,
-  SeatingTable,
-  SocialContent,
-  Vendor,
-  Venue,
-} from '@/types/guest';
-import { createId } from '@/utils/id';
+import type { DetailsContent, EventContent, ReactionType, Venue } from '@/types/guest';
 import { reportSupabaseError } from '@/utils/reportError';
 
 export interface FundInput {
@@ -77,19 +64,19 @@ type ContentCategory = 'social' | 'details' | 'contributions';
  * read; only the caching underneath it is split.
  */
 export function useEventContent(eventId: string) {
-  const { user, mode } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const socialKey = useMemo(() => ['eventContent', 'social', mode, eventId] as const, [mode, eventId]);
-  const detailsKey = useMemo(() => ['eventContent', 'details', mode, eventId] as const, [mode, eventId]);
+  const socialKey = useMemo(() => ['eventContent', 'social', eventId] as const, [eventId]);
+  const detailsKey = useMemo(() => ['eventContent', 'details', eventId] as const, [eventId]);
   const contributionsKey = useMemo(
-    () => ['eventContent', 'contributions', mode, eventId] as const,
-    [mode, eventId],
+    () => ['eventContent', 'contributions', eventId] as const,
+    [eventId],
   );
 
   const socialQuery = useQuery({
     queryKey: socialKey,
-    queryFn: () => (mode === 'supabase' ? remoteRepository.loadSocial(eventId) : localRepository.loadSocial(eventId)),
+    queryFn: () => remoteRepository.loadSocial(eventId),
     enabled: eventId.length > 0,
     /**
      * Moments, reactions, messages, photos — the "would be Realtime-backed"
@@ -106,7 +93,7 @@ export function useEventContent(eventId: string) {
 
   const detailsQuery = useQuery({
     queryKey: detailsKey,
-    queryFn: () => (mode === 'supabase' ? remoteRepository.loadDetails(eventId) : localRepository.loadDetails(eventId)),
+    queryFn: () => remoteRepository.loadDetails(eventId),
     enabled: eventId.length > 0,
     // Schedule, venue, menu, seating, accommodations, vendors, fund settings —
     // owner-edited, rarely changing. Every mutation that touches this data
@@ -118,8 +105,7 @@ export function useEventContent(eventId: string) {
 
   const contributionsQuery = useQuery({
     queryKey: contributionsKey,
-    queryFn: () =>
-      mode === 'supabase' ? remoteRepository.loadContributions(eventId) : localRepository.loadContributions(eventId),
+    queryFn: () => remoteRepository.loadContributions(eventId),
     enabled: eventId.length > 0,
     // User-action-driven list, same category as the guest list — see
     // hooks/useEvents.tsx. Nothing writes contributions client-side today
@@ -159,36 +145,10 @@ export function useEventContent(eventId: string) {
     [content],
   );
 
-  /** Local mode only — direct, synchronous cache patches (no server round trip). */
-  const updateSocial = useCallback(
-    (updater: (current: SocialContent) => SocialContent) => {
-      queryClient.setQueryData<SocialContent>(socialKey, (current) =>
-        current === undefined ? current : updater(current),
-      );
-    },
-    [queryClient, socialKey],
-  );
-  const updateDetails = useCallback(
-    (updater: (current: DetailsContent) => DetailsContent) => {
-      queryClient.setQueryData<DetailsContent>(detailsKey, (current) =>
-        current === undefined ? current : updater(current),
-      );
-    },
-    [queryClient, detailsKey],
-  );
-  const updateContributions = useCallback(
-    (updater: (current: ContributionsContent) => ContributionsContent) => {
-      queryClient.setQueryData<ContributionsContent>(contributionsKey, (current) =>
-        current === undefined ? current : updater(current),
-      );
-    },
-    [queryClient, contributionsKey],
-  );
-
   /**
-   * Supabase mode only. Replaces the old runRemote(mutate().then(refreshContent))
-   * pattern: invalidateQueries marks the affected category stale and triggers
-   * a refetch for every mounted observer of that key, instead of one manual
+   * Replaces the old runRemote(mutate().then(refreshContent)) pattern:
+   * invalidateQueries marks the affected category stale and triggers a
+   * refetch for every mounted observer of that key, instead of one manual
    * reload of the whole (now-split) content bag. `category` picks which of
    * the three keys actually needs to refetch, so e.g. saving a schedule item
    * never invalidates (and re-fetches) messages/photos/moments.
@@ -209,70 +169,34 @@ export function useEventContent(eventId: string) {
   const actions = useMemo(
     () => ({
       toggleReaction: (momentId: string, reaction: ReactionType) => {
-        if (mode === 'supabase') {
-          const already = hasReacted(momentId, reaction);
-          runRemote(
-            () =>
-              already
-                ? remoteRepository.removeReaction(momentId, reaction, actor)
-                : remoteRepository.addReaction(momentId, reaction, actor),
-            'social',
-          );
-          return;
-        }
-
-        updateSocial((current) => {
-          const existing = current.reactions.find(
-            (entry) =>
-              entry.moment_id === momentId &&
-              entry.reaction_type === reaction &&
-              entry.user_id === actor.id,
-          );
-          return existing !== undefined
-            ? { ...current, reactions: current.reactions.filter((e) => e.id !== existing.id) }
-            : {
-                ...current,
-                reactions: [
-                  ...current.reactions,
-                  localRepository.toggleReaction(momentId, reaction, actor),
-                ],
-              };
-        });
+        const already = hasReacted(momentId, reaction);
+        runRemote(
+          () =>
+            already
+              ? remoteRepository.removeReaction(momentId, reaction, actor)
+              : remoteRepository.addReaction(momentId, reaction, actor),
+          'social',
+        );
       },
 
       sendMessage: (text: string) => {
         const trimmed = text.trim();
         if (trimmed.length === 0) return;
-
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.sendMessage(eventId, trimmed, actor), 'social');
-          return;
-        }
-
-        updateSocial((current) => ({
-          ...current,
-          messages: [...current.messages, localRepository.sendMessage(eventId, trimmed, actor)],
-        }));
+        runRemote(() => remoteRepository.sendMessage(eventId, trimmed, actor), 'social');
       },
 
       addPhoto: (url: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.addPhoto(eventId, url, actor), 'social');
-          return;
-        }
-
-        updateSocial((current) => ({
-          ...current,
-          photos: [localRepository.addPhoto(eventId, url, actor), ...current.photos],
-        }));
+        runRemote(() => remoteRepository.addPhoto(eventId, url, actor), 'social');
       },
 
-      /** Local-only: nothing writes contributions client-side even against Supabase —
-       * the schema has no insert policy on purpose, contributions land via a Stripe
-       * webhook using the service role. Unused today since checkout is a stub. */
+      /** Stubbed: the `contributions` table has no client insert policy, on
+       * purpose — a contribution is meant to land via a Stripe webhook using
+       * the service role, never the client (see CLAUDE.md §3). There is no
+       * remote counterpart to call here, so this patches the cache directly;
+       * unused today since checkout is still a placeholder. */
       contribute: (amount: number) =>
-        updateDetails((current) =>
-          current.fund === null
+        queryClient.setQueryData<DetailsContent>(detailsKey, (current) =>
+          current === undefined || current.fund === null
             ? current
             : {
                 ...current,
@@ -280,256 +204,83 @@ export function useEventContent(eventId: string) {
               },
         ),
 
-      /** Optimistic prepend in local mode; a cache invalidation (refetch) in Supabase mode. */
       addMoment: (title: string, photoUrl: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.createMoment(eventId, title, photoUrl, actor), 'social');
-          return;
-        }
-
-        updateSocial((current) => ({
-          ...current,
-          moments: [
-            localRepository.createMoment(eventId, title, photoUrl, actor),
-            ...current.moments,
-          ],
-        }));
+        runRemote(() => remoteRepository.createMoment(eventId, title, photoUrl, actor), 'social');
       },
 
       saveFund: (input: FundInput) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.saveFund(eventId, input, content?.fund?.id ?? null), 'details');
-          return;
-        }
-
-        updateDetails((current) => ({
-          ...current,
-          fund:
-            current.fund === null
-              ? localRepository.createFund(eventId, input)
-              : { ...current.fund, ...input },
-        }));
+        runRemote(() => remoteRepository.saveFund(eventId, input, content?.fund?.id ?? null), 'details');
       },
 
       deleteFund: () => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteFund(eventId), 'details');
-          return;
-        }
-
-        updateDetails((current) => ({ ...current, fund: null }));
-        updateContributions(() => ({ contributions: [] }));
+        runRemote(() => remoteRepository.deleteFund(eventId), 'details');
       },
 
       saveScheduleItem: (item: ScheduleItemInput) => {
-        if (mode === 'supabase') {
-          runRemote(
-            () => remoteRepository.saveScheduleItem(eventId, item, content?.schedule.length ?? 0),
-            'details',
-          );
-          return;
-        }
-
-        updateDetails((current) => {
-          const id = item.id ?? createId();
-          const next: ScheduleItem = {
-            id,
-            event_id: eventId,
-            time: item.time,
-            title: item.title,
-            location: item.location,
-          };
-          const schedule =
-            item.id === null
-              ? [...current.schedule, next]
-              : current.schedule.map((entry) => (entry.id === id ? next : entry));
-          return { ...current, schedule };
-        });
+        runRemote(
+          () => remoteRepository.saveScheduleItem(eventId, item, content?.schedule.length ?? 0),
+          'details',
+        );
       },
 
       deleteScheduleItem: (itemId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteScheduleItem(itemId), 'details');
-          return;
-        }
-
-        updateDetails((current) => ({
-          ...current,
-          schedule: current.schedule.filter((item) => item.id !== itemId),
-        }));
+        runRemote(() => remoteRepository.deleteScheduleItem(itemId), 'details');
       },
 
       deleteMoment: (momentId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteMoment(momentId), 'social');
-          return;
-        }
-
-        updateSocial((current) => ({
-          ...current,
-          moments: current.moments.filter((moment) => moment.id !== momentId),
-          reactions: current.reactions.filter((entry) => entry.moment_id !== momentId),
-        }));
+        runRemote(() => remoteRepository.deleteMoment(momentId), 'social');
       },
 
       deleteMessage: (messageId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteMessage(messageId), 'social');
-          return;
-        }
-
-        updateSocial((current) => ({
-          ...current,
-          messages: current.messages.filter((message) => message.id !== messageId),
-        }));
+        runRemote(() => remoteRepository.deleteMessage(messageId), 'social');
       },
 
       deletePhoto: (photoId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deletePhoto(photoId), 'social');
-          return;
-        }
-
-        updateSocial((current) => ({
-          ...current,
-          photos: current.photos.filter((photo) => photo.id !== photoId),
-        }));
+        runRemote(() => remoteRepository.deletePhoto(photoId), 'social');
       },
 
       updateVenue: (venue: Venue) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.updateVenue(venue), 'details');
-          return;
-        }
-
-        updateDetails((current) => ({ ...current, venue }));
+        runRemote(() => remoteRepository.updateVenue(venue), 'details');
       },
 
       saveMenu: (input: MenuInput) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.saveMenu(eventId, input), 'details');
-          return;
-        }
-
-        updateDetails((current) => ({ ...current, menu: { event_id: eventId, ...input } }));
+        runRemote(() => remoteRepository.saveMenu(eventId, input), 'details');
       },
 
       saveSeatingTable: (item: SeatingTableInput) => {
-        if (mode === 'supabase') {
-          runRemote(
-            () => remoteRepository.saveSeatingTable(eventId, item, content?.seatingTables.length ?? 0),
-            'details',
-          );
-          return;
-        }
-
-        updateDetails((current) => {
-          const id = item.id ?? createId();
-          const next: SeatingTable = {
-            id,
-            event_id: eventId,
-            name: item.name,
-            label: item.label,
-            seat_count: item.seat_count,
-          };
-          const seatingTables =
-            item.id === null
-              ? [...current.seatingTables, next]
-              : current.seatingTables.map((entry) => (entry.id === id ? next : entry));
-          return { ...current, seatingTables };
-        });
+        runRemote(
+          () => remoteRepository.saveSeatingTable(eventId, item, content?.seatingTables.length ?? 0),
+          'details',
+        );
       },
 
       deleteSeatingTable: (tableId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteSeatingTable(tableId), 'details');
-          return;
-        }
-
-        updateDetails((current) => ({
-          ...current,
-          seatingTables: current.seatingTables.filter((table) => table.id !== tableId),
-        }));
+        runRemote(() => remoteRepository.deleteSeatingTable(tableId), 'details');
       },
 
       saveAccommodation: (item: AccommodationInput) => {
-        if (mode === 'supabase') {
-          runRemote(
-            () => remoteRepository.saveAccommodation(eventId, item, content?.accommodations.length ?? 0),
-            'details',
-          );
-          return;
-        }
-
-        updateDetails((current) => {
-          const id = item.id ?? createId();
-          const next: Accommodation = {
-            id,
-            event_id: eventId,
-            name: item.name,
-            detail_line: item.detail_line,
-            price_line: item.price_line,
-          };
-          const accommodations =
-            item.id === null
-              ? [...current.accommodations, next]
-              : current.accommodations.map((entry) => (entry.id === id ? next : entry));
-          return { ...current, accommodations };
-        });
+        runRemote(
+          () => remoteRepository.saveAccommodation(eventId, item, content?.accommodations.length ?? 0),
+          'details',
+        );
       },
 
       deleteAccommodation: (accommodationId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteAccommodation(accommodationId), 'details');
-          return;
-        }
-
-        updateDetails((current) => ({
-          ...current,
-          accommodations: current.accommodations.filter((entry) => entry.id !== accommodationId),
-        }));
+        runRemote(() => remoteRepository.deleteAccommodation(accommodationId), 'details');
       },
 
       saveVendor: (item: VendorInput) => {
-        if (mode === 'supabase') {
-          runRemote(
-            () => remoteRepository.saveVendor(eventId, item, content?.vendors.length ?? 0),
-            'details',
-          );
-          return;
-        }
-
-        updateDetails((current) => {
-          const id = item.id ?? createId();
-          const next: Vendor = {
-            id,
-            event_id: eventId,
-            name: item.name,
-            category: item.category,
-            handle: item.handle,
-            external_url: item.external_url,
-          };
-          const vendors =
-            item.id === null
-              ? [...current.vendors, next]
-              : current.vendors.map((entry) => (entry.id === id ? next : entry));
-          return { ...current, vendors };
-        });
+        runRemote(
+          () => remoteRepository.saveVendor(eventId, item, content?.vendors.length ?? 0),
+          'details',
+        );
       },
 
       deleteVendor: (vendorId: string) => {
-        if (mode === 'supabase') {
-          runRemote(() => remoteRepository.deleteVendor(vendorId), 'details');
-          return;
-        }
-
-        updateDetails((current) => ({
-          ...current,
-          vendors: current.vendors.filter((vendor) => vendor.id !== vendorId),
-        }));
+        runRemote(() => remoteRepository.deleteVendor(vendorId), 'details');
       },
     }),
-    [eventId, updateSocial, updateDetails, updateContributions, actor, mode, hasReacted, runRemote, content],
+    [eventId, actor, hasReacted, runRemote, content, queryClient, detailsKey],
   );
 
   return { content, hasReacted, reactionCount, ...actions };

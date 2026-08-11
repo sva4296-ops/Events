@@ -7,21 +7,20 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey =
   process.env.EXPO_PUBLIC_SUPABASE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-/**
- * True once both env vars are set. Everything auth-related degrades to a local
- * identity when they are absent, so the app still runs without a backend.
- */
-export const isSupabaseConfigured =
-  typeof url === 'string' && url.length > 0 && typeof anonKey === 'string' && anonKey.length > 0;
+if (typeof url !== 'string' || url.length === 0 || typeof anonKey !== 'string' || anonKey.length === 0) {
+  throw new Error(
+    'Supabase is not configured: EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY (or ' +
+      '_ANON_KEY) must be set in .env.local. There is no local/offline fallback mode — Supabase is ' +
+      'a hard requirement.',
+  );
+}
 
-export const supabase: SupabaseClient | null = isSupabaseConfigured
-  ? createClient(url as string, anonKey as string, {
-      auth: {
-        storage: AsyncStorage,
-        autoRefreshToken: true,
-        persistSession: true,
-        // No browser redirect to parse in a native app.
-        detectSessionInUrl: false,
-      },
-    })
-  : null;
+export const supabase: SupabaseClient = createClient(url, anonKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    // No browser redirect to parse in a native app.
+    detectSessionInUrl: false,
+  },
+});

@@ -8,24 +8,17 @@ import { HomeEmptyState } from '@/components/HomeEmptyState';
 import { InvitationListItem, InvitationListItemSkeleton } from '@/components/InvitationListItem';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { Screen } from '@/components/Screen';
-import { useAuth } from '@/hooks/useAuth';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
 import { myInvitations } from '@/utils/invitations';
 import { colors, radius, shadow, spacing } from '@/utils/theme';
 
 export default function DashboardScreen() {
-  const { mode } = useAuth();
   const { events, hydrated, isOwner } = useEvents();
   const { resetDraft } = useEventDraft();
 
-  // Signed in, only events that carry an owner are real user data. Anything left
-  // on this device from a pre-auth build is ignored rather than shown as theirs.
-  const visibleEvents =
-    mode === 'supabase' ? events.filter((event) => event.owner_id !== undefined) : events;
-
-  const ownedEvents = visibleEvents.filter((event) => isOwner(event));
-  const invitations = myInvitations(visibleEvents, isOwner, mode);
+  const ownedEvents = events.filter((event) => isOwner(event));
+  const invitations = myInvitations(events, isOwner);
 
   const startCreating = () => {
     resetDraft();

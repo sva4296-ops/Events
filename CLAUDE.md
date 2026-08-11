@@ -15,6 +15,13 @@
 > dependency list — this is now also true of `@react-native-community/datetimepicker`, added this pass;
 > `pod-install`/rebuild is required before running, and the user runs that step themselves (see §6
 > conventions on dev builds).
+>
+> **Local/offline mode was removed this pass — Supabase is now a hard requirement.** `data/supabaseClient.ts`
+> throws at module load if `EXPO_PUBLIC_SUPABASE_URL`/`KEY` aren't set, rather than degrading to an
+> in-memory/AsyncStorage fallback. This raises the stakes of the "never run on a device" caveat above:
+> a misconfigured `.env.local` now means the app fails to start at all, not a degraded-but-working local
+> mode — this specific failure path (the thrown error, and every real sign-in/RSVP/mutation flow it
+> gates) is **unverified from this environment** the same as everything else marked unconfirmed below.
 
 ---
 
@@ -33,8 +40,8 @@ group chat, a live photo feed, and a post-event album.
 | Language | TypeScript, `strict` + `noUncheckedIndexedAccess` |
 | Navigation | Expo Router (file-based) |
 | State | `@tanstack/react-query` for the events + per-event content resources (see §2 State layer); a few small React Context providers remain for session/draft/UI state — no Redux |
-| Persistence | AsyncStorage (local) |
-| Backend | Supabase — **auth only, and unverified**; see §3 |
+| Persistence | None client-side — Supabase Postgres is the only store; AsyncStorage remains only for the Supabase auth session token and small local caches (onboarding-seen flag) |
+| Backend | Supabase — **a hard requirement, unverified from this environment**; see §3 |
 | Fonts | Playfair Display via `@expo-google-fonts/playfair-display` |
 | Icons | `@expo/vector-icons` (Feather set) |
 | Gestures | `react-native-gesture-handler` 2.32 + `react-native-reanimated` 4.5 |
@@ -72,23 +79,31 @@ ios/ android/         Native projects from expo prebuild
 ### There is no `services/` layer
 
 Earlier plans described `services/auth.ts`, `services/events.ts`, `services/rsvp.ts`. **These do not
-exist.** The equivalent seam is now four files, two per mode:
+exist.** The equivalent seam is two files:
 
-- **`data/eventContentRepository.ts`** — `localRepository`, used only when `mode === 'local'`. Pure
-  synchronous object builders (`createMoment`, `sendMessage`, etc.); `load` always returns blank
-  content because local mode's real state lives in the `useEventContent` query cache, not here.
-- **`data/remoteEventContentRepository.ts`** — `remoteRepository`, used only when `mode === 'supabase'`.
-  Real async Postgres queries via the `supabase` client, covering every mutation `useEventContent`
-  exposes (see §3 for what's deliberately not wired — Realtime, `contribute`).
-- **`data/eventsRepository.ts`** — the Supabase-mode counterpart for events + guests: `fetchEvents`,
-  `fetchEventById`, `insertEvent`, `updateEventRow`, `respondToInviteRow`, `removeGuestRow`. Local
-  mode's equivalent is still `utils/storage.ts` (`loadEvents`/`saveEvents`, AsyncStorage).
+- **`data/remoteEventContentRepository.ts`** — `remoteRepository`. Real async Postgres queries via the
+  `supabase` client, covering every mutation `useEventContent` exposes (see §3 for what's deliberately
+  not wired — Realtime, `contribute`). Also exports the `Actor` type (who's acting — id + label) that
+  both this file and `useEventContent.tsx` use.
+- **`data/eventsRepository.ts`** — the counterpart for events + guests: `fetchEvents`, `fetchEventById`,
+  `insertEvent`, `updateEventRow`, `respondToInviteRow`, `removeGuestRow`, `insertGuestInvite`,
+  `checkGuestEmailInvited`, `updateDietaryPreferencesRow`.
 - **`hooks/*.tsx`** — the hooks screens call for data + actions. `useEvents` and `useEventContent` are
-  now **plain hooks backed by `@tanstack/react-query`, not Context providers** — see §2 State layer for
-  why the old `EventsProvider`/`EventContentProvider` wrappers were removed. Every action in
-  `useEvents`/`useEventContent` still branches on `useAuth().mode` internally and calls the matching
-  repository; screens never see the branch, and never import `supabase` directly — keep it that way,
-  route new backend calls through a repository or a hook.
+  **plain hooks backed by `@tanstack/react-query`, not Context providers** — see §2 State layer for why
+  the old `EventsProvider`/`EventContentProvider` wrappers were removed. Screens never import `supabase`
+  directly — keep it that way, route new backend calls through a repository or a hook.
+
+**There is no local/mock mode anymore, and no `mode` branch to route around.** Earlier passes had a
+`localRepository` (`data/eventContentRepository.ts`, deleted), an AsyncStorage events store
+(`utils/storage.ts`, deleted), a local single-device guest sentinel (`utils/guests.ts`'s
+`SELF_GUEST_ID`/`SELF_GUEST_NAME`, deleted), and `useAuth().mode: 'supabase' | 'local'` gating which path
+every hook action took when Supabase env vars were absent. All of it is gone — `useAuth` has no `mode`
+field, every hook action unconditionally calls the Supabase repository, and `data/supabaseClient.ts`
+throws at load if it isn't configured rather than falling back to a local identity. Historical
+"Fixed —" write-ups later in this file that mention `SELF_GUEST_ID` or "local mode" describe code as it
+existed *at the time of that fix* — kept for incident history per this file's own convention, not
+current architecture. If you're looking for local/offline support to build a similar fallback: it doesn't
+exist here anymore, by deliberate choice — see the top of this file for the removal note.
 
 `types/supabase.ts` holds the Postgres row shapes (snake_case, matching the migrations exactly) that
 `eventsRepository.ts`/`remoteEventContentRepository.ts` map onto the camelCase-ish app types in
@@ -116,11 +131,10 @@ which screens see which data. `EventContentProvider` used to have to live at the
 "because owner screens outside the tab navigator mutate the same content state" (edit-event, schedule,
 venue, fund, post-moment); that constraint is gone now for the same reason.
 
-**Query keys:** `['events', mode, userId]` (one list per auth mode + signed-in user; local mode's
-"user" is the per-device identity — see §2 Auth flow) and, per event, three separate keys instead of
-one — `['eventContent', 'social', mode, eventId]`, `['eventContent', 'details', mode, eventId]`,
-`['eventContent', 'contributions', mode, eventId]`. These three used to be a single combined
-`['eventContent', mode, eventId]` query (`remoteRepository.load`, ten parallel Supabase calls merged
+**Query keys:** `['events', userId]` (one list per signed-in user) and, per event, three separate keys
+instead of one — `['eventContent', 'social', eventId]`, `['eventContent', 'details', eventId]`,
+`['eventContent', 'contributions', eventId]`. These three used to be a single combined
+`['eventContent', eventId]` query (`remoteRepository.load`, ten parallel Supabase calls merged
 into one `EventContent` object); they were split so each could get its own `staleTime` — see the table
 below. `data/remoteEventContentRepository.ts` now exposes `loadSocial`/`loadDetails`/`loadContributions`
 instead of `load`, and `types/guest.ts` has `SocialContent`/`DetailsContent`/`ContributionsContent` as
@@ -154,20 +168,20 @@ ref. Converting session state to a query to formally match the category would be
 change than this config pass, for no behavioral gain.
 
 **Mutations replace the old manual "refetch after insert" convention with `invalidateQueries`.** Every
-Supabase-mode write in `useEvents`/`useEventContent` runs through a `useMutation`, and its `onSuccess`
-calls `queryClient.invalidateQueries({ queryKey })` instead of a hand-rolled `refetch()`/`refreshContent()`
+write in `useEvents`/`useEventContent` runs through a `useMutation`, and its `onSuccess` calls
+`queryClient.invalidateQueries({ queryKey })` instead of a hand-rolled `refetch()`/`refreshContent()`
 call — this is the actual fix for the repeated "list doesn't reflect a recent change until app
 restart" class of bug (hit before on the guest list, see §3's "Add guest by email" incident). A few
-mutations (`removeGuest`, `updateMyDietaryPreferences` in Supabase mode) also patch the cache
-optimistically in `onMutate` for instant UI feedback, then invalidate on `onError` to reconcile with
-the server — same shape as their pre-migration optimistic-update + catch-and-refetch code. Local mode's
-mutations (`mode === 'local'`) don't need any of this — they patch the query cache directly via
-`queryClient.setQueryData` (and, for events, persist to AsyncStorage in the same call) since there's no
-server round trip to wait on. **No `services/` file and no direct `@/data/*` import was added to any
-screen by this pass** — the repository seam described just above this section is unchanged; only what's
-*inside* `useEvents.tsx`/`useEventContent.tsx` changed. See the `staleTime` table above for per-query
-config; **mutation `retry: 0`** globally (retrying a failed insert/update against Supabase risks a
-duplicate write, unlike a read).
+mutations (`removeGuest`, `updateMyDietaryPreferences`) also patch the cache optimistically in
+`onMutate` for instant UI feedback, then invalidate on `onError` to reconcile with the server. The one
+exception is `contribute` (`useEventContent`) — a permanent stub with no Supabase counterpart by design
+(the `contributions` table has no client insert policy; see §3), so it patches the cache directly via
+`queryClient.setQueryData` rather than going through a mutation. It's never called by any screen today
+(`checkout/[id].tsx` is still a placeholder). **No `services/` file and no direct `@/data/*` import was
+added to any screen by this pass** — the repository seam described just above this section is
+unchanged; only what's *inside* `useEvents.tsx`/`useEventContent.tsx` changed. See the `staleTime` table
+above for per-query config; **mutation `retry: 0`** globally (retrying a failed insert/update against
+Supabase risks a duplicate write, unlike a read).
 
 **Not done this pass, on purpose:** Supabase Realtime. The prompt that requested this migration assumed
 `messages`/`photos`/`moments`/`reactions` already had `supabase.channel()` subscriptions to wire into
@@ -176,9 +190,9 @@ was out of scope for an infra-only pass and would have been new functionality, n
 
 | Hook | Owns |
 | --- | --- |
-| `useAuth` | Supabase session or a local fallback identity; `signIn/signUp/signOut`, `mode: 'supabase' \| 'local'`, `hasCompletedOnboarding`/`markOnboardingComplete`. Still a Context provider — session state is push-driven via `supabase.auth.onAuthStateChange`, not a fit for query-style pull fetching, and it isn't a resource that exhibited the staleness bug this pass fixes |
-| `useEvents` | The events list — AsyncStorage in local mode, Postgres in Supabase mode, `['events', mode, userId]` — `createEvent` (async), `updateEvent` (async), `respondToInvite`, `removeGuest`, `addGuest` (async, Supabase-only), `isOwner` |
-| `useEventContent` | Per-event content, three queries keyed by category (`social`/`details`/`contributions`, see the table above) merged into one `content: EventContent \| null`, plus all their mutations — local `setQueryData` or Supabase write-then-invalidate (of the correct category key), per mode |
+| `useAuth` | The Supabase session; `signIn/signUp/signOut`, `hasCompletedOnboarding`/`markOnboardingComplete`. No `mode` field — Supabase is the only path (see the top of this file). Still a Context provider — session state is push-driven via `supabase.auth.onAuthStateChange`, not a fit for query-style pull fetching, and it isn't a resource that exhibited the staleness bug the react-query pass fixed |
+| `useEvents` | The events list, Postgres-backed, `['events', userId]` — `createEvent` (async), `updateEvent` (async), `respondToInvite`, `removeGuest`, `addGuest` (async), `isOwner` |
+| `useEventContent` | Per-event content, three queries keyed by category (`social`/`details`/`contributions`, see the table above) merged into one `content: EventContent \| null`, plus all their mutations — Supabase write-then-invalidate (of the correct category key) |
 | `useEventDraft` | The 4-step create-event wizard draft (in-memory, not persisted) — still a Context provider, this is genuinely ephemeral UI state, not a fetched resource |
 | `useGuestEvent` | Provides `{ id, name, event }` to the guest tabs, derived from `useEvents().getEvent(id)` — **see the gotcha below** |
 
@@ -191,29 +205,29 @@ than returning empty strings. Any new nested route must follow the same pattern.
 Owner screens outside the tab navigator (edit-event, schedule, venue, fund, post-moment) mutate the
 same content as the guest tabs for free, with no provider needed above either — see the state-layer
 note above. There's no manual "cache self-heals after session change" logic to maintain either: the
-query key includes `mode`, so signing out/in (or switching modes) addresses a different cache entry
-outright rather than needing an effect to notice the session changed and drop stale data.
+`events` query key includes `userId`, so signing out/in as a different account addresses a different
+cache entry outright rather than needing an effect to notice the session changed and drop stale data.
 
 ### Auth flow
 
 - Email/password via Supabase Auth. `data/supabaseClient.ts` reads `EXPO_PUBLIC_SUPABASE_URL` and
   `EXPO_PUBLIC_SUPABASE_KEY` (the `_ANON_KEY` spelling is also accepted) from `.env.local`, which is
   gitignored. `.env.example` documents them.
-- **If the env vars are absent the app falls back to a local device identity** (`mode: 'local'`) so it
-  still runs without a backend. The redirect-to-`/auth` half of the gate is disabled in that mode (see
-  below) — the onboarding half still applies, using the local device identity as the "account."
+- **If the env vars are absent, the app throws at module load rather than starting.** There is no
+  local/offline fallback identity anymore (removed this pass — see the top of this file); Supabase
+  configuration is a hard requirement, not an optional path with a degraded mode behind it.
 - `components/AuthGate.tsx` wraps the router and does two independent jobs, both re-running on every
   auth change so a sign-out, expiry, or fresh sign-in is caught immediately:
   1. Redirects to `/auth` when there is no session and the current route isn't public (`auth`,
-     `onboarding`, `invite`) — Supabase mode only, per the local-mode exception above.
+     `onboarding`, `invite`).
   2. Once a session exists, checks `useAuth().hasCompletedOnboarding()` **once per signed-in session**
      (a ref keyed on user id guards against re-checking on every navigation) and redirects to
      `/onboarding` if it's false.
 - **Routing, current:** splash → (nothing splash-specific to decide anymore) → whatever route was
   already current, which `AuthGate` then corrects: no session → `/auth`; session but onboarding not
   yet completed for this account → `/onboarding`; session and onboarding done → left alone (normally
-  Home). Onboarding is reached **after** authentication now, exactly once per account (any device, in
-  Supabase mode — see §3), not on first app launch. `app/onboarding.tsx`'s `finish()` (tapping the
+  Home). Onboarding is reached **after** authentication now, exactly once per account (any device —
+  see §3), not on first app launch. `app/onboarding.tsx`'s `finish()` (tapping the
   last step's "Începe," or "Sari peste" to skip) calls `markOnboardingComplete()` and routes to `/`,
   not `/auth` — see §3 and §4 for what changed and why.
 - **The connected project has email confirmation ON** (`mailer_autoconfirm: false`, checked against
@@ -282,15 +296,12 @@ mechanics all unchanged) moved from "before Auth, once per device" to "after Aut
 `useAuth()` gained `hasCompletedOnboarding()` and `markOnboardingComplete()`: local `AsyncStorage`
 cache first (`utils/onboarding.ts`, keyed per account id so a second account on the same device can't
 inherit or clobber the first one's state), `public.users.has_completed_onboarding` as the source of
-truth in Supabase mode when the cache is empty. `components/AuthGate.tsx` now does two jobs instead of
-one — see §2 Auth flow for the routing mechanics — checking onboarding status exactly once per
-signed-in session via a ref keyed on user id, not on every navigation. In local mode there's no
-`public.users` row to check, so the cache alone decides — the closest available equivalent to "per
-account," since local mode's "account" is just a per-device generated identity to begin with.
-`markOnboardingComplete()`'s Supabase write is fire-and-forget/best-effort, same reasoning as
-`utils/storage.ts`'s `saveEvents`: a failed background sync means the tutorial shows again on another
+truth when the cache is empty. `components/AuthGate.tsx` now does two jobs instead of one — see §2 Auth
+flow for the routing mechanics — checking onboarding status exactly once per signed-in session via a
+ref keyed on user id, not on every navigation. `markOnboardingComplete()`'s Supabase write is
+fire-and-forget/best-effort: a failed background sync means the tutorial shows again on another
 device, not data loss. `utils/firstLaunch.ts` (the old AsyncStorage-only, per-device, pre-auth flag)
-is deleted, not deprecated — nothing referenced it after this pass.
+is deleted, not deprecated — nothing referenced it after that pass.
 
 **Client code can never look up another user by email — don't reintroduce this.** `public.users`'
 only `select` policy is `id = auth.uid()`; a signed-in session can read its own row and nothing else.
@@ -300,19 +311,12 @@ just silently find zero rows every time and look exactly like "no account exists
 `data/eventsRepository.ts`'s `insertGuestInvite` doesn't attempt this lookup itself: `Direction 1` in
 `20260810000003_guest_autolink.sql` already does it, and it's the only place it can correctly happen.
 
-**Where data lives, by auth mode** (`useAuth().mode`, derived once from whether
-`EXPO_PUBLIC_SUPABASE_URL`/`KEY` are set — see §2 Auth flow):
-
-- **`mode: 'local'`** (no Supabase env vars) — unchanged: events + guests in AsyncStorage
-  (`povesteanoastra:events:v1`), all per-event content in-memory only via the `useEventContent` query
-  cache, lost on restart. This path still exists and still works so the app runs without a backend.
-- **`mode: 'supabase'`** — events, guests, and all per-event content now read and write Postgres for
-  real, through `data/eventsRepository.ts` and `data/remoteEventContentRepository.ts`. Every hook
-  action in `useEvents.tsx`/`useEventContent.tsx` branches on `mode`; there is no shared code path
-  between the two, by design — the local reducer logic couldn't be reused since `localRepository.load`
-  is a stateless stub (returns blank content every call; local mode's real state lives only in React),
-  whereas the Supabase path re-reads from Postgres after every mutation. **Don't assume a write reaches
-  Supabase without checking which mode the app is in.**
+**Where data lives.** Everything — events, guests, and all per-event content — reads and writes Postgres
+for real, through `data/eventsRepository.ts` and `data/remoteEventContentRepository.ts`. There used to
+be a `mode: 'local' | 'supabase'` split here, with every hook action branching on it and a parallel
+AsyncStorage/in-memory path for when Supabase wasn't configured; **that's gone**, removed in the pass
+that made Supabase a hard requirement (see the top of this file). `useEvents.tsx`/`useEventContent.tsx`
+now call the Supabase repository unconditionally — there's no other path to assume you might be on.
 
 **Two things this pass deliberately didn't do:**
 
@@ -324,7 +328,7 @@ just silently find zero rows every time and look exactly like "no account exists
   on purpose (`supabase/migrations/20260810000002_rls_policies.sql`: written by a Stripe webhook using
   the service role, never the client), so `remoteEventContentRepository.ts` has no `contribute`
   function at all — adding one would either violate that policy or silently fail. `checkout/[id].tsx`
-  is still a stub and never calls it, in either mode.
+  is still a stub and never calls it.
 
 **Known limitation carried over, not fixed by this pass — invite preview under RLS.** The `events`
 select policy is `organizer_id = auth.uid() or is_event_guest(id)`. A person who is neither yet — i.e.
@@ -425,8 +429,7 @@ session's own row. `20260810000007_photo_attribution.sql` denormalizes instead �
 `photos.uploaded_by_label`, following the exact pattern `messages.sender_label` already established
 for the identical reason. `remoteEventContentRepository.ts`'s `addPhoto` does a self-select
 (`users` where `id = auth.uid()` — allowed, it's your own row) for `display_name` right before
-inserting, falling back to `actor.label` (email) if that returns nothing. Local mode's `addPhoto` has
-no `public.users` to query, so it just uses `actor.label` directly.
+inserting, falling back to `actor.label` (email) if that returns nothing.
 
 ### Detalii — menu, seating, accommodation, vendors
 
@@ -442,11 +445,10 @@ two sections in the scroll order changed.
   see four dietary-preference pills (`Vegetarian`, `Vegan`, `Fără gluten`, `Fără lactoză`) that toggle
   their own `event_guests.dietary_preferences`. Owners never see the pills — an organizer has no
   `event_guests` row for their own event to store a preference against, so there's nothing to toggle.
-  `useEvents().updateMyDietaryPreferences(eventId, preferences)` is new — optimistic in Supabase mode
-  (same convention as `myRsvp`/`myInvitations`: RLS already limits a non-organizer's `event.guests` to
-  index `0`, so that's "my" row to patch), a plain in-memory patch on the `SELF_GUEST_ID` row in local
-  mode. No new RLS policy needed — "update own rsvp or as organizer" already covers any column,
-  including this new one, on a guest's own row.
+  `useEvents().updateMyDietaryPreferences(eventId, preferences)` is new — optimistic (same convention as
+  `myRsvp`/`myInvitations`: RLS already limits a non-organizer's `event.guests` to index `0`, so that's
+  "my" row to patch). No new RLS policy needed — "update own rsvp or as organizer" already covers any
+  column, including this new one, on a guest's own row.
 - **Așezarea la mese / Cazare recomandată / Cei care fac totul posibil** — all three are plain
   per-event lists, same shape as `schedule_items`: `SwipeableRow` Edit/Delete, a composer at
   `app/table|accommodation|vendor/[id].tsx` (add with no `itemId`, edit with `?itemId=`), `EmptyState`
@@ -456,19 +458,16 @@ two sections in the scroll order changed.
   `external_url` is set. The italic caption below the vendor list only renders once there's at least
   one vendor — showing "furnizorii tag-uiți își promovează serviciile" above an empty list read as
   premature.
-- All four sections' repository/hook wiring is the exact same branch-on-mode, write-then-refetch
-  shape as `saveScheduleItem`/`updateVenue` (§3's "Where data lives, by auth mode") — nothing new
-  architecturally, just more instances of it. `data/remoteEventContentRepository.ts`'s `load()` grew
-  from 6 to 10 parallel queries.
+- All four sections' repository/hook wiring is the exact same write-then-invalidate shape as
+  `saveScheduleItem`/`updateVenue` (§3's "Where data lives") — nothing new architecturally, just more
+  instances of it.
 - **Guest-to-table assignment is out of scope, as specified** — the seating list is just a list; no
   guest is linked to a table yet. `seating_tables` has no guest-facing column for this at all.
 
 ### Add guest by email (owner only)
 
 `app/add-guest/[id].tsx` — email (required, regex-validated) + optional name, "Send invite" button,
-same composer shape as the moment/fund/schedule composers. Owner-only and Supabase-mode-only (local
-mode has no `auth.users` to link against, so the screen shows a plain "not available" message rather
-than a parallel local-only invite concept nobody asked for). Entry point: a small "+" (`user-plus`)
+same composer shape as the moment/fund/schedule composers. Owner-only. Entry point: a small "+" (`user-plus`)
 button in the "Guest list" section header on `app/event/[id].tsx`, plus an "Invite a guest" action on
 that section's `EmptyState` when the list is empty — that screen already had the RSVP-count stats and
 the swipe-to-remove guest list from earlier passes; this pass only added the missing way *into* it.
@@ -596,7 +595,7 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/accommodation/[id].tsx` | Owner: add or edit one accommodation option (`?itemId=` for edit) |
 | `app/vendor/[id].tsx` | Owner: add or edit one tagged vendor (`?itemId=` for edit) |
 | `app/fund/[id].tsx` | Owner: create or edit the fund |
-| `app/add-guest/[id].tsx` | Owner, Supabase mode only: invite a guest by email |
+| `app/add-guest/[id].tsx` | Owner: invite a guest by email |
 | `app/post-moment/[id].tsx` | Owner: moment composer |
 | `app/checkout/[id].tsx` | Stubbed Stripe placeholder |
 
@@ -787,10 +786,10 @@ floating, suspended or rounded** — earlier descriptions of it that way were as
 - **Feather icons for UI chrome** (navigation, back, close, edit, delete, add, chevrons). **Emoji only
   for content**: event-type icons (💍 🍼 🎂 💚 🏢 🕊️ ➕), user-authored moment titles, and the
   composer's preset emoji row.
-- **Ownership** is always `useEvents().isOwner(event)` — never assume a global role. When a session
-  exists it is strictly `event.owner_id === user.id`; in local fallback mode an event with no
-  `owner_id` counts as owned. Home additionally hides events with no `owner_id` when signed in, so a
-  new account never inherits leftovers from a previous build.
+- **Ownership** is always `useEvents().isOwner(event)` — never assume a global role. It's strictly
+  `user !== null && event.owner_id === user.id`; there's no other case to handle now that local mode
+  (which used to treat an event with no `owner_id` as owned) is gone — `owner_id` is a real, non-null
+  Postgres column on every row `fetchEvents`/`fetchEventById` return.
 - **Deletes:** structural or costly → `confirmDelete()` from `utils/confirm.ts` (schedule items,
   moments, guests, photos). Low-stakes → immediate (chat messages).
 - **No mock or seeded data.** A new event starts genuinely empty — no sample guests, no placeholder
@@ -805,9 +804,9 @@ floating, suspended or rounded** — earlier descriptions of it that way were as
 
 ## 7. Not built / deliberately deferred
 
-- **Supabase Storage uploads.** The data layer itself is built (see §3) — `mode: 'supabase'` really
-  reads and writes Postgres for events, guests, schedule, venue, moments, reactions, messages, fund,
-  and photos. But `addPhoto`/`createMoment` still store whatever URI `expo-image-picker` hands back
+- **Supabase Storage uploads.** The data layer itself is built (see §3) — the app really reads and
+  writes Postgres for events, guests, schedule, venue, moments, reactions, messages, fund, and photos.
+  But `addPhoto`/`createMoment` still store whatever URI `expo-image-picker` hands back
   (a local `file://`/`ph://` path on the device that picked it), not an uploaded file — so a photo/
   moment row written on one device has a `url`/`photo_url` that resolves to nothing on any other
   device or guest's screen. Fixing this needs an actual Storage bucket + upload step before the insert,
@@ -816,8 +815,8 @@ floating, suspended or rounded** — earlier descriptions of it that way were as
   subscribes; every screen is request/response (see §3).
 - **Stripe.** The fund UI is complete but `checkout/[id].tsx` is a placeholder screen — no payment,
   no Stripe Connect onboarding, no `contributions` writes (and none should be added client-side — see
-  §3's note on why `contribute()` has no Supabase-mode implementation).
-- **Real invites — partially built.** Server-side invite records now exist (Supabase mode:
+  §3's note on why `contribute()` has no real backing implementation).
+- **Real invites — partially built.** Server-side invite records now exist —
   `app/add-guest/[id].tsx` writes a real `event_guests` row by email, auto-linked to an account via
   `20260810000003_guest_autolink.sql` — see §3). What's still missing: no email/SMS actually sent to
   the invitee telling them they were invited — they only find out by opening the app themselves and
@@ -826,10 +825,8 @@ floating, suspended or rounded** — earlier descriptions of it that way were as
   and a genuinely new guest account still can't preview the event before RSVPing (§3's invite-preview
   limitation) — inviting by email doesn't fix that, since the not-yet-a-guest problem is about the
   `events` select policy, not about how the `event_guests` row was created.
-- **Guest identity — mostly real now in Supabase mode.** `event_guests` rows carry a real
-  `guest_email`/`guest_user_id`, auto-linked in either direction (§3). Local mode still uses the single
-  local `SELF_GUEST_ID` row — no email concept there at all, since there's no `auth.users` to link
-  against.
+- **Guest identity is real now.** `event_guests` rows carry a real `guest_email`/`guest_user_id`,
+  auto-linked in either direction (§3).
 - No push notifications. No Google/Apple/social auth (email + password only). No video streaming —
   the Live tab is a photo feed. No venue/restaurant marketplace. No seating plans.
 - **Album's "Descarcă toate pozele" button has no handler** — it is a dead control.

@@ -1,4 +1,3 @@
-import type { Actor, FundDraft } from '@/data/eventContentRepository';
 import { supabase } from '@/data/supabaseClient';
 import type {
   Accommodation,
@@ -35,13 +34,20 @@ import type {
 } from '@/types/supabase';
 
 /**
- * The Supabase-backed half of the content seam — used only when
- * useAuth().mode === 'supabase'. hooks/useEventContent.tsx is the only caller.
+ * The Supabase-backed content seam. hooks/useEventContent.tsx is the only caller.
  */
 
-function requireClient() {
-  if (supabase === null) throw new Error('Supabase is not configured.');
-  return supabase;
+/** Who is acting — always the authenticated user, never a hardcoded identity. */
+export interface Actor {
+  id: string;
+  label: string;
+}
+
+interface FundDraft {
+  title: string;
+  description: string;
+  target_amount: number;
+  currency: string;
 }
 
 function mapSchedule(row: ScheduleItemRow): ScheduleItem {
@@ -150,7 +156,7 @@ function mapVendor(row: VendorRow): Vendor {
  * subscriptions push into this cache, despite the content).
  */
 async function loadSocial(eventId: string): Promise<SocialContent> {
-  const client = requireClient();
+  const client = supabase;
 
   const [momentsRes, messagesRes, photosRes] = await Promise.all([
     client
@@ -184,7 +190,7 @@ async function loadSocial(eventId: string): Promise<SocialContent> {
  * see loadContributions below). All owner-edited, all rarely changing.
  */
 async function loadDetails(eventId: string): Promise<DetailsContent> {
-  const client = requireClient();
+  const client = supabase;
 
   const [scheduleRes, venueRes, fundRes, menuRes, seatingRes, accommodationsRes, vendorsRes] =
     await Promise.all([
@@ -225,7 +231,7 @@ async function loadDetails(eventId: string): Promise<DetailsContent> {
  * result, so this query stays independent and gets its own staleTime.
  */
 async function loadContributions(eventId: string): Promise<ContributionsContent> {
-  const client = requireClient();
+  const client = supabase;
 
   const { data: fundRow, error: fundError } = await client
     .from('fund')
@@ -246,7 +252,7 @@ async function loadContributions(eventId: string): Promise<ContributionsContent>
 }
 
 async function sendMessage(eventId: string, content: string, actor: Actor): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client
     .from('messages')
     .insert({ event_id: eventId, sender_id: actor.id, sender_label: actor.label, content });
@@ -254,13 +260,13 @@ async function sendMessage(eventId: string, content: string, actor: Actor): Prom
 }
 
 async function deleteMessage(messageId: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('messages').delete().eq('id', messageId);
   if (error) throw error;
 }
 
 async function addReaction(momentId: string, reaction: ReactionType, actor: Actor): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client
     .from('moment_reactions')
     .insert({ moment_id: momentId, user_id: actor.id, reaction_type: reaction });
@@ -268,7 +274,7 @@ async function addReaction(momentId: string, reaction: ReactionType, actor: Acto
 }
 
 async function removeReaction(momentId: string, reaction: ReactionType, actor: Actor): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client
     .from('moment_reactions')
     .delete()
@@ -284,7 +290,7 @@ async function removeReaction(momentId: string, reaction: ReactionType, actor: A
  * — see the migration adding uploaded_by_label for why this can't be a join.
  */
 async function addPhoto(eventId: string, url: string, actor: Actor): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
 
   const { data: profile } = await client
     .from('users')
@@ -300,13 +306,13 @@ async function addPhoto(eventId: string, url: string, actor: Actor): Promise<voi
 }
 
 async function deletePhoto(photoId: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('photos').delete().eq('id', photoId);
   if (error) throw error;
 }
 
 async function createMoment(eventId: string, title: string, photoUrl: string, actor: Actor): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('moments').insert({
     event_id: eventId,
     organizer_id: actor.id,
@@ -317,13 +323,13 @@ async function createMoment(eventId: string, title: string, photoUrl: string, ac
 }
 
 async function deleteMoment(momentId: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('moments').delete().eq('id', momentId);
   if (error) throw error;
 }
 
 async function saveFund(eventId: string, input: FundDraft, existingId: string | null): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   if (existingId === null) {
     const { error } = await client.from('fund').insert({ event_id: eventId, ...input });
     if (error) throw error;
@@ -334,7 +340,7 @@ async function saveFund(eventId: string, input: FundDraft, existingId: string | 
 }
 
 async function deleteFund(eventId: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('fund').delete().eq('event_id', eventId);
   if (error) throw error;
 }
@@ -347,7 +353,7 @@ interface ScheduleItemDraft {
 }
 
 async function saveScheduleItem(eventId: string, item: ScheduleItemDraft, sortOrder: number): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   if (item.id === null) {
     const { error } = await client
       .from('schedule_items')
@@ -363,13 +369,13 @@ async function saveScheduleItem(eventId: string, item: ScheduleItemDraft, sortOr
 }
 
 async function deleteScheduleItem(itemId: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('schedule_items').delete().eq('id', itemId);
   if (error) throw error;
 }
 
 async function updateVenue(venue: Venue): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client
     .from('venue_info')
     .upsert({ event_id: venue.event_id, name: venue.name, address: venue.address, notes: venue.notes }, { onConflict: 'event_id' });
@@ -385,7 +391,7 @@ interface MenuDraft {
 /** menu.event_id is a full (non-partial) unique constraint, unlike event_guests'
  * — upsert's bare ON CONFLICT works fine here, same as fund/venue_info. */
 async function saveMenu(eventId: string, input: MenuDraft): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client
     .from('menu')
     .upsert({ event_id: eventId, ...input }, { onConflict: 'event_id' });
@@ -404,7 +410,7 @@ async function saveSeatingTable(
   item: SeatingTableDraft,
   sortOrder: number,
 ): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   if (item.id === null) {
     const { error } = await client.from('seating_tables').insert({
       event_id: eventId,
@@ -424,7 +430,7 @@ async function saveSeatingTable(
 }
 
 async function deleteSeatingTable(tableId: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('seating_tables').delete().eq('id', tableId);
   if (error) throw error;
 }
@@ -441,7 +447,7 @@ async function saveAccommodation(
   item: AccommodationDraft,
   sortOrder: number,
 ): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   if (item.id === null) {
     const { error } = await client.from('accommodations').insert({
       event_id: eventId,
@@ -461,7 +467,7 @@ async function saveAccommodation(
 }
 
 async function deleteAccommodation(accommodationId: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('accommodations').delete().eq('id', accommodationId);
   if (error) throw error;
 }
@@ -475,7 +481,7 @@ interface VendorDraft {
 }
 
 async function saveVendor(eventId: string, item: VendorDraft, sortOrder: number): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   if (item.id === null) {
     const { error } = await client.from('vendors').insert({
       event_id: eventId,
@@ -501,7 +507,7 @@ async function saveVendor(eventId: string, item: VendorDraft, sortOrder: number)
 }
 
 async function deleteVendor(vendorId: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('vendors').delete().eq('id', vendorId);
   if (error) throw error;
 }

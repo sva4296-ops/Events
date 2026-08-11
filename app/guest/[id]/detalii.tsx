@@ -9,11 +9,9 @@ import { SectionLabel } from '@/components/guest/SectionLabel';
 import { Skeleton } from '@/components/Skeleton';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { confirmDelete } from '@/utils/confirm';
-import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
-import { SELF_GUEST_ID } from '@/utils/guests';
 import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
 
 const DIETARY_OPTIONS = ['Vegetarian', 'Vegan', 'Fără gluten', 'Fără lactoză'] as const;
@@ -135,7 +133,6 @@ function DetaliiSkeleton() {
 export default function DetaliiScreen() {
   const { id, event } = useGuestEvent();
   const { isOwner, updateMyDietaryPreferences } = useEvents();
-  const { mode } = useAuth();
   const {
     content,
     deleteScheduleItem,
@@ -149,12 +146,9 @@ export default function DetaliiScreen() {
   const owner = isOwner(event);
   const hasVenue = content.venue.name.trim().length > 0 || content.venue.address.trim().length > 0;
 
-  const myGuest =
-    owner || event === undefined
-      ? undefined
-      : mode === 'supabase'
-        ? event.guests[0]
-        : event.guests.find((g) => g.id === SELF_GUEST_ID);
+  // RLS already limits a non-organizer's event.guests to just their own row,
+  // so [0] is "my" row.
+  const myGuest = owner || event === undefined ? undefined : event.guests[0];
   const myDietary = myGuest?.dietaryPreferences ?? [];
 
   const toggleDietary = (option: string) => {

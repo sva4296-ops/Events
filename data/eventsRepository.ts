@@ -3,16 +3,10 @@ import type { AppEvent, EventDraft, Guest, RsvpStatus } from '@/types/event';
 import type { EventGuestRow, EventWithGuestsRow } from '@/types/supabase';
 
 /**
- * Supabase-backed events + guests. Mirrors utils/storage.ts's role for the local
- * fallback: hooks/useEvents.tsx is the only caller, and only when mode === 'supabase'.
+ * Supabase-backed events + guests. hooks/useEvents.tsx is the only caller.
  */
 
 const SELECT_WITH_GUESTS = '*, event_guests(*)';
-
-function requireClient() {
-  if (supabase === null) throw new Error('Supabase is not configured.');
-  return supabase;
-}
 
 function mapGuestRow(row: EventGuestRow): Guest {
   return {
@@ -44,7 +38,7 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
  * see CLAUDE.md's note on the invite-preview limitation.
  */
 export async function fetchEvents(): Promise<AppEvent[]> {
-  const client = requireClient();
+  const client = supabase;
   const { data, error } = await client
     .from('events')
     .select(SELECT_WITH_GUESTS)
@@ -54,7 +48,7 @@ export async function fetchEvents(): Promise<AppEvent[]> {
 }
 
 export async function fetchEventById(eventId: string): Promise<AppEvent | null> {
-  const client = requireClient();
+  const client = supabase;
   const { data, error } = await client
     .from('events')
     .select(SELECT_WITH_GUESTS)
@@ -65,7 +59,7 @@ export async function fetchEventById(eventId: string): Promise<AppEvent | null> 
 }
 
 export async function insertEvent(draft: EventDraft, organizerId: string): Promise<AppEvent> {
-  const client = requireClient();
+  const client = supabase;
   const { data, error } = await client
     .from('events')
     .insert({
@@ -86,7 +80,7 @@ export async function updateEventRow(
   eventId: string,
   patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'guests' | 'createdAt'>>,
 ): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const columns: Record<string, unknown> = {};
   if (patch.name !== undefined) columns.name = patch.name;
   if (patch.date !== undefined) {
@@ -113,7 +107,7 @@ export async function respondToInviteRow(
   guestName: string,
   status: Exclude<RsvpStatus, 'pending'>,
 ): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { data: existing, error: selectError } = await client
     .from('event_guests')
     .select('id')
@@ -144,7 +138,7 @@ export async function respondToInviteRow(
 }
 
 export async function removeGuestRow(guestId: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('event_guests').delete().eq('id', guestId);
   if (error) throw error;
 }
@@ -152,7 +146,7 @@ export async function removeGuestRow(guestId: string): Promise<void> {
 /** Case-insensitive exact match — used before insertGuestInvite for a friendly
  * "already invited" message instead of surfacing the unique-index violation. */
 export async function checkGuestEmailInvited(eventId: string, email: string): Promise<boolean> {
-  const client = requireClient();
+  const client = supabase;
   const { data, error } = await client
     .from('event_guests')
     .select('id')
@@ -168,7 +162,7 @@ export async function checkGuestEmailInvited(eventId: string, email: string): Pr
  * 20260810000003) fills it in immediately if the email already has an account.
  */
 export async function insertGuestInvite(eventId: string, email: string, name: string): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client.from('event_guests').insert({
     event_id: eventId,
     guest_email: email,
@@ -185,7 +179,7 @@ export async function updateDietaryPreferencesRow(
   guestUserId: string,
   preferences: string[],
 ): Promise<void> {
-  const client = requireClient();
+  const client = supabase;
   const { error } = await client
     .from('event_guests')
     .update({ dietary_preferences: preferences })

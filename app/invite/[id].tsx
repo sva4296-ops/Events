@@ -9,16 +9,13 @@ import { Header } from '@/components/Header';
 import { InviteCard } from '@/components/InviteCard';
 import { Screen } from '@/components/Screen';
 import type { RsvpStatus } from '@/types/event';
-import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { getEventType } from '@/utils/eventTypes';
-import { SELF_GUEST_ID } from '@/utils/guests';
 import { colors, spacing } from '@/utils/theme';
 
 export default function InviteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, respondToInvite, hydrated, isOwner } = useEvents();
-  const { mode } = useAuth();
   const [editing, setEditing] = useState(false);
   const event = getEvent(id);
   // A cold-open deep link (opened straight into this route, no session and no
@@ -49,14 +46,9 @@ export default function InviteScreen() {
   // see what guests see, but never let a tap reach respondToInvite.
   const owner = isOwner(event);
 
-  // In Supabase mode, RLS already limits a non-organizer's event.guests to just
-  // their own row, so [0] is "my" row; local mode still uses the single-device
-  // sentinel guest.
-  const myRsvp = owner
-    ? undefined
-    : mode === 'supabase'
-      ? event.guests[0]
-      : event.guests.find((guest) => guest.id === SELF_GUEST_ID);
+  // RLS already limits a non-organizer's event.guests to just their own row,
+  // so [0] is "my" row.
+  const myRsvp = owner ? undefined : event.guests[0];
   const type = getEventType(event.type);
   // A guest invited by email already has an `event_guests` row *before* they
   // ever respond — its rsvp_status is 'pending'. `myRsvp !== undefined` alone

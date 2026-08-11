@@ -39,3 +39,12 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# IDE
+.idea/
+
+# Claude Code local settings (nothing shared committed here yet)
+.claude/
+
+# Supabase CLI local link/cache state
+supabase/.temp/

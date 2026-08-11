@@ -1,12 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 
 import {
   fetchEventById,
@@ -25,7 +18,7 @@ import { createId } from '@/utils/id';
 import { reportSupabaseError } from '@/utils/reportError';
 import { loadEvents, saveEvents } from '@/utils/storage';
 
-interface EventsContextValue {
+interface EventsResult {
   events: AppEvent[];
   /** False until the initial read (AsyncStorage or Supabase) completes, so lists don't flash empty. */
   hydrated: boolean;
@@ -42,69 +35,50 @@ interface EventsContextValue {
   isOwner: (event: AppEvent | undefined) => boolean;
 }
 
-const EventsContext = createContext<EventsContextValue | null>(null);
-
-export function EventsProvider({ children }: { children: ReactNode }) {
+/**
+ * The events resource — no Context/Provider anymore. The TanStack Query cache
+ * (global, via the root QueryClientProvider) is the shared store, so any
+ * component calling this hook sees the same data regardless of where it sits
+ * in the tree, and a mutation's invalidateQueries() reaches every consumer.
+ */
+export function useEvents(): EventsResult {
   const { user, mode } = useAuth();
-  const [events, setEvents] = useState<AppEvent[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const queryClient = useQueryClient();
+  const userId = user?.id ?? null;
+  const queryKey = useMemo(() => ['events', mode, userId] as const, [mode, userId]);
 
-  // ---- local fallback: AsyncStorage, unchanged from before Supabase wiring ----
-  useEffect(() => {
-    if (mode !== 'local') return;
-    let active = true;
-    void loadEvents().then((stored) => {
-      if (!active) return;
-      setEvents(stored);
-      setHydrated(true);
-    });
-    return () => {
-      active = false;
-    };
-  }, [mode]);
+  const eventsQuery = useQuery({
+    queryKey,
+    queryFn: () => (mode === 'supabase' ? fetchEvents() : loadEvents()),
+    enabled: mode === 'local' || userId !== null,
+  });
 
-  useEffect(() => {
-    if (mode !== 'local' || !hydrated) return;
-    void saveEvents(events);
-  }, [events, hydrated, mode]);
+  const events = eventsQuery.data ?? [];
+  // Supabase mode with no session has nothing to fetch — that's a settled state,
+  // not a pending one, so it counts as hydrated immediately.
+  const hydrated = mode === 'supabase' && userId === null ? true : eventsQuery.isFetched;
 
-  // ---- supabase: fetch on session, refetch after every mutation ----
-  const refetch = useCallback(async () => {
-    try {
-      const fresh = await fetchEvents();
-      setEvents(fresh);
-    } catch (error) {
-      reportSupabaseError(error);
-    } finally {
-      setHydrated(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (mode !== 'supabase') return;
-    if (user === null) {
-      setEvents([]);
-      setHydrated(true);
-      return;
-    }
-    setHydrated(false);
-    void refetch();
-  }, [mode, user, refetch]);
+  /** Local mode's mutations write straight through to AsyncStorage as they land. */
+  const setLocalEvents = useCallback(
+    (updater: (current: AppEvent[]) => AppEvent[]) => {
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) => {
+        const next = updater(current);
+        void saveEvents(next);
+        return next;
+      });
+    },
+    [queryClient, queryKey],
+  );
 
   const getEvent = useCallback(
     (id: string | undefined) => (id === undefined ? undefined : events.find((e) => e.id === id)),
     [events],
   );
 
-  const createEvent = useCallback(
-    async (draft: EventDraft): Promise<AppEvent> => {
-      if (mode === 'supabase') {
-        const event = await insertEvent(draft, user?.id ?? '');
-        setEvents((current) => [event, ...current]);
-        return event;
-      }
-
-      const event: AppEvent = {
+  const createEventMutation = useMutation({
+    mutationFn: async (draft: EventDraft): Promise<AppEvent> => {
+      if (mode === 'supabase') return insertEvent(draft, user?.id ?? '');
+      return {
         id: createId(),
         owner_id: user?.id,
         type: draft.type ?? 'other',
@@ -116,68 +90,103 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         // Real guests only: they arrive by RSVP'ing to an invite link.
         guests: [],
       };
-      setEvents((current) => [event, ...current]);
-      return event;
     },
-    [user, mode],
-  );
-
-  const updateEvent = useCallback(
-    async (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id'>>): Promise<void> => {
+    onSuccess: (event) => {
       if (mode === 'supabase') {
-        await updateEventRow(eventId, patch);
-        setEvents((current) =>
-          current.map((event) => (event.id === eventId ? { ...event, ...patch } : event)),
-        );
+        queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) => [event, ...current]);
+        void queryClient.invalidateQueries({ queryKey });
         return;
       }
+      setLocalEvents((current) => [event, ...current]);
+    },
+  });
+  const createEvent = useCallback(
+    (draft: EventDraft) => createEventMutation.mutateAsync(draft),
+    [createEventMutation],
+  );
 
-      setEvents((current) =>
+  const updateEventMutation = useMutation({
+    mutationFn: async (vars: {
+      eventId: string;
+      patch: Partial<Omit<AppEvent, 'id' | 'owner_id'>>;
+    }) => {
+      if (mode === 'supabase') await updateEventRow(vars.eventId, vars.patch);
+    },
+    onSuccess: (_result, { eventId, patch }) => {
+      if (mode === 'supabase') {
+        queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+          current.map((event) => (event.id === eventId ? { ...event, ...patch } : event)),
+        );
+        void queryClient.invalidateQueries({ queryKey });
+        return;
+      }
+      setLocalEvents((current) =>
         current.map((event) => (event.id === eventId ? { ...event, ...patch } : event)),
       );
     },
-    [mode],
+  });
+  const updateEvent = useCallback(
+    async (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id'>>): Promise<void> => {
+      await updateEventMutation.mutateAsync({ eventId, patch });
+    },
+    [updateEventMutation],
   );
 
-  const removeGuest = useCallback(
-    (eventId: string, guestId: string) => {
-      if (mode === 'supabase') {
-        setEvents((current) =>
-          current.map((event) =>
-            event.id === eventId
-              ? { ...event, guests: event.guests.filter((guest) => guest.id !== guestId) }
-              : event,
-          ),
-        );
-        removeGuestRow(guestId).catch((error: unknown) => {
-          reportSupabaseError(error);
-          void refetch();
-        });
-        return;
-      }
-
-      setEvents((current) =>
+  const removeGuestMutation = useMutation({
+    mutationFn: async ({ guestId }: { eventId: string; guestId: string }) => {
+      if (mode === 'supabase') await removeGuestRow(guestId);
+    },
+    onMutate: ({ eventId, guestId }) => {
+      const strip = (current: AppEvent[]) =>
         current.map((event) =>
           event.id === eventId
             ? { ...event, guests: event.guests.filter((guest) => guest.id !== guestId) }
             : event,
-        ),
-      );
+        );
+      if (mode === 'supabase') {
+        queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) => strip(current));
+        return;
+      }
+      setLocalEvents(strip);
     },
-    [mode, refetch],
+    onError: (error) => {
+      if (mode !== 'supabase') return;
+      reportSupabaseError(error);
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    onSuccess: () => {
+      if (mode === 'supabase') void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const removeGuest = useCallback(
+    (eventId: string, guestId: string) => removeGuestMutation.mutate({ eventId, guestId }),
+    [removeGuestMutation],
   );
 
   /**
    * Refetches the single event after insert rather than patching optimistically:
    * the on_event_guest_insert trigger may have auto-linked guest_user_id server-
-   * side, and there's no way to know that client-side ahead of the round trip.
+   * side, and there's no way to know that outcome ahead of the round trip.
    */
-  const addGuest = useCallback(async (eventId: string, email: string, name: string): Promise<void> => {
-    await insertGuestInvite(eventId, email, name);
-    const fresh = await fetchEventById(eventId);
-    if (fresh === null) return;
-    setEvents((current) => current.map((event) => (event.id === eventId ? fresh : event)));
-  }, []);
+  const addGuestMutation = useMutation({
+    mutationFn: async (vars: { eventId: string; email: string; name: string }) => {
+      await insertGuestInvite(vars.eventId, vars.email, vars.name);
+      return fetchEventById(vars.eventId);
+    },
+    onSuccess: (fresh) => {
+      if (fresh === null) return;
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+        current.map((event) => (event.id === fresh.id ? fresh : event)),
+      );
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const addGuest = useCallback(
+    async (eventId: string, email: string, name: string): Promise<void> => {
+      await addGuestMutation.mutateAsync({ eventId, email, name });
+    },
+    [addGuestMutation],
+  );
 
   const isOwner = useCallback(
     (event: AppEvent | undefined) => {
@@ -190,16 +199,19 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     [user, mode],
   );
 
-  const respondToInvite = useCallback(
-    (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => {
+  const respondToInviteMutation = useMutation({
+    mutationFn: async (vars: { eventId: string; status: Exclude<RsvpStatus, 'pending'> }) => {
       if (mode === 'supabase' && user !== null) {
-        respondToInviteRow(eventId, user.id, user.label, status)
-          .then(refetch)
-          .catch((error: unknown) => reportSupabaseError(error));
+        await respondToInviteRow(vars.eventId, user.id, user.label, vars.status);
+      }
+    },
+    onSuccess: (_result, { eventId, status }) => {
+      if (mode === 'supabase' && user !== null) {
+        void queryClient.invalidateQueries({ queryKey });
         return;
       }
 
-      setEvents((current) =>
+      setLocalEvents((current) =>
         current.map((event) => {
           if (event.id !== eventId) return event;
 
@@ -224,16 +236,28 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         }),
       );
     },
-    [mode, user, refetch],
+    onError: (error) => {
+      if (mode === 'supabase' && user !== null) reportSupabaseError(error);
+    },
+  });
+  const respondToInvite = useCallback(
+    (eventId: string, status: Exclude<RsvpStatus, 'pending'>) =>
+      respondToInviteMutation.mutate({ eventId, status }),
+    [respondToInviteMutation],
   );
 
-  const updateMyDietaryPreferences = useCallback(
-    (eventId: string, preferences: string[]) => {
+  const updateDietaryMutation = useMutation({
+    mutationFn: async (vars: { eventId: string; preferences: string[] }) => {
       if (mode === 'supabase' && user !== null) {
-        // Optimistic: RLS already limits a non-organizer's event.guests to just
-        // their own row, so index 0 is "my" row — same convention used
-        // throughout (myRsvp, myInvitations).
-        setEvents((current) =>
+        await updateDietaryPreferencesRow(vars.eventId, user.id, vars.preferences);
+      }
+    },
+    onMutate: ({ eventId, preferences }) => {
+      // Optimistic: RLS already limits a non-organizer's event.guests to just
+      // their own row, so index 0 is "my" row — same convention used
+      // throughout (myRsvp, myInvitations).
+      if (mode === 'supabase' && user !== null) {
+        queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
           current.map((event) =>
             event.id === eventId
               ? {
@@ -245,14 +269,10 @@ export function EventsProvider({ children }: { children: ReactNode }) {
               : event,
           ),
         );
-        updateDietaryPreferencesRow(eventId, user.id, preferences).catch((error: unknown) => {
-          reportSupabaseError(error);
-          void refetch();
-        });
         return;
       }
 
-      setEvents((current) =>
+      setLocalEvents((current) =>
         current.map((event) =>
           event.id === eventId
             ? {
@@ -265,43 +285,28 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         ),
       );
     },
-    [mode, user, refetch],
+    onError: (error) => {
+      if (mode !== 'supabase' || user === null) return;
+      reportSupabaseError(error);
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const updateMyDietaryPreferences = useCallback(
+    (eventId: string, preferences: string[]) =>
+      updateDietaryMutation.mutate({ eventId, preferences }),
+    [updateDietaryMutation],
   );
 
-  const value = useMemo<EventsContextValue>(
-    () => ({
-      events,
-      hydrated,
-      getEvent,
-      createEvent,
-      updateEvent,
-      respondToInvite,
-      removeGuest,
-      addGuest,
-      updateMyDietaryPreferences,
-      isOwner,
-    }),
-    [
-      events,
-      hydrated,
-      getEvent,
-      createEvent,
-      updateEvent,
-      respondToInvite,
-      removeGuest,
-      addGuest,
-      updateMyDietaryPreferences,
-      isOwner,
-    ],
-  );
-
-  return <EventsContext.Provider value={value}>{children}</EventsContext.Provider>;
-}
-
-export function useEvents(): EventsContextValue {
-  const context = useContext(EventsContext);
-  if (context === null) {
-    throw new Error('useEvents must be used inside <EventsProvider>');
-  }
-  return context;
+  return {
+    events,
+    hydrated,
+    getEvent,
+    createEvent,
+    updateEvent,
+    respondToInvite,
+    removeGuest,
+    addGuest,
+    updateMyDietaryPreferences,
+    isOwner,
+  };
 }

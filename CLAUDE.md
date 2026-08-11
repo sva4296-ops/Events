@@ -32,7 +32,7 @@ group chat, a live photo feed, and a post-event album.
 | Runtime | Expo SDK 57, React Native 0.86, React 19.2 |
 | Language | TypeScript, `strict` + `noUncheckedIndexedAccess` |
 | Navigation | Expo Router (file-based) |
-| State | React Context only — no Redux, no React Query |
+| State | `@tanstack/react-query` for the events + per-event content resources (see §2 State layer); a few small React Context providers remain for session/draft/UI state — no Redux |
 | Persistence | AsyncStorage (local) |
 | Backend | Supabase — **auth only, and unverified**; see §3 |
 | Fonts | Playfair Display via `@expo-google-fonts/playfair-display` |
@@ -76,15 +76,17 @@ exist.** The equivalent seam is now four files, two per mode:
 
 - **`data/eventContentRepository.ts`** — `localRepository`, used only when `mode === 'local'`. Pure
   synchronous object builders (`createMoment`, `sendMessage`, etc.); `load` always returns blank
-  content because local mode's real state lives in `EventContentProvider`'s React state, not here.
+  content because local mode's real state lives in the `useEventContent` query cache, not here.
 - **`data/remoteEventContentRepository.ts`** — `remoteRepository`, used only when `mode === 'supabase'`.
   Real async Postgres queries via the `supabase` client, covering every mutation `useEventContent`
   exposes (see §3 for what's deliberately not wired — Realtime, `contribute`).
 - **`data/eventsRepository.ts`** — the Supabase-mode counterpart for events + guests: `fetchEvents`,
   `fetchEventById`, `insertEvent`, `updateEventRow`, `respondToInviteRow`, `removeGuestRow`. Local
   mode's equivalent is still `utils/storage.ts` (`loadEvents`/`saveEvents`, AsyncStorage).
-- **`hooks/*.tsx`** — Context providers that own state and expose actions to screens. Every action in
-  `useEvents`/`useEventContent` branches on `useAuth().mode` internally and calls the matching
+- **`hooks/*.tsx`** — the hooks screens call for data + actions. `useEvents` and `useEventContent` are
+  now **plain hooks backed by `@tanstack/react-query`, not Context providers** — see §2 State layer for
+  why the old `EventsProvider`/`EventContentProvider` wrappers were removed. Every action in
+  `useEvents`/`useEventContent` still branches on `useAuth().mode` internally and calls the matching
   repository; screens never see the branch, and never import `supabase` directly — keep it that way,
   route new backend calls through a repository or a hook.
 
@@ -99,17 +101,57 @@ state), so a failed write needs to announce itself rather than fail silently.
 Provider nesting in `app/_layout.tsx`, outermost first:
 
 ```
-GestureHandlerRootView → SafeAreaProvider → AuthProvider → EventsProvider
-  → EventContentProvider → EventDraftProvider → AuthGate → Stack
+GestureHandlerRootView → SafeAreaProvider → QueryClientProvider → AuthProvider
+  → EventDraftProvider → AuthGate → Stack
 ```
+
+**`useEvents` and `useEventContent` are plain hooks, not Context providers — this changed this pass.**
+Before, `EventsProvider`/`EventContentProvider` held the events list and per-event content in React
+`useState`, mounted once at the root so every screen shared the same instance. Both are now backed by
+`@tanstack/react-query`'s `QueryClient` cache instead: `useEvents()`/`useEventContent(eventId)` call
+`useQuery`/`useMutation` directly, wherever they're called from. This works because the `QueryClient`
+itself — not a component's position in the tree — is what's shared: every call site addressing the
+same query key reads/writes the same cache entry, so removing the providers changed nothing about
+which screens see which data. `EventContentProvider` used to have to live at the app root specifically
+"because owner screens outside the tab navigator mutate the same content state" (edit-event, schedule,
+venue, fund, post-moment); that constraint is gone now for the same reason.
+
+**Query keys:** `['events', mode, userId]` (one list per auth mode + signed-in user; local mode's
+"user" is the per-device identity — see §2 Auth flow) and `['eventContent', mode, eventId]` (the whole
+`EventContent` blob per event — moments, reactions, messages, photos, fund, contributions, schedule,
+venue, menu, seating tables, accommodations, vendors — still fetched as ten parallel queries by
+`remoteRepository.load` and cached as one object, unchanged from before). There is no separate
+`['event', eventId]` key: nothing fetches a single event independently of the list today, so `getEvent`
+still just derives from the cached `events` array, same as before.
+
+**Mutations replace the old manual "refetch after insert" convention with `invalidateQueries`.** Every
+Supabase-mode write in `useEvents`/`useEventContent` runs through a `useMutation`, and its `onSuccess`
+calls `queryClient.invalidateQueries({ queryKey })` instead of a hand-rolled `refetch()`/`refreshContent()`
+call — this is the actual fix for the repeated "list doesn't reflect a recent change until app
+restart" class of bug (hit before on the guest list, see §3's "Add guest by email" incident). A few
+mutations (`removeGuest`, `updateMyDietaryPreferences` in Supabase mode) also patch the cache
+optimistically in `onMutate` for instant UI feedback, then invalidate on `onError` to reconcile with
+the server — same shape as their pre-migration optimistic-update + catch-and-refetch code. Local mode's
+mutations (`mode === 'local'`) don't need any of this — they patch the query cache directly via
+`queryClient.setQueryData` (and, for events, persist to AsyncStorage in the same call) since there's no
+server round trip to wait on. **No `services/` file and no direct `@/data/*` import was added to any
+screen by this pass** — the repository seam described just above this section is unchanged; only what's
+*inside* `useEvents.tsx`/`useEventContent.tsx` changed. `QueryClient` defaults (`app/_layout.tsx`):
+`staleTime: 30s`, `gcTime: 5min`, query `retry: 2`, **mutation `retry: 0`** (retrying a failed
+insert/update against Supabase risks a duplicate write, unlike a read).
+
+**Not done this pass, on purpose:** Supabase Realtime. The prompt that requested this migration assumed
+`messages`/`photos`/`moments`/`reactions` already had `supabase.channel()` subscriptions to wire into
+the query cache via `setQueryData` — they don't; see §7, this has never been built here. Adding Realtime
+was out of scope for an infra-only pass and would have been new functionality, not a refactor.
 
 | Hook | Owns |
 | --- | --- |
-| `useAuth` | Supabase session or a local fallback identity; `signIn/signUp/signOut`, `mode: 'supabase' \| 'local'`, `hasCompletedOnboarding`/`markOnboardingComplete` |
-| `useEvents` | The events list — AsyncStorage in local mode, Postgres in Supabase mode — `createEvent` (async), `updateEvent` (async), `respondToInvite`, `removeGuest`, `addGuest` (async, Supabase-only), `isOwner` |
-| `useEventContent` | Per-event content keyed by event id: moments, reactions, messages, photos, fund, contributions, schedule, venue, plus all their mutations — local reducer or Supabase write-then-refetch, per mode |
-| `useEventDraft` | The 4-step create-event wizard draft (in-memory, not persisted) |
-| `useGuestEvent` | Provides `{ id, name, event }` to the guest tabs — **see the gotcha below** |
+| `useAuth` | Supabase session or a local fallback identity; `signIn/signUp/signOut`, `mode: 'supabase' \| 'local'`, `hasCompletedOnboarding`/`markOnboardingComplete`. Still a Context provider — session state is push-driven via `supabase.auth.onAuthStateChange`, not a fit for query-style pull fetching, and it isn't a resource that exhibited the staleness bug this pass fixes |
+| `useEvents` | The events list — AsyncStorage in local mode, Postgres in Supabase mode, `['events', mode, userId]` — `createEvent` (async), `updateEvent` (async), `respondToInvite`, `removeGuest`, `addGuest` (async, Supabase-only), `isOwner` |
+| `useEventContent` | Per-event content keyed by `['eventContent', mode, eventId]`: moments, reactions, messages, photos, fund, contributions, schedule, venue, plus all their mutations — local `setQueryData` or Supabase write-then-invalidate, per mode |
+| `useEventDraft` | The 4-step create-event wizard draft (in-memory, not persisted) — still a Context provider, this is genuinely ephemeral UI state, not a fetched resource |
+| `useGuestEvent` | Provides `{ id, name, event }` to the guest tabs, derived from `useEvents().getEvent(id)` — **see the gotcha below** |
 
 **Critical gotcha — do not regress this.** `useLocalSearchParams` inside a tab child (`guest/[id]/detalii`)
 does **not** see the `[id]` param, which belongs to the parent layout route. Reading it there returns
@@ -117,10 +159,11 @@ does **not** see the `[id]` param, which belongs to the parent layout route. Rea
 passes it down via `GuestEventProvider`; `useGuestEvent` throws if used outside that provider rather
 than returning empty strings. Any new nested route must follow the same pattern.
 
-`EventContentProvider` lives at the app root, not inside the tabs layout, because owner screens
-outside the tab navigator (edit-event, schedule, venue, fund, post-moment) mutate the same content
-state. Its consumer effect re-requests whenever `content` is null so the cache self-heals after being
-dropped on a session change.
+Owner screens outside the tab navigator (edit-event, schedule, venue, fund, post-moment) mutate the
+same content as the guest tabs for free, with no provider needed above either — see the state-layer
+note above. There's no manual "cache self-heals after session change" logic to maintain either: the
+query key includes `mode`, so signing out/in (or switching modes) addresses a different cache entry
+outright rather than needing an effect to notice the session changed and drop stale data.
 
 ### Auth flow
 
@@ -232,8 +275,8 @@ just silently find zero rows every time and look exactly like "no account exists
 `EXPO_PUBLIC_SUPABASE_URL`/`KEY` are set — see §2 Auth flow):
 
 - **`mode: 'local'`** (no Supabase env vars) — unchanged: events + guests in AsyncStorage
-  (`povesteanoastra:events:v1`), all per-event content in-memory only via `EventContentProvider`, lost
-  on restart. This path still exists and still works so the app runs without a backend.
+  (`povesteanoastra:events:v1`), all per-event content in-memory only via the `useEventContent` query
+  cache, lost on restart. This path still exists and still works so the app runs without a backend.
 - **`mode: 'supabase'`** — events, guests, and all per-event content now read and write Postgres for
   real, through `data/eventsRepository.ts` and `data/remoteEventContentRepository.ts`. Every hook
   action in `useEvents.tsx`/`useEventContent.tsx` branches on `mode`; there is no shared code path

@@ -1,13 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 
 import { localRepository, type Actor } from '@/data/eventContentRepository';
 import { remoteRepository } from '@/data/remoteEventContentRepository';
@@ -66,94 +58,30 @@ export interface VendorInput {
   external_url: string;
 }
 
-interface StoreValue {
-  byEvent: Record<string, EventContent>;
-  ensure: (eventId: string) => void;
-  update: (eventId: string, updater: (content: EventContent) => EventContent) => void;
-  mode: 'supabase' | 'local';
-}
-
-const StoreContext = createContext<StoreValue | null>(null);
-
 /**
- * Content lives at the app root, not inside the tabs, so owner screens outside
- * the tab navigator (edit event, schedule, venue, fund, post a moment) mutate the
- * same content state.
+ * Per-event content — no Context/Provider anymore (see useEvents.tsx for the
+ * same change and why it's safe: the TanStack Query cache is already global,
+ * so screens outside the guest tabs, e.g. edit-event/schedule/venue/fund/
+ * post-moment, share the same cached content as the tabs without needing a
+ * store mounted above them).
  */
-export function EventContentProvider({ children }: { children: ReactNode }) {
-  const { user, mode } = useAuth();
-  const [byEvent, setByEvent] = useState<Record<string, EventContent>>({});
-  const requested = useRef(new Set<string>());
-
-  // Drop cached content when the session changes so nothing leaks between accounts.
-  // Consumers re-request on their next render because their effect watches `content`.
-  const userId = user?.id;
-  const lastUserId = useRef<string | undefined>(userId);
-
-  useEffect(() => {
-    if (lastUserId.current === userId) return;
-    lastUserId.current = userId;
-    requested.current.clear();
-    setByEvent({});
-  }, [userId]);
-
-  const ensure = useCallback(
-    (eventId: string) => {
-      if (requested.current.has(eventId)) return;
-      requested.current.add(eventId);
-
-      const loader = mode === 'supabase' ? remoteRepository.load : localRepository.load;
-      void loader(eventId)
-        .then((loaded) => {
-          setByEvent((current) => ({ ...current, [eventId]: loaded }));
-        })
-        .catch((error: unknown) => {
-          requested.current.delete(eventId);
-          reportSupabaseError(error);
-        });
-    },
-    [mode],
-  );
-
-  const update = useCallback(
-    (eventId: string, updater: (content: EventContent) => EventContent) => {
-      setByEvent((current) => {
-        const existing = current[eventId];
-        if (existing === undefined) return current;
-        return { ...current, [eventId]: updater(existing) };
-      });
-    },
-    [],
-  );
-
-  const value = useMemo<StoreValue>(
-    () => ({ byEvent, ensure, update, mode }),
-    [byEvent, ensure, update, mode],
-  );
-
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
-}
-
 export function useEventContent(eventId: string) {
-  const store = useContext(StoreContext);
-  if (store === null) {
-    throw new Error('useEventContent must be used inside <EventContentProvider>');
-  }
+  const { user, mode } = useAuth();
+  const queryClient = useQueryClient();
+  const queryKey = useMemo(() => ['eventContent', mode, eventId] as const, [mode, eventId]);
 
-  const { user } = useAuth();
-  const { byEvent, ensure, update, mode } = store;
-  const content = byEvent[eventId] ?? null;
+  const contentQuery = useQuery({
+    queryKey,
+    queryFn: () => (mode === 'supabase' ? remoteRepository.load(eventId) : localRepository.load(eventId)),
+    enabled: eventId.length > 0,
+  });
+
+  const content = contentQuery.data ?? null;
 
   const actor: Actor = useMemo(
     () => ({ id: user?.id ?? 'anonymous', label: user?.email ?? 'Tu' }),
     [user],
   );
-
-  // Depends on `content` so it re-requests after the cache is dropped on a session
-  // change; `ensure` de-dupes, so this settles after one load.
-  useEffect(() => {
-    if (eventId.length > 0 && content === null) ensure(eventId);
-  }, [eventId, ensure, content]);
 
   const hasReacted = useCallback(
     (momentId: string, reaction: ReactionType) =>
@@ -174,20 +102,31 @@ export function useEventContent(eventId: string) {
     [content],
   );
 
-  /** Re-reads this event's content from Supabase and replaces the cached copy — the
-   * source of truth after any remote write, since remote writes aren't optimistic. */
-  const refreshContent = useCallback(async () => {
-    const fresh = await remoteRepository.load(eventId);
-    update(eventId, () => fresh);
-  }, [eventId, update]);
-
-  const runRemote = useCallback(
-    (mutate: () => Promise<void>) => {
-      void mutate()
-        .then(refreshContent)
-        .catch((error: unknown) => reportSupabaseError(error));
+  /** Local mode only — direct, synchronous cache patch (no server round trip). */
+  const updateLocal = useCallback(
+    (updater: (current: EventContent) => EventContent) => {
+      queryClient.setQueryData<EventContent>(queryKey, (current) =>
+        current === undefined ? current : updater(current),
+      );
     },
-    [refreshContent],
+    [queryClient, queryKey],
+  );
+
+  /**
+   * Supabase mode only. Replaces the old runRemote(mutate().then(refreshContent))
+   * pattern: invalidateQueries marks this event's content stale and triggers a
+   * refetch for every mounted observer of this key, instead of one manual reload.
+   */
+  const remoteMutation = useMutation({
+    mutationFn: (write: () => Promise<void>) => write(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (error: unknown) => reportSupabaseError(error),
+  });
+  const runRemote = useCallback(
+    (write: () => Promise<void>) => remoteMutation.mutate(write),
+    [remoteMutation],
   );
 
   const actions = useMemo(
@@ -203,7 +142,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => {
+        updateLocal((current) => {
           const existing = current.reactions.find(
             (entry) =>
               entry.moment_id === momentId &&
@@ -231,7 +170,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           messages: [...current.messages, localRepository.sendMessage(eventId, trimmed, actor)],
         }));
@@ -243,7 +182,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           photos: [localRepository.addPhoto(eventId, url, actor), ...current.photos],
         }));
@@ -253,7 +192,7 @@ export function useEventContent(eventId: string) {
        * the schema has no insert policy on purpose, contributions land via a Stripe
        * webhook using the service role. Unused today since checkout is a stub. */
       contribute: (amount: number) =>
-        update(eventId, (current) =>
+        updateLocal((current) =>
           current.fund === null
             ? current
             : {
@@ -262,14 +201,14 @@ export function useEventContent(eventId: string) {
               },
         ),
 
-      /** Optimistic prepend in local mode; a refetch in Supabase mode. */
+      /** Optimistic prepend in local mode; a cache invalidation (refetch) in Supabase mode. */
       addMoment: (title: string, photoUrl: string) => {
         if (mode === 'supabase') {
           runRemote(() => remoteRepository.createMoment(eventId, title, photoUrl, actor));
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           moments: [
             localRepository.createMoment(eventId, title, photoUrl, actor),
@@ -284,7 +223,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           fund:
             current.fund === null
@@ -299,7 +238,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({ ...current, fund: null, contributions: [] }));
+        updateLocal((current) => ({ ...current, fund: null, contributions: [] }));
       },
 
       saveScheduleItem: (item: ScheduleItemInput) => {
@@ -310,7 +249,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => {
+        updateLocal((current) => {
           const id = item.id ?? createId();
           const next: ScheduleItem = {
             id,
@@ -333,7 +272,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           schedule: current.schedule.filter((item) => item.id !== itemId),
         }));
@@ -345,7 +284,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           moments: current.moments.filter((moment) => moment.id !== momentId),
           reactions: current.reactions.filter((entry) => entry.moment_id !== momentId),
@@ -358,7 +297,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           messages: current.messages.filter((message) => message.id !== messageId),
         }));
@@ -370,7 +309,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           photos: current.photos.filter((photo) => photo.id !== photoId),
         }));
@@ -382,7 +321,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({ ...current, venue }));
+        updateLocal((current) => ({ ...current, venue }));
       },
 
       saveMenu: (input: MenuInput) => {
@@ -391,7 +330,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({ ...current, menu: { event_id: eventId, ...input } }));
+        updateLocal((current) => ({ ...current, menu: { event_id: eventId, ...input } }));
       },
 
       saveSeatingTable: (item: SeatingTableInput) => {
@@ -402,7 +341,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => {
+        updateLocal((current) => {
           const id = item.id ?? createId();
           const next: SeatingTable = {
             id,
@@ -425,7 +364,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           seatingTables: current.seatingTables.filter((table) => table.id !== tableId),
         }));
@@ -439,7 +378,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => {
+        updateLocal((current) => {
           const id = item.id ?? createId();
           const next: Accommodation = {
             id,
@@ -462,7 +401,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           accommodations: current.accommodations.filter((entry) => entry.id !== accommodationId),
         }));
@@ -474,7 +413,7 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => {
+        updateLocal((current) => {
           const id = item.id ?? createId();
           const next: Vendor = {
             id,
@@ -498,13 +437,13 @@ export function useEventContent(eventId: string) {
           return;
         }
 
-        update(eventId, (current) => ({
+        updateLocal((current) => ({
           ...current,
           vendors: current.vendors.filter((vendor) => vendor.id !== vendorId),
         }));
       },
     }),
-    [eventId, update, actor, mode, hasReacted, runRemote, content],
+    [eventId, updateLocal, actor, mode, hasReacted, runRemote, content],
   );
 
   return { content, hasReacted, reactionCount, ...actions };

@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
@@ -15,6 +16,7 @@ import { countRsvps } from '@/utils/format';
 import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
 
 export default function AlbumScreen() {
+  const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { user } = useAuth();
   const { isOwner } = useEvents();
@@ -29,23 +31,23 @@ export default function AlbumScreen() {
   return (
     <GuestScreen transparent>
       <View style={styles.intro}>
-        <SectionLabel>POVESTEA S-A ÎNTÂMPLAT</SectionLabel>
-        <Text style={styles.headline}>A fost minunat</Text>
+        <SectionLabel>{t('album.sectionLabel')}</SectionLabel>
+        <Text style={styles.headline}>{t('album.headline')}</Text>
       </View>
 
       <View style={styles.stats}>
         <View style={styles.stat}>
           <Text style={styles.statValue}>{attendees}</Text>
-          <Text style={styles.statLabel}>invitați prezenți</Text>
+          <Text style={styles.statLabel}>{t('album.attendeesLabel')}</Text>
         </View>
         <View style={styles.stat}>
           <Text style={styles.statValue}>{photos.length}</Text>
-          <Text style={styles.statLabel}>poze adunate</Text>
+          <Text style={styles.statLabel}>{t('album.photosLabel')}</Text>
         </View>
       </View>
 
       <View style={styles.albumBlock}>
-        <Text style={styles.albumTitle}>Albumul vostru</Text>
+        <Text style={styles.albumTitle}>{t('album.albumTitle')}</Text>
         {loading ? (
           <View style={styles.grid}>
             <Skeleton style={styles.tile} />
@@ -56,7 +58,7 @@ export default function AlbumScreen() {
             <Skeleton style={styles.tile} />
           </View>
         ) : photos.length === 0 ? (
-          <EmptyState message="Nicio poză încă. Pozele adăugate în Live apar aici." />
+          <EmptyState message={t('album.empty')} />
         ) : (
           <View style={styles.grid}>
             {photos.map((photo) => (
@@ -72,8 +74,8 @@ export default function AlbumScreen() {
         )}
       </View>
 
-      <GuestButton label="Descarcă toate pozele" onPress={() => {}} />
-      <GuestButton label="Înapoi la început" variant="outline" onPress={() => router.push('/')} />
+      <GuestButton label={t('album.downloadAll')} onPress={() => {}} />
+      <GuestButton label={t('album.backToStart')} variant="outline" onPress={() => router.push('/')} />
     </GuestScreen>
   );
 }

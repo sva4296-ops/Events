@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -10,6 +11,7 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 
 export default function FundFormScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, isOwner } = useEvents();
   const event = getEvent(id);
@@ -24,7 +26,11 @@ export default function FundFormScreen() {
   if (!isOwner(event)) {
     return (
       <Screen>
-        <Header title="Not available" subtitle="Only the organizer can manage the fund." showBack />
+        <Header
+          title={t('common.notAvailable')}
+          subtitle={t('fundForm.notAvailableSubtitle')}
+          showBack
+        />
       </Screen>
     );
   }
@@ -50,39 +56,44 @@ export default function FundFormScreen() {
       <Screen
         footer={
           <Button
-            label={existing === null ? 'Set up fund' : 'Save fund'}
+            label={existing === null ? t('fundForm.setupButton') : t('fundForm.saveButton')}
             disabled={!valid}
             onPress={save}
           />
         }
       >
         <Header
-          title={existing === null ? 'Set up a fund' : 'Edit the fund'}
-          subtitle="Guests will see this on the Fond tab."
+          title={existing === null ? t('fundForm.setupTitle') : t('fundForm.editTitle')}
+          subtitle={t('fundForm.guestsSeeOnFond')}
           showBack
         />
 
         <Field
-          label="Title"
+          label={t('fundForm.titleLabel')}
           value={title}
           onChangeText={setTitle}
-          placeholder="Luna de miere în Grecia"
+          placeholder={t('fundForm.titlePlaceholder')}
         />
         <Field
-          label="Description"
+          label={t('fundForm.descriptionLabel')}
           value={description}
           onChangeText={setDescription}
-          placeholder="A short personal message to your guests."
+          placeholder={t('fundForm.descriptionPlaceholder')}
           multiline
         />
         <Field
-          label="Target amount"
+          label={t('fundForm.targetLabel')}
           value={target}
           onChangeText={setTarget}
-          placeholder="8000"
+          placeholder={t('fundForm.targetPlaceholder')}
           keyboardType="numeric"
         />
-        <Field label="Currency" value={currency} onChangeText={setCurrency} placeholder="RON" />
+        <Field
+          label={t('fundForm.currencyLabel')}
+          value={currency}
+          onChangeText={setCurrency}
+          placeholder={t('fundForm.currencyPlaceholder')}
+        />
       </Screen>
     </KeyboardAvoidingView>
   );

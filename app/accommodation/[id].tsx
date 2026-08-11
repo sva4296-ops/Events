@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -10,6 +11,7 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 
 export default function AccommodationScreen() {
+  const { t } = useTranslation();
   const { id, itemId } = useLocalSearchParams<{ id: string; itemId?: string }>();
   const { getEvent, isOwner } = useEvents();
   const event = getEvent(id);
@@ -25,8 +27,8 @@ export default function AccommodationScreen() {
     return (
       <Screen>
         <Header
-          title="Not available"
-          subtitle="Only the organizer can edit accommodation options."
+          title={t('common.notAvailable')}
+          subtitle={t('accommodationForm.notAvailableSubtitle')}
           showBack
         />
       </Screen>
@@ -51,30 +53,35 @@ export default function AccommodationScreen() {
       <Screen
         footer={
           <Button
-            label={existing === null ? 'Add accommodation' : 'Save changes'}
+            label={existing === null ? t('accommodationForm.addTitle') : t('common.saveChanges')}
             disabled={name.trim().length === 0}
             onPress={save}
           />
         }
       >
         <Header
-          title={existing === null ? 'Add accommodation' : 'Edit accommodation'}
-          subtitle="Guests will see this on the Detalii tab."
+          title={existing === null ? t('accommodationForm.addTitle') : t('accommodationForm.editTitle')}
+          subtitle={t('common.guestsSeeOnDetalii')}
           showBack
         />
 
-        <Field label="Nume" value={name} onChangeText={setName} placeholder="Hotel Castel" />
         <Field
-          label="Detalii"
-          value={detailLine}
-          onChangeText={setDetailLine}
-          placeholder="4★ · 2 min de castel"
+          label={t('accommodationForm.nameLabel')}
+          value={name}
+          onChangeText={setName}
+          placeholder={t('accommodationForm.namePlaceholder')}
         />
         <Field
-          label="Preț"
+          label={t('accommodationForm.detailsLabel')}
+          value={detailLine}
+          onChangeText={setDetailLine}
+          placeholder={t('accommodationForm.detailsPlaceholder')}
+        />
+        <Field
+          label={t('accommodationForm.priceLabel')}
           value={priceLine}
           onChangeText={setPriceLine}
-          placeholder="de la 320 lei/noapte"
+          placeholder={t('accommodationForm.pricePlaceholder')}
         />
       </Screen>
     </KeyboardAvoidingView>

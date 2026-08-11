@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandHeader } from '@/components/BrandHeader';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { useAuth } from '@/hooks/useAuth';
+import i18n from '@/utils/i18n';
 import { brand, fonts } from '@/utils/guestTheme';
 
 type Mode = 'sign-in' | 'sign-up';
@@ -26,19 +28,26 @@ interface FieldErrors {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Maps Supabase's error strings onto the field they belong under. */
+/**
+ * Maps Supabase's error strings onto the field they belong under. Module-scope,
+ * not a component, so this uses the i18next singleton's `t` directly — same
+ * reasoning as utils/format.ts's formatEventDate.
+ */
 function mapAuthError(message: string): FieldErrors {
   const text = message.toLowerCase();
 
   if (text.includes('already registered') || text.includes('already been registered')) {
-    return { email: 'An account with this email already exists.' };
+    return { email: i18n.t('auth.errors.alreadyRegistered') };
   }
   if (text.includes('invalid login credentials')) {
-    return { password: 'That email and password combination is incorrect.' };
+    return { password: i18n.t('auth.errors.invalidCredentials') };
   }
   if (text.includes('email not confirmed')) {
-    return { email: 'Confirm your email address first — check your inbox.' };
+    return { email: i18n.t('auth.errors.emailNotConfirmed') };
   }
+  // Below this point the message is whatever Supabase returned, in whichever
+  // language it returned it in — there's no translation table for arbitrary
+  // server error text, so it passes through as-is.
   if (text.includes('password')) {
     return { password: message };
   }
@@ -49,6 +58,7 @@ function mapAuthError(message: string): FieldErrors {
 }
 
 export default function AuthScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { signIn, signUp } = useAuth();
 
@@ -71,12 +81,12 @@ export default function AuthScreen() {
     const next: FieldErrors = {};
 
     if (!EMAIL_PATTERN.test(email.trim())) {
-      next.email = 'Enter a valid email address.';
+      next.email = t('auth.errors.invalidEmail');
     }
     if (password.length === 0) {
-      next.password = 'Enter your password.';
+      next.password = t('auth.errors.emptyPassword');
     } else if (isSignUp && password.length < 6) {
-      next.password = 'Use at least 6 characters.';
+      next.password = t('auth.errors.passwordTooShort');
     }
 
     setErrors(next);
@@ -100,7 +110,7 @@ export default function AuthScreen() {
 
     if (isSignUp) {
       // Email confirmation is on for this project, so there is no session yet.
-      setNotice('Account created. Confirm your email, then sign in.');
+      setNotice(t('auth.accountCreatedNotice'));
       setMode('sign-in');
       setPassword('');
       return;
@@ -125,16 +135,16 @@ export default function AuthScreen() {
           <BrandHeader size="sm" />
         </View>
 
-        <Text style={styles.headline}>{isSignUp ? 'Create your account' : 'Welcome back'}</Text>
+        <Text style={styles.headline}>
+          {isSignUp ? t('auth.createAccountHeadline') : t('auth.welcomeBackHeadline')}
+        </Text>
         <Text style={styles.sub}>
-          {isSignUp
-            ? 'One account for every event you host or attend.'
-            : 'Sign in to pick up where you left off.'}
+          {isSignUp ? t('auth.createAccountSub') : t('auth.signInSub')}
         </Text>
 
         <View style={styles.form}>
           <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t('auth.emailLabel')}</Text>
             <TextInput
               style={[styles.input, errors.email !== undefined && styles.inputError]}
               value={email}
@@ -142,7 +152,7 @@ export default function AuthScreen() {
                 setEmail(value);
                 setErrors((current) => ({ ...current, email: undefined }));
               }}
-              placeholder="maria@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               placeholderTextColor={brand.muted}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -155,7 +165,7 @@ export default function AuthScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t('auth.passwordLabel')}</Text>
             <TextInput
               style={[styles.input, errors.password !== undefined && styles.inputError]}
               value={password}
@@ -163,7 +173,7 @@ export default function AuthScreen() {
                 setPassword(value);
                 setErrors((current) => ({ ...current, password: undefined }));
               }}
-              placeholder={isSignUp ? 'At least 6 characters' : 'Your password'}
+              placeholder={isSignUp ? t('auth.passwordPlaceholderSignUp') : t('auth.passwordPlaceholderSignIn')}
               placeholderTextColor={brand.muted}
               secureTextEntry
               autoCapitalize="none"
@@ -187,18 +197,20 @@ export default function AuthScreen() {
             <Text style={styles.buttonLabel}>
               {busy
                 ? isSignUp
-                  ? 'Creating account…'
-                  : 'Signing in…'
+                  ? t('auth.creatingAccountButton')
+                  : t('auth.signingInButton')
                 : isSignUp
-                  ? 'Create account'
-                  : 'Sign in'}
+                  ? t('auth.createAccountButton')
+                  : t('auth.signInButton')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={switchMode} activeOpacity={0.7} accessibilityRole="button">
             <Text style={styles.toggle}>
-              {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
-              <Text style={styles.toggleAccent}>{isSignUp ? 'Sign in' : 'Sign up'}</Text>
+              {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
+              <Text style={styles.toggleAccent}>
+                {isSignUp ? t('auth.signInToggle') : t('auth.signUpToggle')}
+              </Text>
             </Text>
           </TouchableOpacity>
         </View>

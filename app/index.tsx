@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BrandHeader } from '@/components/BrandHeader';
@@ -14,6 +15,7 @@ import { myInvitations } from '@/utils/invitations';
 import { colors, radius, shadow, spacing } from '@/utils/theme';
 
 export default function DashboardScreen() {
+  const { t } = useTranslation();
   const { events, hydrated, isOwner } = useEvents();
   const { resetDraft } = useEventDraft();
 
@@ -42,11 +44,11 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           }
         />
-        <Text style={styles.tagline}>More than an invitation — the whole story.</Text>
+        <Text style={styles.tagline}>{t('home.tagline')}</Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your events</Text>
-          <Text style={styles.sectionHint}>Events you host.</Text>
+          <Text style={styles.sectionTitle}>{t('home.yourEvents')}</Text>
+          <Text style={styles.sectionHint}>{t('home.yourEventsHint')}</Text>
 
           {!hydrated ? (
             <>
@@ -56,9 +58,9 @@ export default function DashboardScreen() {
           ) : ownedEvents.length === 0 ? (
             <HomeEmptyState
               icon="calendar"
-              headline="Start your first story"
-              message="Create a page for your event and invite the people who matter."
-              ctaLabel="Create event"
+              headline={t('home.emptyEventsHeadline')}
+              message={t('home.emptyEventsMessage')}
+              ctaLabel={t('home.createEvent')}
               onPressCta={startCreating}
             />
           ) : (
@@ -73,8 +75,8 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My invitations</Text>
-          <Text style={styles.sectionHint}>Events you were invited to.</Text>
+          <Text style={styles.sectionTitle}>{t('home.myInvitations')}</Text>
+          <Text style={styles.sectionHint}>{t('home.myInvitationsHint')}</Text>
 
           {!hydrated ? (
             <>
@@ -84,8 +86,8 @@ export default function DashboardScreen() {
           ) : invitations.length === 0 ? (
             <HomeEmptyState
               icon="mail"
-              headline="No invitations yet"
-              message="When someone invites you, it shows up here."
+              headline={t('home.emptyInvitationsHeadline')}
+              message={t('home.emptyInvitationsMessage')}
             />
           ) : (
             invitations.map((invitation) => (

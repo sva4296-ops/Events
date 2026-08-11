@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -14,6 +15,7 @@ import { fonts, guest, gRadius, gSpace } from '@/utils/guestTheme';
 import { buildInviteLink } from '@/utils/invite';
 
 export default function LiveScreen() {
+  const { t } = useTranslation();
   const { id, name, event } = useGuestEvent();
   const { user } = useAuth();
   const { isOwner } = useEvents();
@@ -46,7 +48,7 @@ export default function LiveScreen() {
         <View style={styles.cardHead}>
           <View style={styles.liveTag}>
             <View style={styles.recordDot} />
-            <Text style={styles.liveText}>LIVE</Text>
+            <Text style={styles.liveText}>{t('live.liveTag')}</Text>
           </View>
           <Text style={styles.eventName} numberOfLines={1}>
             {name}
@@ -101,7 +103,7 @@ export default function LiveScreen() {
             <QRCode value={liveUrl} size={78} backgroundColor={guest.white} color={guest.navy} />
           </View>
           <View style={styles.qrCopy}>
-            <Text style={styles.qrTitle}>Scanează și adaugă pozele tale</Text>
+            <Text style={styles.qrTitle}>{t('live.qrTitle')}</Text>
             <Text style={styles.qrUrl} numberOfLines={2}>
               {liveUrl}
             </Text>
@@ -109,11 +111,9 @@ export default function LiveScreen() {
         </View>
       </View>
 
-      <Text style={styles.helper}>
-        Ecranul din sală — toți invitații adaugă poze în timp real
-      </Text>
+      <Text style={styles.helper}>{t('live.helper')}</Text>
 
-      <GuestButton label="Adaugă o poză (demo)" onPress={() => void pickPhoto()} />
+      <GuestButton label={t('live.addPhoto')} onPress={() => void pickPhoto()} />
     </GuestScreen>
   );
 }

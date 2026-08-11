@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -15,6 +16,7 @@ import { reportSupabaseError } from '@/utils/reportError';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AddGuestScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, isOwner, addGuest } = useEvents();
   const { user } = useAuth();
@@ -28,7 +30,11 @@ export default function AddGuestScreen() {
   if (event === undefined || !isOwner(event)) {
     return (
       <Screen>
-        <Header title="Not available" subtitle="Only the organizer can invite guests." showBack />
+        <Header
+          title={t('common.notAvailable')}
+          subtitle={t('addGuestForm.notAvailableSubtitle')}
+          showBack
+        />
       </Screen>
     );
   }
@@ -38,11 +44,11 @@ export default function AddGuestScreen() {
     const trimmedEmail = email.trim().toLowerCase();
 
     if (!EMAIL_PATTERN.test(trimmedEmail)) {
-      setError('Enter a valid email address.');
+      setError(t('auth.errors.invalidEmail'));
       return;
     }
     if (user?.email != null && trimmedEmail === user.email.toLowerCase()) {
-      setError("You can't invite yourself — you're already the organizer.");
+      setError(t('addGuestForm.selfInviteError'));
       return;
     }
 
@@ -50,7 +56,7 @@ export default function AddGuestScreen() {
     try {
       const alreadyInvited = await checkGuestEmailInvited(event.id, trimmedEmail);
       if (alreadyInvited) {
-        setError('This person is already invited.');
+        setError(t('addGuestForm.alreadyInvitedError'));
         return;
       }
 
@@ -71,33 +77,33 @@ export default function AddGuestScreen() {
       <Screen
         footer={
           <Button
-            label={busy ? 'Sending…' : 'Send invite'}
+            label={busy ? t('addGuestForm.sending') : t('addGuestForm.sendInvite')}
             disabled={email.trim().length === 0 || busy}
             onPress={() => void submit()}
           />
         }
       >
         <Header
-          title="Invite a guest"
-          subtitle="They'll show up under My invitations once they sign in with this email."
+          title={t('event.inviteGuest')}
+          subtitle={t('addGuestForm.subtitle')}
           showBack
         />
 
         <Field
-          label="Email"
+          label={t('auth.emailLabel')}
           value={email}
           onChangeText={(value) => {
             setEmail(value);
             setError(null);
           }}
-          placeholder="maria@example.com"
+          placeholder={t('auth.emailPlaceholder')}
           keyboardType="email-address"
         />
         <Field
-          label="Name (optional)"
+          label={t('addGuestForm.nameLabel')}
           value={name}
           onChangeText={setName}
-          placeholder="Maria Popescu"
+          placeholder={t('addGuestForm.namePlaceholder')}
         />
 
         {error !== null ? <Text style={styles.error}>{error}</Text> : null}

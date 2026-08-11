@@ -2,6 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   KeyboardAvoidingView,
@@ -23,6 +24,7 @@ import { colors, radius, spacing } from '@/utils/theme';
 const PRESET_EMOJI = ['💍', '👰', '🎂', '📸', '💐', '🥂', '✨', '💜'];
 
 export default function PostMomentScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, isOwner } = useEvents();
   const event = getEvent(id);
@@ -34,7 +36,11 @@ export default function PostMomentScreen() {
   if (!isOwner(event)) {
     return (
       <Screen>
-        <Header title="Not available" subtitle="Only the organizer can post moments." showBack />
+        <Header
+          title={t('common.notAvailable')}
+          subtitle={t('postMomentForm.notAvailableSubtitle')}
+          showBack
+        />
       </Screen>
     );
   }
@@ -65,20 +71,20 @@ export default function PostMomentScreen() {
     >
       <Screen
         footer={
-          <Button label="Post" disabled={title.trim().length === 0} onPress={post} />
+          <Button label={t('postMomentForm.postButton')} disabled={title.trim().length === 0} onPress={post} />
         }
       >
         <Header
-          title="Post a moment"
-          subtitle="It appears at the top of the story feed."
+          title={t('postMomentForm.title')}
+          subtitle={t('postMomentForm.subtitle')}
           showBack
         />
 
         <Field
-          label="Title"
+          label={t('postMomentForm.titleLabel')}
           value={title}
           onChangeText={setTitle}
-          placeholder="Am găsit locația perfectă"
+          placeholder={t('postMomentForm.titlePlaceholder')}
         />
 
         <View style={styles.emojiRow}>
@@ -105,7 +111,7 @@ export default function PostMomentScreen() {
           {photoUri === null ? (
             <View style={styles.pickerEmpty}>
               <Feather name="image" size={22} color={colors.primary} />
-              <Text style={styles.pickerLabel}>Choose a photo</Text>
+              <Text style={styles.pickerLabel}>{t('postMomentForm.choosePhoto')}</Text>
             </View>
           ) : (
             <Image source={{ uri: photoUri }} style={styles.preview} />

@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   ScrollView,
@@ -17,32 +18,22 @@ import { SegmentedProgress } from '@/components/SegmentedProgress';
 import { useAuth } from '@/hooks/useAuth';
 import { brand, fonts } from '@/utils/guestTheme';
 
+/**
+ * Titles/bodies are locale keys, not literal text, so this array stays stable
+ * across a language change — including as React `key`s below, which must not
+ * change when the active language does.
+ */
 const STEPS = [
-  {
-    icon: '💌',
-    title: 'Creează pagina evenimentului',
-    body: 'Alege tipul, adaugă detaliile și povestea voastră prinde formă în câteva minute.',
-  },
-  {
-    icon: '🔗',
-    title: 'Invită prin link sau cod QR',
-    body: 'Trimiți invitația oriunde — pe WhatsApp, prin mesaj sau tipărită cu un cod QR.',
-  },
-  {
-    icon: '💜',
-    title: 'Invitații confirmă și contribuie',
-    body: 'Vezi în timp real cine vine și primești contribuții pentru fondul vostru.',
-  },
-  {
-    icon: '✨',
-    title: 'Totul într-un singur loc',
-    body: 'Program, poze live, chat și album — toată povestea, la îndemâna tuturor.',
-  },
+  { icon: '💌', titleKey: 'onboarding.step1Title', bodyKey: 'onboarding.step1Body' },
+  { icon: '🔗', titleKey: 'onboarding.step2Title', bodyKey: 'onboarding.step2Body' },
+  { icon: '💜', titleKey: 'onboarding.step3Title', bodyKey: 'onboarding.step3Body' },
+  { icon: '✨', titleKey: 'onboarding.step4Title', bodyKey: 'onboarding.step4Body' },
 ] as const;
 
 const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [step, setStep] = useState(0);
@@ -89,19 +80,19 @@ export default function OnboardingScreen() {
         style={styles.pager}
       >
         {STEPS.map((item) => (
-          <View key={item.title} style={[styles.slide, { width }]}>
+          <View key={item.titleKey} style={[styles.slide, { width }]}>
             <View style={styles.illustration}>
               <Text style={styles.icon}>{item.icon}</Text>
             </View>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.body}>{item.body}</Text>
+            <Text style={styles.title}>{t(item.titleKey)}</Text>
+            <Text style={styles.body}>{t(item.bodyKey)}</Text>
           </View>
         ))}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity onPress={finish} activeOpacity={0.7} accessibilityRole="button">
-          <Text style={styles.skip}>Sari peste</Text>
+          <Text style={styles.skip}>{t('onboarding.skip')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -110,7 +101,7 @@ export default function OnboardingScreen() {
           activeOpacity={0.85}
           accessibilityRole="button"
         >
-          <Text style={styles.nextLabel}>{isLast ? 'Începe' : 'Mai departe'}</Text>
+          <Text style={styles.nextLabel}>{isLast ? t('onboarding.getStarted') : t('onboarding.next')}</Text>
         </TouchableOpacity>
       </View>
     </View>

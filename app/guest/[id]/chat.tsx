@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,6 +21,7 @@ import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
 
 export default function ChatScreen() {
+  const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { user } = useAuth();
   const { content, sendMessage, deleteMessage } = useEventContent(id);
@@ -37,8 +39,8 @@ export default function ChatScreen() {
     >
       <GuestScreen contentStyle={styles.content} transparent>
         <View style={styles.headerBlock}>
-          <SectionLabel>GRUPUL NUNȚII</SectionLabel>
-          <Text style={styles.subtitle}>Invitații vorbesc între ei și cu organizatorul</Text>
+          <SectionLabel>{t('chat.sectionLabel')}</SectionLabel>
+          <Text style={styles.subtitle}>{t('chat.subtitle')}</Text>
         </View>
 
         {content === null ? (
@@ -50,7 +52,7 @@ export default function ChatScreen() {
         ) : null}
 
         {content !== null && content.messages.length === 0 ? (
-          <EmptyState message="Niciun mesaj încă. Scrie primul!" />
+          <EmptyState message={t('chat.empty')} />
         ) : null}
 
         {content?.messages.map((message) => (
@@ -60,7 +62,7 @@ export default function ChatScreen() {
             enabled={message.sender_id === user?.id}
             actions={[
               {
-                label: 'Șterge',
+                label: t('common.delete'),
                 icon: 'trash-2',
                 tone: 'delete',
                 // Low stakes: deletes straight away, no confirmation.
@@ -82,7 +84,7 @@ export default function ChatScreen() {
             style={styles.input}
             value={draft}
             onChangeText={setDraft}
-            placeholder="Scrie un mesaj…"
+            placeholder={t('chat.placeholder')}
             placeholderTextColor={guest.faint}
             multiline
             accessibilityLabel="Mesaj"
@@ -93,7 +95,7 @@ export default function ChatScreen() {
             activeOpacity={0.85}
             accessibilityRole="button"
           >
-            <Text style={styles.sendText}>Trimite</Text>
+            <Text style={styles.sendText}>{t('chat.send')}</Text>
           </TouchableOpacity>
         </View>
       </GuestScreen>

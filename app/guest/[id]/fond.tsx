@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
@@ -15,6 +16,7 @@ import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
 import { formatMoney } from '@/utils/money';
 
 export default function FondScreen() {
+  const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { isOwner } = useEvents();
   const { content, deleteFund } = useEventContent(id);
@@ -40,14 +42,10 @@ export default function FondScreen() {
     return (
       <GuestScreen contentStyle={styles.page} transparent>
         <EmptyState
-          message={
-            owner
-              ? 'Niciun fond încă. Deschide unul ca invitații să poată contribui la ceva ce contează pentru voi.'
-              : 'Organizatorii nu au deschis un fond pentru acest eveniment.'
-          }
+          message={owner ? t('fond.emptyOwner') : t('fond.emptyGuest')}
           action={
             owner ? (
-              <GuestButton label="Deschide un fond" onPress={() => router.push(`/fund/${id}`)} />
+              <GuestButton label={t('fond.openFund')} onPress={() => router.push(`/fund/${id}`)} />
             ) : undefined
           }
         />
@@ -62,9 +60,9 @@ export default function FondScreen() {
   const removeFund = () => {
     const message =
       contributorCount > 0
-        ? `„${fund.title}” are ${contributorCount} ${contributorCount === 1 ? 'contribuție' : 'contribuții'}. Ștergerea nu rambursează automat contribuitorii prin aplicație.`
-        : `„${fund.title}” va fi șters. Această acțiune nu poate fi anulată.`;
-    confirmDelete('Ștergi acest fond?', message, deleteFund);
+        ? t('fond.deleteFundWithContributions', { title: fund.title, count: contributorCount })
+        : t('fond.deleteFundNoContributions', { title: fund.title });
+    confirmDelete(t('fond.deleteFundTitle'), message, deleteFund);
   };
 
   return (
@@ -98,27 +96,27 @@ export default function FondScreen() {
 
         <View style={styles.amounts}>
           <Text style={styles.current}>{formatMoney(fund.current_amount, fund.currency)}</Text>
-          <Text style={styles.target}>din {formatMoney(fund.target_amount, fund.currency)}</Text>
+          <Text style={styles.target}>
+            {t('fond.targetAmount', { amount: formatMoney(fund.target_amount, fund.currency) })}
+          </Text>
         </View>
 
         <ProgressBar current={fund.current_amount} target={fund.target_amount} />
 
         <Text style={styles.contributors}>
-          {contributorCount} persoane au contribuit până acum
+          {t('fond.contributorsCount', { count: contributorCount })}
         </Text>
 
         {!owner ? (
           <GuestButton
-            label="Contribuie acum"
+            label={t('fond.contributeNow')}
             style={styles.cta}
             onPress={() => router.push(`/checkout/${id}`)}
           />
         ) : null}
       </View>
 
-      {!owner ? (
-        <Text style={styles.disclaimer}>Plată securizată prin Stripe · cardul tău nu e stocat</Text>
-      ) : null}
+      {!owner ? <Text style={styles.disclaimer}>{t('fond.disclaimer')}</Text> : null}
     </GuestScreen>
   );
 }

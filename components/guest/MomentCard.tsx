@@ -1,4 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Skeleton } from '@/components/Skeleton';
@@ -25,6 +26,8 @@ export function MomentCard({
   onReact,
   onComments,
 }: MomentCardProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.card}>
       <View style={styles.head}>
@@ -61,7 +64,7 @@ export function MomentCard({
           accessibilityRole="link"
         >
           <Feather name="message-circle" size={14} color={guest.body} />
-          <Text style={styles.commentsText}>Comentarii</Text>
+          <Text style={styles.commentsText}>{t('acasa.comments')}</Text>
         </TouchableOpacity>
       </View>
     </View>

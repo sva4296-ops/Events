@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Skeleton } from '@/components/Skeleton';
@@ -9,6 +10,7 @@ import { countRsvps, eventSubtitle } from '@/utils/format';
 import { colors, radius, shadow, spacing } from '@/utils/theme';
 
 export function EventListItem({ event, onPress }: { event: AppEvent; onPress: () => void }) {
+  const { t } = useTranslation();
   const type = getEventType(event.type);
   const counts = countRsvps(event.guests);
 
@@ -32,7 +34,7 @@ export function EventListItem({ event, onPress }: { event: AppEvent; onPress: ()
           {eventSubtitle(event)}
         </Text>
         <Text style={styles.counts}>
-          {counts.confirmed} confirmed · {counts.pending} pending
+          {t('common.eventRsvpSummary', { confirmed: counts.confirmed, pending: counts.pending })}
         </Text>
       </View>
 

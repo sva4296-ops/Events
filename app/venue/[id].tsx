@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -10,6 +11,7 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 
 export default function VenueScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, isOwner } = useEvents();
   const event = getEvent(id);
@@ -22,7 +24,11 @@ export default function VenueScreen() {
   if (!isOwner(event) || content === null) {
     return (
       <Screen>
-        <Header title="Not available" subtitle="Only the organizer can edit the venue." showBack />
+        <Header
+          title={t('common.notAvailable')}
+          subtitle={t('venueForm.notAvailableSubtitle')}
+          showBack
+        />
       </Screen>
     );
   }
@@ -47,21 +53,21 @@ export default function VenueScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Screen
-        footer={<Button label="Save venue" disabled={name.trim().length === 0} onPress={save} />}
+        footer={<Button label={t('venueForm.saveButton')} disabled={name.trim().length === 0} onPress={save} />}
       >
         <Header
-          title={content.venue.name.trim().length === 0 ? 'Set the venue' : 'Edit the venue'}
-          subtitle="Guests will see this on the Detalii tab."
+          title={content.venue.name.trim().length === 0 ? t('venueForm.setTitle') : t('venueForm.editTitle')}
+          subtitle={t('common.guestsSeeOnDetalii')}
           showBack
         />
 
-        <Field label="Venue name" value={name} onChangeText={setName} />
-        <Field label="Address" value={address} onChangeText={setAddress} />
+        <Field label={t('venueForm.nameLabel')} value={name} onChangeText={setName} />
+        <Field label={t('venueForm.addressLabel')} value={address} onChangeText={setAddress} />
         <Field
-          label="Practical notes"
+          label={t('venueForm.notesLabel')}
           value={notes}
           onChangeText={setNotes}
-          hint="One note per line."
+          hint={t('venueForm.notesHint')}
           multiline
         />
       </Screen>

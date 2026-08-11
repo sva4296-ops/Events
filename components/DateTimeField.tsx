@@ -1,6 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { colors, radius, spacing } from '@/utils/theme';
@@ -16,6 +17,7 @@ interface DateTimeFieldProps {
 
 /** Tap-to-open native date/time picker, styled to match Field. */
 export function DateTimeField({ label, value, mode, displayValue, onChange, hint }: DateTimeFieldProps) {
+  const { t } = useTranslation();
   const [show, setShow] = useState(false);
 
   const handleChange = (event: DateTimePickerEvent, selected?: Date) => {
@@ -53,7 +55,7 @@ export function DateTimeField({ label, value, mode, displayValue, onChange, hint
           activeOpacity={0.75}
           accessibilityRole="button"
         >
-          <Text style={styles.doneLabel}>Done</Text>
+          <Text style={styles.doneLabel}>{t('common.done')}</Text>
         </TouchableOpacity>
       ) : null}
     </View>

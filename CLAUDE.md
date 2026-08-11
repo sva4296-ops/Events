@@ -46,6 +46,7 @@ group chat, a live photo feed, and a post-event album.
 | Icons | `@expo/vector-icons` (Feather set) |
 | Gestures | `react-native-gesture-handler` 2.32 + `react-native-reanimated` 4.5 |
 | Date/time input | `@react-native-community/datetimepicker` 9.1 — native picker, wrapped by `components/DateTimeField.tsx` |
+| Localization | `i18next` + `react-i18next`, English default, no device-locale detection — see §2 Localization |
 
 **Core mental model: role is per-event, not per-user.** There is no global "organizer" or "guest"
 account type. The same user owns some events and is a guest on others. Ownership is decided per
@@ -241,6 +242,111 @@ cache entry outright rather than needing an effect to notice the session changed
   this file said this didn't exist; it does now (`supabase/migrations/20260810000003_guest_autolink.sql`,
   documented under §3's "Add guest by email"). Leaving this note here since it was wrong here
   specifically for a while.
+
+### Localization (i18n)
+
+`i18next` + `react-i18next` (no `expo-localization` — see below). `utils/i18n.ts` calls
+`i18n.use(initReactI18next).init(...)` at module scope and is imported once, for its side effect only,
+at the very top of `app/_layout.tsx` — before anything else, so every screen's first render already has
+an initialized instance to read from. There's no `I18nextProvider` in the component tree; `initReactI18next`
+attaches to the module-singleton `i18next` instance, which is what `useTranslation()` reads from by
+default, so none is needed.
+
+- **English is the default for every user, regardless of device locale.** `lng: 'en'` at init time —
+  deliberately no device-locale detection this pass (no `expo-localization`, no `getLocales()` call
+  anywhere). If a user previously chose Romanian in Profile, that choice is restored from AsyncStorage
+  (`povesteanoastra:language:v1`) asynchronously right after init — that's restoring a **saved
+  preference**, not detecting the device's language, and it only ever matters for a user who already
+  changed the setting once.
+- **`setLanguage()`** (`utils/i18n.ts`) is the only way app code should change languages: it calls
+  `i18n.changeLanguage()` (every mounted `useTranslation()` consumer re-renders immediately, no restart)
+  and persists the choice to AsyncStorage, in that order. `app/profile.tsx`'s Language card is the only
+  caller today — two pill buttons (English / Română), active state driven by `i18n.language`.
+- **Locale files** live at `locales/en.json`/`locales/ro.json`, nested by screen/feature
+  (`home.*`, `auth.*`, `acasa.*`, `rsvp.*`, `detalii.*`, `fond.*`, `profile.*`, plus a `common.*` for
+  words reused across screens — RSVP status words, delete/cancel, the "date to be announced" fallback).
+  Interpolation (`{{count}}`, `{{eventName}}`, etc.) and i18next's `_one`/`_few`/`_other` plural-suffix
+  convention are used where the source text already had a count or a name baked in.
+- **Only app chrome is translated — never user-generated content.** Event names, moment titles, welcome
+  messages, chat messages, guest names, anything a user typed, is rendered as-is, untouched by `t()`.
+  Two call sites translate *outside* a component (`utils/format.ts`'s `formatEventDate`,
+  `app/auth/index.tsx`'s `mapAuthError`) — neither can call the `useTranslation()` hook since neither is
+  a component, so both import the `i18n` singleton directly and call `i18n.t(...)`; this stays correct
+  under a language change because their callers are themselves components that re-render on
+  `changeLanguage()` (they call `useTranslation()` for their own other text), which re-invokes the
+  utility function fresh.
+- **Screens migrated to `t()` so far:** Home (`app/index.tsx`), Auth (`app/auth/index.tsx`), Profile
+  (`app/profile.tsx`, migrated incidentally while adding the Language card), the RSVP screen
+  (`app/invite/[id].tsx` → `rsvp.*`), **all 6 guest tabs** — Acasă (`app/guest/[id]/index.tsx` →
+  `acasa.*`), Detalii (`app/guest/[id]/detalii.tsx` → `detalii.*`, including its `DetaliiSkeleton`),
+  Fond (`app/guest/[id]/fond.tsx` → `fond.*`, including its skeleton), Chat (`app/guest/[id]/chat.tsx` →
+  `chat.*`), Live (`app/guest/[id]/live.tsx` → `live.*`), and Album (`app/guest/[id]/album.tsx` →
+  `album.*`) — and the organizer dashboard (`app/event/[id].tsx` → `event.*`, including its
+  hydrated/loading skeleton). The dashboard's three `StatCard` labels reuse `common.confirmed`/
+  `pending`/`declined` instead of new keys — the same words `RsvpBadge` already renders, now shared
+  between the two instead of `RsvpBadge`'s translation being a one-off. Plus the shared pieces these
+  screens render through: `EventListItem`, `RsvpBadge` (now genuinely shared — both the organizer
+  dashboard's `GuestRow` and Home's `InvitationListItem` render through it), `MomentCard`, and
+  `RSVP_LABEL`'s removal from `utils/format.ts` (dead after `RsvpBadge` moved to `t()`). Fond's
+  `fond.targetAmount` key ("of {{amount}}" / "din {{amount}}") was missing from the locale files when
+  they were first authored — added while wiring, not before; every other key matched the screens'
+  actual strings exactly. `components/guest/MessageBubble.tsx` needed no changes for Chat —
+  `sender_label`/`content` are user content, and its relative-time stamp already routes through
+  `utils/relativeTime.ts`, a separate still-hardcoded item (see below). `live.liveTag` ("LIVE") is
+  deliberately identical in both languages — already the word used in Romanian too — kept as a real key
+  rather than hardcoded so a future rebrand only needs a locale-file edit, not a code change.
+- **All 7 owner composer forms are migrated too:** `app/schedule/[id].tsx` (`scheduleForm.*`),
+  `app/venue/[id].tsx` (`venueForm.*`), `app/menu/[id].tsx` (`menuForm.*`), `app/table/[id].tsx`
+  (`tableForm.*`), `app/accommodation/[id].tsx` (`accommodationForm.*`), `app/vendor/[id].tsx`
+  (`vendorForm.*`), and `app/fund/[id].tsx` (`fundForm.*`) — plus `components/DateTimeField.tsx`'s
+  "Done" button (→ `common.done`; `create/details.tsx` will get this for free once it's migrated, since
+  it uses the same component). These seven forms repeat the same three strings almost verbatim ("Not
+  available" + "Only the organizer can edit X.", "Guests will see this on the Detalii tab.", "Save
+  changes"), so those became `common.notAvailable`/`common.guestsSeeOnDetalii`/`common.saveChanges`
+  instead of per-namespace duplicates. `app/menu/[id].tsx`'s course-name field labels reuse
+  `detalii.courseStarter`/`courseMain`/`courseDessert` rather than new keys — same words the
+  guest-facing Detalii screen already renders. **Every placeholder example was translated too**
+  ("Ceremony", "Castle Hotel", "Lumière Studio", etc.) — these are organizer-facing English screens that
+  had Romanian-only example text in every field before this pass, which is exactly the language-mixing
+  problem the whole i18n effort exists to fix, not just visible labels/buttons.
+- **Edit Event and Add Guest are migrated too:** `app/edit-event/[id].tsx` (`editEventForm.*`, reusing
+  `common.notAvailable`/`common.saveChanges` and `DateTimeField`'s now-translated "Done" button) and
+  `app/add-guest/[id].tsx` (`addGuestForm.*`). Add Guest reuses three keys from other namespaces rather
+  than duplicating them: `auth.errors.invalidEmail`, `auth.emailLabel`, and `auth.emailPlaceholder`
+  (identical email-validation copy to the Auth screen), and `event.inviteGuest` for its own header title
+  — the same "Invite a guest" text the organizer dashboard's button already uses to reach this screen.
+  Its inline field-validation error text (`colors.danger`) is unchanged — still the one deliberately
+  untouched non-delete red usage flagged earlier in this file (§5 Colors).
+- **Post a Moment and Onboarding are migrated too:** `app/post-moment/[id].tsx` (`postMomentForm.*`)
+  and `app/onboarding.tsx` (`onboarding.*`, its 4-step tutorial). Onboarding's `STEPS` array used to
+  hold literal Romanian title/body strings, with `item.title` doing double duty as the React `.map()`
+  `key` — translating the text directly would have made that `key` change on every language switch,
+  causing React to unmount/remount each slide. Fixed by storing locale-key *names* in `STEPS`
+  (`titleKey`/`bodyKey`) instead of literal text, so the `key` stays stable across a language change
+  and `t()` is only called at render time. Worth reusing this shape for any other array whose items
+  double as both list content and a React key.
+- **The 4-step create-event wizard is migrated too** (`app/create/type|details|preview|share.tsx` →
+  `createWizard.*`) — **every real screen in the app is now migrated**, leaving only the `checkout`
+  stub and one small fallback string (see below). The wizard leans on reuse more than any other screen
+  migrated so far: `create/details.tsx`'s field labels are the exact same set as Edit Event's
+  (`editEventForm.nameLabel`/`dateLabel`/`selectDate`/`locationLabel`/`welcomeMessageLabel`), and
+  `create/share.tsx` reuses `rsvp.notFoundTitle`, `event.shareInvitation`, `event.previewAsGuest`, and
+  `common.done` rather than duplicating any of them under `createWizard`.
+- **Detalii's dietary-preference pills are the one place translation and stored data almost collided.**
+  `DIETARY_OPTIONS` (`'Vegetarian' | 'Vegan' | 'Fără gluten' | 'Fără lactoză'`) are the literal values
+  written into and compared against `event_guests.dietary_preferences` — translating that array itself
+  would have meant a guest's saved preference silently stopped matching `myDietary.includes(option)`
+  the moment they (or anyone viewing the same event) switched languages, since the array driving the
+  comparison would no longer contain the value that was actually stored. Fixed by keeping
+  `DIETARY_OPTIONS` fixed and untranslated (the stored/compared identity) and translating only the
+  rendered label through a separate `DIETARY_LABEL_KEY` lookup. Any future `t()`-migration of a screen
+  that stores free-standing option/category strings server-side should check for the same trap.
+- **Every other screen is still fully hardcoded** — this was always meant to be screen-by-screen, not
+  all-at-once. `utils/i18n.ts` carries the up-to-date todo list in a code comment (which screens are
+  untouched and which shared utils — `utils/confirm.ts`, `utils/relativeTime.ts`, `utils/eventTypes.ts`
+  — are worth doing
+  once for every screen that uses them rather than piecemeal). Keep that comment in sync as future
+  passes migrate more screens, the same way this file is kept in sync with the rest of the app.
 
 ---
 
@@ -799,6 +905,21 @@ floating, suspended or rounded** — earlier descriptions of it that way were as
   (`{ id, label }`), never a hardcoded constant.
 - Styling is `StyleSheet.create` with tokens from the theme files — no inline magic numbers for
   colors, spacing or radii.
+- **Never hardcode new app-chrome text — wire it through i18n in the same change, not as a follow-up.**
+  Any new screen, component, or copy change adds its strings to *both* `locales/en.json` and
+  `locales/ro.json` (same nested-by-screen/feature structure as what's there — add a new namespace if
+  the screen doesn't have one yet) and reads them via `useTranslation()`'s `t('namespace.key')`, exactly
+  like every screen listed in §2 Localization. This covers labels, buttons, headers, empty states,
+  error/validation messages, and **placeholder examples** — a Romanian placeholder in an English-labeled
+  field is the single most common way this codebase's language-mixing bug has been reintroduced, so
+  don't let a new field skip it just because the placeholder disappears once someone types. The one
+  exception is user-generated content (event names, moment titles, chat messages, guest names, anything
+  a person typed) — that's never translated, see §2. If a string is a plain function outside a component
+  (can't call `useTranslation()`), import the `i18n` singleton from `utils/i18n.ts` and call `i18n.t(...)`
+  directly instead — `utils/format.ts`'s `formatEventDate` and `app/auth/index.tsx`'s `mapAuthError` are
+  the existing examples. When you're done, update the todo comment at the bottom of `utils/i18n.ts` (and
+  §2 Localization here) to move the screen out of the "not started" list — that comment is only useful
+  if it stays accurate.
 
 ---
 

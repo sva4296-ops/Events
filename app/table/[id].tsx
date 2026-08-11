@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -10,6 +11,7 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 
 export default function SeatingTableScreen() {
+  const { t } = useTranslation();
   const { id, itemId } = useLocalSearchParams<{ id: string; itemId?: string }>();
   const { getEvent, isOwner } = useEvents();
   const event = getEvent(id);
@@ -24,7 +26,11 @@ export default function SeatingTableScreen() {
   if (!isOwner(event) || content === null) {
     return (
       <Screen>
-        <Header title="Not available" subtitle="Only the organizer can edit the seating." showBack />
+        <Header
+          title={t('common.notAvailable')}
+          subtitle={t('tableForm.notAvailableSubtitle')}
+          showBack
+        />
       </Screen>
     );
   }
@@ -48,25 +54,35 @@ export default function SeatingTableScreen() {
       <Screen
         footer={
           <Button
-            label={existing === null ? 'Add table' : 'Save changes'}
+            label={existing === null ? t('tableForm.addButton') : t('common.saveChanges')}
             disabled={name.trim().length === 0}
             onPress={save}
           />
         }
       >
         <Header
-          title={existing === null ? 'Add a table' : 'Edit table'}
-          subtitle="Guests will see this on the Detalii tab."
+          title={existing === null ? t('tableForm.addTitle') : t('tableForm.editTitle')}
+          subtitle={t('common.guestsSeeOnDetalii')}
           showBack
         />
 
-        <Field label="Nume masă" value={name} onChangeText={setName} placeholder="Masa 1" />
-        <Field label="Etichetă" value={label} onChangeText={setLabel} placeholder="Familia mirilor" />
         <Field
-          label="Locuri"
+          label={t('tableForm.nameLabel')}
+          value={name}
+          onChangeText={setName}
+          placeholder={t('tableForm.namePlaceholder')}
+        />
+        <Field
+          label={t('tableForm.labelLabel')}
+          value={label}
+          onChangeText={setLabel}
+          placeholder={t('tableForm.labelPlaceholder')}
+        />
+        <Field
+          label={t('tableForm.seatsLabel')}
           value={seatCount}
           onChangeText={setSeatCount}
-          placeholder="8"
+          placeholder={t('tableForm.seatsPlaceholder')}
           keyboardType="numeric"
         />
       </Screen>

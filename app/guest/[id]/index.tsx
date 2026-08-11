@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
@@ -15,6 +16,7 @@ import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
 
 export default function AcasaScreen() {
+  const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { isOwner } = useEvents();
   const { content, toggleReaction, hasReacted, reactionCount, deleteMoment } =
@@ -25,7 +27,7 @@ export default function AcasaScreen() {
   if (content === null) {
     return (
       <GuestScreen transparent>
-        <SectionLabel>POVESTEA NOASTRĂ</SectionLabel>
+        <SectionLabel>{t('acasa.sectionLabel')}</SectionLabel>
         <MomentCardSkeleton />
         <MomentCardSkeleton />
       </GuestScreen>
@@ -35,16 +37,10 @@ export default function AcasaScreen() {
   return (
     <View style={styles.wrap}>
       <GuestScreen contentStyle={owner ? styles.contentWithFab : undefined} transparent>
-        <SectionLabel>POVESTEA NOASTRĂ</SectionLabel>
+        <SectionLabel>{t('acasa.sectionLabel')}</SectionLabel>
 
         {content.moments.length === 0 ? (
-          <EmptyState
-            message={
-              owner
-                ? 'Niciun moment postat încă. Începe povestea cu o primă poză.'
-                : 'Organizatorii nu au postat încă niciun moment.'
-            }
-          />
+          <EmptyState message={owner ? t('acasa.emptyOwner') : t('acasa.emptyGuest')} />
         ) : null}
 
         {content.moments.map((moment) => (
@@ -53,13 +49,13 @@ export default function AcasaScreen() {
             enabled={owner}
             actions={[
               {
-                label: 'Șterge',
+                label: t('common.delete'),
                 icon: 'trash-2',
                 tone: 'delete',
                 onPress: () =>
                   confirmDelete(
-                    'Ștergi acest moment?',
-                    `„${moment.title}” va dispărea din povestea evenimentului.`,
+                    t('acasa.deleteMomentTitle'),
+                    t('acasa.deleteMomentBody', { title: moment.title }),
                     () => deleteMoment(moment.id),
                   ),
               },
@@ -80,11 +76,9 @@ export default function AcasaScreen() {
         {content.fund !== null ? (
           <View style={styles.promo}>
             <Text style={styles.promoTitle}>{content.fund.title}</Text>
-            <Text style={styles.promoBody}>
-              Ne-ar bucura enorm să faceți parte din următorul capitol al poveștii noastre.
-            </Text>
+            <Text style={styles.promoBody}>{t('acasa.fundPromoBody')}</Text>
             <GuestButton
-              label="Vezi fondul"
+              label={t('acasa.viewFund')}
               variant="gold"
               onPress={() => router.push(`/guest/${id}/fond`)}
             />

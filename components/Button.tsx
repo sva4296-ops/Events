@@ -1,6 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, type ViewStyle } from 'react-native';
 
-import { colors, radius, shadow, spacing } from '@/utils/theme';
+import { colors, shadow, spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'neutral' | 'ghost';
 
@@ -36,7 +37,9 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     minHeight: 54,
-    borderRadius: radius.md,
+    // Warm Story pass: every variant is fully pill-shaped now, not just the
+    // ones that opted in individually before.
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
@@ -52,14 +55,18 @@ const styles = StyleSheet.create({
 });
 
 const variantStyles: Record<ButtonVariant, ViewStyle> = StyleSheet.create({
+  // `success` is only ever used for the RSVP screen's "Confirm attendance" —
+  // Warm Story spec calls for accentPrimary purple there, not green, so this
+  // is a deliberate repurposing of the variant's color, not a bug.
   primary: { backgroundColor: colors.primary },
   secondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-  success: { backgroundColor: colors.success },
+  success: { backgroundColor: colors.primary },
   danger: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
   // Same outline shape as `danger`, recolored — for a recorded-but-neutral
   // outcome (e.g. a declined RSVP) that isn't a destructive action. Red stays
-  // reserved for `danger`/delete.
-  neutral: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.declined },
+  // reserved for `danger`/delete. Also the RSVP screen's "Decline" per the
+  // Warm Story spec: soft muted background, textSecondary-toned text, no red.
+  neutral: { backgroundColor: colors.declinedSoft, borderWidth: 0 },
   ghost: { backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0 },
 });
 

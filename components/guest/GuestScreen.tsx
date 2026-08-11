@@ -3,7 +3,8 @@ import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { closeOpenSwipeRow } from '@/components/SwipeableRow';
-import { guest, gSpace } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { floatingTabBar, gSpace } from '@/utils/guestTheme';
 
 interface GuestScreenProps {
   children?: ReactNode;
@@ -23,8 +24,18 @@ export function GuestScreen({
   transparent = false,
 }: GuestScreenProps) {
   const insets = useSafeAreaInsets();
-  const padding = { paddingTop: (topInset ? insets.top : 0) + gSpace.lg };
-  const pageStyle = transparent ? styles.pageTransparent : styles.page;
+  const { tokens } = useTheme();
+  // The floating tabs bar is `position: 'absolute'` (see app/guest/[id]/_layout.tsx),
+  // so it no longer reserves layout space automatically — every guest screen's own
+  // scroll content has to clear it manually. Harmless overshoot on the one GuestScreen
+  // consumer outside the tabs (checkout/[id].tsx, a stub with no floating bar above it).
+  const padding = {
+    paddingTop: (topInset ? insets.top : 0) + gSpace.lg,
+    paddingBottom: insets.bottom + floatingTabBar.gap + floatingTabBar.height + gSpace.lg,
+  };
+  const pageStyle = transparent
+    ? styles.pageTransparent
+    : [styles.page, { backgroundColor: tokens.background[0] }];
 
   if (!scroll) {
     return <View style={[pageStyle, padding, contentStyle]}>{children}</View>;
@@ -47,7 +58,6 @@ export function GuestScreen({
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: guest.cream,
   },
   pageTransparent: {
     flex: 1,

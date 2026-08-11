@@ -19,6 +19,7 @@ import { AuthGate } from '@/components/AuthGate';
 import { BrandSplash } from '@/components/BrandSplash';
 import { AuthProvider } from '@/hooks/useAuth';
 import { EventDraftProvider } from '@/hooks/useEventDraft';
+import { ThemeProvider, useTheme } from '@/hooks/useTheme';
 
 /**
  * Baseline only — every query below overrides staleTime (and gcTime where it
@@ -66,25 +67,50 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
+      <ThemeProvider>
       <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <EventDraftProvider>
           <AuthGate>
-            <StatusBar style="dark" />
-            <View style={styles.root}>
-              <Stack
-                screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FBF8FF' } }}
-              />
-              {splashVisible ? (
-                <BrandSplash onReveal={handleReveal} onFinished={handleFinished} />
-              ) : null}
-            </View>
+            <AppShell splashVisible={splashVisible} onReveal={handleReveal} onFinished={handleFinished} />
           </AuthGate>
         </EventDraftProvider>
       </AuthProvider>
       </QueryClientProvider>
+      </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+/**
+ * Split out from RootLayout so it can call useTheme() — the provider has to
+ * be an ancestor, not a sibling, of anything reading theme tokens.
+ */
+function AppShell({
+  splashVisible,
+  onReveal,
+  onFinished,
+}: {
+  splashVisible: boolean;
+  onReveal: () => void;
+  onFinished: () => void;
+}) {
+  const { mode, tokens } = useTheme();
+
+  return (
+    <>
+      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+      <View style={styles.root}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: tokens.background[0] },
+          }}
+        />
+        {splashVisible ? <BrandSplash onReveal={onReveal} onFinished={onFinished} /> : null}
+      </View>
+    </>
   );
 }
 

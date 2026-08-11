@@ -1,6 +1,8 @@
 import { StyleSheet, Text, TouchableOpacity, type ViewStyle } from 'react-native';
 
-import { guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { gSpace } from '@/utils/guestTheme';
+import { themeRadius } from '@/utils/themeTokens';
 
 type GuestButtonVariant = 'purple' | 'gold' | 'outline';
 
@@ -12,14 +14,26 @@ interface GuestButtonProps {
 }
 
 export function GuestButton({ label, onPress, variant = 'purple', style }: GuestButtonProps) {
+  const { tokens } = useTheme();
+
+  const variantStyle: ViewStyle =
+    variant === 'purple'
+      ? { backgroundColor: tokens.accentPrimary }
+      : variant === 'gold'
+        ? { backgroundColor: tokens.accentGold }
+        : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: tokens.accentPrimary, shadowOpacity: 0, elevation: 0 };
+
+  const labelColor =
+    variant === 'purple' ? '#FFFFFF' : variant === 'gold' ? tokens.textPrimary : tokens.accentPrimary;
+
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
-      style={[styles.base, variants[variant], style]}
+      style={[styles.base, variantStyle, style]}
     >
-      <Text style={[styles.label, labels[variant]]}>{label}</Text>
+      <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -27,32 +41,18 @@ export function GuestButton({ label, onPress, variant = 'purple', style }: Guest
 const styles = StyleSheet.create({
   base: {
     minHeight: 52,
-    borderRadius: gRadius.pill,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: gSpace.xl,
-    ...gShadow,
+    shadowColor: '#3B2A1F',
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   label: {
     fontSize: 15,
     fontWeight: '700',
   },
 });
-
-const variants: Record<GuestButtonVariant, ViewStyle> = StyleSheet.create({
-  purple: { backgroundColor: guest.purple },
-  gold: { backgroundColor: guest.gold },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: guest.purple,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-});
-
-const labels: Record<GuestButtonVariant, { color: string }> = {
-  purple: { color: guest.white },
-  gold: { color: guest.ink },
-  outline: { color: guest.purple },
-};

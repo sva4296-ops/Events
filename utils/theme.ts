@@ -37,7 +37,8 @@ export const spacing = {
 export const radius = {
   sm: 10,
   md: 16,
-  lg: 22,
+  // Warm Story pass: cards land in the 16-18px window, not the old 22.
+  lg: 18,
   pill: 999,
 } as const;
 

@@ -1,20 +1,35 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { colors, radius, shadow, spacing } from '@/utils/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  const { tokens } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: tokens.surfaceElevated,
+          borderColor: tokens.surfaceBorder ?? 'transparent',
+          borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+        },
+        tokens.surfaceElevatedShadow ?? undefined,
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
+    borderRadius: themeRadius.lg,
     padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     gap: spacing.sm,
-    ...shadow,
   },
 });

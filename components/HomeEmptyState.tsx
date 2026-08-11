@@ -1,8 +1,10 @@
 import Feather from '@expo/vector-icons/Feather';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { useTheme } from '@/hooks/useTheme';
 import { fonts } from '@/utils/guestTheme';
-import { colors, radius, shadow, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -21,16 +23,28 @@ interface HomeEmptyStateProps {
  * doesn't change their plain message-card look.
  */
 export function HomeEmptyState({ icon, headline, message, ctaLabel, onPressCta }: HomeEmptyStateProps) {
+  const { tokens } = useTheme();
+
   return (
-    <View style={styles.card}>
-      <View style={styles.iconWrap}>
-        <Feather name={icon} size={22} color={colors.primary} />
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: tokens.surfaceElevated,
+          borderColor: tokens.surfaceBorder ?? 'transparent',
+          borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+        },
+        tokens.surfaceElevatedShadow ?? undefined,
+      ]}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: `${tokens.accentPrimary}22` }]}>
+        <Feather name={icon} size={22} color={tokens.accentPrimary} />
       </View>
-      <Text style={styles.headline}>{headline}</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={[styles.headline, { color: tokens.textPrimary }]}>{headline}</Text>
+      <Text style={[styles.message, { color: tokens.textSecondary }]}>{message}</Text>
       {ctaLabel !== undefined && onPressCta !== undefined ? (
         <TouchableOpacity
-          style={styles.cta}
+          style={[styles.cta, { backgroundColor: tokens.accentPrimary }]}
           onPress={onPressCta}
           activeOpacity={0.85}
           accessibilityRole="button"
@@ -44,21 +58,16 @@ export function HomeEmptyState({ icon, headline, message, ctaLabel, onPressCta }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: themeRadius.lg,
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
     gap: spacing.sm,
-    ...shadow,
   },
   iconWrap: {
     width: 48,
     height: 48,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primarySoft,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xs,
@@ -66,13 +75,11 @@ const styles = StyleSheet.create({
   headline: {
     fontFamily: fonts.displayBold,
     fontSize: 20,
-    color: colors.text,
     textAlign: 'center',
   },
   message: {
     fontSize: 14,
     lineHeight: 20,
-    color: colors.muted,
     textAlign: 'center',
     paddingHorizontal: spacing.sm,
   },
@@ -80,8 +87,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     alignSelf: 'stretch',
     minHeight: 50,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
@@ -89,6 +95,6 @@ const styles = StyleSheet.create({
   ctaLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.onPrimary,
+    color: '#FFFFFF',
   },
 });

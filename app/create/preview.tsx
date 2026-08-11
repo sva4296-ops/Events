@@ -9,7 +9,8 @@ import { Screen } from '@/components/Screen';
 import { useCancelCreate } from '@/hooks/useCancelCreate';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
-import { colors, spacing } from '@/utils/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { spacing } from '@/utils/theme';
 import { reportSupabaseError } from '@/utils/reportError';
 
 export default function PreviewScreen() {
@@ -17,6 +18,7 @@ export default function PreviewScreen() {
   const { draft } = useEventDraft();
   const { createEvent } = useEvents();
   const cancel = useCancelCreate();
+  const { tokens } = useTheme();
 
   const handleGenerate = async () => {
     try {
@@ -43,7 +45,7 @@ export default function PreviewScreen() {
 
       <InviteCard event={draft} />
 
-      <Text style={styles.note}>{t('createWizard.previewNote')}</Text>
+      <Text style={[styles.note, { color: tokens.textSecondary }]}>{t('createWizard.previewNote')}</Text>
     </Screen>
   );
 }
@@ -54,7 +56,6 @@ const styles = StyleSheet.create({
   },
   note: {
     fontSize: 13,
-    color: colors.faint,
     textAlign: 'center',
   },
 });

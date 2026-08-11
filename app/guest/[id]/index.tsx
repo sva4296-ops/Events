@@ -2,7 +2,9 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrandFlourish } from '@/components/BrandFlourish';
 import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
@@ -13,16 +15,23 @@ import { confirmDelete } from '@/utils/confirm';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
-import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { floatingTabBar, fonts, gSpace } from '@/utils/guestTheme';
+import { themeRadius } from '@/utils/themeTokens';
 
 export default function AcasaScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { isOwner } = useEvents();
+  const { tokens } = useTheme();
+  const insets = useSafeAreaInsets();
   const { content, toggleReaction, hasReacted, reactionCount, deleteMoment } =
     useEventContent(id);
 
   const owner = isOwner(event);
+  // Distance from the true screen bottom up to the floating tabs bar's top
+  // edge — the FAB and this screen's own extra bottom padding both build on it.
+  const tabBarClearance = insets.bottom + floatingTabBar.gap + floatingTabBar.height;
 
   if (content === null) {
     return (
@@ -36,7 +45,10 @@ export default function AcasaScreen() {
 
   return (
     <View style={styles.wrap}>
-      <GuestScreen contentStyle={owner ? styles.contentWithFab : undefined} transparent>
+      <GuestScreen
+        contentStyle={owner ? { paddingBottom: tabBarClearance + gSpace.xxl + 58 } : undefined}
+        transparent
+      >
         <SectionLabel>{t('acasa.sectionLabel')}</SectionLabel>
 
         {content.moments.length === 0 ? (
@@ -74,9 +86,22 @@ export default function AcasaScreen() {
         ))}
 
         {content.fund !== null ? (
-          <View style={styles.promo}>
-            <Text style={styles.promoTitle}>{content.fund.title}</Text>
-            <Text style={styles.promoBody}>{t('acasa.fundPromoBody')}</Text>
+          <View
+            style={[
+              styles.promo,
+              {
+                backgroundColor: tokens.surfaceElevated,
+                borderColor: tokens.surfaceBorder ?? 'transparent',
+                borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+              },
+              tokens.surfaceElevatedShadow ?? undefined,
+            ]}
+          >
+            <BrandFlourish width={52} height={22} opacity={0.4} style={styles.promoFlourish} />
+            <Text style={[styles.promoTitle, { color: tokens.textPrimary }]}>{content.fund.title}</Text>
+            <Text style={[styles.promoBody, { color: tokens.textSecondary }]}>
+              {t('acasa.fundPromoBody')}
+            </Text>
             <GuestButton
               label={t('acasa.viewFund')}
               variant="gold"
@@ -88,13 +113,13 @@ export default function AcasaScreen() {
 
       {owner ? (
         <TouchableOpacity
-          style={styles.fab}
+          style={[styles.fab, { backgroundColor: tokens.accentPrimary, bottom: tabBarClearance + gSpace.md }]}
           onPress={() => router.push(`/post-moment/${id}`)}
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Postează un moment"
         >
-          <Feather name="plus" size={26} color={guest.white} />
+          <Feather name="plus" size={26} color="#FFFFFF" />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -105,39 +130,38 @@ const styles = StyleSheet.create({
   wrap: {
     flex: 1,
   },
-  contentWithFab: {
-    paddingBottom: 92,
-  },
   promo: {
-    backgroundColor: guest.blush,
-    borderRadius: gRadius.lg,
+    borderRadius: themeRadius.lg,
     padding: gSpace.xxl,
     gap: gSpace.md,
-    ...gShadow,
+  },
+  promoFlourish: {
+    position: 'absolute',
+    top: gSpace.lg,
+    right: gSpace.lg,
   },
   promoTitle: {
     fontFamily: fonts.displayBold,
     fontSize: 22,
     lineHeight: 30,
-    color: guest.ink,
   },
   promoBody: {
     fontSize: 14,
     lineHeight: 21,
-    color: guest.body,
     marginBottom: gSpace.xs,
   },
   fab: {
     position: 'absolute',
     right: gSpace.xl,
-    bottom: gSpace.xl,
     width: 58,
     height: 58,
-    borderRadius: gRadius.pill,
-    backgroundColor: guest.purple,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    ...gShadow,
+    shadowColor: '#3B2A1F',
     shadowOpacity: 0.22,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
 });

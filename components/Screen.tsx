@@ -4,13 +4,16 @@ import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { closeOpenSwipeRow } from '@/components/SwipeableRow';
+import { useTheme } from '@/hooks/useTheme';
 import type { Gradient } from '@/types/event';
-import { screenGradient, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
 
 interface ScreenProps {
   children: ReactNode;
   /** Fixed footer that stays below the scrollable content. */
   footer?: ReactNode;
+  /** Defaults to the active theme's background wash — pass an explicit
+   * gradient (e.g. an event type's colors) to override it, as invite/[id].tsx does. */
   gradient?: Gradient;
   scroll?: boolean;
   contentStyle?: ViewStyle;
@@ -21,15 +24,17 @@ interface ScreenProps {
 export function Screen({
   children,
   footer,
-  gradient = screenGradient,
+  gradient,
   scroll = true,
   contentStyle,
   transparent = false,
 }: ScreenProps) {
+  const { tokens } = useTheme();
   const Wrapper = transparent ? TransparentWrapper : LinearGradient;
+  const resolvedGradient = gradient ?? tokens.background;
 
   return (
-    <Wrapper colors={gradient} style={styles.fill}>
+    <Wrapper colors={resolvedGradient} style={styles.fill}>
       <SafeAreaView style={styles.fill} edges={['top', 'bottom']}>
         {scroll ? (
           <ScrollView

@@ -12,14 +12,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
+import { useTheme } from '@/hooks/useTheme';
 import { countRsvps } from '@/utils/format';
-import { fonts, guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
+import { fonts, gSpace } from '@/utils/guestTheme';
+import { themeRadius } from '@/utils/themeTokens';
 
 export default function AlbumScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { user } = useAuth();
   const { isOwner } = useEvents();
+  const { tokens } = useTheme();
   const { content, deletePhoto } = useEventContent(id);
 
   const owner = isOwner(event);
@@ -28,26 +31,38 @@ export default function AlbumScreen() {
   const photos = content?.photos ?? [];
   const attendees = event === undefined ? 0 : countRsvps(event.guests).confirmed;
 
+  const statCard = [
+    styles.stat,
+    {
+      backgroundColor: tokens.surfaceElevated,
+      borderColor: tokens.surfaceBorder ?? 'transparent',
+      borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+    },
+    tokens.surfaceElevatedShadow ?? undefined,
+  ];
+
   return (
     <GuestScreen transparent>
       <View style={styles.intro}>
         <SectionLabel>{t('album.sectionLabel')}</SectionLabel>
-        <Text style={styles.headline}>{t('album.headline')}</Text>
+        <Text style={[styles.headline, { color: tokens.textPrimary }]}>{t('album.headline')}</Text>
       </View>
 
       <View style={styles.stats}>
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{attendees}</Text>
-          <Text style={styles.statLabel}>{t('album.attendeesLabel')}</Text>
+        <View style={statCard}>
+          <Text style={[styles.statValue, { color: tokens.accentPrimary }]}>{attendees}</Text>
+          <Text style={[styles.statLabel, { color: tokens.textSecondary }]}>
+            {t('album.attendeesLabel')}
+          </Text>
         </View>
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{photos.length}</Text>
-          <Text style={styles.statLabel}>{t('album.photosLabel')}</Text>
+        <View style={statCard}>
+          <Text style={[styles.statValue, { color: tokens.accentPrimary }]}>{photos.length}</Text>
+          <Text style={[styles.statLabel, { color: tokens.textSecondary }]}>{t('album.photosLabel')}</Text>
         </View>
       </View>
 
       <View style={styles.albumBlock}>
-        <Text style={styles.albumTitle}>{t('album.albumTitle')}</Text>
+        <Text style={[styles.albumTitle, { color: tokens.textPrimary }]}>{t('album.albumTitle')}</Text>
         {loading ? (
           <View style={styles.grid}>
             <Skeleton style={styles.tile} />
@@ -65,7 +80,7 @@ export default function AlbumScreen() {
               <PhotoTile
                 key={photo.id}
                 photo={photo}
-                style={styles.tile}
+                style={[styles.tile, { backgroundColor: tokens.surface }]}
                 canDelete={owner || photo.uploaded_by === user?.id}
                 onDelete={deletePhoto}
               />
@@ -90,7 +105,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.displayItalic,
     fontSize: 34,
     lineHeight: 44,
-    color: guest.ink,
   },
   stats: {
     flexDirection: 'row',
@@ -98,21 +112,17 @@ const styles = StyleSheet.create({
   },
   stat: {
     flex: 1,
-    backgroundColor: guest.white,
-    borderRadius: gRadius.lg,
+    borderRadius: themeRadius.lg,
     paddingVertical: gSpace.xl,
     alignItems: 'center',
     gap: gSpace.xs,
-    ...gShadow,
   },
   statValue: {
     fontFamily: fonts.displayBold,
     fontSize: 30,
-    color: guest.purple,
   },
   statLabel: {
     fontSize: 12,
-    color: guest.body,
   },
   albumBlock: {
     gap: gSpace.md,
@@ -120,7 +130,6 @@ const styles = StyleSheet.create({
   albumTitle: {
     fontFamily: fonts.displayBold,
     fontSize: 20,
-    color: guest.ink,
   },
   grid: {
     flexDirection: 'row',
@@ -131,7 +140,6 @@ const styles = StyleSheet.create({
     width: '31%',
     flexGrow: 1,
     aspectRatio: 1,
-    borderRadius: gRadius.md,
-    backgroundColor: guest.creamDeep,
+    borderRadius: themeRadius.md,
   },
 });

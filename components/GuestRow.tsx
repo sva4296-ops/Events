@@ -2,13 +2,17 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { RsvpBadge } from '@/components/RsvpBadge';
 import { Skeleton } from '@/components/Skeleton';
+import { useTheme } from '@/hooks/useTheme';
 import type { Guest } from '@/types/event';
-import { colors, radius, spacing } from '@/utils/theme';
+import { spacing } from '@/utils/theme';
+import { themeRadius } from '@/utils/themeTokens';
 
 export function GuestRow({ guest }: { guest: Guest }) {
+  const { tokens } = useTheme();
+
   return (
-    <View style={styles.row}>
-      <Text style={styles.name} numberOfLines={1}>
+    <View style={[styles.row, { borderBottomColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}>
+      <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
         {guest.name}
       </Text>
       <RsvpBadge status={guest.status} />
@@ -25,7 +29,7 @@ export function GuestRowSkeleton() {
   return (
     <View style={styles.row}>
       <Skeleton height={15} width={140} radius={4} />
-      <Skeleton width={64} height={22} radius={radius.pill} />
+      <Skeleton width={64} height={22} radius={themeRadius.pill} />
     </View>
   );
 }
@@ -38,11 +42,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   name: {
     flex: 1,
     fontSize: 15,
-    color: colors.text,
   },
 });

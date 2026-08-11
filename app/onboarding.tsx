@@ -16,7 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandHeader } from '@/components/BrandHeader';
 import { SegmentedProgress } from '@/components/SegmentedProgress';
 import { useAuth } from '@/hooks/useAuth';
-import { brand, fonts } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { fonts } from '@/utils/guestTheme';
 
 /**
  * Titles/bodies are locale keys, not literal text, so this array stays stable
@@ -38,6 +39,7 @@ export default function OnboardingScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const [step, setStep] = useState(0);
   const { markOnboardingComplete } = useAuth();
+  const { tokens } = useTheme();
 
   const isLast = step === STEPS.length - 1;
 
@@ -62,7 +64,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View style={[styles.page, { paddingTop: insets.top + 20 }]}>
+    <View style={[styles.page, { paddingTop: insets.top + 20, backgroundColor: tokens.background[0] }]}>
       <View style={styles.brand}>
         <BrandHeader size="sm" />
       </View>
@@ -81,22 +83,22 @@ export default function OnboardingScreen() {
       >
         {STEPS.map((item) => (
           <View key={item.titleKey} style={[styles.slide, { width }]}>
-            <View style={styles.illustration}>
+            <View style={[styles.illustration, { backgroundColor: `${tokens.accentPrimary}22` }]}>
               <Text style={styles.icon}>{item.icon}</Text>
             </View>
-            <Text style={styles.title}>{t(item.titleKey)}</Text>
-            <Text style={styles.body}>{t(item.bodyKey)}</Text>
+            <Text style={[styles.title, { color: tokens.textPrimary }]}>{t(item.titleKey)}</Text>
+            <Text style={[styles.body, { color: tokens.textSecondary }]}>{t(item.bodyKey)}</Text>
           </View>
         ))}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity onPress={finish} activeOpacity={0.7} accessibilityRole="button">
-          <Text style={styles.skip}>{t('onboarding.skip')}</Text>
+          <Text style={[styles.skip, { color: tokens.textSecondary }]}>{t('onboarding.skip')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.next}
+          style={[styles.next, { backgroundColor: tokens.accentPrimary }]}
           onPress={next}
           activeOpacity={0.85}
           accessibilityRole="button"
@@ -111,7 +113,6 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: brand.cream,
   },
   brand: {
     paddingHorizontal: 24,
@@ -134,7 +135,6 @@ const styles = StyleSheet.create({
     width: 132,
     height: 132,
     borderRadius: 999,
-    backgroundColor: brand.lavender,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 18,
@@ -146,13 +146,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.displayBold,
     fontSize: 21,
     lineHeight: 29,
-    color: brand.navy,
     textAlign: 'center',
   },
   body: {
     fontSize: 14,
     lineHeight: 20,
-    color: brand.muted,
     textAlign: 'center',
   },
   footer: {
@@ -164,7 +162,6 @@ const styles = StyleSheet.create({
   skip: {
     fontSize: 14,
     fontWeight: '600',
-    color: brand.muted,
     paddingVertical: 12,
     paddingRight: 12,
   },
@@ -172,7 +169,6 @@ const styles = StyleSheet.create({
     minHeight: 50,
     paddingHorizontal: 34,
     borderRadius: 999,
-    backgroundColor: brand.purple,
     alignItems: 'center',
     justifyContent: 'center',
   },

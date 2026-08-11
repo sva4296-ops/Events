@@ -51,7 +51,8 @@ export const fonts = {
 export const gRadius = {
   sm: 12,
   md: 18,
-  lg: 26,
+  // Warm Story pass: cards land in the 16-18px window, not the old 26.
+  lg: 18,
   xl: 32,
   pill: 999,
 } as const;
@@ -71,4 +72,16 @@ export const gShadow = {
   shadowRadius: 16,
   shadowOffset: { width: 0, height: 6 },
   elevation: 2,
+} as const;
+
+/**
+ * Shared geometry for the floating guest-tabs bar (`app/guest/[id]/_layout.tsx`),
+ * `position: 'absolute'` so it needs `height` and `gap` known outside that file
+ * too — every guest tab's own bottom padding, and Acasă's FAB, have to clear it
+ * manually now that it's no longer a normal layout sibling.
+ */
+export const floatingTabBar = {
+  height: 74,
+  /** Gap between the bar's top edge and the safe-area-adjusted screen bottom. */
+  gap: 10,
 } as const;

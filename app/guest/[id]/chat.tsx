@@ -18,12 +18,14 @@ import { SwipeableRow } from '@/components/SwipeableRow';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
-import { guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { gRadius, gSpace } from '@/utils/guestTheme';
 
 export default function ChatScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { user } = useAuth();
+  const { tokens } = useTheme();
   const { content, sendMessage, deleteMessage } = useEventContent(id);
   const [draft, setDraft] = useState('');
 
@@ -40,7 +42,7 @@ export default function ChatScreen() {
       <GuestScreen contentStyle={styles.content} transparent>
         <View style={styles.headerBlock}>
           <SectionLabel>{t('chat.sectionLabel')}</SectionLabel>
-          <Text style={styles.subtitle}>{t('chat.subtitle')}</Text>
+          <Text style={[styles.subtitle, { color: tokens.textSecondary }]}>{t('chat.subtitle')}</Text>
         </View>
 
         {content === null ? (
@@ -81,16 +83,22 @@ export default function ChatScreen() {
 
         <View style={styles.composer}>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: tokens.surfaceElevated,
+                color: tokens.textPrimary,
+              },
+            ]}
             value={draft}
             onChangeText={setDraft}
             placeholder={t('chat.placeholder')}
-            placeholderTextColor={guest.faint}
+            placeholderTextColor={tokens.textSecondary}
             multiline
             accessibilityLabel="Mesaj"
           />
           <TouchableOpacity
-            style={styles.send}
+            style={[styles.send, { backgroundColor: tokens.accentPrimary }]}
             onPress={submit}
             activeOpacity={0.85}
             accessibilityRole="button"
@@ -115,7 +123,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    color: guest.body,
   },
   composer: {
     flexDirection: 'row',
@@ -127,26 +134,21 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 48,
     maxHeight: 120,
-    backgroundColor: guest.white,
     borderRadius: gRadius.md,
     paddingHorizontal: gSpace.lg,
     paddingVertical: gSpace.md,
     fontSize: 14,
-    color: guest.ink,
-    ...gShadow,
   },
   send: {
     height: 48,
     paddingHorizontal: gSpace.xl,
     borderRadius: gRadius.md,
-    backgroundColor: guest.purple,
     alignItems: 'center',
     justifyContent: 'center',
-    ...gShadow,
   },
   sendText: {
     fontSize: 14,
     fontWeight: '700',
-    color: guest.white,
+    color: '#FFFFFF',
   },
 });

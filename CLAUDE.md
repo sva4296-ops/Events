@@ -117,9 +117,13 @@ state), so a failed write needs to announce itself rather than fail silently.
 Provider nesting in `app/_layout.tsx`, outermost first:
 
 ```
-GestureHandlerRootView → SafeAreaProvider → QueryClientProvider → AuthProvider
+GestureHandlerRootView → SafeAreaProvider → ThemeProvider → QueryClientProvider → AuthProvider
   → EventDraftProvider → AuthGate → Stack
 ```
+
+`ThemeProvider` sits outside `QueryClientProvider` because `AppShell` (the component that actually
+renders `Stack`, inside `app/_layout.tsx`) reads `useTheme()` to drive `StatusBar` style and the
+`Stack`'s `contentStyle` background — it has to be a descendant of the provider, not a sibling.
 
 **`useEvents` and `useEventContent` are plain hooks, not Context providers — this changed this pass.**
 Before, `EventsProvider`/`EventContentProvider` held the events list and per-event content in React
@@ -196,6 +200,7 @@ was out of scope for an infra-only pass and would have been new functionality, n
 | `useEventContent` | Per-event content, three queries keyed by category (`social`/`details`/`contributions`, see the table above) merged into one `content: EventContent \| null`, plus all their mutations — Supabase write-then-invalidate (of the correct category key) |
 | `useEventDraft` | The 4-step create-event wizard draft (in-memory, not persisted) — still a Context provider, this is genuinely ephemeral UI state, not a fetched resource |
 | `useGuestEvent` | Provides `{ id, name, event }` to the guest tabs, derived from `useEvents().getEvent(id)` — **see the gotcha below** |
+| `useTheme` | The Warm Story light/dark theme — `{ mode, override, tokens, setThemeMode }`. Still a Context provider, same reasoning as `useAuth`: `mode` is push-driven (system `useColorScheme()` unless the user overrides it in Profile), not a fetched resource. See §5 for the full token set and which screens actually consume it yet |
 
 **Critical gotcha — do not regress this.** `useLocalSearchParams` inside a tab child (`guest/[id]/detalii`)
 does **not** see the `[id]` param, which belongs to the parent layout route. Reading it there returns
@@ -692,7 +697,7 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/create/type\|details\|preview\|share.tsx` | 4-step create-event wizard |
 | `app/event/[id].tsx` | Organizer dashboard — RSVP counts and guest list |
 | `app/guest/[id]/` | The 6-tab guest event page |
-| `app/invite/[id].tsx` | RSVP screen — opened from an invite link by a real guest, *and* reused as the organizer's "Preview as guest" view (RSVP buttons render disabled for the organizer; see §3) |
+| `app/invite/[id].tsx` | RSVP screen — opened from an invite link by a real guest, *and* reused as the organizer's "Preview as guest" view (RSVP buttons render disabled for the organizer; see §3). **No longer a forced stop between Home and the guest tabs for an owner — see §4's routing note** |
 | `app/edit-event/[id].tsx` | Owner: basic info only — name, date, location, welcome message. Reached from the "Edit event" button on `event/[id].tsx`, the organizer dashboard |
 | `app/schedule/[id].tsx` | Owner: add or edit one schedule item (`?itemId=` for edit) |
 | `app/venue/[id].tsx` | Owner: create or edit the venue |
@@ -704,6 +709,37 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/add-guest/[id].tsx` | Owner: invite a guest by email |
 | `app/post-moment/[id].tsx` | Owner: moment composer |
 | `app/checkout/[id].tsx` | Stubbed Stripe placeholder |
+
+### Owner routing — Home opens straight into Acasă, not the dashboard
+
+**Changed this pass.** Tapping an owned event on Home (`app/index.tsx`, "Your events") used to push
+`/event/[id]` (the guest-count/guest-list dashboard) — the only way from there into the actual 6-tab
+guest experience was tapping "Previzualizează ca invitat" into `/invite/[id]`, then "Mergi la
+evenimentul tău" into `/guest/[id]`. That's two forced intermediate screens just to open your own
+event. Home now pushes `/guest/${event.id}` directly — an owner tapping their event lands on Acasă,
+tab bar and all, in one tap.
+
+**This meant `/event/[id]` needed a new entry point, since Home was its only one before this change**
+(checked — grepped the whole app for any other `router.push`/`href` targeting it; there wasn't one).
+`components/guest/EventHeaderBar.tsx` — the persistent back-chevron-and-name bar above all 6 guest
+tabs — now takes `id`/`showManage` props and renders a second icon button, owner-only, top-right: a
+`users` glyph that pushes `/event/${id}`. `app/guest/[id]/_layout.tsx` computes `showManage` from
+`isOwner(event)` and passes it down. A non-owner viewing the tabs sees exactly what they saw before —
+just the back button and the event name, nothing added to their side.
+
+**The preview screen (`/invite/[id]`) itself is unchanged and still has two legitimate paths in:** the
+create-event flow's own share step (`create/share.tsx`, "Preview as guest" — unchanged, this is the
+one case the screen was always meant for), and the dashboard's own "Previzualizează ca invitat" button
+(unchanged, still a manual, explicit action once you're on the dashboard, not something Home forces on
+you anymore).
+
+**The dashboard's Edit action moved into its own header, off the footer.** `Header.tsx` gained a
+`right?: ReactNode` prop (same "single custom slot, top-right" shape `BrandHeader`'s `right` prop
+already established elsewhere) — a wrapping `rightGroup` groups it with the existing `onClose` X button
+so both can coexist, though no screen currently passes both. `app/event/[id].tsx`'s footer no longer has
+the "Editează evenimentul" ghost-variant text button; it's now a 40×40 pencil-icon button in the
+`Header`'s `right` slot, owner-only, same tap-target size as the back button. Share and "Preview as
+guest" stay in the footer, untouched.
 
 ### Splash and onboarding
 
@@ -719,7 +755,9 @@ changed, via `useAuth()`'s `hasCompletedOnboarding`/`markOnboardingComplete` (§
 ### The 6 guest tabs (`app/guest/[id]/`)
 
 A persistent `EventHeaderBar` (back chevron + event name) sits above the tabs; back always returns to
-Home regardless of active tab, via `router.navigate('/')`.
+Home regardless of active tab, via `router.navigate('/')`. Owners additionally see a third icon,
+top-right — a guest-list/stats shortcut into `/event/[id]` (see the routing note above this table's
+section for why that link needed to exist here now).
 
 | Tab | File | Guest sees | Owner additionally sees |
 | --- | --- | --- | --- |
@@ -760,8 +798,25 @@ iOS with a "Done" button to collapse it, the native imperative dialog on Android
 select). Values are still plain strings in the data model (`AppEvent.date` as `YYYY-MM-DD`,
 `ScheduleItem.time` as `HH:MM`) — only the *input method* changed; `utils/dateInput.ts` converts
 between those strings and the `Date` object the picker needs. Used in `edit-event/[id].tsx` (date),
-`create/details.tsx` (date), and `schedule/[id].tsx` (time). Display formatting elsewhere is
-untouched (`utils/format.ts` → `formatEventDate`).
+`create/details.tsx` (date), and `schedule/[id].tsx` (time) — this is the *only* place in the app that
+imports `DateTimePicker` directly (checked), so it was a single-component fix. Display formatting
+elsewhere is untouched (`utils/format.ts` → `formatEventDate`).
+
+**iOS picker theming — fixed; Android picker theming — a real library limitation, not fixed.** The
+picker used to render with no `themeVariant`, so it fell back to the device's system light/dark
+setting rather than this app's own theme state — normally harmless, but this app's dark mode is an
+explicit in-app override (see §2's `useTheme`) that can disagree with the system setting entirely, and
+when it did, the iOS spinner rendered dark text on a dark background. Fixed by passing
+`themeVariant={tokens.mode}` on iOS. **Android has no equivalent prop** —
+`@react-native-community/datetimepicker`'s `AndroidNativeProps` type has nothing theme-related; the
+Android dialog is themed by the app's native Android theme resource, resolved at the activity level,
+not switchable from a JS-side runtime toggle without native code changes (an Android `styles.xml`/
+`values-night` change plus an activity recreation, or a native module) that this project hasn't made.
+Not attempted blind — this is a genuine platform/library constraint, checked against the library's own
+type definitions rather than guessed at. On a device where the OS is already in dark mode, Android's
+dialog will likely still read fine (it follows the *device* setting, just not this app's independent
+override); the failure case is specifically Android + app dark mode + device still in light mode, which
+remains unfixed.
 
 ---
 
@@ -790,6 +845,194 @@ declined-RSVP indicator: `app/add-guest/[id].tsx`'s inline field-validation erro
 (`colors.danger`) for "Enter a valid email address" / "This person is already invited." Conventional
 red-for-form-errors is a separate concern from this pass's declined-status scope — flagging it here
 rather than silently changing it.
+
+### Warm Story theme system (light/dark) — new this pass
+
+**Correcting the record first: no theme infrastructure existed before this pass, despite a prompt
+describing it as an extension.** A prompt asked to "extend/replace the tokens started in the earlier
+theming pass" and said Home, Auth, and Acasă were "already migrated" to a `ThemeProvider`/Profile
+toggle. Checked before writing anything: no `ThemeProvider`, `useTheme`, or `colorScheme` reference
+existed anywhere in the repo, `utils/theme.ts`/`utils/guestTheme.ts` were both single flat
+light-mode-only objects with no light/dark split to extend, and the `theme` branch itself had zero
+commits and zero diff against `main` — it was freshly cut, not sitting on prior theme work. Same
+"a prompt describes a pass that was never actually built here" pattern already documented for the
+guest-autolink trigger and v2/v4 above; flagged to the user before starting, who confirmed building
+the real thing from zero rather than treating the claimed prior work as real.
+
+**Architecture.** `hooks/useTheme.tsx` (`ThemeProvider`/`useTheme`) resolves `mode: 'light' | 'dark'`
+from `useColorScheme()` (system default) unless the user has explicitly picked one in Profile, in
+which case that choice — persisted to AsyncStorage as `povesteanoastra:theme:v1`, same
+read-cache-once-at-startup shape as `utils/i18n.ts`'s language restore — wins. `utils/themeTokens.ts`
+holds the actual palette: `lightTheme`/`darkTheme`, both implementing a shared `ThemeTokens` interface
+(`background` gradient, `surface`, `surfaceElevated` + either a shadow style or a border color —
+light mode shadows, dark mode gets a 1px `surfaceBorder` instead per the spec, never both —
+`textPrimary`/`textSecondary`, `accentPrimary`/`accentGold`/`accentPink`, `statusConfirmed`/
+`statusPending`/`statusDeclined` each with a soft variant, `destructive` + soft, and a `tabBar`
+sub-object). This is deliberately a **third, additive** token source, not a replacement for
+`utils/theme.ts` (organizer screens) or `utils/guestTheme.ts` (guest tabs) — same "separate palette per
+surface" precedent those two already set, extended rather than resolved. Screens read `themeTokens.ts`
+only once actually migrated to `useTheme()`; unmigrated screens are untouched and keep reading the
+static `colors`/`guest` objects exactly as before.
+
+**Exact values** (light / dark): background gradient `#FFF8F1→#FBEAE0` / `#1E1A30→#171325` — the light
+value is intentionally identical to the pre-existing `ScreenBackground`/`screenGradient` wash, so this
+pass didn't change light mode's look, only added dark mode alongside it; surface `#FFFFFF` / `#2A2440`;
+textPrimary `#2B2740` / `#F3F1F8`; textSecondary `#8A8496` / `#9B93B8`; accentPrimary `#7F77DD` /
+`#9B93F0`; accentGold `#F5C36B` / `#F0C97D`; accentPink `#E8779E` / `#EE93B4`; destructive `#D9534F` /
+`#E8726E`; tabBar background `#251F38` / `#0F0C1C`, active `#F5C36B` / `#F0C97D` (gold, not purple —
+see the tab bar note below), inactive `#6E6684` / `#5E5678`. `statusConfirmed`/`statusPending`/
+`statusDeclined` and their soft backgrounds follow the same light/dark pairing; see the file itself for
+the full set rather than duplicating every value here.
+
+**Card radius, app-wide, not just migrated screens.** `radius.lg` (`utils/theme.ts`) 22→18 and
+`gRadius.lg` (`utils/guestTheme.ts`) 26→18 — a pure numeric bump, so every existing consumer of either
+token (including screens nowhere near theme-migrated yet) now rounds in the 16-18px window the spec
+asked for, at effectively zero regression risk. `themeRadius` in `utils/themeTokens.ts`
+(`sm: 12, md: 16, lg: 18, pill: 999`) is the canonical scale migrated components read going forward.
+
+**`components/BrandFlourish.tsx`** — the gold→pink→purple wavy line from the splash/logo, extracted
+for reuse as a small decorative accent. Reuses `MARK_PATH`/`MARK_STOPS`/`MARK_VIEWBOX` from
+`utils/brandMark.ts` (same source `BrandMark` and `BrandSplash` already draw from, so all three can
+never drift apart), stretched to a flatter ~60×26 rather than the logo's own aspect ratio, default
+opacity 0.55. Placed in exactly two spots this pass, deliberately not on every card per the prompt's
+own "don't overuse it" instruction: Home's header row (top-right, next to the profile button) and the
+top-right corner of Acasă's fund promo card (`app/guest/[id]/index.tsx`) — a "prominent card header,"
+per the brief, not a generic list-row decoration.
+
+**Buttons are fully pill-shaped now, app-wide.** `components/Button.tsx`'s base `borderRadius` changed
+from `radius.md` to `themeRadius.pill` — every variant, every screen, not just Warm-Story-migrated
+ones. The RSVP screen's Confirm/Decline pair (`app/invite/[id].tsx`, the only two call sites of
+`variant="success"`/`variant="neutral"`) got the spec's color treatment too: `success` (Confirm) is now
+`colors.primary` (purple solid) instead of green — a deliberate repurposing of that variant's color,
+safe because it has no other call site; `neutral` (Decline) already had no red per an earlier fix (see
+§3), now additionally uses `colors.declinedSoft` as a filled soft background instead of an outlined
+card, matching "soft muted background, textSecondary-toned text."
+
+**Tab bar — colors updated, shape was NOT changed to floating.** The prompt described the tab bar as
+"floating/suspended" and asked to keep that shape while changing colors. This file already corrects
+that exact claim elsewhere (§5 Tab bar: "It is not floating, suspended or rounded — earlier
+descriptions of it that way were aspirational") — checked `app/guest/[id]/_layout.tsx` again to be
+sure, and it's still the same full-width bar it always was. Applied only the color change: `tabBar`
+tokens drive the bar background and active/inactive tint (`tabBarActiveTintColor`/
+`tabBarInactiveTintColor`), and the active pill behind the icon stays `accentPrimary`-colored with the
+icon itself now gold (`tabBar.active`) instead of white — "active icon color changes from purple to
+gold" from the brief, applied literally as an icon-color change, not a pill-recolor.
+
+**Event card accent block — judgment call, flagging per the brief's own request.** The spec asked for
+a 34×34, 10px-radius gold→pink gradient block "positioned above the event name," replacing or sitting
+alongside the per-type emoji, with the choice explicitly left to judgment. Shipped: the emoji is kept
+(it reads clearly and carries real information — which of the 7 event types this is — that a fixed
+gold→pink fill can't convey on its own), layered on top of the new 34×34/10px gold→pink block instead
+of that block being empty; but the **row layout was kept** (badge left, info right, chevron) rather
+than switching to a vertical stacked card with the block above the name — better scanability in a
+list at this density, and it was already the row's visual anchor before this pass. `EventListItem`
+(Home's "Your events") got this treatment; `InvitationListItem` ("My invitations") did not — its badge
+keeps each event type's own gradient, since the accent-block instruction named "event cards"
+specifically, not the invitations list, and per-type color there still carries information this pass
+had no reason to remove.
+
+**Screens migrated to `useTheme()`, first pass:** Home (`app/index.tsx`), Auth (`app/auth/index.tsx`),
+Acasă (`app/guest/[id]/index.tsx`) — the three named in that first brief — plus every shared component
+those three screens render directly, since leaving them on static light-only colors would have made
+dark mode look broken (white cards on a dark wash) rather than simply incomplete: `BrandHeader`,
+`ScreenBackground`, `EventListItem`, `InvitationListItem`, `HomeEmptyState`, `GuestScreen`,
+`EmptyState`, `SectionLabel`, `GuestButton`, `MomentCard`. The guest tab bar
+(`app/guest/[id]/_layout.tsx`) was themed app-wide in that same pass, ahead of the rest of the guest
+tabs individually migrating.
+
+**Second pass, same day — the rest of the app's `[id]` routes, the organizer dashboard, and Profile.**
+Requested as "profile screens, events, and all of `[id]`," scoped by the user to mean literally every
+dynamic-route screen, not just the guest tabs. Two different strategies were used depending on the
+screen:
+
+- **Shared-component-first, for the organizer/composer side.** `Header`, `Card`, `Field`, `StatCard`,
+  `GuestRow`, `RsvpBadge`, `BackButton`, `InviteCard`, `Screen` (default `gradient` now resolves to
+  `tokens.background` instead of the old static `screenGradient` — an explicit `gradient` prop, as
+  `invite/[id].tsx` passes for its per-event-type color, still overrides it), and `DateTimeField` were
+  all converted to read `useTheme()` internally. This turned out to make **7 of the 10 owner composer
+  forms require zero screen-level changes** — `schedule`, `venue`, `menu`, `table`, `accommodation`,
+  `vendor`, and `fund` under `app/[name]/[id].tsx` are built entirely from those shared pieces with no
+  local color styling of their own, so theming the components theming the screens for free was strictly
+  faster and lower-risk than editing 7 near-identical files by hand. `edit-event/[id].tsx` also needed
+  no changes for the same reason. Only `add-guest/[id].tsx` (one inline validation-error `Text`) and
+  `post-moment/[id].tsx` (the emoji-chip row and photo picker, styled outside `Field`/`Button`) needed
+  their own small edits. `app/event/[id].tsx` (the organizer dashboard) is built the same way — Header/
+  Card/StatCard/GuestRow/EmptyState/SwipeableRow — plus its own stat-tint values, which now read
+  `tokens.statusConfirmed`/`statusPending`/`statusDeclined` instead of the old static `colors.success`/
+  `warning`/`declined`.
+- **Per-screen, for the remaining guest tabs.** Detalii, Fond, Chat, Live, and Album each have
+  significant local styling (card shapes, section-specific colors) that doesn't route through a shared
+  component, so each was migrated directly — plus `MessageBubble`, `PhotoTile`'s caller sites, and
+  `ProgressBar` (Fond's fund progress bar, now `accentGold→accentPrimary` instead of the old fixed
+  `fundGradient`). **Live's hero card is a deliberate exception, not an oversight:** it stays a fixed
+  dark "night broadcast" card (`guest.navy`/`guest.white`) regardless of the active app theme, same as
+  before this pass — only the page chrome around it (the helper line below the card) reads from
+  `useTheme()`. `app/invite/[id].tsx` and the `checkout/[id].tsx` stub were themed too (confirmation
+  card text, the placeholder card) — `invite/[id].tsx`'s own gradient stays the per-event-type override
+  it always was, unaffected by `Screen`'s new default.
+- **Profile** (`app/profile.tsx`) got the same treatment as everything else — avatar circle, account
+  text, and both pill-toggle cards (Language and the Theme toggle itself) now read `useTheme()` instead
+  of the static `colors` object they'd been using since the Theme card was first added.
+- **Home's header flourish was removed, not just left as-is.** The first pass placed a `BrandFlourish`
+  to the right of `BrandHeader` inside a new wrapping row; that wrapper broke `BrandHeader`'s own
+  internal `right` slot (the profile-button push-to-edge relied on `BrandHeader` stretching to the full
+  row width, which stopped happening once it was no longer the sole/direct child of a stretched flex
+  column). Rather than re-engineer the layout to fit both, removed the flourish from Home outright per
+  the user's explicit request and reverted to `<BrandHeader right={...} />` directly — the flourish
+  still appears on Acasă's fund promo card, per the original two-placement plan.
+
+**Third pass, same day — the create-event wizard and Onboarding, closing out the todo list.** The
+4-step wizard (`app/create/type|details|preview|share.tsx`) and `app/onboarding.tsx` were the last two
+things not reading `useTheme()`. Same shared-component-first approach as the second pass paid off again
+here: `create/type.tsx` and `create/details.tsx` needed **zero screen-level changes** once `TypeTile`
+(the event-type grid tile) was migrated — both screens are built entirely from `Header`/`Field`/
+`DateTimeField`/`Button`/`Screen`/`TypeTile`, all already themed. `create/preview.tsx` and
+`create/share.tsx` each had one or two small local styles (`note`, `cardLabel`/`linkBox`/`link`/`hint`)
+that needed direct edits. `app/onboarding.tsx` doesn't use `Screen` at all — it's a standalone
+full-bleed paging layout — so it and `SegmentedProgress` (its step-dot component) were migrated
+directly: page background, the icon-circle background, title/body text, and the Skip/Next footer all
+now read `tokens.*` instead of the static `brand.*` object. **Every screen and shared component in the
+app now reads `useTheme()`; there is no longer a "still on the todo list" screen set** — the light-only
+`utils/theme.ts` `colors` and `utils/guestTheme.ts` `brand`/`guest` objects remain exported (spacing,
+fonts, and a few fixed-by-design surfaces like Live's dark hero card and `SwipeableRow`'s edit/delete
+action colors still read them intentionally), but no screen's own background/text/card color reads them
+as its *only* source of color anymore.
+
+**Verification status, same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing, after every
+edit across all three passes. `useColorScheme()` actually reflecting the device's system setting, the
+AsyncStorage override round-tripping through a real app restart, and how any of this genuinely looks on
+a screen (gradient wash rendering, dark-mode contrast, the flourish's opacity and position at real
+size) are all unverified from this environment — no device or simulator run has happened in any session
+so far, per the top of this file.
+
+**Fourth pass — `EventHeaderBar` was missed by the second pass's "themed the tab bar, app-wide" claim,
+and its decorative mark is now gone.** `components/guest/EventHeaderBar.tsx` — the back-chevron +
+event-name bar that sits *above* the `Tabs` navigator in `app/guest/[id]/_layout.tsx` — is a different
+component from the `Tabs` bar itself (which the second pass did theme) and from `components/Header.tsx`
+(which the first pass themed). It was never touched, so it kept rendering a solid white back-button
+circle and dark `guest.ink` title text on every one of the 6 guest tabs regardless of the active theme
+— exactly the "white circle + low-contrast title" bug reported against a real dark-mode run. Fixed the
+same way as every other shared component: `useTheme()` for the back button's background/icon
+(`surfaceElevated`/`textPrimary`) and the title (`textPrimary`).
+
+**The `✦` mark is deleted, not restyled.** `EventHeaderBar` had a second element — a small purple-soft
+circle in the top-right corner rendering a hardcoded `'✦'` character via a `mark` prop (default `'✦'`,
+never overridden by its one call site) — with no `onPress`, no navigation, no visible purpose beyond
+decoration. Reported as looking like a stray AI/sparkle affordance; removed entirely (the prop, the
+`View`, and its styles), not just re-themed, per explicit instruction not to leave a dead tap target
+behind. **This was flagged, not reintroduced elsewhere** — if there was a planned feature behind it,
+it wasn't findable in this codebase (no `AI`/`assist`-named code, no unused handler referencing it), so
+nothing was guessed at or rebuilt in its place.
+
+**Discrepancy worth recording:** the same bug report described this mark also appearing on the
+Cont/Account screen (`app/profile.tsx`). Checked that file specifically — it renders through
+`components/Header.tsx` (already themed in the first pass), has no `mark`-like element anywhere in its
+JSX, and `EventHeaderBar` is never imported there (only `app/guest/[id]/_layout.tsx` imports it). The
+mark's only real location in the source is the 6 guest tabs. Whatever appeared on Profile in that
+screenshot isn't explained by anything in this file as it exists now — possibly a stale bundle from
+before this fix, or a different screen than the one it was attributed to. Not silently assumed to be
+fixed by this pass; flagged instead of claiming a verification that didn't happen.
 
 ### Typography
 
@@ -820,9 +1063,61 @@ the platform sans-serif. `fonts.displayBold` / `displayItalic` / `displayRegular
 
 ### Tab bar
 
-Full-width dark navy (`#1B2237`), 96px tall, hairline top border and an upward shadow. Active tab =
-solid purple pill behind a white Feather icon; inactive = muted white outline icons. **It is not
-floating, suspended or rounded** — earlier descriptions of it that way were aspirational.
+**Now genuinely a floating pill — took three passes to get right.** This file used to say "it is not
+floating, suspended or rounded — earlier descriptions of it that way were aspirational," because every
+prior prompt asking for that shape was checked against git history and found to never have actually
+landed. It's built for real now: `borderRadius: 20` on all four corners, `height: 74` (down from the
+old edge-to-edge 96), `position: 'absolute'`, `left`/`right: gSpace.xl` for the horizontal margin —
+**`gSpace.xl`, not an arbitrary constant**, matching `GuestScreen`'s and `EventHeaderBar`'s own
+`paddingHorizontal` exactly (both already used it) so the bar's edges line up with card/section edges
+above it. An earlier version of this used a flat `18` here, close to `gSpace.xl`'s `20` but not equal
+to it — close enough to not typecheck-fail, wrong enough to visibly not line up with content edges once
+actually looked at.
+
+**The first attempt used a non-absolute bar with `marginHorizontal`/`marginBottom`, relying on React
+Navigation's automatic content-inset behavior instead of manual positioning — it looked floating in
+principle but shipped with two real bugs:** a stray white hairline above the bar, and an oversized,
+unbalanced gap below it down to the screen edge. Root cause of both: React Navigation's `BottomTabBar`
+applies its own default border-top and its own automatic safe-area-bottom handling to the tab bar
+container *underneath* whatever custom `tabBarStyle` you pass, in non-absolute mode. My added
+`marginBottom: insets.bottom + 14` didn't replace that automatic safe-area handling, it stacked on top
+of it — double-counting the inset. And omitting `borderTopWidth`/`borderTopColor` from my style object
+doesn't cancel the library's own default border; a key absent from a later object in a merged style
+array doesn't override a value an earlier one set.
+
+**The fix is the standard React Navigation recipe for a floating tab bar: `position: 'absolute'`,
+plus `borderTopWidth: 0` set explicitly (not omitted) to actually cancel the default border.**
+Absolute positioning takes the bar out of react-navigation's automatic safe-area/height computation
+entirely, so there's no longer anything to double-count or fight — `bottom: insets.bottom +
+floatingTabBar.gap` (10px) is the *only* source of the bottom offset now, computed inline via
+`useSafeAreaInsets()` since it has to react to the actual device inset (large on a notch/Dynamic Island
+device, ~0 on an older home-button one) rather than a flat constant. Shadow
+(`shadowColor`/`-Radius`/`-Offset`/`elevation`) is static; only `shadowOpacity` is mode-dependent (0.18
+light / 0.4 dark) since a plain dark shadow reads very differently against a light versus dark page.
+
+**Taking the bar out of layout flow this way means every guest screen now has to clear it manually —
+`floatingTabBar` (`utils/guestTheme.ts`, `{ height: 74, gap: 10 }`) is the shared source both
+`app/guest/[id]/_layout.tsx` and every consumer below read, so the two can't drift out of sync.**
+`GuestScreen`'s default `paddingBottom` is now `insets.bottom + floatingTabBar.gap +
+floatingTabBar.height + gSpace.lg` instead of the old flat `gSpace.xxl` — applies to all 6 tabs, plus
+`checkout/[id].tsx` (the one `GuestScreen` consumer outside the tabs navigator, where the extra padding
+is a harmless overshoot on a stub screen, not a bug). Acasă's owner-only FAB (`bottom`) and its
+FAB-clearing `contentStyle` (`paddingBottom`) are both computed from the same `floatingTabBar` constant
+via a local `tabBarClearance` value, replacing the old flat `92`/`gSpace.xl` numbers — the only other
+bottom-anchored absolute element across the 6 tabs (checked; nothing else in Detalii/Fond/Chat/Live/
+Album is screen-bottom-anchored).
+
+**Tab touch targets are unaffected by any of this — reasoned, not device-verified.** Individual tab
+buttons are laid out by React Navigation inside the bar container as a normal internal row, a layer this
+pass never touched (no changes to `tabBarItemStyle`, `iconWrap`, icon sizes, or label styles). The bar
+has no `overflow: 'hidden'`, so the rounded corners clip rendering only at the exact corner pixels,
+never the touch region, and every tab's icon+label already sits well inside the rounded box via
+existing padding. This is source-level reasoning, not a tap-tested result — same caveat as the rest of
+this file, no device or simulator run has happened in any session so far.
+
+Fill color and active/inactive styling are unchanged across both passes — `tokens.tabBar.background`/
+`active`/`inactive` (see §5's Warm Story section), solid `accentPrimary` pill behind the active icon,
+gold icon on top.
 
 ### Component patterns
 

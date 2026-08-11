@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Skeleton } from '@/components/Skeleton';
+import { useTheme } from '@/hooks/useTheme';
 import type { Moment, ReactionType } from '@/types/guest';
-import { guest, gRadius, gShadow, gSpace } from '@/utils/guestTheme';
+import { gSpace } from '@/utils/guestTheme';
+import { themeRadius } from '@/utils/themeTokens';
 import { timeAgo } from '@/utils/relativeTime';
 
 interface MomentCardProps {
@@ -27,21 +29,32 @@ export function MomentCard({
   onComments,
 }: MomentCardProps) {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: tokens.surfaceElevated,
+          borderColor: tokens.surfaceBorder ?? 'transparent',
+          borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+        },
+        tokens.surfaceElevatedShadow ?? undefined,
+      ]}
+    >
       <View style={styles.head}>
-        <Text style={styles.time}>{timeAgo(moment.created_at)}</Text>
-        <Text style={styles.title}>{moment.title}</Text>
+        <Text style={[styles.time, { color: tokens.textSecondary }]}>{timeAgo(moment.created_at)}</Text>
+        <Text style={[styles.title, { color: tokens.textPrimary }]}>{moment.title}</Text>
       </View>
 
-      <Image source={{ uri: moment.photo_url }} style={styles.photo} />
+      <Image source={{ uri: moment.photo_url }} style={[styles.photo, { backgroundColor: tokens.surface }]} />
 
       <View style={styles.reactions}>
         <ReactionPill
           icon="heart"
-          color={guest.purple}
-          background={guest.purpleSoft}
+          color={tokens.accentPrimary}
+          background={`${tokens.accentPrimary}22`}
           count={loveCount}
           active={lovedByMe}
           label="Reacționează cu inimă"
@@ -49,8 +62,8 @@ export function MomentCard({
         />
         <ReactionPill
           icon="star"
-          color={guest.gold}
-          background={guest.goldSoft}
+          color={tokens.accentGold}
+          background={`${tokens.accentGold}33`}
           count={celebrateCount}
           active={celebratedByMe}
           label="Reacționează cu felicitări"
@@ -63,8 +76,8 @@ export function MomentCard({
           activeOpacity={0.7}
           accessibilityRole="link"
         >
-          <Feather name="message-circle" size={14} color={guest.body} />
-          <Text style={styles.commentsText}>{t('acasa.comments')}</Text>
+          <Feather name="message-circle" size={14} color={tokens.textSecondary} />
+          <Text style={[styles.commentsText, { color: tokens.textSecondary }]}>{t('acasa.comments')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -83,8 +96,8 @@ export function MomentCardSkeleton() {
       <Skeleton height={230} radius={0} />
 
       <View style={styles.reactions}>
-        <Skeleton width={54} height={30} radius={gRadius.pill} />
-        <Skeleton width={54} height={30} radius={gRadius.pill} />
+        <Skeleton width={54} height={30} radius={themeRadius.pill} />
+        <Skeleton width={54} height={30} radius={themeRadius.pill} />
       </View>
     </View>
   );
@@ -124,10 +137,8 @@ function ReactionPill({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: guest.white,
-    borderRadius: gRadius.lg,
+    borderRadius: themeRadius.lg,
     overflow: 'hidden',
-    ...gShadow,
   },
   head: {
     paddingHorizontal: gSpace.xl,
@@ -137,17 +148,14 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 12,
-    color: guest.faint,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: guest.ink,
   },
   photo: {
     width: '100%',
     height: 230,
-    backgroundColor: guest.creamDeep,
   },
   reactions: {
     flexDirection: 'row',
@@ -161,7 +169,7 @@ const styles = StyleSheet.create({
     gap: gSpace.sm,
     paddingHorizontal: gSpace.md,
     paddingVertical: gSpace.sm,
-    borderRadius: gRadius.pill,
+    borderRadius: themeRadius.pill,
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
@@ -179,6 +187,5 @@ const styles = StyleSheet.create({
   commentsText: {
     fontSize: 13,
     fontWeight: '600',
-    color: guest.body,
   },
 });

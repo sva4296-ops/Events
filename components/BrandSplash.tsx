@@ -1,14 +1,16 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
 
+import { useTheme } from '@/hooks/useTheme';
 import {
   MARK_PATH,
   MARK_STOPS,
   MARK_STROKE_LENGTH,
   MARK_VIEWBOX,
 } from '@/utils/brandMark';
-import { brand, fonts } from '@/utils/guestTheme';
+import { fonts } from '@/utils/guestTheme';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -26,7 +28,17 @@ interface BrandSplashProps {
   onFinished: () => void;
 }
 
+/**
+ * Theme-aware: reads `useTheme()` for its background gradient and wordmark
+ * colors, same as every other themed screen — resolves correctly on this
+ * component's very first render (system scheme is synchronous; an explicit
+ * in-app override only differs for one render tick while AsyncStorage
+ * resolves, see hooks/useTheme.tsx and CLAUDE.md). The mark's own gold→pink→
+ * purple stroke gradient is brand identity, not UI chrome, so it stays fixed
+ * regardless of theme — same reasoning BrandMark.tsx already uses.
+ */
 export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
+  const { tokens } = useTheme();
   const draw = useRef(new Animated.Value(STROKE_LENGTH)).current;
   const goldDot = useRef(new Animated.Value(0)).current;
   const purpleDot = useRef(new Animated.Value(0)).current;
@@ -72,14 +84,16 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
 
   return (
     <Animated.View style={[styles.overlay, { opacity: overlay }]}>
+      <LinearGradient colors={tokens.background} style={StyleSheet.absoluteFill} />
+
       <View style={styles.center}>
         <Svg width={184} height={136} viewBox={MARK_VIEWBOX}>
           <Defs>
-            <LinearGradient id="markStroke" x1="0" y1="1" x2="1" y2="0">
+            <SvgLinearGradient id="markStroke" x1="0" y1="1" x2="1" y2="0">
               {MARK_STOPS.map((stop) => (
                 <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
               ))}
-            </LinearGradient>
+            </SvgLinearGradient>
           </Defs>
 
           <AnimatedPath
@@ -93,12 +107,17 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
           />
         </Svg>
 
-        <Animated.View style={[styles.dot, styles.goldDot, { opacity: goldDot }]} />
-        <Animated.View style={[styles.dot, styles.purpleDot, { opacity: purpleDot }]} />
+        <Animated.View
+          style={[styles.dot, styles.goldDot, { opacity: goldDot, backgroundColor: MARK_STOPS[0].color }]}
+        />
+        <Animated.View
+          style={[styles.dot, styles.purpleDot, { opacity: purpleDot, backgroundColor: MARK_STOPS[2].color }]}
+        />
 
         <Animated.Text
           style={[
             styles.wordmark,
+            { color: tokens.textPrimary },
             {
               opacity: wordmark,
               transform: [
@@ -112,7 +131,7 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
             },
           ]}
         >
-          Povestea<Text style={styles.wordmarkAccent}>Noastra</Text>
+          Povestea<Text style={{ color: tokens.accentPrimary }}>Noastra</Text>
         </Animated.Text>
       </View>
     </Animated.View>
@@ -126,7 +145,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: brand.cream,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -141,12 +159,10 @@ const styles = StyleSheet.create({
   },
   // Positioned to sit on the curve's endpoints inside the 184×136 viewBox.
   goldDot: {
-    backgroundColor: brand.gold,
     left: 10,
     top: 106,
   },
   purpleDot: {
-    backgroundColor: brand.purple,
     left: 162,
     top: 18,
   },
@@ -154,9 +170,5 @@ const styles = StyleSheet.create({
     marginTop: 26,
     fontFamily: fonts.displayBold,
     fontSize: 27,
-    color: brand.navy,
-  },
-  wordmarkAccent: {
-    color: brand.purple,
   },
 });

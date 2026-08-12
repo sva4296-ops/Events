@@ -23,6 +23,11 @@ export interface ThemeTokens {
   background: Gradient;
   surface: string;
   surfaceElevated: string;
+  /** A muted inner-panel/"slot" surface, distinct from `surface`/`surfaceElevated` —
+   * for content nested a level deeper than a card (e.g. an empty photo slot, a
+   * QR/info panel inside a card), where the card's own surface color wouldn't
+   * read as a distinct region. */
+  surfaceMuted: string;
   /** Light mode only — dark mode uses `surfaceBorder` instead (no shadow). */
   surfaceElevatedShadow: ShadowStyle | null;
   /** Dark mode only — a 1px border standing in for the shadow light mode uses. */
@@ -60,6 +65,10 @@ export const lightTheme: ThemeTokens = {
   background: ['#FFF8F1', '#FBEAE0'],
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
+  // Reuses the background gradient's second stop rather than a new hex —
+  // warm and light enough to sit under a white card while still reading as
+  // a distinct region.
+  surfaceMuted: '#FBEAE0',
   surfaceElevatedShadow: {
     shadowColor: 'rgba(43,39,64,0.06)',
     shadowOpacity: 1,
@@ -82,9 +91,14 @@ export const lightTheme: ThemeTokens = {
   destructive: '#D9534F',
   destructiveSoft: '#FCEDEC',
   tabBar: {
-    background: '#251F38',
+    // Matches surfaceElevated above (white card surface) rather than the
+    // dark-mode navy-purple bar — the light "Warm Story" theme uses white
+    // cards throughout (see EmptyState), and the floating tab bar is one.
+    background: '#FFFFFF',
     active: '#F5C36B',
-    inactive: '#6E6684',
+    // Matches textSecondary above — the same muted tone every light-mode
+    // card already uses for secondary/inactive text (see EmptyState).
+    inactive: '#8A8496',
   },
 };
 
@@ -93,6 +107,9 @@ export const darkTheme: ThemeTokens = {
   background: ['#1E1A30', '#171325'],
   surface: '#2A2440',
   surfaceElevated: '#2A2440',
+  // Reuses the background gradient's first stop — darker than `surface`,
+  // same "borrow the background stop" approach as the light theme above.
+  surfaceMuted: '#1E1A30',
   surfaceElevatedShadow: null,
   surfaceBorder: '#34304A',
   textPrimary: '#F3F1F8',

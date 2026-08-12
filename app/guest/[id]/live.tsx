@@ -16,10 +16,12 @@ import { fonts, guest, gRadius, gSpace } from '@/utils/guestTheme';
 import { buildInviteLink } from '@/utils/invite';
 
 /**
- * Live's hero card is a deliberate, fixed "night broadcast" dark surface —
- * not the app's light/dark theme. It stays guest.navy/guest.white regardless
- * of the active theme, same as before this pass; only the page chrome around
- * it (helper text) reads from useTheme().
+ * Live's hero card now follows the app theme like every other guest-tab
+ * surface. Dark mode keeps the original fixed "night broadcast" values
+ * (guest.navy/guest.white/guest.navySoft) unchanged; light mode reads the
+ * same Warm Story tokens used elsewhere (surfaceElevated/textPrimary/
+ * surfaceMuted). The QR code box itself stays guest.white/guest.navy in
+ * both modes — already legible against either card color.
  */
 export default function LiveScreen() {
   const { t } = useTranslation();
@@ -28,6 +30,12 @@ export default function LiveScreen() {
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
   const { content, addPhoto, deletePhoto } = useEventContent(id);
+  const dark = tokens.mode === 'dark';
+
+  const cardBg = dark ? guest.navy : tokens.surfaceElevated;
+  const primaryText = dark ? guest.white : tokens.textPrimary;
+  const panelBg = dark ? guest.navySoft : tokens.surfaceMuted;
+  const mutedText = dark ? guest.faint : tokens.textSecondary;
 
   const owner = isOwner(event);
 
@@ -52,13 +60,13 @@ export default function LiveScreen() {
 
   return (
     <GuestScreen transparent>
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: cardBg }]}>
         <View style={styles.cardHead}>
           <View style={styles.liveTag}>
             <View style={styles.recordDot} />
-            <Text style={styles.liveText}>{t('live.liveTag')}</Text>
+            <Text style={[styles.liveText, { color: primaryText }]}>{t('live.liveTag')}</Text>
           </View>
-          <Text style={styles.eventName} numberOfLines={1}>
+          <Text style={[styles.eventName, { color: primaryText }]} numberOfLines={1}>
             {name}
           </Text>
         </View>
@@ -69,12 +77,12 @@ export default function LiveScreen() {
           ) : hero !== undefined ? (
             <PhotoTile
               photo={hero}
-              style={styles.hero}
+              style={[styles.hero, { backgroundColor: panelBg }]}
               canDelete={owner || hero.uploaded_by === user?.id}
               onDelete={deletePhoto}
             />
           ) : (
-            <View style={[styles.hero, styles.placeholder]} />
+            <View style={[styles.hero, { backgroundColor: panelBg }]} />
           )}
 
           {loading ? (
@@ -96,7 +104,7 @@ export default function LiveScreen() {
                 <PhotoTile
                   key={photo.id}
                   photo={photo}
-                  style={styles.thumb}
+                  style={[styles.thumb, { backgroundColor: panelBg }]}
                   canDelete={owner || photo.uploaded_by === user?.id}
                   onDelete={deletePhoto}
                   labelFontSize={11}
@@ -106,13 +114,13 @@ export default function LiveScreen() {
           ) : null}
         </View>
 
-        <View style={styles.qrBlock}>
+        <View style={[styles.qrBlock, { backgroundColor: panelBg }]}>
           <View style={styles.qr}>
             <QRCode value={liveUrl} size={78} backgroundColor={guest.white} color={guest.navy} />
           </View>
           <View style={styles.qrCopy}>
-            <Text style={styles.qrTitle}>{t('live.qrTitle')}</Text>
-            <Text style={styles.qrUrl} numberOfLines={2}>
+            <Text style={[styles.qrTitle, { color: primaryText }]}>{t('live.qrTitle')}</Text>
+            <Text style={[styles.qrUrl, { color: mutedText }]} numberOfLines={2}>
               {liveUrl}
             </Text>
           </View>
@@ -128,7 +136,6 @@ export default function LiveScreen() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: guest.navy,
     borderRadius: gRadius.xl,
     padding: gSpace.xl,
     gap: gSpace.lg,
@@ -154,13 +161,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.6,
-    color: guest.white,
   },
   eventName: {
     flexShrink: 1,
     fontFamily: fonts.displayItalic,
     fontSize: 16,
-    color: guest.white,
     textAlign: 'right',
   },
   grid: {
@@ -170,10 +175,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 140,
     borderRadius: gRadius.md,
-    backgroundColor: guest.navySoft,
-  },
-  placeholder: {
-    backgroundColor: guest.navySoft,
   },
   // Bounded so the dark card can't grow unbounded — browse the rest by
   // scrolling this strip instead of the old hard 4-photo cap.
@@ -189,13 +190,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: gRadius.sm,
-    backgroundColor: guest.navySoft,
   },
   qrBlock: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: gSpace.lg,
-    backgroundColor: guest.navySoft,
     borderRadius: gRadius.md,
     padding: gSpace.lg,
   },
@@ -211,11 +210,9 @@ const styles = StyleSheet.create({
   qrTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: guest.white,
   },
   qrUrl: {
     fontSize: 11,
-    color: guest.faint,
   },
   helper: {
     fontSize: 13,

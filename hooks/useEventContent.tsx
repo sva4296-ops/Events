@@ -4,7 +4,9 @@ import { useCallback, useMemo } from 'react';
 import { remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
 import { useAuth } from '@/hooks/useAuth';
 import type { DetailsContent, EventContent, ReactionType, Venue } from '@/types/guest';
+import { processPhotoVersions, type PickedPhoto } from '@/utils/imageProcessing';
 import { reportSupabaseError } from '@/utils/reportError';
+import { generateId } from '@/utils/uuid';
 
 export interface FundInput {
   title: string;
@@ -185,8 +187,12 @@ export function useEventContent(eventId: string) {
         runRemote(() => remoteRepository.sendMessage(eventId, trimmed, actor), 'social');
       },
 
-      addPhoto: (url: string) => {
-        runRemote(() => remoteRepository.addPhoto(eventId, url, actor), 'social');
+      addPhoto: (photo: PickedPhoto) => {
+        runRemote(async () => {
+          const photoId = generateId();
+          const versions = await processPhotoVersions(photo);
+          await remoteRepository.addPhoto(eventId, photoId, versions, actor);
+        }, 'social');
       },
 
       /** Stubbed: the `contributions` table has no client insert policy, on
@@ -236,7 +242,7 @@ export function useEventContent(eventId: string) {
       },
 
       deletePhoto: (photoId: string) => {
-        runRemote(() => remoteRepository.deletePhoto(photoId), 'social');
+        runRemote(() => remoteRepository.deletePhoto(eventId, photoId), 'social');
       },
 
       updateVenue: (venue: Venue) => {

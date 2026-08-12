@@ -37,6 +37,12 @@ export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 1
   const [viewerOpen, setViewerOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const label = photo.uploaded_by_label ?? 'Invitat';
+  // Grid tile: thumbnail (400px) — this is the whole point of having one.
+  // Lightbox: full (2800px, near-lossless) for a crisp zoomed view. `url` is
+  // the legacy local-device URI from before real Storage uploads existed —
+  // only reached for old rows where a signed URL couldn't be produced.
+  const gridUri = photo.thumb_url ?? photo.url ?? undefined;
+  const viewerUri = photo.full_url ?? photo.url ?? undefined;
 
   return (
     <>
@@ -55,7 +61,7 @@ export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 1
         accessibilityRole="button"
         accessibilityLabel={`Poză de la ${label}`}
       >
-        <Image source={{ uri: photo.url }} style={StyleSheet.absoluteFill} />
+        <Image source={{ uri: gridUri }} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.scrim}>
           <Text style={[styles.label, { fontSize: labelFontSize }]} numberOfLines={1}>
             {label}
@@ -71,7 +77,7 @@ export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 1
       >
         <TouchableWithoutFeedback onPress={() => setViewerOpen(false)}>
           <View style={styles.viewerBackdrop}>
-            <Image source={{ uri: photo.url }} style={styles.viewerImage} resizeMode="contain" />
+            <Image source={{ uri: viewerUri }} style={styles.viewerImage} resizeMode="contain" />
 
             <TouchableOpacity
               style={[styles.viewerClose, { top: insets.top + 12 }]}

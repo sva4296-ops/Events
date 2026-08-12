@@ -15,10 +15,20 @@ interface DateTimeFieldProps {
   displayValue: string;
   onChange: (value: Date) => void;
   hint?: string;
+  /** Grays out/disables earlier dates in the native picker — UI-level only, not a substitute for a submit-time check. Optional so existing callers (e.g. edit-event) are unaffected. */
+  minimumDate?: Date;
 }
 
 /** Tap-to-open native date/time picker, styled to match Field. */
-export function DateTimeField({ label, value, mode, displayValue, onChange, hint }: DateTimeFieldProps) {
+export function DateTimeField({
+  label,
+  value,
+  mode,
+  displayValue,
+  onChange,
+  hint,
+  minimumDate,
+}: DateTimeFieldProps) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const [show, setShow] = useState(false);
@@ -57,6 +67,7 @@ export function DateTimeField({ label, value, mode, displayValue, onChange, hint
           mode={mode}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={handleChange}
+          minimumDate={minimumDate}
           // iOS only — the picker otherwise follows the device's system
           // appearance, not this app's own (possibly overridden) theme state,
           // which is exactly what made the wheel unreadable in dark mode.

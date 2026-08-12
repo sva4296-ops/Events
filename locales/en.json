@@ -323,6 +323,7 @@
     "detailsTitle": "The details",
     "detailsSubtitle": "Everything your guests need to know.",
     "namePlaceholder": "Ana & Mihai",
+    "pastDateError": "Choose today or a later date.",
     "locationPlaceholder": "The Royal House, Brașov",
     "welcomeMessagePlaceholder": "We'd love to have you with us on our special day.",
     "previewButton": "Generate invite",

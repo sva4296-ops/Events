@@ -43,6 +43,13 @@
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b0932c4e-fbcf-4852-b2b7-b88b13e9415d"
+      }
+    },
+    "owner": "sva4296"
   }
 }

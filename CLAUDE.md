@@ -928,12 +928,15 @@ static `colors`/`guest` objects exactly as before.
 **Exact values** (light / dark): background gradient `#FFF8F1→#FBEAE0` / `#1E1A30→#171325` — the light
 value is intentionally identical to the pre-existing `ScreenBackground`/`screenGradient` wash, so this
 pass didn't change light mode's look, only added dark mode alongside it; surface `#FFFFFF` / `#2A2440`;
-textPrimary `#2B2740` / `#F3F1F8`; textSecondary `#8A8496` / `#9B93B8`; accentPrimary `#7F77DD` /
-`#9B93F0`; accentGold `#F5C36B` / `#F0C97D`; accentPink `#E8779E` / `#EE93B4`; destructive `#D9534F` /
-`#E8726E`; tabBar background `#251F38` / `#0F0C1C`, active `#F5C36B` / `#F0C97D` (gold, not purple —
-see the tab bar note below), inactive `#6E6684` / `#5E5678`. `statusConfirmed`/`statusPending`/
-`statusDeclined` and their soft backgrounds follow the same light/dark pairing; see the file itself for
-the full set rather than duplicating every value here.
+surfaceMuted `#FBEAE0` / `#1E1A30` (added in the fifth pass below — reuses each mode's own `background`
+gradient stop rather than a new hex); textPrimary `#2B2740` / `#F3F1F8`; textSecondary `#8A8496` /
+`#9B93B8`; accentPrimary `#7F77DD` / `#9B93F0`; accentGold `#F5C36B` / `#F0C97D`; accentPink `#E8779E`
+/ `#EE93B4`; destructive `#D9534F` / `#E8726E`; tabBar background `#FFFFFF` / `#0F0C1C` (light value
+fixed in the fifth pass below — originally shipped as the dark navy `#251F38` in both modes), active
+`#F5C36B` / `#F0C97D` (gold, not purple — see the tab bar note below), inactive `#8A8496` / `#5E5678`
+(light value likewise fixed in the fifth pass — originally `#6E6684`, the dark-mode value, in both
+modes). `statusConfirmed`/`statusPending`/`statusDeclined` and their soft backgrounds follow the same
+light/dark pairing; see the file itself for the full set rather than duplicating every value here.
 
 **Card radius, app-wide, not just migrated screens.** `radius.lg` (`utils/theme.ts`) 22→18 and
 `gRadius.lg` (`utils/guestTheme.ts`) 26→18 — a pure numeric bump, so every existing consumer of either
@@ -1015,12 +1018,10 @@ screen:
   significant local styling (card shapes, section-specific colors) that doesn't route through a shared
   component, so each was migrated directly — plus `MessageBubble`, `PhotoTile`'s caller sites, and
   `ProgressBar` (Fond's fund progress bar, now `accentGold→accentPrimary` instead of the old fixed
-  `fundGradient`). **Live's hero card is a deliberate exception, not an oversight:** it stays a fixed
-  dark "night broadcast" card (`guest.navy`/`guest.white`) regardless of the active app theme, same as
-  before this pass — only the page chrome around it (the helper line below the card) reads from
-  `useTheme()`. `app/invite/[id].tsx` and the `checkout/[id].tsx` stub were themed too (confirmation
+  `fundGradient`). `app/invite/[id].tsx` and the `checkout/[id].tsx` stub were themed too (confirmation
   card text, the placeholder card) — `invite/[id].tsx`'s own gradient stays the per-event-type override
-  it always was, unaffected by `Screen`'s new default.
+  it always was, unaffected by `Screen`'s new default. **Live's hero card was a deliberate fixed-dark
+  exception at this point in the migration — no longer true, see the tab-bar/Live-card pass below.**
 - **Profile** (`app/profile.tsx`) got the same treatment as everything else — avatar circle, account
   text, and both pill-toggle cards (Language and the Theme toggle itself) now read `useTheme()` instead
   of the static `colors` object they'd been using since the Theme card was first added.
@@ -1084,6 +1085,36 @@ mark's only real location in the source is the 6 guest tabs. Whatever appeared o
 screenshot isn't explained by anything in this file as it exists now — possibly a stale bundle from
 before this fix, or a different screen than the one it was attributed to. Not silently assumed to be
 fixed by this pass; flagged instead of claiming a verification that didn't happen.
+
+**Fifth pass — the floating tab bar's own colors, and Live's hero card, were both still hardcoded to
+the dark palette regardless of theme.** Two separate, later fixes:
+
+- **Tab bar.** `app/guest/[id]/_layout.tsx` already read `tokens.tabBar.*` correctly — the bug was in
+  the token data, not the component. `lightTheme.tabBar` in `utils/themeTokens.ts` held the dark-mode
+  values (`background: '#251F38'`, `inactive: '#6E6684'`), so the bar rendered as a dark navy-purple
+  pill even in light mode. Fixed by giving `lightTheme.tabBar` its own values: `background: '#FFFFFF'`
+  (same value as `lightTheme.surfaceElevated`, the token `EmptyState` already uses for its white card)
+  and `inactive: '#8A8496'` (same value as `lightTheme.textSecondary`). `active` stays gold
+  (`'#F5C36B'`) in both modes — the active tab's contrast comes from the opaque purple `accentPrimary`
+  pill behind the icon, not from the bar's own background, so it reads fine against either white or
+  navy. `darkTheme.tabBar` untouched.
+- **Live's hero card.** Previously a deliberate, fixed dark "night broadcast" surface regardless of
+  theme (see the second-pass note above) — the user later asked for it to follow the theme like every
+  other card. `app/guest/[id]/live.tsx` now branches on `tokens.mode === 'dark'`: dark mode keeps the
+  exact original hardcoded values (`guest.navy`/`guest.white`/`guest.navySoft`/`guest.faint`)
+  unchanged; light mode reads `tokens.surfaceElevated` (card), `tokens.textPrimary` (LIVE badge text,
+  event title, QR heading), `tokens.textSecondary` (invite-link text), and a new `tokens.surfaceMuted`
+  (the empty-photo-slot panel and the QR block's inner panel — see below). The QR code box itself
+  (`guest.white` fill, `guest.navy` modules) and the red record dot (`guest.live`) are unchanged in
+  both modes, as neither needed to change for legibility.
+- **New token: `surfaceMuted`** (`ThemeTokens` in `utils/themeTokens.ts`). Nothing existing fit "a
+  muted inner-panel/slot surface, one level deeper than a card" — `surface`/`surfaceElevated` are the
+  *card* color itself, so using either for a nested panel inside a white card would make the panel
+  invisible. Added `surfaceMuted`, and rather than invent a new hex, both modes reuse an existing
+  gradient stop: light is `'#FBEAE0'` (== `background[1]`, the light theme's own warm-peach gradient
+  stop), dark is `'#1E1A30'` (== `background[0]`). Only Live's light-mode branch consumes it today;
+  dark mode still uses the original literal `guest.navySoft`, unchanged, so `surfaceMuted`'s dark value
+  is present for interface completeness/future use, not yet exercised by any screen.
 
 ### Typography
 

@@ -55,7 +55,7 @@ export default function LiveScreen() {
     const asset = result.assets?.[0];
     if (result.canceled || asset === undefined) return;
 
-    addPhoto(asset.uri);
+    addPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
   };
 
   return (

@@ -12,7 +12,8 @@
 > signed-in write actually landing in a table** — is **unconfirmed**; there's no way to authenticate as
 > a real user from this environment. Sections below mark uncertain items explicitly. The `ios/` and
 > `android/` native folders exist from `expo prebuild`, but pods are stale relative to the current
-> dependency list — this is now also true of `@react-native-community/datetimepicker`, added this pass;
+> dependency list — this is now also true of `@react-native-community/datetimepicker` and, added this
+> pass, `expo-image-manipulator` (see §3's "Photo uploads — real Supabase Storage, dual-resolution");
 > `pod-install`/rebuild is required before running, and the user runs that step themselves (see §6
 > conventions on dev builds).
 >
@@ -40,12 +41,13 @@ group chat, a live photo feed, and a post-event album.
 | Language | TypeScript, `strict` + `noUncheckedIndexedAccess` |
 | Navigation | Expo Router (file-based) |
 | State | `@tanstack/react-query` for the events + per-event content resources (see §2 State layer); a few small React Context providers remain for session/draft/UI state — no Redux |
-| Persistence | None client-side — Supabase Postgres is the only store; AsyncStorage remains only for the Supabase auth session token and small local caches (onboarding-seen flag) |
-| Backend | Supabase — **a hard requirement, unverified from this environment**; see §3 |
+| Persistence | None client-side — Supabase Postgres is the store of record, plus Supabase Storage for event photo files (see Backend below); AsyncStorage remains only for the Supabase auth session token and small local caches (onboarding-seen flag) |
+| Backend | Supabase — **a hard requirement, unverified from this environment**; see §3. Postgres for all data; Supabase Storage for event photos only (a private `event-photos` bucket, signed-URL reads) — see §3's "Photo uploads" |
 | Fonts | Playfair Display via `@expo-google-fonts/playfair-display` |
 | Icons | `@expo/vector-icons` (Feather set) |
 | Gestures | `react-native-gesture-handler` 2.32 + `react-native-reanimated` 4.5 |
 | Date/time input | `@react-native-community/datetimepicker` 9.1 — native picker, wrapped by `components/DateTimeField.tsx` |
+| Photo processing | `expo-image-manipulator` ~57.0.9 — client-side dual-resize (thumbnail + full) before every Live/Album photo upload, see §3 |
 | Localization | `i18next` + `react-i18next`, English default, no device-locale detection — see §2 Localization |
 
 **Core mental model: role is per-event, not per-user.** There is no global "organizer" or "guest"
@@ -390,6 +392,14 @@ Eight migration files exist under `supabase/migrations/`:
   `event_guests.dietary_preferences text[]` — no new policy needed there, "update own rsvp or as
   organizer" already covers any column on a guest's own row. See "Detalii — menu, seating,
   accommodation, vendors" below.
+- `20260812000001_event_photos_storage.sql` — **not yet applied, not yet confirmed.** Creates a
+  private `event-photos` Storage bucket, three `storage.objects` RLS policies (view/insert/delete)
+  mirroring the `photos` table's own RLS, and makes `photos.url` nullable. See "Photo uploads — real
+  Supabase Storage, dual-resolution" below. Unlike migrations 3–8, no service-role/CLI access was ever
+  available for this one either, and additionally PostgREST's anonymous schema check (used to confirm
+  1–2 below) can't see `storage.objects` policies or bucket existence at all — this migration's applied
+  status has **no verification path from this environment**, confirmed or not, until the user runs it
+  and the app is exercised on a device.
 
 **The first three are applied.** The user ran them against the connected project (not this session —
 no DB password/service-role key/CLI is available here, only the anon key). The first two were verified
@@ -398,9 +408,9 @@ empty array (RLS correctly denies rows to a request with no `auth.uid()`), where
 returned `PGRST205`. **This only confirms the schema exists** — it does not confirm a real signed-in
 write round-trips, since there's no way to authenticate as a real user from this environment. Treat
 writes as typecheck/bundle-verified only until exercised from the running app. Migrations 3, 5, 6, 7,
-and 8's applied status can't be confirmed the same way — PostgREST's schema endpoint doesn't expose
+8, and 9's applied status can't be confirmed the same way — PostgREST's schema endpoint doesn't expose
 triggers, functions, or (without an authenticated request) new tables/columns — so those are taken on
-the user's word (migration 3) or not yet confirmed at all (5, 6, 7, 8), not independently re-checked.
+the user's word (migration 3) or not yet confirmed at all (5, 6, 7, 8, 9), not independently re-checked.
 
 **Post-auth onboarding.** The 4-step tutorial (`app/onboarding.tsx` — content, design, and swipe
 mechanics all unchanged) moved from "before Auth, once per device" to "after Auth, once per account."
@@ -540,7 +550,92 @@ session's own row. `20260810000007_photo_attribution.sql` denormalizes instead �
 `photos.uploaded_by_label`, following the exact pattern `messages.sender_label` already established
 for the identical reason. `remoteEventContentRepository.ts`'s `addPhoto` does a self-select
 (`users` where `id = auth.uid()` — allowed, it's your own row) for `display_name` right before
-inserting, falling back to `actor.label` (email) if that returns nothing.
+inserting, falling back to `actor.label` (email) if that returns nothing — still true after the Storage
+pass below, just now happening after both files are already uploaded rather than being the whole
+function.
+
+### Photo uploads — real Supabase Storage, dual-resolution
+
+**Corrects a documented gap, for photos specifically — not moments.** Every previous pass through this
+file described `addPhoto`/`createMoment` identically: both wrote whatever local `file://`/`ph://` URI
+`expo-image-picker` handed back straight into a `url`/`photo_url` column, resolving on no device but
+the one that picked it (see §7). That's no longer true for `addPhoto` — Live/Album's guest-uploaded
+event photos now go through real Storage uploads with two resized versions each. **`createMoment`
+(Acasă's moment composer, `app/post-moment/[id].tsx`) is untouched and still has the original gap** —
+don't assume "Storage uploads are done" covers moments too; only event photos do.
+
+`app/guest/[id]/live.tsx`'s `pickPhoto` → `useEventContent().addPhoto` now resizes the picked image
+into two JPEGs (`utils/imageProcessing.ts`, built on `expo-image-manipulator`'s new context API —
+`manipulateAsync` is deprecated in the installed `~57.0.9`, so this uses
+`ImageManipulator.manipulate(uri).resize(...).renderAsync()` → `.saveAsync(...)` instead) and uploads
+both to a private `event-photos` Storage bucket before the `photos` row is ever inserted:
+
+- **thumbnail** — longest edge 400px, JPEG quality 0.65. The only version grid tiles ever load (Live's
+  hero/filmstrip, Album's 3-col grid) — the entire point of having a thumbnail at all.
+- **full** — longest edge 2800px, JPEG quality 0.9, **never upscaled** (a source already smaller than
+  the target edge is left at its own size, just re-encoded to JPEG at the target quality — this
+  never-upscale guard is applied to the thumbnail too, a deliberate generalization beyond what was
+  literally asked, since upscaling a small source for a *smaller* target thumbnail would be pure waste
+  either way). Used for `PhotoTile`'s existing tap-to-open full-screen lightbox — the one component
+  Live and Album already both rendered through, so **Album gets full-resolution viewing for free,
+  without its own file changing at all.**
+
+**Path convention, deliberately no new columns.** `{eventId}/{photoId}/thumb.jpg` and
+`{eventId}/{photoId}/full.jpg` — both fully derivable from columns that already existed (`event_id`,
+`id`), so `supabase/migrations/20260812000001_event_photos_storage.sql` adds nothing to `photos` except
+making `url` nullable (kept only as a last-resort fallback for pre-migration rows, see below). The
+photo `id` is generated client-side (`utils/uuid.ts` — prefers `crypto.randomUUID`, falls back to a
+`Math.random`-based v4, which is fine here since it only ever backs a Postgres primary key, never a
+security token) rather than left to Postgres's `gen_random_uuid()` default, because the Storage paths
+have to be known *before* the row exists to hand out its own id — both files upload first, and only
+then is the row inserted pointing at a path that's already real.
+
+**Bucket is private — every read is a signed URL, never a public one.**
+`remoteEventContentRepository.ts`'s `loadSocial` batches a single `createSignedUrls` call (1 hour TTL)
+covering both paths for every photo in the event, right after fetching the `photos` rows themselves —
+an unavoidable sequential dependency (the ids have to be known first), not parallelized with
+`loadSocial`'s other two queries the way moments/messages are. `types/guest.ts`'s `Photo` gained
+`thumb_url`/`full_url` (both nullable — a legacy row or an individual signing failure comes back
+`signedUrl: null` for that one path without failing the whole batch); `url` itself is now nullable too,
+kept only as a last-resort fallback. `components/guest/PhotoTile.tsx` reads `thumb_url ?? url` for the
+grid image and `full_url ?? url` for the lightbox — the only component that needed changing for both
+Live and Album to pick up the new behavior, since both already rendered every photo through it.
+
+**Deletion now cleans up Storage too, best-effort.** `deletePhoto` (repository) removes both storage
+objects before deleting the `photos` row. Before this pass there was nothing to orphan — the row's
+`url` was never actually stored anywhere, just a device-local path — so this is new cleanup, not a fix.
+Storage removal failures don't block the row delete (same fire-and-forget-cleanup philosophy as
+`markOnboardingComplete`, above) — `.remove()` doesn't throw; its per-path errors just aren't surfaced.
+
+**Storage RLS mirrors the `photos` table's own RLS exactly, on purpose.** The three `storage.objects`
+policies (view/insert/delete) key off `(storage.foldername(name))[1]::uuid` — the `{eventId}` path
+prefix — checked against the same `public.can_view_event`/`is_event_organizer` helpers the `photos`
+table already uses (`20260810000002_rls_policies.sql`), so "can see the photos row" and "can
+fetch/upload the underlying file" can't drift apart. **Deliberately gates on "is an invited guest," not
+literally `rsvp_status = 'confirmed'`** — matching the existing `photos` table policy exactly, which
+never filtered on RSVP status either. A stricter confirmed-only gate on Storage alone would let a
+still-`pending` guest create the `photos` row (already allowed today) but fail to actually upload the
+file, which would just look like a broken upload button — if a genuinely confirmed-only gate is wanted,
+both layers need to change together, not just this one. Also checks both `owner` and `owner_id` on
+`storage.objects` (Supabase Storage has used both column names across project versions, set
+server-side from the uploader's auth token) — unverified which one this project's `storage.objects`
+actually populates, since neither is visible from an anonymous schema check (see the Reality check
+entry above).
+
+**No `expo-file-system` dependency added**, though it was pre-approved alongside
+`expo-image-manipulator` when this was scoped. Turned out unnecessary — `fetch(localUri).arrayBuffer()`
+reads the already-resized local file directly (the standard Expo+Supabase-storage pattern), so the
+dependency list only grew by the one package this pass actually needed.
+
+**Requires a native rebuild — not achievable from this session, same as every other native dependency
+addition in this file.** `expo-image-manipulator` (`~57.0.9`) is a new native module; see the top of
+this file and §1's Tech stack table. Verified only by `npx tsc --noEmit --noUnusedLocals` and
+`npx expo export --platform ios`, both passing — actual resize output quality/file size, whether
+`createSignedUrls` round-trips correctly against a real project, and whether the RLS policies as
+written actually permit/deny what they're supposed to are all unverified from this environment (no DB
+credentials, no device/simulator run — see the top of this file). The migration itself
+(`20260812000001_event_photos_storage.sql`) is written but not applied — see the Reality check entry
+above.
 
 ### Detalii — menu, seating, accommodation, vendors
 
@@ -648,7 +743,7 @@ fixes existing rows like it in place; nothing about the ongoing insert path need
 | `messages` | `id`, `event_id`, `sender_id`, `sender_label`, `content` | Chat |
 | `fund` | `id`, `event_id` (unique), `title`, `description`, `target_amount`, `current_amount`, `currency` | One fund per event |
 | `contributions` | `id`, `fund_id`, `contributor_name`, `amount`, `stripe_payment_id` | |
-| `photos` | `id`, `event_id`, `uploaded_by`, `uploaded_by_label`, `url` | Shared by Live and Album |
+| `photos` | `id`, `event_id`, `uploaded_by`, `uploaded_by_label`, `url` (nullable as of `20260812000001`) | Shared by Live and Album. Thumb/full Storage paths are derived by convention (`{event_id}/{id}/thumb\|full.jpg`), not stored as columns — see §3's "Photo uploads" |
 | `menu` | `id`, `event_id` (unique), `starter`, `main`, `dessert` | Added by `20260810000008`; one per event, like `venue_info`/`fund` |
 | `seating_tables` | `id`, `event_id`, `name`, `label`, `seat_count`, `sort_order` | Added by `20260810000008`; Detalii tab |
 | `accommodations` | `id`, `event_id`, `name`, `detail_line`, `price_line`, `sort_order` | Added by `20260810000008`; Detalii tab |
@@ -675,7 +770,11 @@ Three `SECURITY DEFINER` helpers back the policies (`is_event_organizer`, `is_ev
 - **Contributions:** readable by anyone on the event. **No insert policy on purpose** — these are meant
   to be written by a Stripe webhook using the service role, never from the client.
 - **Photos:** anyone on the event reads and uploads as themselves; you can delete your own, and the
-  organizer can delete any.
+  organizer can delete any. As of `20260812000001_event_photos_storage.sql`, `storage.objects` for the
+  private `event-photos` bucket has the identical shape (view/insert/delete, same
+  `can_view_event`/`is_event_organizer` helpers, keyed off the `{eventId}` path prefix instead of a
+  `event_id` column) — see §3's "Photo uploads — real Supabase Storage, dual-resolution" for why the
+  two are kept deliberately in lockstep.
 
 The RLS file also adds `messages`, `photos`, `moments` and `moment_reactions` to the
 `supabase_realtime` publication, ready for when subscriptions are wired.
@@ -1302,13 +1401,16 @@ gold icon on top.
 
 ## 7. Not built / deliberately deferred
 
-- **Supabase Storage uploads.** The data layer itself is built (see §3) — the app really reads and
-  writes Postgres for events, guests, schedule, venue, moments, reactions, messages, fund, and photos.
-  But `addPhoto`/`createMoment` still store whatever URI `expo-image-picker` hands back
-  (a local `file://`/`ph://` path on the device that picked it), not an uploaded file — so a photo/
-  moment row written on one device has a `url`/`photo_url` that resolves to nothing on any other
-  device or guest's screen. Fixing this needs an actual Storage bucket + upload step before the insert,
-  swapping the local URI for the returned public URL.
+- **Supabase Storage uploads — now built for event photos, still not for moments.** As of
+  `20260812000001_event_photos_storage.sql` (§3, "Photo uploads — real Supabase Storage,
+  dual-resolution"), `addPhoto` (Live/Album) really resizes and uploads two JPEGs to a private
+  `event-photos` bucket, reading back via signed URLs — not a local `file://`/`ph://` URI anymore. **The
+  identical gap this bullet used to describe for `addPhoto` still applies to `createMoment`
+  unchanged**: `app/post-moment/[id].tsx`'s moment composer still stores whatever URI
+  `expo-image-picker` hands back straight into `moments.photo_url`, so a moment row written on one
+  device still has a photo that resolves to nothing on any other device or guest's screen. Fixing
+  moments the same way is a smaller version of the same work (no dual-resolution requirement was ever
+  specified for moments, so a single-version upload would likely suffice) — not done, not started.
 - **Realtime.** Publication is configured (`supabase/migrations/...rls_policies.sql`) but nothing
   subscribes; every screen is request/response (see §3).
 - **Stripe.** The fund UI is complete but `checkout/[id].tsx` is a placeholder screen — no payment,

@@ -57,7 +57,17 @@ export interface Photo {
   uploaded_by: string;
   /** Denormalized at upload time — see the migration adding this column for why. */
   uploaded_by_label: string | null;
-  url: string;
+  /**
+   * Legacy: a local device URI from before real Storage uploads existed —
+   * only ever resolves on the device that picked it. Null for every photo
+   * uploaded after 20260812000001_event_photos_storage.sql. Kept only as a
+   * last-resort fallback for old rows if thumb_url/full_url can't be signed.
+   */
+  url: string | null;
+  /** Signed URL for the 400px-longest-edge version — grid tiles only. */
+  thumb_url: string | null;
+  /** Signed URL for the 2800px-longest-edge, near-lossless version — full-screen viewer and future album download. */
+  full_url: string | null;
   created_at: string;
 }
 

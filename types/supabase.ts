@@ -114,7 +114,7 @@ export interface PhotoRow {
   event_id: string;
   uploaded_by: string;
   uploaded_by_label: string | null;
-  url: string;
+  url: string | null;
   created_at: string;
 }
 

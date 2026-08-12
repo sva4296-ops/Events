@@ -744,13 +744,64 @@ guest" stay in the footer, untouched.
 ### Splash and onboarding
 
 `components/BrandSplash.tsx` animates the brand mark's stroke via `strokeDashoffset` on an
-`Animated.Value` (~2s total), then fades out. It calls `onReveal` *before* fading so the destination
-screen is already mounted underneath — a cross-dissolve, not a cut. `onReveal` is a no-op now
-(`app/_layout.tsx`) — splash no longer makes any routing decision itself; `AuthGate` handles Auth vs
-Onboarding vs letting the current route stand once it's mounted underneath (see §2, §3). Onboarding
-itself is unchanged: 4 paging-ScrollView steps with a segmented progress bar; only *when* it's shown
-changed, via `useAuth()`'s `hasCompletedOnboarding`/`markOnboardingComplete` (§3) rather than
-`utils/firstLaunch.ts`, which is deleted.
+`Animated.Value` (~2s total), then fades the wordmark in below it, then fades the whole overlay out.
+It calls `onReveal` *before* fading so the destination screen is already mounted underneath — a
+cross-dissolve, not a cut. `onReveal` is a no-op now (`app/_layout.tsx`) — splash no longer makes any
+routing decision itself; `AuthGate` handles Auth vs Onboarding vs letting the current route stand once
+it's mounted underneath (see §2, §3). Onboarding itself is unchanged: 4 paging-ScrollView steps with a
+segmented progress bar; only *when* it's shown changed, via `useAuth()`'s
+`hasCompletedOnboarding`/`markOnboardingComplete` (§3) rather than `utils/firstLaunch.ts`, which is
+deleted.
+
+**Made theme-aware this pass, plus a native/JS splash handoff added for the first time —
+`expo-splash-screen` is a new dependency, and this needs a native rebuild to actually take effect.**
+`BrandSplash` now calls `useTheme()` like every other themed component: its background is a real
+`LinearGradient` reading `tokens.background` (previously a flat `brand.cream` fill, light-mode-only),
+and the wordmark ("Povestea" + accent "Noastra", fading in below the mark once the line-draw finishes,
+matching `BrandHeader`'s treatment) reads `tokens.textPrimary`/`tokens.accentPrimary` instead of the
+static `brand.navy`/`brand.purple`. The mark's own gold→pink→purple stroke gradient (`MARK_STOPS`)
+stays fixed regardless of theme — that's brand identity, not UI chrome, same reasoning `BrandMark.tsx`
+already uses. Centering was also tightened: the overlay is a plain absolute-fill `alignItems`/
+`justifyContent: 'center'`, with nothing else in its layout path that could push the mark+wordmark
+group off-center — if it still doesn't look centered once actually run, that's a real device-run bug to
+report, not a resolvable theory from here (this app has never run on a device or simulator, per the top
+of this file).
+
+**The native splash (before any JS runs) previously had no coordination with the JS one at all** — no
+`expo-splash-screen` package existed, so the OS auto-hid the native splash (a static light-only
+`#FDF3EC` image per the old `app.json` `splash` key) whenever it judged the first JS frame ready,
+independent of whether `BrandSplash` had actually mounted and rendered yet. Added `expo-splash-screen`
+(`npx expo install`, now `~57.0.6`) and wired the standard prevent/hide handoff: `SplashScreen.
+preventAutoHideAsync()` at module scope in `app/_layout.tsx` (runs before first render), `SplashScreen.
+hideAsync()` in a `useEffect` gated on `fontsLoaded` — the same point the app was already gating first
+render on, so no new waiting condition was introduced, just an explicit native-splash release at the
+moment the JS one is ready to be seen in its place. `app.json`'s legacy top-level `splash` key is gone,
+replaced by the `expo-splash-screen` config-plugin entry with a `dark` sub-config
+(`backgroundColor: '#1E1A30'`, matching `darkTheme.background[0]`) alongside the light one
+(`'#FFF8F1'`, matching `lightTheme.background[0]` — previously `#FDF3EC`, a very close but not exact
+match to any real token). `userInterfaceStyle` changed from `"light"` to `"automatic"` — required for
+the OS to ever pick the dark splash variant at all; also affects other native chrome (e.g. `Alert.alert`
+styling on iOS) that this pass didn't otherwise touch.
+
+**Known, real remaining gap: the native splash can only follow the *device's* system dark/light
+setting, never this app's own in-app theme override.** Native code runs before any JS (or persisted
+AsyncStorage state) is reachable, so `userInterfaceStyle: "automatic"` — and therefore which native
+splash variant the OS shows — is driven entirely by the device's own OS-level appearance setting. A
+user whose device is in light mode but who has explicitly overridden the app to dark mode (via the
+Profile toggle, §2) will see the native splash in light, then a hard cut to `BrandSplash` in dark the
+instant `hideAsync()` fires — not a gradual flash, but not seamless either. Closing this gap fully would
+need native code reading the persisted override *before* the splash is even configured (a synchronous
+storage engine like MMKV instead of AsyncStorage, plus custom native code beyond what
+`expo-splash-screen`'s standard JS API exposes) — out of scope for this pass, and flagged rather than
+silently left unmentioned. The common case (no override, or override matches system) is unaffected.
+
+**Requires a native rebuild to take effect — not achievable from this session.** A new native
+dependency (`expo-splash-screen`) plus an `app.json` plugin-config and `userInterfaceStyle` change both
+need `npx expo prebuild` (or an EAS/local native build) before they do anything real on a device — same
+"the user runs this themselves" convention as every other native change in this file (see §1's
+dev-build note, and the `@react-native-community/datetimepicker` entry above). Everything here is
+typecheck/bundle-verified only, same caveat as the rest of this file, until that rebuild happens and the
+app actually runs once.
 
 ### The 6 guest tabs (`app/guest/[id]/`)
 

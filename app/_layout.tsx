@@ -9,8 +9,9 @@ import {
 } from '@expo-google-fonts/playfair-display';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -20,6 +21,16 @@ import { BrandSplash } from '@/components/BrandSplash';
 import { AuthProvider } from '@/hooks/useAuth';
 import { EventDraftProvider } from '@/hooks/useEventDraft';
 import { ThemeProvider, useTheme } from '@/hooks/useTheme';
+
+/**
+ * Keeps the native splash (app.json's `expo-splash-screen` plugin config, with
+ * its own light/dark `backgroundColor`) on screen past its normal auto-hide
+ * point, until `RootLayout` explicitly hides it once fonts are ready and the
+ * theme-aware BrandSplash overlay is already mounted underneath — so the
+ * handoff is a clean cut, not a blank/wrong-background frame in between.
+ * Module scope so this runs before the first render, not inside an effect.
+ */
+void SplashScreen.preventAutoHideAsync();
 
 /**
  * Baseline only — every query below overrides staleTime (and gcTime where it
@@ -61,6 +72,15 @@ export default function RootLayout() {
   const handleReveal = useCallback(() => {}, []);
 
   const handleFinished = useCallback(() => setSplashVisible(false), []);
+
+  // Fires once, right as this component is about to render BrandSplash for
+  // the first time — hides the native splash at exactly the moment the
+  // theme-aware JS one is ready to be seen in its place.
+  useEffect(() => {
+    if (fontsLoaded) {
+      void SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
 

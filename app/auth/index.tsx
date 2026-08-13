@@ -125,7 +125,7 @@ export default function AuthScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.fill}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScreenBackground />
       <ScrollView

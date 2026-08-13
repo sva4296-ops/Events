@@ -43,7 +43,7 @@ export default function MenuScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.fill}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen footer={<Button label={t('menuForm.saveButton')} disabled={!valid} onPress={save} />}>
         <Header

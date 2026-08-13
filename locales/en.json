@@ -62,7 +62,8 @@
     "deleteMomentBody": "\"{{title}}\" will disappear from the event's story.",
     "fundPromoBody": "We'd love for you to be part of the next chapter of our story.",
     "viewFund": "View the fund",
-    "comments": "Comments"
+    "comments": "Comments",
+    "noPhoto": "No photo"
   },
   "chat": {
     "sectionLabel": "WEDDING GROUP",

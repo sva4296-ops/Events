@@ -9,13 +9,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-/**
- * Light gray-lavender rather than a flat gray, so the pulse reads on both the
- * cream page background and the white/navy cards it sits inside — see
- * utils/theme.ts's `colors.border`/`primarySoft` and utils/guestTheme.ts's
- * `guest.purpleSoft`, which this splits the difference between.
- */
-const SKELETON_TONE = '#E7E1F5';
+import { useTheme } from '@/hooks/useTheme';
+
+// Dark mode keeps the original lavender-gray tone unchanged (it already read
+// fine against navy/dark cards). Light mode reuses `tokens.textSecondary`
+// instead — the original tone was too close to white/cream to read clearly
+// on light cards.
+const DARK_SKELETON_TONE = '#E7E1F5';
 
 interface SkeletonProps {
   width?: DimensionValue;
@@ -34,6 +34,8 @@ interface SkeletonProps {
 // square via `aspectRatio`) rely on the style prop deriving height instead —
 // an explicit default here would win over aspectRatio and flatten them.
 export function Skeleton({ width = '100%', height, radius = 8, style }: SkeletonProps) {
+  const { tokens } = useTheme();
+  const tone = tokens.mode === 'dark' ? DARK_SKELETON_TONE : tokens.textSecondary;
   const opacity = useSharedValue(0.5);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function Skeleton({ width = '100%', height, radius = 8, style }: Skeleton
   return (
     <Animated.View
       style={[
-        { width, height, borderRadius: radius, backgroundColor: SKELETON_TONE },
+        { width, height, borderRadius: radius, backgroundColor: tone },
         animatedStyle,
         style,
       ]}

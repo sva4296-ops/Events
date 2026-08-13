@@ -62,7 +62,8 @@
     "deleteMomentBody": "„{{title}}” va dispărea din povestea evenimentului.",
     "fundPromoBody": "Ne-ar bucura enorm să faceți parte din următorul capitol al poveștii noastre.",
     "viewFund": "Vezi fondul",
-    "comments": "Comentarii"
+    "comments": "Comentarii",
+    "noPhoto": "Fără fotografie"
   },
   "chat": {
     "sectionLabel": "GRUPUL NUNȚII",

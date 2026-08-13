@@ -4,7 +4,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
 /** Route groups reachable without a session. Everything else requires one. */
-const PUBLIC_SEGMENTS = new Set(['auth', 'onboarding', 'invite']);
+const PUBLIC_SEGMENTS = new Set(['auth', 'onboarding', 'invite', 'forgot-password', 'reset-password']);
 
 /**
  * Redirects to the auth screen whenever a protected route is rendered without a

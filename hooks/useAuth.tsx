@@ -10,6 +10,7 @@ import {
 
 import { supabase } from '@/data/supabaseClient';
 import { getOnboardingCache, setOnboardingCache } from '@/utils/onboarding';
+import { buildResetPasswordRedirectUrl } from '@/utils/passwordReset';
 
 export interface AppUser {
   id: string;
@@ -23,6 +24,16 @@ interface AuthContextValue {
   signUp: (email: string, password: string) => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
+  /** Fires the "reset your password" email; the link opens app/reset-password.tsx. */
+  requestPasswordReset: (email: string) => Promise<string | null>;
+  /** Establishes the temporary recovery session from the deep link's tokens
+   * (detectSessionInUrl is off — see utils/passwordReset.ts), required before
+   * updatePassword will succeed from app/reset-password.tsx. */
+  setRecoverySession: (accessToken: string, refreshToken: string) => Promise<string | null>;
+  /** Backs both app/reset-password.tsx (off a recovery session) and
+   * app/change-password.tsx (off a normal signed-in session) — Supabase's
+   * updateUser call is identical either way. */
+  updatePassword: (newPassword: string) => Promise<string | null>;
   /** Local cache first, public.users.has_completed_onboarding as source of truth. */
   hasCompletedOnboarding: () => Promise<boolean>;
   markOnboardingComplete: () => Promise<void>;
@@ -85,6 +96,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: buildResetPasswordRedirectUrl(),
+    });
+    return error?.message ?? null;
+  }, []);
+
+  const setRecoverySession = useCallback(async (accessToken: string, refreshToken: string) => {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    return error?.message ?? null;
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return error?.message ?? null;
+  }, []);
+
   const hasCompletedOnboarding = useCallback(async (): Promise<boolean> => {
     if (user === null) return false;
 
@@ -118,10 +149,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signIn,
       signOut,
+      requestPasswordReset,
+      setRecoverySession,
+      updatePassword,
       hasCompletedOnboarding,
       markOnboardingComplete,
     }),
-    [user, loading, signUp, signIn, signOut, hasCompletedOnboarding, markOnboardingComplete],
+    [
+      user,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      requestPasswordReset,
+      setRecoverySession,
+      updatePassword,
+      hasCompletedOnboarding,
+      markOnboardingComplete,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

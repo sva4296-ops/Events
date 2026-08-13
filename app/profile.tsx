@@ -1,4 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -54,6 +55,19 @@ export default function ProfileScreen() {
             </Text>
           </View>
         </View>
+
+        <TouchableOpacity
+          style={[styles.changePasswordRow, { borderTopColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}
+          onPress={() => router.push('/change-password')}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+        >
+          <Feather name="lock" size={18} color={tokens.textSecondary} />
+          <Text style={[styles.changePasswordLabel, { color: tokens.textPrimary }]}>
+            {t('profile.changePassword')}
+          </Text>
+          <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
+        </TouchableOpacity>
       </Card>
 
       <Card style={styles.languageCard}>
@@ -154,6 +168,19 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 12,
+  },
+  changePasswordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+  },
+  changePasswordLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
   },
   languageCard: {
     gap: spacing.md,

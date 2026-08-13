@@ -523,6 +523,25 @@ this screen's own "already responded" branch already sends you). The pending →
 "Confirm attendance" → `/guest/${id}` path was already correct and untouched by this fix — verified by
 re-reading `respond()`/`showChoices` above, not assumed.
 
+### Moment cards without a photo (Acasă)
+
+**Fixed — a photo-less moment left a blank white block instead of showing a placeholder.**
+`app/post-moment/[id].tsx` has always let an organizer post a moment with no photo attached
+(`photoUri ?? ''`; `remoteEventContentRepository.ts`'s `createMoment` stores `null`, `loadSocial` maps
+it back to `''`), but `components/guest/MomentCard.tsx` rendered `<Image source={{ uri:
+moment.photo_url }} .../>` unconditionally — an empty `uri` just renders nothing, leaving the photo
+slot's `230`-tall block filled with the card's own background color, indistinguishable from the card
+itself. Fixed by branching on `moment.photo_url.length > 0`: unchanged `<Image>` when a photo exists;
+otherwise a placeholder `View` of the exact same `styles.photo` dimensions, filled with
+`tokens.surfaceMuted` (the same "muted inner-panel/slot surface" token Live's empty-photo-slot panel
+already uses — chosen over `surface`/`surfaceElevated` for the same reason it was chosen there: those
+two *are* the card color, so using either here would recreate the same invisible-blank-block bug with
+extra steps), a centered Feather `image` icon, and a `t('acasa.noPhoto')` label — both
+`tokens.textSecondary`. New locale key, both languages (`acasa.noPhoto`: "No photo" / "Fără
+fotografie"). No layout/padding change — the placeholder fills the same slot the `Image` used to,
+nothing else in the card moved. `MomentCardSkeleton`'s loading-state photo block is untouched; this
+only affects the loaded, no-photo case.
+
 ### Photo grids and attribution (Live, Album)
 
 `components/guest/PhotoTile.tsx` now owns three things per tile, self-contained so both screens get
@@ -1336,9 +1355,15 @@ gold icon on top.
   inset because `EventHeaderBar` owns it (pass `topInset` for screens without that bar).
 - **`Skeleton`** (`components/Skeleton.tsx`) — the one loading-placeholder primitive: a shimmering
   rounded rect (opacity pulse via reanimated, not a gradient sweep — simplest thing that reads as
-  "loading" with the animation tooling already in the project). Lavender-gray tone (`#E7E1F5`),
-  between `colors.border`/`primarySoft` and `guest.purpleSoft` so it reads on cream, white, and navy
-  alike. No default `height` — several skeletons (the Album grid tile) need `aspectRatio` from a passed
+  "loading" with the animation tooling already in the project). **Theme-aware as of this pass** — it
+  now reads `useTheme()` directly, same as the tab bar / Live card fixes: dark mode keeps the original
+  lavender-gray `#E7E1F5` unchanged (kept as a literal constant since no existing dark token matches
+  it exactly and the ask was zero visual change there); light mode reads `tokens.textSecondary`
+  (`#8A8496`) instead of that same lavender-gray, which read too close to white/cream to be legible on
+  light cards. No new token added — `textSecondary` already existed and fit. Every screen-specific
+  skeleton composes from this one primitive, so this single change covers all of them (Home, the
+  organizer dashboard, and all 6 guest tabs) with no per-screen edits. No default `height` — several
+  skeletons (the Album grid tile) need `aspectRatio` from a passed
   `style` to derive height instead, and a default would win over that. Every screen-specific skeleton
   composes from it rather than drawing its own shapes. Two flavors of where they live: **colocated**
   with the real component when one already exists as its own file — `EventListItemSkeleton`,

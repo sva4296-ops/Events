@@ -48,7 +48,16 @@ export function MomentCard({
         <Text style={[styles.title, { color: tokens.textPrimary }]}>{moment.title}</Text>
       </View>
 
-      <Image source={{ uri: moment.photo_url }} style={[styles.photo, { backgroundColor: tokens.surface }]} />
+      {moment.photo_url.length > 0 ? (
+        <Image source={{ uri: moment.photo_url }} style={[styles.photo, { backgroundColor: tokens.surface }]} />
+      ) : (
+        <View style={[styles.photo, styles.photoPlaceholder, { backgroundColor: tokens.surfaceMuted }]}>
+          <Feather name="image" size={28} color={tokens.textSecondary} />
+          <Text style={[styles.photoPlaceholderLabel, { color: tokens.textSecondary }]}>
+            {t('acasa.noPhoto')}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.reactions}>
         <ReactionPill
@@ -156,6 +165,15 @@ const styles = StyleSheet.create({
   photo: {
     width: '100%',
     height: 230,
+  },
+  photoPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: gSpace.xs,
+  },
+  photoPlaceholderLabel: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   reactions: {
     flexDirection: 'row',

@@ -37,7 +37,7 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.fill}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <GuestScreen contentStyle={styles.content} transparent>
         <View style={styles.headerBlock}>

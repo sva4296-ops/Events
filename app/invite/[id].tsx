@@ -12,7 +12,7 @@ import { Screen } from '@/components/Screen';
 import type { RsvpStatus } from '@/types/event';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
-import { getEventType } from '@/utils/eventTypes';
+import { getEventTypeGradient } from '@/utils/eventTypes';
 import { spacing } from '@/utils/theme';
 
 export default function InviteScreen() {
@@ -51,7 +51,6 @@ export default function InviteScreen() {
   // RLS already limits a non-organizer's event.guests to just their own row,
   // so [0] is "my" row.
   const myRsvp = owner ? undefined : event.guests[0];
-  const type = getEventType(event.type);
   // A guest invited by email already has an `event_guests` row *before* they
   // ever respond — its rsvp_status is 'pending'. `myRsvp !== undefined` alone
   // only means "a row exists," not "they answered," so it can't gate the
@@ -68,13 +67,11 @@ export default function InviteScreen() {
 
   return (
     <Screen
-      // The per-event-type gradient stays as the light-mode background — see
-      // utils/eventTypes.ts — but it's a fixed light palette with no dark
-      // counterpart, so it can't also stand in for dark mode without
-      // clashing with every other themed screen. Dark mode falls back to
-      // Screen's own default (tokens.background), the same token the tab
-      // bar/Live card/skeleton fixes already standardized on.
-      gradient={mode === 'dark' ? tokens.background : type.gradient}
+      // Per-event-type gradient, light/dark aware — see
+      // utils/eventTypes.ts's getEventTypeGradient/EVENT_TYPE_GRADIENTS,
+      // the single centralized lookup both this background and InviteCard's
+      // own header strip read from, so the two can't drift out of sync.
+      gradient={getEventTypeGradient(event.type, mode)}
       footer={
         showChoices ? (
           owner ? (
@@ -103,34 +100,57 @@ export default function InviteScreen() {
       }
       contentStyle={styles.content}
     >
-      <View>
-        {canGoBack ? <BackButton style={styles.back} /> : null}
+      {/* A direct child of the content container, not of centerGroup below
+          — see the styles.content comment for why: it has to stay pinned to
+          the screen's actual top-left corner regardless of how short
+          content (the owner branch, no confirmation card) gets vertically
+          centered. */}
+      {canGoBack ? <BackButton style={styles.back} /> : null}
+
+      <View style={styles.centerGroup}>
         <View style={styles.spacer} />
         <InviteCard event={event} />
-      </View>
 
-      {responded && !editing ? (
-        <Card style={styles.confirmation}>
-          <Text style={styles.confirmationEmoji}>
-            {myRsvp.status === 'confirmed' ? '🎉' : '💌'}
-          </Text>
-          <Text style={[styles.confirmationTitle, { color: tokens.textPrimary }]}>
-            {myRsvp.status === 'confirmed' ? t('rsvp.confirmedTitle') : t('rsvp.declinedTitle')}
-          </Text>
-          <Text style={[styles.confirmationBody, { color: tokens.textSecondary }]}>
-            {myRsvp.status === 'confirmed'
-              ? t('rsvp.confirmedBody', { eventName: event.name })
-              : t('rsvp.declinedBody', { eventName: event.name })}
-          </Text>
-        </Card>
-      ) : null}
+        {responded && !editing ? (
+          <Card style={styles.confirmation}>
+            <Text style={styles.confirmationEmoji}>
+              {myRsvp.status === 'confirmed' ? '🎉' : '💌'}
+            </Text>
+            <Text style={[styles.confirmationTitle, { color: tokens.textPrimary }]}>
+              {myRsvp.status === 'confirmed' ? t('rsvp.confirmedTitle') : t('rsvp.declinedTitle')}
+            </Text>
+            <Text style={[styles.confirmationBody, { color: tokens.textSecondary }]}>
+              {myRsvp.status === 'confirmed'
+                ? t('rsvp.confirmedBody', { eventName: event.name })
+                : t('rsvp.declinedBody', { eventName: event.name })}
+            </Text>
+          </Card>
+        ) : null}
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  // React Native's ScrollView always gives its own outer box flexGrow: 1
+  // (a hardcoded RN default — see ScrollView.js's baseVertical style —
+  // applied regardless of what Screen.tsx passes), so it fills all
+  // available space between the top safe area and the footer on every
+  // screen that uses one, not just this one. Screen's contentContainerStyle
+  // (this object) doesn't inherit that stretch itself by default — it
+  // hugs its own children's height and top-aligns within that larger box —
+  // which is invisible on screens whose content is long enough to fill the
+  // screen anyway, but reads as a stranded card floating near the top with
+  // a dead gap above the footer on this screen's shortest branch (the
+  // owner's "Go to your event" view: just one card, no confirmation panel).
+  // The standard fix, and what these two lines do: opt this content
+  // container itself into the same flexGrow: 1, then justifyContent:
+  // 'center' places the actual content in the middle of that filled space
+  // instead of stuck at its top edge. A no-op once content is tall enough
+  // to fill the screen on its own (nothing left to center into).
   content: {
-    gap: spacing.lg,
+    flexGrow: 1,
+    justifyContent: 'center',
     paddingBottom: spacing.xl,
   },
   back: {
@@ -138,6 +158,9 @@ const styles = StyleSheet.create({
     top: spacing.md,
     left: spacing.md,
     zIndex: 2,
+  },
+  centerGroup: {
+    gap: spacing.lg,
   },
   // BackButton is absolutely positioned (floats over the hero, doesn't push
   // InviteCard down — deliberate, see components/BackButton.tsx), so nothing

@@ -19,7 +19,7 @@ export default function InviteScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, respondToInvite, hydrated, isOwner } = useEvents();
-  const { tokens } = useTheme();
+  const { tokens, mode } = useTheme();
   const [editing, setEditing] = useState(false);
   const event = getEvent(id);
   // A cold-open deep link (opened straight into this route, no session and no
@@ -68,7 +68,13 @@ export default function InviteScreen() {
 
   return (
     <Screen
-      gradient={type.gradient}
+      // The per-event-type gradient stays as the light-mode background — see
+      // utils/eventTypes.ts — but it's a fixed light palette with no dark
+      // counterpart, so it can't also stand in for dark mode without
+      // clashing with every other themed screen. Dark mode falls back to
+      // Screen's own default (tokens.background), the same token the tab
+      // bar/Live card/skeleton fixes already standardized on.
+      gradient={mode === 'dark' ? tokens.background : type.gradient}
       footer={
         showChoices ? (
           owner ? (
@@ -133,8 +139,15 @@ const styles = StyleSheet.create({
     left: spacing.md,
     zIndex: 2,
   },
+  // BackButton is absolutely positioned (floats over the hero, doesn't push
+  // InviteCard down — deliberate, see components/BackButton.tsx), so nothing
+  // else in this View's normal flow reserves space for it. It's a 40px
+  // control starting at `spacing.md` from the top, so it extends to
+  // spacing.md + 40; this spacer has to clear that or the card underneath
+  // renders right under/behind it. spacing.xxl * 2 (64) clears it with room
+  // to spare, reusing the existing scale rather than a one-off constant.
   spacer: {
-    height: spacing.lg,
+    height: spacing.xxl * 2,
   },
   confirmation: {
     alignItems: 'center',

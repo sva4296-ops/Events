@@ -197,7 +197,7 @@ was out of scope for an infra-only pass and would have been new functionality, n
 
 | Hook | Owns |
 | --- | --- |
-| `useAuth` | The Supabase session; `signIn/signUp/signOut`, `hasCompletedOnboarding`/`markOnboardingComplete`. No `mode` field — Supabase is the only path (see the top of this file). Still a Context provider — session state is push-driven via `supabase.auth.onAuthStateChange`, not a fit for query-style pull fetching, and it isn't a resource that exhibited the staleness bug the react-query pass fixed |
+| `useAuth` | The Supabase session; `signIn/signUp/signOut`, `hasCompletedOnboarding`/`markOnboardingComplete`, `requestPasswordReset`/`setRecoverySession`/`updatePassword` (see "Forgot / change password" below). No `mode` field — Supabase is the only path (see the top of this file). Still a Context provider — session state is push-driven via `supabase.auth.onAuthStateChange`, not a fit for query-style pull fetching, and it isn't a resource that exhibited the staleness bug the react-query pass fixed |
 | `useEvents` | The events list, Postgres-backed, `['events', userId]` — `createEvent` (async), `updateEvent` (async), `respondToInvite`, `removeGuest`, `addGuest` (async), `isOwner` |
 | `useEventContent` | Per-event content, three queries keyed by category (`social`/`details`/`contributions`, see the table above) merged into one `content: EventContent \| null`, plus all their mutations — Supabase write-then-invalidate (of the correct category key) |
 | `useEventDraft` | The 4-step create-event wizard draft (in-memory, not persisted) — still a Context provider, this is genuinely ephemeral UI state, not a fetched resource |
@@ -249,6 +249,83 @@ cache entry outright rather than needing an effect to notice the session changed
   this file said this didn't exist; it does now (`supabase/migrations/20260810000003_guest_autolink.sql`,
   documented under §3's "Add guest by email"). Leaving this note here since it was wrong here
   specifically for a while.
+
+**Forgot / change password — new this pass, built entirely on Supabase Auth's own reset flow, no new
+tables or migrations.** Two flows:
+
+- **Forgot password (unauthenticated).** `app/auth/index.tsx`'s sign-in mode has a "Forgot password?"
+  link (hidden in sign-up mode) to `app/forgot-password.tsx` — email input, calls
+  `useAuth().requestPasswordReset(email)` (`supabase.auth.resetPasswordForEmail`), then shows the same
+  generic notice regardless of what Supabase actually returned — deliberately not branching on the
+  response at all, so there's no way for the UI to leak whether an account exists for that email.
+  `redirectTo` is `utils/passwordReset.ts`'s `buildResetPasswordRedirectUrl()` —
+  `Linking.createURL('/reset-password')`, the exact same `Linking.createURL` pattern `utils/invite.ts`'s
+  `buildInviteLink` already used for `povesteanoastra://invite/{id}`.
+
+  **Correction to that shorthand — the real string has three slashes, not two.** Traced
+  `node_modules/expo-linking/src/createURL.ts`'s actual logic for this app's config (bare/dev-client
+  build → `hasCustomScheme()` true → `getHostUri()` null → empty host segment): `buildResetPasswordRedirectUrl()`
+  produces `povesteanoastra:///reset-password`, and `buildInviteLink` has always produced
+  `povesteanoastra:///invite/<id>` the same way — every `povesteanoastra://...` mention elsewhere in
+  this file is prose shorthand, not the literal value. This isn't cosmetic: parsing both forms with the
+  WHATWG `URL` class (what `expo-linking`/Expo Router use internally to extract the routable path) shows
+  the two-slash form puts `reset-password`/`invite` in `hostname` with an *empty* `pathname` — Expo
+  Router's file-based routing wouldn't match a route to that at all. The three-slash form correctly
+  yields `pathname: '/reset-password'`. **Whatever gets registered in Supabase Dashboard → Authentication
+  → URL Configuration → Redirect URLs must be the exact three-slash string** —
+  `povesteanoastra:///reset-password` — since Supabase's allowlist match is presumably against the
+  literal `redirectTo` value the app actually sends; registering the two-slash form would silently
+  mismatch and fall back to the Site URL, which is the exact symptom that prompted this note (Supabase
+  was falling back to `localhost:3000` before the correct value was registered).
+- **Set new password, from the emailed link.** `app/reset-password.tsx` — opened only via that deep
+  link, never navigated to from in-app UI. **There is no manual
+  deep-link parser anywhere in this app to hook into** — a prompt for this pass assumed one existed
+  alongside the `invite/{id}` route; checked, and there isn't one. Every route, including this new one,
+  resolves automatically through Expo Router's file-based routing off `app.json`'s `scheme`. The one
+  real wrinkle is that `data/supabaseClient.ts` sets `detectSessionInUrl: false` on purpose ("no browser
+  redirect to parse in a native app"), so the recovery tokens Supabase appends to the redirect URL
+  aren't picked up automatically. `app/reset-password.tsx` reads the incoming URL itself via
+  `expo-linking`'s `useURL()`, extracts `access_token`/`refresh_token` with
+  `utils/passwordReset.ts`'s `extractRecoveryTokens` (checks the URL fragment first, then the query
+  string — supabase-js on this project is on the implicit flow, which puts them in the fragment, but
+  which one a real redirect actually uses **has never been exercised from this environment**, see below),
+  and feeds them into `useAuth().setRecoverySession` (`supabase.auth.setSession`) before rendering the
+  new-password form. Only once that resolves does the screen show the two password fields; a failed or
+  missing token shows an "This link isn't valid" state with a button back to `/forgot-password` instead.
+  Submitting calls `useAuth().updatePassword` (`supabase.auth.updateUser({ password })`), same function
+  the authenticated flow below uses, then routes to `/`.
+- **Change password (authenticated).** `app/profile.tsx` gained a "Change password" row in the account
+  card (Feather `lock` icon, chevron-right, same row shape as everything else on that card) to
+  `app/change-password.tsx` — new password + confirm, same `common.saveChanges`/`Field`/`Screen`/
+  `Header` shape every other owner composer already uses (`app/add-guest/[id].tsx` was the template).
+  **No current-password re-entry** — `updatePassword` runs directly off the existing session, the same
+  "an active session is sufficient authorization" reasoning every other Profile action already follows.
+  This was an explicit product decision for this pass (the prompt asked to flag it rather than assume),
+  not something to revisit without being asked.
+- **Password minimum is 6 characters, reusing `auth.errors.passwordTooShort`** — not a new rule, the
+  same one `app/auth/index.tsx`'s sign-up already enforces. "Passwords don't match" is a new key
+  (`resetPassword.passwordsDontMatch`), shared by both the reset and change screens.
+- **`AuthGate`'s `PUBLIC_SEGMENTS`** gained `'forgot-password'` and `'reset-password'` — both are reached
+  with no session (forgot-password always; reset-password until its recovery-session effect resolves),
+  so both need to be exempt from the no-session → `/auth` redirect the same way `'invite'` already is.
+- **Google auth does not exist in this app — flagged, not built around.** The prompt that requested this
+  pass assumed Google auth existed alongside email/password and asked for Change Password to hide/adjust
+  itself for Google-auth users. Checked `hooks/useAuth.tsx` first: it only ever implements
+  `signUp`/`signIn` via `supabase.auth.signUp`/`signInWithPassword`, no OAuth provider call anywhere —
+  matches this file's own §7 ("No Google/Apple/social auth (email + password only)"), another instance
+  of a prompt describing something that was never actually built here. Confirmed with the user before
+  writing anything: skip the Google-auth branch entirely rather than build conditional logic against a
+  provider that doesn't exist yet. When Google auth is eventually added as its own pass, Change
+  Password's hide/adjust behavior for those users needs to be revisited then, not assumed to already
+  work.
+- **Verification status — same caveat as everywhere else in this file.** Confirmed only by
+  `npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing. Completely
+  unverified from this environment: whether `resetPasswordForEmail`'s redirect actually reaches this
+  app via the custom scheme at all (no email client, no device), whether the recovery tokens really
+  arrive in the URL fragment rather than the query string (the `extractRecoveryTokens` fallback exists
+  specifically because this wasn't confirmed either way), and whether `setSession`/`updateUser` succeed
+  against a real recovery token. This needs a real device run with a real email round-trip to confirm,
+  not just a bundle/typecheck pass.
 
 ### Localization (i18n)
 
@@ -809,9 +886,12 @@ its own header). The only nested navigator is the guest event tabs.
 | --- | --- |
 | `app/_layout.tsx` | Providers, splash overlay, auth gate |
 | `app/onboarding.tsx` | Once per account, after a session exists, 4 swipeable steps, exits to `/` |
-| `app/auth/index.tsx` | Single screen, sign-in/sign-up modes toggled in place |
+| `app/auth/index.tsx` | Single screen, sign-in/sign-up modes toggled in place. Sign-in mode has a "Forgot password?" link to `forgot-password` |
+| `app/forgot-password.tsx` | Unauthenticated: email input, fires Supabase's password-reset email — see §3's "Forgot / change password" |
+| `app/reset-password.tsx` | Opened only via the `povesteanoastra://reset-password` deep link from that email, never in-app navigation — establishes the recovery session, then new-password + confirm |
+| `app/change-password.tsx` | Authenticated: new-password + confirm off the existing session, no current-password re-entry. Reached from Profile |
 | `app/index.tsx` | Home — Your events + My invitations, floating "+" |
-| `app/profile.tsx` | Account details and sign out |
+| `app/profile.tsx` | Account details, "Change password" row, and sign out |
 | `app/create/type\|details\|preview\|share.tsx` | 4-step create-event wizard |
 | `app/event/[id].tsx` | Organizer dashboard — RSVP counts and guest list |
 | `app/guest/[id]/` | The 6-tab guest event page |
@@ -1137,9 +1217,9 @@ screen:
   component, so each was migrated directly — plus `MessageBubble`, `PhotoTile`'s caller sites, and
   `ProgressBar` (Fond's fund progress bar, now `accentGold→accentPrimary` instead of the old fixed
   `fundGradient`). `app/invite/[id].tsx` and the `checkout/[id].tsx` stub were themed too (confirmation
-  card text, the placeholder card) — `invite/[id].tsx`'s own gradient stays the per-event-type override
-  it always was, unaffected by `Screen`'s new default. **Live's hero card was a deliberate fixed-dark
-  exception at this point in the migration — no longer true, see the tab-bar/Live-card pass below.**
+  card text, the placeholder card) — `invite/[id].tsx`'s own gradient stayed the per-event-type override
+  it always was, unaffected by `Screen`'s new default, **at this point in the migration — no longer true
+  either, see the sixth pass below, same trajectory as Live's hero card next to it in this sentence.**
 - **Profile** (`app/profile.tsx`) got the same treatment as everything else — avatar circle, account
   text, and both pill-toggle cards (Language and the Theme toggle itself) now read `useTheme()` instead
   of the static `colors` object they'd been using since the Theme card was first added.
@@ -1233,6 +1313,30 @@ the dark palette regardless of theme.** Two separate, later fixes:
   stop), dark is `'#1E1A30'` (== `background[0]`). Only Live's light-mode branch consumes it today;
   dark mode still uses the original literal `guest.navySoft`, unchanged, so `surfaceMuted`'s dark value
   is present for interface completeness/future use, not yet exercised by any screen.
+
+**Sixth pass — `app/invite/[id].tsx` had two separate bugs, same "still hardcoded" class as the fifth
+pass, plus an unrelated layout overlap. Fixed together since both are on the same screen:**
+
+- **Background.** `Screen`'s `gradient` prop was unconditionally `type.gradient` (the event type's own
+  fixed, light-only palette from `utils/eventTypes.ts` — e.g. Corporate's `['#D3DDF0', '#C3CFE8']`),
+  regardless of theme — exactly the "still hardcoded to one mode" bug the fifth pass fixed on the tab
+  bar and Live's hero card, just not caught here at the time (§5's own second-pass note said this
+  screen's fixed gradient was "unaffected by `Screen`'s new default," which was accurate then but is no
+  longer the goal). Fixed the same way as Live: light mode is unchanged (`type.gradient`, "keep as
+  reference" per the request that prompted this), dark mode falls back to `tokens.background` — `Screen`'s
+  own default when no `gradient` prop is passed at all, so this is really "stop overriding the default
+  in dark mode" rather than a new token. `components/InviteCard.tsx` (the card rendered on top) needed
+  **no change** — it already reads `tokens.surfaceElevated`/`textPrimary`/`textSecondary` throughout;
+  only its small icon-header strip keeps `type.gradient` unconditionally, which is fine since that's a
+  small colored strip behind an emoji, not a body-text-bearing surface.
+- **Back button overlap.** `BackButton` here is absolutely positioned (deliberately — see §5's Component
+  Patterns note on why this screen uses the standalone `BackButton` instead of `Header`: a hero card,
+  not a title row), which means nothing in the wrapping `View`'s normal flow reserves space for its own
+  40×40 footprint. The `spacer` sibling meant to leave room for it was only `spacing.lg` (16) tall, while
+  the button itself — positioned at `top: spacing.md` (12) — extends to `12 + 40 = 52`px. `InviteCard`
+  therefore started rendering 36px into the button's own footprint. Fixed by growing the spacer to
+  `spacing.xxl * 2` (64) — clears the button with a small margin, composed from the existing spacing
+  scale rather than a new constant, per the usual convention.
 
 ### Typography
 

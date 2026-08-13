@@ -45,6 +45,7 @@
     "signInToggle": "Sign in",
     "signUpToggle": "Sign up",
     "accountCreatedNotice": "Account created. Confirm your email, then sign in.",
+    "forgotPassword": "Forgot password?",
     "errors": {
       "alreadyRegistered": "An account with this email already exists.",
       "invalidCredentials": "That email and password combination is incorrect.",
@@ -53,6 +54,35 @@
       "emptyPassword": "Enter your password.",
       "passwordTooShort": "Use at least 6 characters."
     }
+  },
+  "forgotPassword": {
+    "headline": "Reset your password",
+    "subtitle": "Enter your email and we'll send you a link to reset your password.",
+    "sendLink": "Send reset link",
+    "sending": "Sending…",
+    "successNotice": "If an account exists for this email, we've sent a reset link."
+  },
+  "resetPassword": {
+    "headline": "Set a new password",
+    "subtitle": "Choose a new password for your account.",
+    "newPasswordLabel": "New password",
+    "confirmPasswordLabel": "Confirm new password",
+    "passwordsDontMatch": "Passwords don't match.",
+    "savePassword": "Save new password",
+    "saving": "Saving…",
+    "successHeadline": "Password updated",
+    "successSubtitle": "Your password has been changed successfully.",
+    "continueButton": "Continue",
+    "invalidLinkHeadline": "This link isn't valid",
+    "invalidLinkSubtitle": "It may have expired or already been used. Request a new one below.",
+    "requestNewLink": "Request a new link"
+  },
+  "changePassword": {
+    "title": "Change password",
+    "subtitle": "Choose a new password for your account.",
+    "newPasswordLabel": "New password",
+    "saving": "Saving…",
+    "successNotice": "Your password has been updated."
   },
   "acasa": {
     "sectionLabel": "OUR STORY",
@@ -170,6 +200,7 @@
     "subtitle": "Your session and app details.",
     "signOut": "Sign out",
     "signedInWithSupabase": "Signed in with Supabase",
+    "changePassword": "Change password",
     "language": "Language",
     "languageEnglish": "English",
     "languageRomanian": "Română",

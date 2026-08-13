@@ -45,6 +45,7 @@
     "signInToggle": "Autentifică-te",
     "signUpToggle": "Înregistrează-te",
     "accountCreatedNotice": "Cont creat. Confirmă-ți emailul, apoi autentifică-te.",
+    "forgotPassword": "Ai uitat parola?",
     "errors": {
       "alreadyRegistered": "Există deja un cont cu acest email.",
       "invalidCredentials": "Combinația de email și parolă este incorectă.",
@@ -53,6 +54,35 @@
       "emptyPassword": "Introdu parola.",
       "passwordTooShort": "Folosește cel puțin 6 caractere."
     }
+  },
+  "forgotPassword": {
+    "headline": "Resetează-ți parola",
+    "subtitle": "Introdu adresa de email și îți trimitem un link pentru resetarea parolei.",
+    "sendLink": "Trimite linkul de resetare",
+    "sending": "Se trimite…",
+    "successNotice": "Dacă există un cont pentru acest email, am trimis un link de resetare."
+  },
+  "resetPassword": {
+    "headline": "Setează o parolă nouă",
+    "subtitle": "Alege o parolă nouă pentru contul tău.",
+    "newPasswordLabel": "Parolă nouă",
+    "confirmPasswordLabel": "Confirmă parola nouă",
+    "passwordsDontMatch": "Parolele nu coincid.",
+    "savePassword": "Salvează parola nouă",
+    "saving": "Se salvează…",
+    "successHeadline": "Parolă actualizată",
+    "successSubtitle": "Parola ta a fost schimbată cu succes.",
+    "continueButton": "Continuă",
+    "invalidLinkHeadline": "Acest link nu este valid",
+    "invalidLinkSubtitle": "Poate a expirat sau a fost deja folosit. Solicită unul nou mai jos.",
+    "requestNewLink": "Solicită un link nou"
+  },
+  "changePassword": {
+    "title": "Schimbă parola",
+    "subtitle": "Alege o parolă nouă pentru contul tău.",
+    "newPasswordLabel": "Parolă nouă",
+    "saving": "Se salvează…",
+    "successNotice": "Parola ta a fost actualizată."
   },
   "acasa": {
     "sectionLabel": "POVESTEA NOASTRĂ",
@@ -173,6 +203,7 @@
     "subtitle": "Sesiunea ta și detaliile aplicației.",
     "signOut": "Deconectare",
     "signedInWithSupabase": "Autentificat cu Supabase",
+    "changePassword": "Schimbă parola",
     "language": "Limbă",
     "languageEnglish": "English",
     "languageRomanian": "Română",

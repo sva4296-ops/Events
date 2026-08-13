@@ -201,6 +201,19 @@ export default function AuthScreen() {
             ) : null}
           </View>
 
+          {!isSignUp ? (
+            <TouchableOpacity
+              onPress={() => router.push('/forgot-password')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              style={styles.forgotPassword}
+            >
+              <Text style={[styles.forgotPasswordText, { color: tokens.accentPrimary }]}>
+                {t('auth.forgotPassword')}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+
           {notice !== null ? (
             <Text style={[styles.notice, { color: tokens.accentPrimary }]}>{notice}</Text>
           ) : null}
@@ -290,6 +303,14 @@ const styles = StyleSheet.create({
   notice: {
     fontSize: 13,
     lineHeight: 19,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    paddingVertical: 4,
+  },
+  forgotPasswordText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   button: {
     minHeight: 54,

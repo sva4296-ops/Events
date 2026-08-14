@@ -84,6 +84,36 @@
     "saving": "Saving…",
     "successNotice": "Your password has been updated."
   },
+  "accountType": {
+    "headline": "How will you use PovesteaNoastra?",
+    "subtitle": "Choose the option that fits you.",
+    "individualTitle": "I'm creating an event for myself",
+    "individualSubtitle": "The usual flow — plan your own wedding, birthday, or gathering.",
+    "agencyTitle": "I'm an agency / professional organizer",
+    "agencySubtitle": "Manage events for clients under your company."
+  },
+  "agencySignup": {
+    "headline": "Create your agency account",
+    "subtitle": "We need a few business details for invoicing later.",
+    "companySection": "Company details",
+    "companyNameLabel": "Company name",
+    "companyNamePlaceholder": "Lumière Events SRL",
+    "cuiLabel": "CUI",
+    "cuiPlaceholder": "RO12345678",
+    "cuiHint": "Romanian tax registration number.",
+    "registrationNumberLabel": "Registration number (optional)",
+    "registrationNumberPlaceholder": "J40/1234/2020",
+    "addressLabel": "Company address (optional)",
+    "addressPlaceholder": "Str. Exemplu nr. 1, București",
+    "contactSection": "Contact person",
+    "createButton": "Create agency account",
+    "creatingButton": "Creating account…",
+    "goToSignIn": "Go to sign in",
+    "errors": {
+      "companyNameRequired": "Enter your company name.",
+      "cuiInvalid": "Enter a valid CUI (e.g. RO12345678)."
+    }
+  },
   "acasa": {
     "sectionLabel": "OUR STORY",
     "emptyOwner": "No moments posted yet. Start the story with a first photo.",

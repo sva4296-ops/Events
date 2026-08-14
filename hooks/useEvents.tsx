@@ -11,6 +11,7 @@ import {
   updateDietaryPreferencesRow,
   updateEventRow,
 } from '@/data/eventsRepository';
+import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import type { AppEvent, EventDraft, RsvpStatus } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
@@ -21,7 +22,7 @@ interface EventsResult {
   hydrated: boolean;
   getEvent: (id: string | undefined) => AppEvent | undefined;
   createEvent: (draft: EventDraft) => Promise<AppEvent>;
-  updateEvent: (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id'>>) => Promise<void>;
+  updateEvent: (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id'>>) => Promise<void>;
   respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => void;
   removeGuest: (eventId: string, guestId: string) => void;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
@@ -38,6 +39,7 @@ interface EventsResult {
  */
 export function useEvents(): EventsResult {
   const { user } = useAuth();
+  const { agency } = useAgency();
   const queryClient = useQueryClient();
   const userId = user?.id ?? null;
   const queryKey = useMemo(() => ['events', userId] as const, [userId]);
@@ -72,7 +74,11 @@ export function useEvents(): EventsResult {
   );
 
   const createEventMutation = useMutation({
-    mutationFn: (draft: EventDraft) => insertEvent(draft, user?.id ?? ''),
+    // Auto-tags the event to the creator's agency, if they own one — see
+    // supabase/migrations/20260813000001_agencies.sql's note on why this is
+    // just a dashboard-filtering tag, not a new access-control boundary; an
+    // individual user (no agency row) passes null, unaffected.
+    mutationFn: (draft: EventDraft) => insertEvent(draft, user?.id ?? '', agency?.id ?? null),
     onSuccess: (event) => {
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) => [event, ...current]);
       void queryClient.invalidateQueries({ queryKey });
@@ -84,7 +90,7 @@ export function useEvents(): EventsResult {
   );
 
   const updateEventMutation = useMutation({
-    mutationFn: (vars: { eventId: string; patch: Partial<Omit<AppEvent, 'id' | 'owner_id'>> }) =>
+    mutationFn: (vars: { eventId: string; patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id'>> }) =>
       updateEventRow(vars.eventId, vars.patch),
     onSuccess: (_result, { eventId, patch }) => {
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
@@ -94,7 +100,7 @@ export function useEvents(): EventsResult {
     },
   });
   const updateEvent = useCallback(
-    async (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id'>>): Promise<void> => {
+    async (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id'>>): Promise<void> => {
       await updateEventMutation.mutateAsync({ eventId, patch });
     },
     [updateEventMutation],

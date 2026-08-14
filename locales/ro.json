@@ -84,6 +84,36 @@
     "saving": "Se salvează…",
     "successNotice": "Parola ta a fost actualizată."
   },
+  "accountType": {
+    "headline": "Cum vrei să folosești PovesteaNoastra?",
+    "subtitle": "Alege opțiunea potrivită pentru tine.",
+    "individualTitle": "Creez un eveniment pentru mine",
+    "individualSubtitle": "Fluxul obișnuit — organizezi propria nuntă, aniversare sau petrecere.",
+    "agencyTitle": "Sunt agenție / organizator profesionist",
+    "agencySubtitle": "Gestionezi evenimente pentru clienți, sub firma ta."
+  },
+  "agencySignup": {
+    "headline": "Creează contul agenției",
+    "subtitle": "Avem nevoie de câteva date de firmă, pentru facturarea de mai târziu.",
+    "companySection": "Date firmă",
+    "companyNameLabel": "Denumire firmă",
+    "companyNamePlaceholder": "Lumière Events SRL",
+    "cuiLabel": "CUI",
+    "cuiPlaceholder": "RO12345678",
+    "cuiHint": "Codul unic de înregistrare fiscală.",
+    "registrationNumberLabel": "Nr. Registrul Comerțului (opțional)",
+    "registrationNumberPlaceholder": "J40/1234/2020",
+    "addressLabel": "Adresa sediului (opțional)",
+    "addressPlaceholder": "Str. Exemplu nr. 1, București",
+    "contactSection": "Persoană de contact",
+    "createButton": "Creează contul agenției",
+    "creatingButton": "Se creează contul…",
+    "goToSignIn": "Mergi la autentificare",
+    "errors": {
+      "companyNameRequired": "Introdu denumirea firmei.",
+      "cuiInvalid": "Introdu un CUI valid (ex: RO12345678)."
+    }
+  },
   "acasa": {
     "sectionLabel": "POVESTEA NOASTRĂ",
     "emptyOwner": "Niciun moment postat încă. Începe povestea cu o primă poză.",

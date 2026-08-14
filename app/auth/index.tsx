@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -17,58 +17,27 @@ import { BrandHeader } from '@/components/BrandHeader';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import i18n from '@/utils/i18n';
+import { mapAuthError, type AuthFieldErrors } from '@/utils/authErrors';
 import { fonts } from '@/utils/guestTheme';
 import { themeRadius } from '@/utils/themeTokens';
 
 type Mode = 'sign-in' | 'sign-up';
 
-interface FieldErrors {
-  email?: string;
-  password?: string;
-}
-
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/**
- * Maps Supabase's error strings onto the field they belong under. Module-scope,
- * not a component, so this uses the i18next singleton's `t` directly — same
- * reasoning as utils/format.ts's formatEventDate.
- */
-function mapAuthError(message: string): FieldErrors {
-  const text = message.toLowerCase();
-
-  if (text.includes('already registered') || text.includes('already been registered')) {
-    return { email: i18n.t('auth.errors.alreadyRegistered') };
-  }
-  if (text.includes('invalid login credentials')) {
-    return { password: i18n.t('auth.errors.invalidCredentials') };
-  }
-  if (text.includes('email not confirmed')) {
-    return { email: i18n.t('auth.errors.emailNotConfirmed') };
-  }
-  // Below this point the message is whatever Supabase returned, in whichever
-  // language it returned it in — there's no translation table for arbitrary
-  // server error text, so it passes through as-is.
-  if (text.includes('password')) {
-    return { password: message };
-  }
-  if (text.includes('email')) {
-    return { email: message };
-  }
-  return { password: message };
-}
 
 export default function AuthScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { signIn, signUp } = useAuth();
   const { tokens } = useTheme();
+  // Set when arriving from /auth/choose-type's "individual" option, so that
+  // choice screen can land directly on the sign-up fields instead of sign-in.
+  const params = useLocalSearchParams<{ mode?: string }>();
 
-  const [mode, setMode] = useState<Mode>('sign-in');
+  const [mode, setMode] = useState<Mode>(params.mode === 'sign-up' ? 'sign-up' : 'sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<FieldErrors>({});
+  const [errors, setErrors] = useState<AuthFieldErrors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -81,7 +50,7 @@ export default function AuthScreen() {
   };
 
   const validate = (): boolean => {
-    const next: FieldErrors = {};
+    const next: AuthFieldErrors = {};
 
     if (!EMAIL_PATTERN.test(email.trim())) {
       next.email = t('auth.errors.invalidEmail');
@@ -237,7 +206,20 @@ export default function AuthScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={switchMode} activeOpacity={0.7} accessibilityRole="button">
+          <TouchableOpacity
+            onPress={() => {
+              // sign-up → sign-in stays an in-place toggle, unchanged. Only
+              // sign-in → sign-up now goes through the account-type choice
+              // first — see app/auth/choose-type.tsx.
+              if (isSignUp) {
+                switchMode();
+              } else {
+                router.push('/auth/choose-type');
+              }
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
             <Text style={[styles.toggle, { color: tokens.textSecondary }]}>
               {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
               <Text style={[styles.toggleAccent, { color: tokens.accentPrimary }]}>

@@ -20,6 +20,7 @@ export type ReactionTypeRow = 'love' | 'celebrate';
 export interface EventRow {
   id: string;
   organizer_id: string;
+  agency_id: string | null;
   type: EventTypeRow;
   name: string;
   event_date: string | null;
@@ -152,4 +153,14 @@ export interface VendorRow {
   handle: string | null;
   external_url: string | null;
   sort_order: number;
+}
+
+export interface AgencyRow {
+  id: string;
+  owner_user_id: string;
+  company_name: string;
+  cui: string;
+  registration_number: string | null;
+  address: string | null;
+  created_at: string;
 }

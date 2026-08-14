@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { GuestButton } from '@/components/guest/GuestButton';
@@ -14,6 +14,7 @@ import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import { fonts, guest, gRadius, gSpace } from '@/utils/guestTheme';
 import { buildInviteLink } from '@/utils/invite';
+import { WEB_CONTENT_WIDTH } from '@/utils/webLayout';
 
 /**
  * Live's hero card now follows the app theme like every other guest-tab
@@ -59,7 +60,7 @@ export default function LiveScreen() {
   };
 
   return (
-    <GuestScreen transparent>
+    <GuestScreen transparent webMaxWidth={WEB_CONTENT_WIDTH.narrow}>
       <View style={[styles.card, { backgroundColor: cardBg }]}>
         <View style={styles.cardHead}>
           <View style={styles.liveTag}>
@@ -129,7 +130,9 @@ export default function LiveScreen() {
 
       <Text style={[styles.helper, { color: tokens.textSecondary }]}>{t('live.helper')}</Text>
 
-      <GuestButton label={t('live.addPhoto')} onPress={() => void pickPhoto()} />
+      <View style={Platform.OS === 'web' ? styles.actionsWeb : undefined}>
+        <GuestButton label={t('live.addPhoto')} onPress={() => void pickPhoto()} />
+      </View>
     </GuestScreen>
   );
 }
@@ -217,5 +220,11 @@ const styles = StyleSheet.create({
   helper: {
     fontSize: 13,
     textAlign: 'center',
+  },
+  // Web only: sizes the button to its label and centers it, instead of the
+  // full-bleed stretch that reads fine as a mobile CTA but oversized in a
+  // wide browser column.
+  actionsWeb: {
+    alignItems: 'center',
   },
 });

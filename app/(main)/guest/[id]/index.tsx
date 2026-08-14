@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandFlourish } from '@/components/BrandFlourish';
@@ -18,6 +18,7 @@ import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import { floatingTabBar, fonts, gSpace } from '@/utils/guestTheme';
 import { themeRadius } from '@/utils/themeTokens';
+import { WEB_CONTENT_WIDTH } from '@/utils/webLayout';
 
 export default function AcasaScreen() {
   const { t } = useTranslation();
@@ -30,12 +31,18 @@ export default function AcasaScreen() {
 
   const owner = isOwner(event);
   // Distance from the true screen bottom up to the floating tabs bar's top
-  // edge — the FAB and this screen's own extra bottom padding both build on it.
-  const tabBarClearance = insets.bottom + floatingTabBar.gap + floatingTabBar.height;
+  // edge — the FAB and this screen's own extra bottom padding both build on
+  // it. On web the floating bar is hidden and its own "add a moment" action
+  // moved into EventTopMenu instead (see `showFab` below), so there's
+  // nothing to clear beyond the usual safe area.
+  const tabBarClearance =
+    Platform.OS === 'web'
+      ? insets.bottom + gSpace.lg
+      : insets.bottom + floatingTabBar.gap + floatingTabBar.height;
 
   if (content === null) {
     return (
-      <GuestScreen transparent>
+      <GuestScreen transparent webMaxWidth={WEB_CONTENT_WIDTH.narrow}>
         <SectionLabel>{t('acasa.sectionLabel')}</SectionLabel>
         <MomentCardSkeleton />
         <MomentCardSkeleton />
@@ -43,11 +50,17 @@ export default function AcasaScreen() {
     );
   }
 
+  // The floating FAB below is native-only now — its web equivalent lives in
+  // EventTopMenu's top menu (app/(main)/guest/[id]/_layout.tsx) — so the
+  // extra bottom padding reserved to clear it only applies on native too.
+  const showFab = owner && Platform.OS !== 'web';
+
   return (
     <View style={styles.wrap}>
       <GuestScreen
-        contentStyle={owner ? { paddingBottom: tabBarClearance + gSpace.xxl + 58 } : undefined}
+        contentStyle={showFab ? { paddingBottom: tabBarClearance + gSpace.xxl + 58 } : undefined}
         transparent
+        webMaxWidth={WEB_CONTENT_WIDTH.narrow}
       >
         <SectionLabel>{t('acasa.sectionLabel')}</SectionLabel>
 
@@ -111,16 +124,29 @@ export default function AcasaScreen() {
         ) : null}
       </GuestScreen>
 
-      {owner ? (
-        <TouchableOpacity
-          style={[styles.fab, { backgroundColor: tokens.accentPrimary, bottom: tabBarClearance + gSpace.md }]}
-          onPress={() => router.push(`/post-moment/${id}`)}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="Postează un moment"
+      {showFab ? (
+        // Two nested wrappers instead of a flat `right: gSpace.xl` so the FAB
+        // tracks the content column rather than the physical screen edge —
+        // see GuestScreen's webMaxWidth. `box-none` keeps the otherwise-empty
+        // full-width shelf from eating touches meant for the scroll content
+        // underneath it. Native only — on web this action lives in
+        // EventTopMenu's top menu instead (see `showFab` above).
+        <View
+          pointerEvents="box-none"
+          style={[styles.fabShelf, { bottom: tabBarClearance + gSpace.md }]}
         >
-          <Feather name="plus" size={26} color="#FFFFFF" />
-        </TouchableOpacity>
+          <View pointerEvents="box-none" style={styles.fabColumn}>
+            <TouchableOpacity
+              style={[styles.fab, { backgroundColor: tokens.accentPrimary }]}
+              onPress={() => router.push(`/post-moment/${id}`)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Postează un moment"
+            >
+              <Feather name="plus" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
       ) : null}
     </View>
   );
@@ -150,9 +176,18 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: gSpace.xs,
   },
-  fab: {
+  fabShelf: {
     position: 'absolute',
-    right: gSpace.xl,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  fabColumn: {
+    width: '100%',
+    alignItems: 'flex-end',
+    paddingRight: gSpace.xl,
+  },
+  fab: {
     width: 58,
     height: 58,
     borderRadius: themeRadius.pill,

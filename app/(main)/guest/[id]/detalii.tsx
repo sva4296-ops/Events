@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
@@ -16,6 +16,7 @@ import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import { fonts, gRadius, gSpace } from '@/utils/guestTheme';
 import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
+import { WEB_CONTENT_WIDTH } from '@/utils/webLayout';
 
 /**
  * These are the *stored* values in `event_guests.dietary_preferences` (and
@@ -198,8 +199,7 @@ export default function DetaliiScreen() {
   const card = cardStyle(tokens);
   const editButtonStyle = [styles.edit, { backgroundColor: `${tokens.accentPrimary}22` }];
 
-  return (
-    <GuestScreen transparent>
+  const scheduleSection = (
       <View style={styles.section}>
         <View style={styles.sectionHead}>
           <SectionLabel>{t('detalii.schedule')}</SectionLabel>
@@ -264,7 +264,9 @@ export default function DetaliiScreen() {
           </View>
         )}
       </View>
+  );
 
+  const venueSection = (
       <View style={styles.section}>
         <SectionLabel>{t('detalii.venue')}</SectionLabel>
         {!hasVenue ? (
@@ -316,7 +318,9 @@ export default function DetaliiScreen() {
           </View>
         )}
       </View>
+  );
 
+  const menuSection = (
       <View style={styles.section}>
         <View style={styles.sectionHead}>
           <SectionLabel>{t('detalii.menu')}</SectionLabel>
@@ -400,7 +404,9 @@ export default function DetaliiScreen() {
           </View>
         )}
       </View>
+  );
 
+  const seatingSection = (
       <View style={styles.section}>
         <View style={styles.sectionHead}>
           <SectionLabel>{t('detalii.seating')}</SectionLabel>
@@ -467,7 +473,9 @@ export default function DetaliiScreen() {
           </View>
         )}
       </View>
+  );
 
+  const accommodationSection = (
       <View style={styles.section}>
         <View style={styles.sectionHead}>
           <SectionLabel>{t('detalii.accommodation')}</SectionLabel>
@@ -538,7 +546,9 @@ export default function DetaliiScreen() {
           </View>
         )}
       </View>
+  );
 
+  const vendorsSection = (
       <View style={styles.section}>
         <View style={styles.sectionHead}>
           <SectionLabel>{t('detalii.vendors')}</SectionLabel>
@@ -624,11 +634,50 @@ export default function DetaliiScreen() {
           </>
         )}
       </View>
+  );
+
+  return (
+    <GuestScreen transparent webMaxWidth={WEB_CONTENT_WIDTH.wide}>
+      {Platform.OS === 'web' ? (
+        <View style={styles.columns}>
+          <View style={styles.column}>
+            {scheduleSection}
+            {venueSection}
+          </View>
+          <View style={styles.column}>
+            {menuSection}
+            {seatingSection}
+            {accommodationSection}
+            {vendorsSection}
+          </View>
+        </View>
+      ) : (
+        <>
+          {scheduleSection}
+          {venueSection}
+          {menuSection}
+          {seatingSection}
+          {accommodationSection}
+          {vendorsSection}
+        </>
+      )}
     </GuestScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  // Web only: schedule+venue on the left, the four logistics sections on
+  // the right — an explicit split rather than a wrapping grid, so uneven
+  // section heights don't create ragged rows.
+  columns: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: gSpace.xl,
+  },
+  column: {
+    flex: 1,
+    gap: gSpace.lg,
+  },
   section: {
     gap: gSpace.md,
   },

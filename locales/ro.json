@@ -24,7 +24,8 @@
     "emptyEventsMessage": "Creează o pagină pentru evenimentul tău și invită oamenii care contează.",
     "createEvent": "Creează eveniment",
     "emptyInvitationsHeadline": "Nicio invitație încă",
-    "emptyInvitationsMessage": "Când cineva te invită, apare aici."
+    "emptyInvitationsMessage": "Când cineva te invită, apare aici.",
+    "selectEventPlaceholder": "Selectează un eveniment din listă ca să-l vezi aici."
   },
   "auth": {
     "createAccountHeadline": "Creează-ți contul",

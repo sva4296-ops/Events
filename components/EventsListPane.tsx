@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BrandHeader } from '@/components/BrandHeader';
 import { EventListItem, EventListItemSkeleton } from '@/components/EventListItem';
@@ -17,7 +17,19 @@ import { myInvitations } from '@/utils/invitations';
 import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
 
-export default function DashboardScreen() {
+/**
+ * "Evenimentele tale" + "Invitațiile mele" — the events list. Extracted from
+ * what used to be the whole Home screen (`app/index.tsx`) so it can be reused
+ * two ways: full-page on native (unchanged), and as the persistent left pane
+ * of the web master-detail layout (`app/(main)/_layout.tsx`) — same list,
+ * same tap behavior (`router.push` to `/guest/{id}`), just a narrower
+ * container on web. `ScreenBackground` is skipped on web: it sizes itself to
+ * its own rendered box (see that component), so a second instance here would
+ * be correct-but-redundant next to the guest layout's own — one wash behind
+ * the whole split view is enough, and this pane doesn't own the visible page
+ * background there the way it does when it's the entire screen on native.
+ */
+export function EventsListPane() {
   const { t } = useTranslation();
   const { events, hydrated, isOwner } = useEvents();
   const { resetDraft } = useEventDraft();
@@ -34,7 +46,7 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenBackground />
+      {Platform.OS === 'web' ? null : <ScreenBackground />}
       <Screen contentStyle={styles.content} transparent>
         <BrandHeader
           right={

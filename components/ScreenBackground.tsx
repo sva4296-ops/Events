@@ -1,4 +1,5 @@
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useCallback, useState } from 'react';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -9,18 +10,32 @@ import { useTheme } from '@/hooks/useTheme';
  * stay legible. Theme-aware: light mode is the original warm cream wash, dark
  * mode is a deep warm navy-purple wash — never plain black, so dark mode still
  * reads as "a warm evening," not a code editor.
+ *
+ * Sized from its own rendered layout (`onLayout`), not `useWindowDimensions()` —
+ * every prior usage was full-page anyway, so this is a no-op change there, but
+ * it's what makes the wash size correctly to a narrower container too, as of
+ * the web master-detail layout (EventsListPane's left pane, the guest event's
+ * right pane) — `useWindowDimensions()` would have sized the SVG to the whole
+ * browser window regardless of which of those it was actually placed inside.
  */
 export function ScreenBackground() {
-  const { width, height } = useWindowDimensions();
+  const [size, setSize] = useState({ width: 0, height: 0 });
   const { tokens } = useTheme();
   const dark = tokens.mode === 'dark';
 
+  const onLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setSize({ width, height });
+  }, []);
+
+  const { width, height } = size;
   const circleOpacity = dark ? 0.16 : 0.11;
   const lineOpacityStrong = dark ? 0.4 : 0.3;
   const lineOpacitySoft = dark ? 0.3 : 0.22;
 
   return (
-    <View style={styles.layer} pointerEvents="none">
+    <View style={styles.layer} pointerEvents="none" onLayout={onLayout}>
+      {width > 0 && height > 0 ? (
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         <Defs>
           <LinearGradient id="bgWash" x1="0" y1="0" x2="0.6" y2="1">
@@ -58,6 +73,7 @@ export function ScreenBackground() {
           opacity={lineOpacitySoft}
         />
       </Svg>
+      ) : null}
     </View>
   );
 }

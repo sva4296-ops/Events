@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 import { gSpace } from '@/utils/guestTheme';
@@ -40,6 +40,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   action: {
-    alignSelf: 'stretch',
+    // Full-width reads fine as a mobile CTA; on web (a wide card, not a
+    // phone column) a stretched pill looks oversized — size it to its
+    // label and center it there instead. Native is unaffected.
+    alignSelf: Platform.OS === 'web' ? 'center' : 'stretch',
   },
 });

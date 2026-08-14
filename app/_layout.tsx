@@ -1,6 +1,8 @@
 // Side-effect import — initializes i18next before anything below renders.
 import '@/utils/i18n';
 
+import { enableScreens } from 'react-native-screens';
+
 import {
   PlayfairDisplay_400Regular,
   PlayfairDisplay_500Medium_Italic,
@@ -21,6 +23,25 @@ import { BrandSplash } from '@/components/BrandSplash';
 import { AuthProvider } from '@/hooks/useAuth';
 import { EventDraftProvider } from '@/hooks/useEventDraft';
 import { ThemeProvider, useTheme } from '@/hooks/useTheme';
+
+/**
+ * `react-native-screens`'s `ENABLE_SCREENS` module state defaults to
+ * `Platform.OS === 'ios' | 'android' | 'windows'` (react-native-screens/src/core.ts)
+ * — false on web, unconditionally, unless this is called. When it's false,
+ * expo-router's Tabs/Stack (node_modules/expo-router/build/react-navigation/
+ * bottom-tabs/views/ScreenFallback.js) fall back to plain `View`s for every
+ * route instead of `Screens.Screen`, and that fallback never applies
+ * `display: 'none'` to inactive ones — every tab a user has visited stays
+ * fully mounted and rendered, merely stacked behind the active one via
+ * `zIndex`. Combined with every guest tab rendering through
+ * `<GuestScreen transparent>` (so `ScreenBackground` shows through — see
+ * CLAUDE.md §5), there's no opaque layer to occlude the stack, so the
+ * previous tab's content bleeds through the new one on web. Native is
+ * unaffected either way (`ENABLE_SCREENS` already defaults to true there),
+ * so this call is a no-op there, not a behavior change. Must run before any
+ * navigator constructs its view — module scope, ahead of the first render.
+ */
+enableScreens();
 
 /**
  * Keeps the native splash (app.json's `expo-splash-screen` plugin config, with

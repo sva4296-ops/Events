@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { countRsvps } from '@/utils/format';
 import { fonts, gSpace } from '@/utils/guestTheme';
 import { themeRadius } from '@/utils/themeTokens';
+import { WEB_CONTENT_WIDTH } from '@/utils/webLayout';
 
 export default function AlbumScreen() {
   const { t } = useTranslation();
@@ -42,7 +43,7 @@ export default function AlbumScreen() {
   ];
 
   return (
-    <GuestScreen transparent>
+    <GuestScreen transparent webMaxWidth={WEB_CONTENT_WIDTH.wide}>
       <View style={styles.intro}>
         <SectionLabel>{t('album.sectionLabel')}</SectionLabel>
         <Text style={[styles.headline, { color: tokens.textPrimary }]}>{t('album.headline')}</Text>
@@ -89,8 +90,10 @@ export default function AlbumScreen() {
         )}
       </View>
 
-      <GuestButton label={t('album.downloadAll')} onPress={() => {}} />
-      <GuestButton label={t('album.backToStart')} variant="outline" onPress={() => router.push('/')} />
+      <View style={Platform.OS === 'web' ? styles.actionsWeb : styles.actionsNative}>
+        <GuestButton label={t('album.downloadAll')} onPress={() => {}} />
+        <GuestButton label={t('album.backToStart')} variant="outline" onPress={() => router.push('/')} />
+      </View>
     </GuestScreen>
   );
 }
@@ -137,9 +140,22 @@ const styles = StyleSheet.create({
     gap: gSpace.sm,
   },
   tile: {
-    width: '31%',
+    // Wider web column (see webMaxWidth above) fits more per row than the
+    // mobile 3-across — same %-of-container approach, just a smaller share.
+    width: Platform.OS === 'web' ? '15%' : '31%',
     flexGrow: 1,
     aspectRatio: 1,
     borderRadius: themeRadius.md,
+  },
+  // Native: the two buttons used to be direct children of GuestScreen's own
+  // gapped column; wrapping them in one View to lay them out differently on
+  // web means reproducing that inter-button gap locally instead.
+  actionsNative: {
+    gap: gSpace.lg,
+  },
+  actionsWeb: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: gSpace.md,
   },
 });

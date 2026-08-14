@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { fonts, gRadius, gSpace } from '@/utils/guestTheme';
 import { themeRadius } from '@/utils/themeTokens';
 import { formatMoney } from '@/utils/money';
+import { WEB_CONTENT_WIDTH } from '@/utils/webLayout';
 
 export default function FondScreen() {
   const { t } = useTranslation();
@@ -36,7 +37,7 @@ export default function FondScreen() {
 
   if (content === null) {
     return (
-      <GuestScreen contentStyle={styles.page} transparent>
+      <GuestScreen contentStyle={styles.page} transparent webMaxWidth={WEB_CONTENT_WIDTH.narrow}>
         <View style={card}>
           <Skeleton height={11} width="50%" radius={4} />
           <Skeleton height={14} width="85%" radius={4} />
@@ -53,7 +54,7 @@ export default function FondScreen() {
 
   if (fund === null) {
     return (
-      <GuestScreen contentStyle={styles.page} transparent>
+      <GuestScreen contentStyle={styles.page} transparent webMaxWidth={WEB_CONTENT_WIDTH.narrow}>
         <EmptyState
           message={owner ? t('fond.emptyOwner') : t('fond.emptyGuest')}
           action={

@@ -24,7 +24,8 @@
     "emptyEventsMessage": "Create a page for your event and invite the people who matter.",
     "createEvent": "Create event",
     "emptyInvitationsHeadline": "No invitations yet",
-    "emptyInvitationsMessage": "When someone invites you, it shows up here."
+    "emptyInvitationsMessage": "When someone invites you, it shows up here.",
+    "selectEventPlaceholder": "Select an event from the list to see it here."
   },
   "auth": {
     "createAccountHeadline": "Create your account",

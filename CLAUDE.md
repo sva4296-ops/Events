@@ -1665,6 +1665,48 @@ gold icon on top.
 
 ---
 
+## 8. Platform Support
+
+**The app targets iOS, Android, and Web** — Expo Router is a universal router, and this is now a real
+three-platform app, not an iOS/Android app with Expo Router incidentally available. Web support was
+just enabled and immediately surfaced several layout bugs (see below) that never showed up on native.
+**Web is a first-class platform going forward, not an afterthought** — every future change must be
+written with web in mind, not patched for web after the fact once something breaks.
+
+**Known web-specific gotchas found so far:**
+
+- `position: 'absolute'` combined with negative margins/offsets tuned for mobile screen dimensions
+  causes overlapping UI on web — web's box model and lack of native screen bounds behave differently
+  from native, so an offset that reads correctly against a fixed mobile viewport can misplace or
+  overlap content on web's more elastic layout.
+- `SafeAreaView` has no visual effect on web — don't rely on it for spacing there; a component that
+  only reserves space via `SafeAreaView` renders with no equivalent inset on web.
+- `react-native-reanimated` v4 + `react-native-worklets` require the Babel plugin
+  `'react-native-worklets/plugin'` in `babel.config.js` for web builds to work; `useAnimatedStyle`
+  needs an explicit dependency array if the plugin isn't picking it up.
+
+**Rules for new work:**
+
+- Any new component using `position: 'absolute'`, a negative margin, `Dimensions.get('window')`, or
+  fixed pixel values for layout must be checked on web (`npx expo start --web`) before it's considered
+  done — the same "verified" bar this file already holds native changes to (see the top of this file),
+  now extended to a third platform.
+- Prefer flexbox layout (`flexDirection`, `gap`, `flex`) over absolute positioning wherever the design
+  allows — it behaves consistently across all three platforms, where absolute positioning tuned for one
+  platform's box model does not.
+- **Account-type logic (individual vs agency, via `useAgency()`) and any data filtering based on it
+  must behave identically on iOS/Android/Web.** Only the navigation *shell* — e.g. `EventTopNavbar`
+  (web-only top bar for the guest event tabs) vs the native floating bottom tab bar — is allowed to
+  differ by platform. The underlying data, permissions, and business logic must never branch on
+  `Platform.OS`; `useAgency()` itself has no platform awareness at all, by design, and no future
+  agency-specific data/permission check should introduce any.
+
+**This pass is documentation-only** — it records the gotchas found so far and the rules going forward;
+it does not fix the existing absolute-positioning/negative-margin bugs already found on web. Those
+remain open, to be addressed as their own pass.
+
+---
+
 ## Working on this project
 
 ```bash

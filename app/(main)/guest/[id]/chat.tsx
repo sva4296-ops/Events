@@ -20,6 +20,7 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import { gRadius, gSpace } from '@/utils/guestTheme';
+import { WEB_CONTENT_WIDTH } from '@/utils/webLayout';
 
 export default function ChatScreen() {
   const { t } = useTranslation();
@@ -39,7 +40,7 @@ export default function ChatScreen() {
       style={styles.fill}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <GuestScreen contentStyle={styles.content} transparent>
+      <GuestScreen contentStyle={styles.content} transparent webMaxWidth={WEB_CONTENT_WIDTH.narrow}>
         <View style={styles.headerBlock}>
           <SectionLabel>{t('chat.sectionLabel')}</SectionLabel>
           <Text style={[styles.subtitle, { color: tokens.textSecondary }]}>{t('chat.subtitle')}</Text>

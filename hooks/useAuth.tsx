@@ -18,10 +18,22 @@ export interface AppUser {
   label: string;
 }
 
+/** Passed through to supabase.auth.signUp's raw_user_meta_data — read by the
+ * handle_new_user() trigger to create the agencies row. Not optional client
+ * insert: email confirmation is ON for this project, so signUp() never yields
+ * a session, and there's no auth.uid() to insert as. See
+ * supabase/migrations/20260813000001_agencies.sql. */
+export interface AgencySignupInfo {
+  companyName: string;
+  cui: string;
+  registrationNumber?: string;
+  address?: string;
+}
+
 interface AuthContextValue {
   user: AppUser | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<string | null>;
+  signUp: (email: string, password: string, agency?: AgencySignupInfo) => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   /** Fires the "reset your password" email; the link opens app/reset-password.tsx. */
@@ -82,8 +94,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /** Returns an error message, or null on success. */
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  const signUp = useCallback(async (email: string, password: string, agency?: AgencySignupInfo) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options:
+        agency !== undefined
+          ? {
+              data: {
+                account_type: 'agency',
+                company_name: agency.companyName,
+                cui: agency.cui,
+                registration_number: agency.registrationNumber,
+                address: agency.address,
+              },
+            }
+          : undefined,
+    });
     return error?.message ?? null;
   }, []);
 

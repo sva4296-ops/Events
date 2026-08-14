@@ -203,6 +203,7 @@ was out of scope for an infra-only pass and would have been new functionality, n
 | `useEventDraft` | The 4-step create-event wizard draft (in-memory, not persisted) — still a Context provider, this is genuinely ephemeral UI state, not a fetched resource |
 | `useGuestEvent` | Provides `{ id, name, event }` to the guest tabs, derived from `useEvents().getEvent(id)` — **see the gotcha below** |
 | `useTheme` | The Warm Story light/dark theme — `{ mode, override, tokens, setThemeMode }`. Still a Context provider, same reasoning as `useAuth`: `mode` is push-driven (system `useColorScheme()` unless the user overrides it in Profile), not a fetched resource. See §5 for the full token set and which screens actually consume it yet |
+| `useAgency` | Whether the signed-in user owns an agency (`['agency', userId]`) — plain react-query hook, no provider. See "Agency accounts" below |
 
 **Critical gotcha — do not regress this.** `useLocalSearchParams` inside a tab child (`guest/[id]/detalii`)
 does **not** see the `[id]` param, which belongs to the parent layout route. Reading it there returns
@@ -477,6 +478,13 @@ Eight migration files exist under `supabase/migrations/`:
   1–2 below) can't see `storage.objects` policies or bucket existence at all — this migration's applied
   status has **no verification path from this environment**, confirmed or not, until the user runs it
   and the app is exercised on a device.
+- `20260812000002_album_status.sql` / `20260812000003_album_status_cron.sql` — present in the repo
+  (album lifecycle tracking, `events.album_status`) but never documented in this file by whichever pass
+  added them; left as-is here, not retroactively written up, since this pass didn't touch that feature.
+- `20260813000001_agencies.sql` — **not yet applied, not yet confirmed.** Adds the `agencies` table
+  (agency signup — see "Agency accounts" below) and a nullable `events.agency_id`, and redefines
+  `handle_new_user()` to also create the agency row from signup metadata. Same "no verification path"
+  caveat as the Storage migration above — this pass never had DB credentials either.
 
 **The first three are applied.** The user ran them against the connected project (not this session —
 no DB password/service-role key/CLI is available here, only the anon key). The first two were verified
@@ -825,12 +833,100 @@ exactly this, server-side, at insert time. The real explanation: that specific r
 trigger — it was applied later than some of the early test invites. `20260810000004_backfill_guest_links.sql`
 fixes existing rows like it in place; nothing about the ongoing insert path needed to change.
 
+### Agency accounts
+
+A second account type, for businesses that manage events on behalf of clients, distinct from an
+individual organizing their own event. The `agencies` table and `events.agency_id` are described in
+the schema table below — this section is the app-layer half.
+
+**Signup branching.** `app/auth/index.tsx`'s sign-in → sign-up toggle no longer flips the mode in place
+directly; it now routes to `app/auth/choose-type.tsx` first (a new unauthenticated screen, two option
+cards). Sign-up → sign-in still flips in place, unchanged. "I'm creating an event for myself" pushes
+`/auth?mode=sign-up`, which `AuthScreen` reads via `useLocalSearchParams` to land directly on the
+existing sign-up fields — the individual flow itself has zero behavioral changes. "I'm an agency /
+professional organizer" pushes `app/auth/agency-signup.tsx`, a new screen collecting `company_name`,
+`cui` (required, validated against a simple `/^RO?\d{2,10}$/i` pattern — Romanian tax ID, optionally
+RO-prefixed), `registration_number`/`address` (optional), plus the same email/password fields as
+individual sign-up.
+
+**Why the agency row is created by a trigger, not a client insert.** The connected project has email
+confirmation ON (see Auth flow above), so `supabase.auth.signUp()` never yields a session — there is no
+`auth.uid()` available to insert into `agencies` as at the moment of signup. Same shape as the
+guest-autolink problem this file already documents: `useAuth().signUp(email, password, agency?)` now
+accepts an optional `AgencySignupInfo` object and, when present, passes it through as
+`options.data` (`account_type: 'agency'`, `company_name`, `cui`, `registration_number`, `address`) — the
+same `raw_user_meta_data` channel `handle_new_user()` already reads `display_name` from.
+`20260813000001_agencies.sql` extends that trigger to also insert the `agencies` row when
+`account_type = 'agency'`, `on conflict (owner_user_id) do nothing`. This runs at `auth.users` insert
+time — immediately, before email confirmation — so by the time the account is confirmed and signed in
+for the first time, the agency row already exists; no extra post-confirmation step was needed.
+Individual signup passes no `agency` argument at all, so `options` is `undefined` and `account_type`
+defaults to `'individual'` in the trigger — zero behavioral change to that path.
+
+**`agency_id` is a tag, not a new access-control boundary, and not read by any screen today.** In this
+pass an agency has exactly one user, its owner, and every event that owner creates already has
+`organizer_id` equal to their own id — so the existing `organizer_id`-based RLS on `events` already
+covers agency-created events end to end. No new `events` policy was added. `hooks/useEvents.tsx`'s
+`createEvent` calls `useAgency()` internally and passes `agency?.id ?? null` through to `insertEvent` —
+an agency owner's events get tagged automatically, with no new screen or step in the create-event
+wizard, and an individual user (no `agencies` row) is completely unaffected (`agency` is `null`, so
+`agency_id` is `null`). If agency staff/multi-user accounts are ever added, that's the point a real
+agency-membership RLS policy is needed — not assumed here.
+
+**There is no separate agency dashboard — built, then removed the same pass.** An `app/agency/index.tsx`
+route existed briefly (a plain event list filtered by `agency_id`, reached via a briefcase icon on
+Home), with Home's own "Your events" filtered to `agency_id === null` so the two screens wouldn't show
+the same events twice. Real usage feedback reversed this: seeing your own events required a second
+screen, and the filter made "Your events" look empty (with its create-event empty-state CTA) for an
+account whose events were all agency-tagged. Removed entirely rather than patched — `app/agency/`, the
+briefcase icon, `useAgencyEvents`/`fetchAgencyEvents`, `AgencyEventSummary`, and the `agency.*`/
+`home.agencyDashboard` locale keys are all gone. **Home now shows every event the user organizes,
+agency-tagged or not, exactly like an individual account** — `ownedEvents = events.filter(isOwner)`,
+no `agency_id` check. `agency_id` itself, the `agencies` table, and the auto-tagging on create (above)
+are all still real and unchanged — the column is populated, just not consumed by any screen right now.
+If a future pass wants an agency-specific view again, don't reintroduce a second full-list screen
+without also solving the "where do MY events live" confusion this one caused — a filter/badge on the
+existing list is more likely right than a second destination.
+
+**"My invitations" is still hidden outright for agency accounts** — this part of the pass wasn't
+reversed. There's no legitimate agency-owner invitation to ever display, so `app/index.tsx` skips
+rendering the whole "My invitations" `View` when `useAgency().isAgencyOwner` is true; an explicit
+product decision, confirmed with the user. **This does not stop anyone from actually inviting an agency
+account's email as a guest** — `insertGuestInvite` and the `20260810000003` auto-link trigger are
+untouched, so a resulting `event_guests` row would still be created and linked, just not surfaced
+anywhere in this app's UI for that account. Blocking the invite itself was considered and explicitly
+deferred — it would mean teaching the guest-invite path or the auto-link trigger about agency accounts,
+a real behavior change to already-shipped infrastructure, not a screen-level filter.
+
+**`hooks/useAgency.tsx`** — one plain react-query-backed hook now (`useAgencyEvents` was removed with
+the dashboard above), same shape as `useEvents`/`useEventContent`, no Context/Provider. Answers "does
+the signed-in user own an agency" by whether a row exists in `agencies` for them (`['agency', userId]`,
+`staleTime: 180s` — details-category, since nothing edits an agency's own info this pass) —
+deliberately not a separate `account_type` column on `users`, to avoid the two ever drifting out of
+sync. Both remaining consumers (`app/index.tsx`'s invitations-hiding, `hooks/useEvents.tsx`'s
+`agency_id` auto-tagging) only need `agency`/`isAgencyOwner`, not a full event list.
+
+**`utils/authErrors.ts` — new, not agency-specific.** `mapAuthError` (Supabase error → field) moved out
+of `app/auth/index.tsx` into its own file so `app/auth/agency-signup.tsx` could reuse the exact same
+classification instead of duplicating it. No behavior change to the individual flow — same function,
+same call site, just relocated.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing, after every
+edit across this pass (agency signup, the dashboard that was added then removed, and the invitations
+hide). `20260813000001_agencies.sql` is written but not applied (see the Reality check entry above) —
+whether `handle_new_user()`'s extended metadata read actually fires correctly, whether
+`raw_user_meta_data` really carries the fields through Supabase's signup flow as expected, and how any
+of the new screens actually look/feel are all unverified from this environment, same as everything else
+marked unconfirmed in this file.
+
 ### Schema as written in the migrations
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | `users` | `id` (FK `auth.users`), `email`, `display_name`, `has_completed_onboarding` | Populated by an `on_auth_user_created` trigger; `has_completed_onboarding` added by `20260810000006` |
-| `events` | `id`, `organizer_id`, `type` (enum), `name`, `event_date`, `location`, `welcome_message` | `event_type` enum: wedding, baptism, birthday, cause, corporate, memorial, other |
+| `events` | `id`, `organizer_id`, `agency_id` (nullable), `type` (enum), `name`, `event_date`, `location`, `welcome_message` | `event_type` enum: wedding, baptism, birthday, cause, corporate, memorial, other. `agency_id` added by `20260813000001` — populated automatically for agency owners, but not currently read by any screen (no agency-specific view exists), see "Agency accounts" below |
+| `agencies` | `id`, `owner_user_id` (unique FK `users`), `company_name`, `cui`, `registration_number` (nullable), `address` (nullable) | Added by `20260813000001`. One agency per owner this pass — no staff/multi-user agencies yet. Row is created by `handle_new_user()` from signup metadata, never inserted client-side (email confirmation is ON, so `signUp()` never yields a session at insert time) |
 | `event_guests` | `id`, `event_id`, `guest_user_id` (nullable), `guest_email`, `guest_name`, `rsvp_status`, `invited_at`, `responded_at`, `dietary_preferences text[]` | Partial unique index on `(event_id, guest_user_id)`; `rsvp_status` enum: pending, confirmed, declined; `dietary_preferences` added by `20260810000008` |
 | `schedule_items` | `id`, `event_id`, `time`, `title`, `location`, `sort_order` | Detalii tab |
 | `venue_info` | `id`, `event_id` (unique), `name`, `address`, `notes text[]` | Separate table, not folded into `events` — optional and separately edited |
@@ -865,6 +961,9 @@ Three `SECURITY DEFINER` helpers back the policies (`is_event_organizer`, `is_ev
 - **Fund:** anyone on the event reads; only the organizer manages.
 - **Contributions:** readable by anyone on the event. **No insert policy on purpose** — these are meant
   to be written by a Stripe webhook using the service role, never from the client.
+- **Agencies:** owner reads and updates their own row. **No insert policy on purpose** — rows are only
+  ever created by `handle_new_user()` (security definer, bypasses RLS), never inserted directly by a
+  client session, same reasoning as contributions above.
 - **Photos:** anyone on the event reads and uploads as themselves; you can delete your own, and the
   organizer can delete any. As of `20260812000001_event_photos_storage.sql`, `storage.objects` for the
   private `event-photos` bucket has the identical shape (view/insert/delete, same
@@ -886,7 +985,9 @@ its own header). The only nested navigator is the guest event tabs.
 | --- | --- |
 | `app/_layout.tsx` | Providers, splash overlay, auth gate |
 | `app/onboarding.tsx` | Once per account, after a session exists, 4 swipeable steps, exits to `/` |
-| `app/auth/index.tsx` | Single screen, sign-in/sign-up modes toggled in place. Sign-in mode has a "Forgot password?" link to `forgot-password` |
+| `app/auth/index.tsx` | Single screen, sign-in/sign-up modes toggled in place. Sign-in mode has a "Forgot password?" link to `forgot-password`. Sign-in → sign-up now routes through `auth/choose-type` first — see §3's "Agency accounts" |
+| `app/auth/choose-type.tsx` | Unauthenticated: account-type choice (individual vs agency), first step of sign-up. See §3's "Agency accounts" |
+| `app/auth/agency-signup.tsx` | Unauthenticated: agency signup form (company name, CUI, etc. + email/password). See §3's "Agency accounts" |
 | `app/forgot-password.tsx` | Unauthenticated: email input, fires Supabase's password-reset email — see §3's "Forgot / change password" |
 | `app/reset-password.tsx` | Opened only via the `povesteanoastra://reset-password` deep link from that email, never in-app navigation — establishes the recovery session, then new-password + confirm |
 | `app/change-password.tsx` | Authenticated: new-password + confirm off the existing session, no current-password re-entry. Reached from Profile |

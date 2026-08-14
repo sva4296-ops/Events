@@ -32,6 +32,13 @@ export interface AppEvent {
   id: string;
   /** Auth user id of the organizer. Absent on events created before auth landed. */
   owner_id?: string;
+  /** Set when this event was created by an agency-owner account — see
+   * hooks/useEvents.tsx's createEvent. Null for every individually-created
+   * event. Not read by any screen today — Home shows every owned event
+   * regardless of this field, agency or not (see "Agency accounts" in
+   * CLAUDE.md for why the separate agency dashboard that used to filter on
+   * it was removed). Kept on the row/type for whatever reads it next. */
+  agency_id: string | null;
   type: EventTypeId;
   name: string;
   /** Free-form date string as typed by the organizer, ideally `YYYY-MM-DD`. */
@@ -56,4 +63,12 @@ export interface RsvpCounts {
   pending: number;
   declined: number;
   total: number;
+}
+
+export interface Agency {
+  id: string;
+  companyName: string;
+  cui: string;
+  registrationNumber: string | null;
+  address: string | null;
 }

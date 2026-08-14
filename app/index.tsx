@@ -9,6 +9,7 @@ import { HomeEmptyState } from '@/components/HomeEmptyState';
 import { InvitationListItem, InvitationListItemSkeleton } from '@/components/InvitationListItem';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { Screen } from '@/components/Screen';
+import { useAgency } from '@/hooks/useAgency';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
@@ -21,6 +22,7 @@ export default function DashboardScreen() {
   const { events, hydrated, isOwner } = useEvents();
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
+  const { isAgencyOwner } = useAgency();
 
   const ownedEvents = events.filter((event) => isOwner(event));
   const invitations = myInvitations(events, isOwner);
@@ -81,41 +83,47 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>
-            {t('home.myInvitations')}
-          </Text>
-          <Text style={[styles.sectionHint, { color: tokens.textSecondary }]}>
-            {t('home.myInvitationsHint')}
-          </Text>
+        {/* Agency accounts don't participate in guest invitations — see
+            CLAUDE.md's "Agency accounts" section. Hidden outright rather than
+            just filtered to empty, since (unlike "Your events") there's no
+            legitimate agency-owner invitation to ever show here. */}
+        {isAgencyOwner ? null : (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>
+              {t('home.myInvitations')}
+            </Text>
+            <Text style={[styles.sectionHint, { color: tokens.textSecondary }]}>
+              {t('home.myInvitationsHint')}
+            </Text>
 
-          {!hydrated ? (
-            <>
-              <InvitationListItemSkeleton />
-              <InvitationListItemSkeleton />
-            </>
-          ) : invitations.length === 0 ? (
-            <HomeEmptyState
-              icon="mail"
-              headline={t('home.emptyInvitationsHeadline')}
-              message={t('home.emptyInvitationsMessage')}
-            />
-          ) : (
-            invitations.map((invitation) => (
-              <InvitationListItem
-                key={invitation.event.id}
-                invitation={invitation}
-                onPress={() =>
-                  router.push(
-                    invitation.guest.status === 'pending'
-                      ? `/invite/${invitation.event.id}`
-                      : `/guest/${invitation.event.id}`,
-                  )
-                }
+            {!hydrated ? (
+              <>
+                <InvitationListItemSkeleton />
+                <InvitationListItemSkeleton />
+              </>
+            ) : invitations.length === 0 ? (
+              <HomeEmptyState
+                icon="mail"
+                headline={t('home.emptyInvitationsHeadline')}
+                message={t('home.emptyInvitationsMessage')}
               />
-            ))
-          )}
-        </View>
+            ) : (
+              invitations.map((invitation) => (
+                <InvitationListItem
+                  key={invitation.event.id}
+                  invitation={invitation}
+                  onPress={() =>
+                    router.push(
+                      invitation.guest.status === 'pending'
+                        ? `/invite/${invitation.event.id}`
+                        : `/guest/${invitation.event.id}`,
+                    )
+                  }
+                />
+              ))
+            )}
+          </View>
+        )}
       </Screen>
 
       <TouchableOpacity

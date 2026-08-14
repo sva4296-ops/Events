@@ -22,6 +22,7 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
   return {
     id: row.id,
     owner_id: row.organizer_id,
+    agency_id: row.agency_id,
     type: row.type,
     name: row.name,
     date: row.event_date ?? '',
@@ -58,12 +59,17 @@ export async function fetchEventById(eventId: string): Promise<AppEvent | null> 
   return data === null ? null : mapEventRow(data as EventWithGuestsRow);
 }
 
-export async function insertEvent(draft: EventDraft, organizerId: string): Promise<AppEvent> {
+export async function insertEvent(
+  draft: EventDraft,
+  organizerId: string,
+  agencyId: string | null,
+): Promise<AppEvent> {
   const client = supabase;
   const { data, error } = await client
     .from('events')
     .insert({
       organizer_id: organizerId,
+      agency_id: agencyId,
       type: draft.type ?? 'other',
       name: draft.name.trim(),
       event_date: draft.date.trim().length > 0 ? draft.date.trim() : null,
@@ -78,7 +84,7 @@ export async function insertEvent(draft: EventDraft, organizerId: string): Promi
 
 export async function updateEventRow(
   eventId: string,
-  patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'guests' | 'createdAt'>>,
+  patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt'>>,
 ): Promise<void> {
   const client = supabase;
   const columns: Record<string, unknown> = {};

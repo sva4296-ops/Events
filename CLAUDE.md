@@ -485,6 +485,15 @@ Eight migration files exist under `supabase/migrations/`:
   (agency signup — see "Agency accounts" below) and a nullable `events.agency_id`, and redefines
   `handle_new_user()` to also create the agency row from signup metadata. Same "no verification path"
   caveat as the Storage migration above — this pass never had DB credentials either.
+- `20260818000001_phone_auth.sql` — **not yet applied, not yet confirmed.** Adds `users.phone` and
+  redefines `handle_new_user()` again to also populate it, plus fixes the `display_name` fallback for
+  a phone-only signup (no email at all). See "Phone auth + phone guest invites" below. Same
+  no-verification-path caveat as every migration since `20260810000003` — no DB credentials from this
+  environment.
+- `20260818000002_guest_phone_invites.sql` — **not yet applied, not yet confirmed.** Adds
+  `event_guests.guest_phone`, a contact-method check constraint, a unique `(event_id, guest_phone)`
+  index, extends both `link_guest_on_invite()`/`link_invites_on_signup()` to also match by phone, and
+  adds the new `get_invite_preview(uuid)` RPC. See "Phone auth + phone guest invites" below.
 
 **The first three are applied.** The user ran them against the connected project (not this session —
 no DB password/service-role key/CLI is available here, only the anon key). The first two were verified
@@ -492,10 +501,11 @@ from this session by an anonymous `select` against all 11 base tables: every one
 empty array (RLS correctly denies rows to a request with no `auth.uid()`), where `events` previously
 returned `PGRST205`. **This only confirms the schema exists** — it does not confirm a real signed-in
 write round-trips, since there's no way to authenticate as a real user from this environment. Treat
-writes as typecheck/bundle-verified only until exercised from the running app. Migrations 3, 5, 6, 7,
-8, and 9's applied status can't be confirmed the same way — PostgREST's schema endpoint doesn't expose
-triggers, functions, or (without an authenticated request) new tables/columns — so those are taken on
-the user's word (migration 3) or not yet confirmed at all (5, 6, 7, 8, 9), not independently re-checked.
+writes as typecheck/bundle-verified only until exercised from the running app. Every migration from 3
+onward (3, 5, 6, 7, 8, 9, and now the two phone-auth/phone-invite migrations) can't be confirmed the
+same way — PostgREST's schema endpoint doesn't expose triggers, functions, or (without an
+authenticated request) new tables/columns — so those are taken on the user's word (migration 3) or not
+yet confirmed at all (everything after), not independently re-checked.
 
 **Post-auth onboarding.** The 4-step tutorial (`app/onboarding.tsx` — content, design, and swipe
 mechanics all unchanged) moved from "before Auth, once per device" to "after Auth, once per account."
@@ -549,6 +559,15 @@ or are already a guest of — so this screen still works for an organizer previe
 for real needs either an organizer-driven "invite specific guest by email" flow (matching what the
 schema's `event_guests` insert policies actually assume) or a deliberately looser `events` select
 policy — a security-relevant schema change, not something to bundle in silently.
+
+**Narrowed, not closed, by the phone-invites pass (`get_invite_preview`, §3's "Phone auth + phone
+guest invites").** That RPC gives a real pre-existing invitee (a genuine `event_guests` row, created
+by the organizer via email or phone) a way to see their own event preview even before the auto-link
+trigger's write has propagated into this device's cached events list — it checks `guest_user_id =
+auth.uid()` as well as `guest_phone`, so the benefit isn't phone-only. What it does **not** fix is the
+scenario this note is actually about: someone with **no** `event_guests` row at all (a shared generic
+link, not an organizer-issued invite) still can't preview the event — the RPC only ever matches an
+existing row for the caller, same chicken-and-egg problem, just for a narrower population than before.
 
 **Fixed — organizer's own "Preview as guest" no longer attempts a real RSVP write.**
 `app/invite/[id].tsx` is a single screen serving two purposes: the real guest-facing invite/RSVP page,
@@ -920,14 +939,99 @@ whether `handle_new_user()`'s extended metadata read actually fires correctly, w
 of the new screens actually look/feel are all unverified from this environment, same as everything else
 marked unconfirmed in this file.
 
+### Phone auth + phone guest invites
+
+A second auth method (phone number + OTP) and a second guest-invite method (by phone number),
+additive to the existing email/password auth and email-only invites — neither existing path was
+restructured. Phone and email accounts are **fully separate identities**, no linking, same
+"one identity per signup" precedent as agency accounts above.
+
+**Auth (`hooks/useAuth.tsx`).** `signInWithPhoneOtp(phone, channel = 'sms')` calls
+`supabase.auth.signInWithOtp({ phone, options: { channel } })` — Supabase creates the account on
+first use (`shouldCreateUser` defaults true), so there is no separate phone "sign up": every phone
+login is the same call, and every login is a fresh OTP challenge, never a stored phone-password.
+`verifyPhoneOtp(phone, token)` calls `supabase.auth.verifyOtp({ phone, token, type: 'sms' })` — the
+verify `type` is `'sms'` regardless of which channel actually delivered the code, per Supabase's own
+API shape; **unverified from this environment**, no way to send or receive a real SMS here. On
+success, `onAuthStateChange` fires exactly like an email sign-in — no phone-specific session handling
+exists anywhere, and `AuthGate`'s existing onboarding check already routes a brand-new phone account
+through `/onboarding` the same as a brand-new email account, with no changes to `AuthGate` itself
+(`app/auth/phone.tsx`/`phone-verify.tsx` fall under the `'auth'` `PUBLIC_SEGMENTS` entry the same way
+`choose-type`/`agency-signup` already do). `AppUser` gained `phone: string | null`; `label` falls back
+to `email ?? phone ?? 'Tu'`. The channel parameter (`'sms' | 'whatsapp'`, default `'sms'`) exists from
+the start specifically so a WhatsApp toggle can be added later as a UI change, not a refactor — only
+SMS is actually wired into any screen this pass. **Individual accounts only** — there is no
+phone-based agency signup; flagged as deferred scope, not built.
+
+New screens: `app/auth/phone.tsx` (country-code picker via the new `components/PhoneField.tsx` +
+`utils/countryCodes.ts`, local-number field, "Send code") and `app/auth/phone-verify.tsx` (code field,
+30s local resend cooldown). Reached from a new "Continue with phone number" link on `app/auth/index.tsx`,
+visible in both sign-in and sign-up mode (there's only one phone flow, not two). `PhoneField` combines
+a dial code + local number into E.164 via `toE164()`, stripping non-digit characters from pasted
+input first.
+
+**`public.users.phone`** (added by `20260818000001_phone_auth.sql`) mirrors `auth.users.phone`, same
+denormalization reasoning already used for `email`. `handle_new_user()` was redefined again to
+populate it and to fix a real gap: the old `display_name` fallback
+(`split_part(email, '@', 1)`) produced `null` for a phone-only signup with no email and no
+`display_name` metadata. It now falls back through `display_name` metadata → the email-derived name →
+the phone number itself → the literal string `'Guest'`. **No RLS policy needed a change** — checked
+every policy in `20260810000002_rls_policies.sql`, none reference the email column, all key off
+`auth.uid()` alone.
+
+**Phone guest invites** mirror the email-invite shape exactly. `event_guests.guest_phone` (added by
+`20260818000002_guest_phone_invites.sql`) is a parallel nullable column to `guest_email`, with a new
+`event_guests_contact_check` constraint requiring at least one of `guest_email`/`guest_phone`/
+`guest_user_id` to be set (safe against existing data — every current insert path already sets one),
+and a unique `(event_id, guest_phone)` index mirroring `event_guests_unique_email`. Both directions of
+the auto-link trigger from `20260810000003_guest_autolink.sql` were extended, not replaced:
+`link_guest_on_invite()` tries an email match first, then a phone match, if `guest_user_id` is still
+unset after either; `link_invites_on_signup()`'s single `update` statement gained an `or` arm matching
+`guest_phone` against the newly-signed-up account's `phone`. `data/eventsRepository.ts` gained
+`checkGuestPhoneInvited`/`insertGuestInvitePhone` as siblings to the email functions (not a
+restructure of them), and `mapGuestRow`'s name fallback chain gained `guest_phone` as a third
+fallback after `guest_name`/`guest_email`. `hooks/useEvents.tsx` gained `addGuestByPhone`, an exact
+mirror of `addGuest`'s refetch-single-event-after-insert shape. `app/add-guest/[id].tsx` gained an
+email/phone toggle (one method per submission, not both at once) instead of becoming two screens.
+
+**`get_invite_preview(p_event_id uuid)` — new RPC, and why it exists despite the auto-link trigger
+already running before a session exists.** Tracing the trigger timing: `link_invites_on_signup()`
+fires on `public.users` insert, which happens at `verifyPhoneOtp`/`signUp` time — before a session is
+even established. So for an *already-invited* guest, by the time they have a real session their
+`guest_user_id` is typically already linked, and the existing `can_view_event`/`is_event_guest` RLS
+already lets the normal `fetchEvents()` see the event with no RPC involved. The RPC earns its place
+for two other reasons instead: (1) the planned standalone Next.js web-fallback page (see
+`docs/web-invite-fallback-spec.md`, not built this pass) has no `useEvents`/`eventsRepository.ts` at
+all — it needs its own minimal, purpose-built read for "show me my one pending invite," and a narrow
+`security definer` function is a much smaller security surface than teaching a second codebase broad
+`events`/`event_guests` access; (2) defense-in-depth in this app itself for the case CLAUDE.md's
+existing "invite preview under RLS" note already flags as unverified — whether the auto-link-before-
+session-exists timing actually holds on a real device has never been confirmed, since this app has
+never run on one. The RPC derives the caller's own phone from `public.users` via `auth.uid()` **only**
+— never from a client parameter — so a URL can't be used to see someone else's invite; it returns zero
+rows for anyone without a matching invite. `execute` is granted to `authenticated` only (not `anon`),
+mirroring `reset_test_data()`'s grant-narrowing pattern. `app/invite/[id].tsx` calls it (via
+`data/eventsRepository.ts`'s `fetchInvitePreview`) only as a fallback, after the normal
+`useEvents`-backed lookup comes up empty for a signed-in session — the already-linked path (today's
+behavior, unchanged) never reaches this code. The fallback renders `InviteCard` fed by the RPC's
+narrower `InvitePreview` shape (`types/event.ts`) instead of a full `AppEvent`, with the same
+Confirm/Decline buttons calling the same `respondToInvite`.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing. Both
+migrations are written but not applied (no service-role/CLI access from this environment, same as
+every migration since `20260810000003`) — real Twilio SMS delivery (dashboard-side provider
+configuration is the user's own step, not verifiable from here), a real OTP verify round-trip, the
+auto-link trigger's actual timing, and the RPC's behavior against real data are all unverified.
+
 ### Schema as written in the migrations
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| `users` | `id` (FK `auth.users`), `email`, `display_name`, `has_completed_onboarding` | Populated by an `on_auth_user_created` trigger; `has_completed_onboarding` added by `20260810000006` |
+| `users` | `id` (FK `auth.users`), `email`, `phone`, `display_name`, `has_completed_onboarding` | Populated by an `on_auth_user_created` trigger; `has_completed_onboarding` added by `20260810000006`; `phone` added by `20260818000001` |
 | `events` | `id`, `organizer_id`, `agency_id` (nullable), `type` (enum), `name`, `event_date`, `location`, `welcome_message` | `event_type` enum: wedding, baptism, birthday, cause, corporate, memorial, other. `agency_id` added by `20260813000001` — populated automatically for agency owners, but not currently read by any screen (no agency-specific view exists), see "Agency accounts" below |
 | `agencies` | `id`, `owner_user_id` (unique FK `users`), `company_name`, `cui`, `registration_number` (nullable), `address` (nullable) | Added by `20260813000001`. One agency per owner this pass — no staff/multi-user agencies yet. Row is created by `handle_new_user()` from signup metadata, never inserted client-side (email confirmation is ON, so `signUp()` never yields a session at insert time) |
-| `event_guests` | `id`, `event_id`, `guest_user_id` (nullable), `guest_email`, `guest_name`, `rsvp_status`, `invited_at`, `responded_at`, `dietary_preferences text[]` | Partial unique index on `(event_id, guest_user_id)`; `rsvp_status` enum: pending, confirmed, declined; `dietary_preferences` added by `20260810000008` |
+| `event_guests` | `id`, `event_id`, `guest_user_id` (nullable), `guest_email`, `guest_phone`, `guest_name`, `rsvp_status`, `invited_at`, `responded_at`, `dietary_preferences text[]` | Partial unique index on `(event_id, guest_user_id)`; `rsvp_status` enum: pending, confirmed, declined; `dietary_preferences` added by `20260810000008`; `guest_phone` added by `20260818000002`, with a unique `(event_id, guest_phone)` index and a check requiring at least one of `guest_email`/`guest_phone`/`guest_user_id` |
 | `schedule_items` | `id`, `event_id`, `time`, `title`, `location`, `sort_order` | Detalii tab |
 | `venue_info` | `id`, `event_id` (unique), `name`, `address`, `notes text[]` | Separate table, not folded into `events` — optional and separately edited |
 | `moments` | `id`, `event_id`, `organizer_id`, `title`, `photo_url` | Acasă feed |
@@ -988,6 +1092,8 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/auth/index.tsx` | Single screen, sign-in/sign-up modes toggled in place. Sign-in mode has a "Forgot password?" link to `forgot-password`. Sign-in → sign-up now routes through `auth/choose-type` first — see §3's "Agency accounts" |
 | `app/auth/choose-type.tsx` | Unauthenticated: account-type choice (individual vs agency), first step of sign-up. See §3's "Agency accounts" |
 | `app/auth/agency-signup.tsx` | Unauthenticated: agency signup form (company name, CUI, etc. + email/password). See §3's "Agency accounts" |
+| `app/auth/phone.tsx` | Unauthenticated: phone number + country-code entry, sends the OTP. See §3's "Phone auth + phone guest invites" |
+| `app/auth/phone-verify.tsx` | Unauthenticated: OTP code entry + resend, establishes the session on success. See §3's "Phone auth + phone guest invites" |
 | `app/forgot-password.tsx` | Unauthenticated: email input, fires Supabase's password-reset email — see §3's "Forgot / change password" |
 | `app/reset-password.tsx` | Opened only via the `povesteanoastra://reset-password` deep link from that email, never in-app navigation — establishes the recovery session, then new-password + confirm |
 | `app/change-password.tsx` | Authenticated: new-password + confirm off the existing session, no current-password re-entry. Reached from Profile |
@@ -1646,19 +1752,23 @@ gold icon on top.
 - **Stripe.** The fund UI is complete but `checkout/[id].tsx` is a placeholder screen — no payment,
   no Stripe Connect onboarding, no `contributions` writes (and none should be added client-side — see
   §3's note on why `contribute()` has no real backing implementation).
-- **Real invites — partially built.** Server-side invite records now exist —
-  `app/add-guest/[id].tsx` writes a real `event_guests` row by email, auto-linked to an account via
-  `20260810000003_guest_autolink.sql` — see §3). What's still missing: no email/SMS actually sent to
-  the invitee telling them they were invited — they only find out by opening the app themselves and
-  seeing it under "My invitations," which requires them to already know to check. The share sheet's
-  `povesteanoastra://invite/<id>` deep link still only resolves on the device that created the event,
-  and a genuinely new guest account still can't preview the event before RSVPing (§3's invite-preview
-  limitation) — inviting by email doesn't fix that, since the not-yet-a-guest problem is about the
-  `events` select policy, not about how the `event_guests` row was created.
-- **Guest identity is real now.** `event_guests` rows carry a real `guest_email`/`guest_user_id`,
-  auto-linked in either direction (§3).
-- No push notifications. No Google/Apple/social auth (email + password only). No video streaming —
-  the Live tab is a photo feed. No venue/restaurant marketplace. No seating plans.
+- **Real invites — partially built, now by phone too.** Server-side invite records exist for both
+  email (`app/add-guest/[id].tsx`, auto-linked via `20260810000003_guest_autolink.sql`) and phone
+  (same screen's phone mode, auto-linked via `20260818000002_guest_phone_invites.sql`) — see §3's
+  "Phone auth + phone guest invites." What's still missing: **no SMS/WhatsApp message is actually
+  sent to a phone invitee either** — `insertGuestInvitePhone` only writes the `event_guests` row,
+  nothing calls Twilio (or any provider) to notify them. That send step, plus the standalone Next.js
+  web-fallback page for someone who taps a link without the app installed, are both specified but not
+  built — see `docs/web-invite-fallback-spec.md` and CLAUDE.md's own note pointing to it. The
+  `povesteanoastra://invite/<id>` deep link itself still only resolves on a device with the app
+  installed; there is still no real SMS delivery integration in this repo at all, phone auth's OTP
+  send included (Twilio is presumed configured in the Supabase dashboard, never verified from here).
+  The invite-preview-under-RLS gap is narrower now, not gone — see §3's "Narrowed, not closed" note.
+- **Guest identity is real now.** `event_guests` rows carry a real `guest_email`/`guest_phone`/
+  `guest_user_id`, auto-linked in either direction for both contact methods (§3).
+- No push notifications. No Google/Apple/social auth — email/password and phone/OTP only (§3's
+  "Phone auth + phone guest invites"). No video streaming — the Live tab is a photo feed. No
+  venue/restaurant marketplace. No seating plans.
 - **Album's "Descarcă toate pozele" button has no handler** — it is a dead control.
 - **Moment comments.** The "Comentarii" link on a moment card navigates to the Chat tab; there is no
   comments table or thread UI.

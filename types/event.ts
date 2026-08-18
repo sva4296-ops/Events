@@ -72,3 +72,21 @@ export interface Agency {
   registrationNumber: string | null;
   address: string | null;
 }
+
+/**
+ * Narrow event-preview shape for a not-yet-linked invitee, returned by the
+ * get_invite_preview RPC — see data/eventsRepository.ts's fetchInvitePreview
+ * and app/invite/[id].tsx's fallback branch. EventDraft-compatible
+ * (type/name/date/location/welcomeMessage) so it can feed InviteCard
+ * directly without a full AppEvent.
+ */
+export interface InvitePreview {
+  eventId: string;
+  type: EventTypeId;
+  name: string;
+  date: string;
+  location: string;
+  welcomeMessage: string;
+  guestId: string;
+  rsvpStatus: RsvpStatus;
+}

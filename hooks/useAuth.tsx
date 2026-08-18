@@ -15,8 +15,15 @@ import { buildResetPasswordRedirectUrl } from '@/utils/passwordReset';
 export interface AppUser {
   id: string;
   email: string | null;
+  phone: string | null;
   label: string;
 }
+
+/** Supabase's OTP delivery channel — SMS today; the parameter exists from the
+ * start (rather than being hardcoded) so a WhatsApp toggle later is a UI
+ * addition, not a refactor. Whichever channel sends it, Supabase's verify
+ * step always uses type: 'sms' — unverified from this environment. */
+export type PhoneOtpChannel = 'sms' | 'whatsapp';
 
 /** Passed through to supabase.auth.signUp's raw_user_meta_data — read by the
  * handle_new_user() trigger to create the agencies row. Not optional client
@@ -36,6 +43,14 @@ interface AuthContextValue {
   signUp: (email: string, password: string, agency?: AgencySignupInfo) => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
+  /** Sends (or resends) an OTP to `phone`. Same call for a brand-new or
+   * returning phone number — Supabase creates the user on first use, so
+   * there's no separate phone "sign up" — every login is a fresh challenge,
+   * never a stored phone-password. */
+  signInWithPhoneOtp: (phone: string, channel?: PhoneOtpChannel) => Promise<string | null>;
+  /** Verifies the code and establishes a normal session — onAuthStateChange
+   * picks it up exactly like an email sign-in, no separate handling needed. */
+  verifyPhoneOtp: (phone: string, token: string) => Promise<string | null>;
   /** Fires the "reset your password" email; the link opens app/reset-password.tsx. */
   requestPasswordReset: (email: string) => Promise<string | null>;
   /** Establishes the temporary recovery session from the deep link's tokens
@@ -69,7 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : {
               id: session.user.id,
               email: session.user.email ?? null,
-              label: session.user.email ?? 'Tu',
+              phone: session.user.phone ?? null,
+              label: session.user.email ?? session.user.phone ?? 'Tu',
             },
       );
       setLoading(false);
@@ -82,7 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : {
               id: session.user.id,
               email: session.user.email ?? null,
-              label: session.user.email ?? 'Tu',
+              phone: session.user.phone ?? null,
+              label: session.user.email ?? session.user.phone ?? 'Tu',
             },
       );
     });
@@ -121,6 +138,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+  }, []);
+
+  const signInWithPhoneOtp = useCallback(async (phone: string, channel: PhoneOtpChannel = 'sms') => {
+    const { error } = await supabase.auth.signInWithOtp({ phone, options: { channel } });
+    return error?.message ?? null;
+  }, []);
+
+  const verifyPhoneOtp = useCallback(async (phone: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
+    return error?.message ?? null;
   }, []);
 
   const requestPasswordReset = useCallback(async (email: string) => {
@@ -176,6 +203,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signIn,
       signOut,
+      signInWithPhoneOtp,
+      verifyPhoneOtp,
       requestPasswordReset,
       setRecoverySession,
       updatePassword,
@@ -188,6 +217,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signIn,
       signOut,
+      signInWithPhoneOtp,
+      verifyPhoneOtp,
       requestPasswordReset,
       setRecoverySession,
       updatePassword,

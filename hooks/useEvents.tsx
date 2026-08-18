@@ -6,6 +6,7 @@ import {
   fetchEvents,
   insertEvent,
   insertGuestInvite,
+  insertGuestInvitePhone,
   removeGuestRow,
   respondToInviteRow,
   updateDietaryPreferencesRow,
@@ -26,6 +27,7 @@ interface EventsResult {
   respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => void;
   removeGuest: (eventId: string, guestId: string) => void;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
+  addGuestByPhone: (eventId: string, phone: string, name: string) => Promise<void>;
   /** A signed-in non-organizer's own preference — no-op for an owner (no guest row to write to). */
   updateMyDietaryPreferences: (eventId: string, preferences: string[]) => void;
   isOwner: (event: AppEvent | undefined) => boolean;
@@ -153,6 +155,30 @@ export function useEvents(): EventsResult {
     [addGuestMutation],
   );
 
+  /** Phone equivalent of addGuestMutation above — identical refetch-single-
+   * event shape, same reasoning: the auto-link trigger may have linked
+   * guest_user_id server-side and there's no way to know ahead of the round
+   * trip. */
+  const addGuestByPhoneMutation = useMutation({
+    mutationFn: async (vars: { eventId: string; phone: string; name: string }) => {
+      await insertGuestInvitePhone(vars.eventId, vars.phone, vars.name);
+      return fetchEventById(vars.eventId);
+    },
+    onSuccess: (fresh) => {
+      if (fresh === null) return;
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+        current.map((event) => (event.id === fresh.id ? fresh : event)),
+      );
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const addGuestByPhone = useCallback(
+    async (eventId: string, phone: string, name: string): Promise<void> => {
+      await addGuestByPhoneMutation.mutateAsync({ eventId, phone, name });
+    },
+    [addGuestByPhoneMutation],
+  );
+
   const isOwner = useCallback(
     (event: AppEvent | undefined) => event !== undefined && user !== null && event.owner_id === user.id,
     [user],
@@ -219,6 +245,7 @@ export function useEvents(): EventsResult {
     respondToInvite,
     removeGuest,
     addGuest,
+    addGuestByPhone,
     updateMyDietaryPreferences,
     isOwner,
   };

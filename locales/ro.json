@@ -46,6 +46,7 @@
     "signUpToggle": "Înregistrează-te",
     "accountCreatedNotice": "Cont creat. Confirmă-ți emailul, apoi autentifică-te.",
     "forgotPassword": "Ai uitat parola?",
+    "usePhoneInstead": "Continuă cu numărul de telefon",
     "errors": {
       "alreadyRegistered": "Există deja un cont cu acest email.",
       "invalidCredentials": "Combinația de email și parolă este incorectă.",
@@ -112,6 +113,28 @@
     "errors": {
       "companyNameRequired": "Introdu denumirea firmei.",
       "cuiInvalid": "Introdu un CUI valid (ex: RO12345678)."
+    }
+  },
+  "phoneAuth": {
+    "headline": "Autentificare cu telefonul",
+    "subtitle": "Îți trimitem un cod unic prin SMS — fără parolă.",
+    "phoneLabel": "Număr de telefon",
+    "phonePlaceholder": "712 345 678",
+    "selectCountry": "Alege o țară",
+    "sendCode": "Trimite codul",
+    "sendingCode": "Se trimite codul…",
+    "verifyHeadline": "Introdu codul",
+    "verifySubtitle": "Am trimis un cod la {{phone}}.",
+    "codeLabel": "Cod de verificare",
+    "codePlaceholder": "123456",
+    "verifyButton": "Verifică",
+    "verifyingButton": "Se verifică…",
+    "resendCode": "Retrimite codul",
+    "resendCooldown": "Retrimite codul ({{seconds}}s)",
+    "errors": {
+      "invalidPhone": "Introdu un număr de telefon valid.",
+      "emptyCode": "Introdu codul primit.",
+      "invalidCode": "Codul este incorect sau a expirat."
     }
   },
   "acasa": {
@@ -351,6 +374,9 @@
   "addGuestForm": {
     "notAvailableSubtitle": "Doar organizatorul poate invita invitați.",
     "subtitle": "Vor apărea la Invitațiile mele odată ce se autentifică cu acest email.",
+    "subtitlePhone": "Vor apărea la Invitațiile mele odată ce verifică acest număr de telefon.",
+    "methodEmail": "Email",
+    "methodPhone": "Telefon",
     "selfInviteError": "Nu te poți invita pe tine — ești deja organizatorul.",
     "alreadyInvitedError": "Această persoană este deja invitată.",
     "sending": "Se trimite…",

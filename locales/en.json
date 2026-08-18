@@ -46,6 +46,7 @@
     "signUpToggle": "Sign up",
     "accountCreatedNotice": "Account created. Confirm your email, then sign in.",
     "forgotPassword": "Forgot password?",
+    "usePhoneInstead": "Continue with phone number",
     "errors": {
       "alreadyRegistered": "An account with this email already exists.",
       "invalidCredentials": "That email and password combination is incorrect.",
@@ -112,6 +113,28 @@
     "errors": {
       "companyNameRequired": "Enter your company name.",
       "cuiInvalid": "Enter a valid CUI (e.g. RO12345678)."
+    }
+  },
+  "phoneAuth": {
+    "headline": "Sign in with your phone",
+    "subtitle": "We'll text you a one-time code — no password needed.",
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "712 345 678",
+    "selectCountry": "Select a country",
+    "sendCode": "Send code",
+    "sendingCode": "Sending code…",
+    "verifyHeadline": "Enter the code",
+    "verifySubtitle": "We sent a code to {{phone}}.",
+    "codeLabel": "Verification code",
+    "codePlaceholder": "123456",
+    "verifyButton": "Verify",
+    "verifyingButton": "Verifying…",
+    "resendCode": "Resend code",
+    "resendCooldown": "Resend code ({{seconds}}s)",
+    "errors": {
+      "invalidPhone": "Enter a valid phone number.",
+      "emptyCode": "Enter the code we sent you.",
+      "invalidCode": "That code is incorrect or has expired."
     }
   },
   "acasa": {
@@ -348,6 +371,9 @@
   "addGuestForm": {
     "notAvailableSubtitle": "Only the organizer can invite guests.",
     "subtitle": "They'll show up under My invitations once they sign in with this email.",
+    "subtitlePhone": "They'll show up under My invitations once they verify this phone number.",
+    "methodEmail": "Email",
+    "methodPhone": "Phone",
     "selfInviteError": "You can't invite yourself — you're already the organizer.",
     "alreadyInvitedError": "This person is already invited.",
     "sending": "Sending…",

@@ -183,6 +183,17 @@ export default function AuthScreen() {
             </TouchableOpacity>
           ) : null}
 
+          <TouchableOpacity
+            onPress={() => router.push('/auth/phone')}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            style={styles.usePhone}
+          >
+            <Text style={[styles.usePhoneText, { color: tokens.accentPrimary }]}>
+              {t('auth.usePhoneInstead')}
+            </Text>
+          </TouchableOpacity>
+
           {notice !== null ? (
             <Text style={[styles.notice, { color: tokens.accentPrimary }]}>{notice}</Text>
           ) : null}
@@ -291,6 +302,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   forgotPasswordText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  usePhone: {
+    alignSelf: 'center',
+    paddingVertical: 4,
+  },
+  usePhoneText: {
     fontSize: 13,
     fontWeight: '600',
   },

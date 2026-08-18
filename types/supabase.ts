@@ -34,11 +34,27 @@ export interface EventGuestRow {
   event_id: string;
   guest_user_id: string | null;
   guest_email: string | null;
+  guest_phone: string | null;
   guest_name: string | null;
   rsvp_status: RsvpStatusRow;
   invited_at: string;
   responded_at: string | null;
   dietary_preferences: string[];
+}
+
+/** Row shape returned by the get_invite_preview(uuid) RPC — see
+ * supabase/migrations/20260818000002_guest_phone_invites.sql. Narrower than
+ * EventWithGuestsRow on purpose: it's the read path for a not-yet-linked
+ * invitee, before the normal events-list RLS necessarily applies to them. */
+export interface InvitePreviewRow {
+  event_id: string;
+  name: string;
+  type: EventTypeRow;
+  event_date: string | null;
+  location: string | null;
+  welcome_message: string | null;
+  guest_id: string;
+  rsvp_status: RsvpStatusRow;
 }
 
 export interface EventWithGuestsRow extends EventRow {

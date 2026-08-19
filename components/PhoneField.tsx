@@ -3,7 +3,7 @@ import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } 
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/hooks/useTheme';
-import { COUNTRY_CODES, type CountryCode } from '@/utils/countryCodes';
+import { COUNTRY_CODES, stripLeadingZero, type CountryCode } from '@/utils/countryCodes';
 import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
 
@@ -59,7 +59,7 @@ export function PhoneField({
             { backgroundColor: tokens.surface, borderColor: tokens.surfaceBorder ?? '#EAE4F0', color: tokens.textPrimary },
           ]}
           value={localNumber}
-          onChangeText={onChangeLocalNumber}
+          onChangeText={(value) => onChangeLocalNumber(stripLeadingZero(value))}
           placeholder={placeholder}
           placeholderTextColor={tokens.textSecondary}
           keyboardType="phone-pad"

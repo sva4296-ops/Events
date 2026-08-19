@@ -85,6 +85,33 @@
     "saving": "Saving…",
     "successNotice": "Your password has been updated."
   },
+  "nameStep": {
+    "title": "What's your name?",
+    "subtitle": "This is how you'll appear to others on PovesteaNoastra.",
+    "firstNameLabel": "First name",
+    "firstNamePlaceholder": "Maria",
+    "lastNameLabel": "Last name",
+    "lastNamePlaceholder": "Popescu",
+    "continue": "Continue",
+    "saving": "Saving…",
+    "errorSaving": "Something went wrong saving your name. Please try again."
+  },
+  "editProfile": {
+    "title": "Edit profile",
+    "subtitle": "Update your name, email, or phone number.",
+    "saving": "Saving…",
+    "savedNotice": "Your profile has been updated.",
+    "emailChangeNotice": "Check your new email address for a confirmation link.",
+    "phoneChangeNotice": "We sent a code to your new phone number.",
+    "phoneCodeLabel": "Confirmation code",
+    "phoneCodePlaceholder": "123456",
+    "confirmCode": "Confirm code",
+    "confirming": "Confirming…",
+    "phoneConfirmedNotice": "Your phone number has been updated.",
+    "errors": {
+      "saveFailed": "Something went wrong saving your profile. Please try again."
+    }
+  },
   "accountType": {
     "headline": "How will you use PovesteaNoastra?",
     "subtitle": "Choose the option that fits you.",
@@ -253,6 +280,7 @@
     "subtitle": "Your session and app details.",
     "signOut": "Sign out",
     "signedInWithSupabase": "Signed in with Supabase",
+    "editProfile": "Edit profile",
     "changePassword": "Change password",
     "language": "Language",
     "languageEnglish": "English",

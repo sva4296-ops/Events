@@ -9,6 +9,7 @@ import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, type ThemeMode } from '@/hooks/useTheme';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
 import { setLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/utils/i18n';
@@ -28,8 +29,10 @@ const THEME_LABEL_KEY: Record<ThemeMode, string> = {
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
+  const { displayName } = useUserProfile();
   const { tokens, mode, setThemeMode } = useTheme();
   const activeLanguage = i18n.language;
+  const contact = user?.email ?? user?.phone ?? null;
 
   return (
     <Screen
@@ -48,13 +51,26 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.info}>
             <Text style={[styles.email, { color: tokens.textPrimary }]}>
-              {user?.email ?? t('profile.title')}
+              {displayName ?? contact ?? t('profile.title')}
             </Text>
             <Text style={[styles.meta, { color: tokens.textSecondary }]}>
-              {t('profile.signedInWithSupabase')}
+              {contact ?? t('profile.signedInWithSupabase')}
             </Text>
           </View>
         </View>
+
+        <TouchableOpacity
+          style={[styles.changePasswordRow, { borderTopColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}
+          onPress={() => router.push('/edit-profile')}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+        >
+          <Feather name="edit-2" size={18} color={tokens.textSecondary} />
+          <Text style={[styles.changePasswordLabel, { color: tokens.textPrimary }]}>
+            {t('profile.editProfile')}
+          </Text>
+          <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.changePasswordRow, { borderTopColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}

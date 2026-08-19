@@ -180,3 +180,9 @@ export interface AgencyRow {
   address: string | null;
   created_at: string;
 }
+
+export interface UserProfileRow {
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
+}

@@ -204,6 +204,7 @@ was out of scope for an infra-only pass and would have been new functionality, n
 | `useGuestEvent` | Provides `{ id, name, event }` to the guest tabs, derived from `useEvents().getEvent(id)` — **see the gotcha below** |
 | `useTheme` | The Warm Story light/dark theme — `{ mode, override, tokens, setThemeMode }`. Still a Context provider, same reasoning as `useAuth`: `mode` is push-driven (system `useColorScheme()` unless the user overrides it in Profile), not a fetched resource. See §5 for the full token set and which screens actually consume it yet |
 | `useAgency` | Whether the signed-in user owns an agency (`['agency', userId]`) — plain react-query hook, no provider. See "Agency accounts" below |
+| `useUserProfile` | `first_name`/`last_name`/`display_name` (`['userProfile', userId]`) plus the one `saveName` mutation the new one-time name step uses — plain react-query hook, no provider, same shape as `useAgency`. See "Name collection" below |
 
 **Critical gotcha — do not regress this.** `useLocalSearchParams` inside a tab child (`guest/[id]/detalii`)
 does **not** see the `[id]` param, which belongs to the parent layout route. Reading it there returns
@@ -233,10 +234,11 @@ cache entry outright rather than needing an effect to notice the session changed
      (a ref keyed on user id guards against re-checking on every navigation) and redirects to
      `/onboarding` if it's false.
 - **Routing, current:** splash → (nothing splash-specific to decide anymore) → whatever route was
-  already current, which `AuthGate` then corrects: no session → `/auth`; session but onboarding not
-  yet completed for this account → `/onboarding`; session and onboarding done → left alone (normally
-  Home). Onboarding is reached **after** authentication now, exactly once per account (any device —
-  see §3), not on first app launch. `app/onboarding.tsx`'s `finish()` (tapping the
+  already current, which `AuthGate` then corrects, in order: no session → `/auth`; session but no
+  `first_name` yet → `/name` (any account, old or new — see §3's "Name collection"); name set but
+  onboarding not yet completed for this account → `/onboarding`; all three satisfied → left alone
+  (normally Home). Onboarding is reached **after** authentication now, exactly once per account (any
+  device — see §3), not on first app launch. `app/onboarding.tsx`'s `finish()` (tapping the
   last step's "Începe," or "Sari peste" to skip) calls `markOnboardingComplete()` and routes to `/`,
   not `/auth` — see §3 and §4 for what changed and why.
 - **The connected project has email confirmation ON** (`mailer_autoconfirm: false`, checked against
@@ -306,6 +308,27 @@ tables or migrations.** Two flows:
 - **Password minimum is 6 characters, reusing `auth.errors.passwordTooShort`** — not a new rule, the
   same one `app/auth/index.tsx`'s sign-up already enforces. "Passwords don't match" is a new key
   (`resetPassword.passwordsDontMatch`), shared by both the reset and change screens.
+- **Edit profile (authenticated).** A second row on the Account card (Feather `edit-2`, same row shape
+  as "Change password", placed above it) opens `app/edit-profile.tsx` — first name, last name (plain
+  `Field`s, writing to `public.users` via `useUserProfile().saveName`, the same function the one-time
+  name step uses), email (`Field`, `auth.emailLabel`/`emailPlaceholder`), and phone (`PhoneField`, the
+  same shared component `app/auth/phone.tsx`/`add-guest/[id].tsx` already use — chosen over a plain
+  `Field` specifically to avoid reintroducing the format-mismatch class of bug documented earlier in
+  this section; `utils/countryCodes.ts` gained `splitStoredPhone()`, the reverse of `toStoredPhone()`,
+  to pre-fill the dial code + local number from the stored `auth.users.phone` value). Names save
+  directly. Email and phone **do not** — changing either only *requests* the change
+  (`useAuth().updateEmail`/`updatePhone`, both new, both a thin `supabase.auth.updateUser({ email })`/
+  `{ phone }` wrapper), and `auth.users.email`/`phone` don't actually change until Supabase's own
+  re-verification completes: email via the confirmation link sent to the new address (same
+  out-of-app, click-a-link shape as password reset — nothing to do in-app once requested), phone via an
+  OTP Supabase sends to the new number, confirmed with a new `useAuth().verifyPhoneChange(phone, token)`
+  (`supabase.auth.verifyOtp({ phone, token, type: 'phone_change' })` — a different `type` than
+  `signInWithPhoneOtp`/`verifyPhoneOtp`'s `'sms'`, since this is a change on an existing session, not an
+  initial sign-in challenge). The screen shows an inline code field + "Confirm code" button only after
+  a phone-change request succeeds, so the OTP step lives inside this one screen rather than reusing or
+  duplicating `app/auth/phone-verify.tsx` (which is wired to the sign-in flow specifically). Neither
+  re-verification path is bypassed or shortcut — this was an explicit constraint in the request that
+  prompted this screen, not an incidental design choice.
 - **`AuthGate`'s `PUBLIC_SEGMENTS`** gained `'forgot-password'` and `'reset-password'` — both are reached
   with no session (forgot-password always; reset-password until its recovery-session effect resolves),
   so both need to be exempt from the no-session → `/auth` redirect the same way `'invite'` already is.
@@ -494,6 +517,48 @@ Eight migration files exist under `supabase/migrations/`:
   `event_guests.guest_phone`, a contact-method check constraint, a unique `(event_id, guest_phone)`
   index, extends both `link_guest_on_invite()`/`link_invites_on_signup()` to also match by phone, and
   adds the new `get_invite_preview(uuid)` RPC. See "Phone auth + phone guest invites" below.
+- `20260819000001_backfill_users_phone.sql` — **not yet applied, not yet confirmed.** Fixes a real
+  backfill gap found via a live-data bug report: `public.users.phone` (added by `20260818000001`) is
+  only ever populated by `handle_new_user()`, an `AFTER INSERT ON auth.users` trigger — accounts that
+  signed up before that migration ran have `auth.users.phone` set but `public.users.phone` still
+  `null`, forever (no update trigger, no prior backfill). `link_guest_on_invite()`'s phone match
+  (`20260818000002`) looks up `public.users.phone`, not `auth.users.phone`, so a phone invite for one
+  of those pre-existing accounts silently failed to auto-link — `guest_user_id` stayed `null` even
+  though the account genuinely existed. This migration backfills `public.users.phone` from
+  `auth.users.phone`, then re-links any `event_guests` rows whose insert-time trigger missed the match
+  because of it. Same shape as `20260810000004_backfill_guest_links.sql`, one column later.
+- `20260820000001_user_names.sql` — **not yet applied, not yet confirmed.** Adds `users.first_name`/
+  `last_name` and the server-side plumbing for "collect a real name once, use it everywhere" — see
+  §3's "Name collection" below.
+- `20260819000002_normalize_guest_phone.sql` — **not yet applied, not yet confirmed.** Fixes a second,
+  compounding bug found in the same report: `app/add-guest/[id].tsx`'s phone-invite path used
+  `toE164()` (`+`-prefixed E.164) to build `guest_phone`, but Supabase stores `auth.users.phone`
+  without the `+` — so the auto-link trigger's exact-match comparison could never succeed for *any*
+  phone invite, independent of the `20260819000001` backfill gap. `utils/countryCodes.ts` gained
+  `toStoredPhone()` (same digits, no `+`) and `stripLeadingZero()` (now applied live in
+  `components/PhoneField.tsx` as the user types, and defensively inside `toE164`/`toStoredPhone`
+  themselves); `add-guest/[id].tsx` now uses `toStoredPhone` instead of `toE164` for everything that
+  touches `event_guests.guest_phone` or compares against `user.phone`. `toE164` itself is unchanged in
+  shape — still `+`-prefixed, still used by `app/auth/phone.tsx` for `signInWithOtp`/`verifyOtp`, which
+  need the real E.164 format to route the SMS. This migration strips a stray leading `+` from any
+  `guest_phone` values already written by the old buggy path, then re-runs the same re-link
+  `20260819000001` does.
+- `20260819000003_users_backfill_and_agency_fix.sql` — **not yet applied, not yet confirmed.** Fixes
+  two things found investigating a report that a phone-signup user had no `public.users` row at all.
+  First, a confirmed regression: `20260818000001_phone_auth.sql`'s `create or replace function
+  handle_new_user()` fully replaced the function body, silently dropping the agency-row-creation block
+  `20260813000001_agencies.sql` had added — `CREATE OR REPLACE` doesn't merge across migrations, so
+  agency signups after `20260818000001` was applied would have stopped getting an `agencies` row
+  without any error. This migration re-merges both (phone-safe `public.users` insert + agency-row
+  creation) into one canonical `handle_new_user()`. Second, a direct backfill: every version of
+  `handle_new_user()` in this repo's history is already null-safe for a missing email, so a completely
+  *missing* `public.users` row for a real `auth.users` account couldn't be reproduced from the
+  migration files alone — no DB access from this environment to inspect what function was actually
+  live. Rather than guess further, this backfills any `auth.users` row with no `public.users`
+  counterpart (same shape as `20260810000004_backfill_guest_links.sql`), then re-runs the
+  phone-guest-link update once more, since a phone invite created before its invitee had a
+  `public.users` row would miss the auto-link trigger for that reason alone, independent of the phone
+  formatting fixed by `20260819000002`.
 
 **The first three are applied.** The user ran them against the connected project (not this session —
 no DB password/service-role key/CLI is available here, only the anon key). The first two were verified
@@ -1024,11 +1089,93 @@ every migration since `20260810000003`) — real Twilio SMS delivery (dashboard-
 configuration is the user's own step, not verifiable from here), a real OTP verify round-trip, the
 auto-link trigger's actual timing, and the RPC's behavior against real data are all unverified.
 
+### Name collection — first/last name once, after first verification
+
+Neither sign-up path (email/password or phone OTP) ever collected a real name — `public.users.display_name`
+was always auto-derived (email local-part, then phone, then `'Guest'`, via `handle_new_user()`), and
+every screen that showed "who is this" fell back to raw email/phone. This pass adds a one-time name
+step, gated the same way onboarding already is, and reuses `display_name` as the single field every
+existing attribution path already reads — rather than teaching each of those paths a new column.
+
+**Storage — `first_name`/`last_name` added alongside `display_name`, not instead of it**
+(`20260820000001_user_names.sql`). `display_name` stays the field every existing consumer already
+reads (`messages.sender_label`, `photos.uploaded_by_label`, `moments`, the RSVP `guest_name` written by
+`respondToInviteRow` — see §3's "Photo grids and attribution" for why those are self-selected
+denormalizations rather than live joins in the first place); `first_name`/`last_name` are the
+structured columns the name step actually writes to, with `display_name` derived from them
+(`` `${firstName} ${lastName}`.trim() ``) in the same write. This means fixing `display_name` once, at
+the name step, is enough to fix every one of those existing attribution paths with no changes to any
+of them.
+
+**`handle_new_user()`'s existing auto-fill was deliberately left alone.** It only ever runs once, at
+`auth.users` INSERT time — before the name step exists in the app's flow (AuthGate blocks every
+protected route until it's done, same as onboarding) — so it already behaves as "a fallback before the
+user sets a real name," never overwriting anything set later; there's no separate UPDATE path that
+could re-run it. No trigger change was needed to satisfy that constraint.
+
+**Gate: `AuthGate.tsx`**, extended with a second post-auth check ahead of the existing onboarding one
+— order is now Auth → Name → Onboarding. Unlike the onboarding check (a ref-gated one-shot promise,
+checked once per signed-in session), the name check reads `useUserProfile().firstName` reactively and
+redirects to `/name` on every effect run for as long as it's `null` — the same "just keep redirecting"
+shape the `user === null` → `/auth` branch above it already uses — so it naturally stops the moment
+`firstName` flips to non-null after the name step's write invalidates the query, with no extra
+"just finished" signal needed. `'name'` was added to `PUBLIC_SEGMENTS`, mirroring `'onboarding'`'s
+presence there even though (like onboarding) it's only ever reached with a session.
+
+**This applies to existing accounts too, by construction, not as a special case.** The gate keys
+purely on `first_name is null` — an old test account with no name gets routed to `/name` on its next
+sign-in exactly like a brand-new one, so the existing 3–4 test users get prompted retroactively rather
+than staying permanently blank. There is no "leave old accounts alone" branch to maintain.
+
+**`app/name.tsx`** — new screen, no back button (nowhere legitimate to return to, and skipping would
+defeat the point). First/last name `Field`s, a `Continue` button disabled until both are non-empty,
+calls `useUserProfile().saveName()` and otherwise does nothing else — it doesn't navigate itself;
+`AuthGate` reacts to `firstName` changing and moves on to onboarding or `/` on its own, same "screen
+doesn't own its own next destination" shape already established for the auth flow.
+
+**`hooks/useUserProfile.tsx`** — new, plain react-query hook, same shape as `useAgency` (no
+Context/Provider): reads `first_name`/`last_name`/`display_name` (`['userProfile', userId]`, `staleTime:
+180s`, details-category — this rarely changes once set) and owns the one `saveName` mutation that ever
+writes those columns after the initial trigger-populated placeholder. `data/usersRepository.ts` is its
+repository counterpart, same split as `agenciesRepository.ts`/`useAgency.tsx`.
+
+**Guest-list identity — two trigger extensions, not a client-side join** (same `public.users`
+`id = auth.uid()`-only RLS wall §3 already documents for message/photo attribution applies here too).
+`link_guest_on_invite()` now also copies the matched account's `display_name` into a new invite's
+`guest_name`, but only when the organizer didn't type one — covers "already has a name, gets invited
+later." A new `AFTER UPDATE ON public.users` trigger, `on_user_display_name_set`, backfills any of that
+user's still-nameless `event_guests` rows when `display_name` changes — covers "already invited, sets
+their name later," which is the actual order the flow being built produces (verify → name step, not the
+other way round). Both only ever fill a `null` `guest_name`, never overwrite an organizer-typed one.
+
+**UI fallbacks updated to prefer the real name, `user.email`/`user.phone` only as last resort:**
+`app/profile.tsx`'s Account card (previously just showed the raw email, or the generic
+`t('profile.title')` if no email — now shows `displayName ?? email ?? phone ?? t('profile.title')`,
+with the contact method moved to the secondary line instead of the static "Signed in with Supabase"
+string); `hooks/useEvents.tsx`'s `respondToInvite` (the `guest_name` written on a guest's own first
+RSVP — was `user.label`, i.e. email/phone, unconditionally); `hooks/useEventContent.tsx`'s `Actor.label`
+(was `user?.email ?? 'Tu'` — didn't even fall back to phone before this pass, fixed as part of the same
+change, though this only matters as the fallback-of-a-fallback since attribution already self-selects
+`display_name` fresh at write time regardless — see §3's "Photo grids and attribution").
+`data/eventsRepository.ts`'s `mapGuestRow` fallback chain (`guest_name ?? guest_email ?? guest_phone ??
+'Guest'`) was **not** changed — the two trigger extensions above mean `guest_name` is already correct
+by the time this ever reads it, so there was nothing left for the client to prefer.
+
+**i18n:** new `nameStep.*` namespace, both `locales/en.json`/`ro.json` — title, subtitle, both field
+labels/placeholders, the continue/saving button states, and a generic save-error string.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing.
+`20260820000001_user_names.sql` is written but not applied (no DB access from this environment) —
+whether the two trigger extensions actually fire as reasoned, whether `AuthGate`'s reactive redirect
+loop behaves correctly against a real query lifecycle (not just typechecks), and how the new screen
+actually looks are all unverified until a real device run.
+
 ### Schema as written in the migrations
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| `users` | `id` (FK `auth.users`), `email`, `phone`, `display_name`, `has_completed_onboarding` | Populated by an `on_auth_user_created` trigger; `has_completed_onboarding` added by `20260810000006`; `phone` added by `20260818000001` |
+| `users` | `id` (FK `auth.users`), `email`, `phone`, `first_name`, `last_name`, `display_name`, `has_completed_onboarding` | Populated by an `on_auth_user_created` trigger; `has_completed_onboarding` added by `20260810000006`; `phone` added by `20260818000001`; `first_name`/`last_name` added by `20260820000001` — see §3's "Name collection" |
 | `events` | `id`, `organizer_id`, `agency_id` (nullable), `type` (enum), `name`, `event_date`, `location`, `welcome_message` | `event_type` enum: wedding, baptism, birthday, cause, corporate, memorial, other. `agency_id` added by `20260813000001` — populated automatically for agency owners, but not currently read by any screen (no agency-specific view exists), see "Agency accounts" below |
 | `agencies` | `id`, `owner_user_id` (unique FK `users`), `company_name`, `cui`, `registration_number` (nullable), `address` (nullable) | Added by `20260813000001`. One agency per owner this pass — no staff/multi-user agencies yet. Row is created by `handle_new_user()` from signup metadata, never inserted client-side (email confirmation is ON, so `signUp()` never yields a session at insert time) |
 | `event_guests` | `id`, `event_id`, `guest_user_id` (nullable), `guest_email`, `guest_phone`, `guest_name`, `rsvp_status`, `invited_at`, `responded_at`, `dietary_preferences text[]` | Partial unique index on `(event_id, guest_user_id)`; `rsvp_status` enum: pending, confirmed, declined; `dietary_preferences` added by `20260810000008`; `guest_phone` added by `20260818000002`, with a unique `(event_id, guest_phone)` index and a check requiring at least one of `guest_email`/`guest_phone`/`guest_user_id` |
@@ -1094,8 +1241,10 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/auth/agency-signup.tsx` | Unauthenticated: agency signup form (company name, CUI, etc. + email/password). See §3's "Agency accounts" |
 | `app/auth/phone.tsx` | Unauthenticated: phone number + country-code entry, sends the OTP. See §3's "Phone auth + phone guest invites" |
 | `app/auth/phone-verify.tsx` | Unauthenticated: OTP code entry + resend, establishes the session on success. See §3's "Phone auth + phone guest invites" |
+| `app/name.tsx` | Reached only via `AuthGate`'s redirect for any signed-in account with no `first_name` yet (new or existing, email or phone) — one-time first/last name step. See §3's "Name collection" |
 | `app/forgot-password.tsx` | Unauthenticated: email input, fires Supabase's password-reset email — see §3's "Forgot / change password" |
 | `app/reset-password.tsx` | Opened only via the `povesteanoastra://reset-password` deep link from that email, never in-app navigation — establishes the recovery session, then new-password + confirm |
+| `app/edit-profile.tsx` | Authenticated: edit first/last name (saves directly), email/phone (requests a change — Supabase's own re-verification applies, see §2 Auth flow's "Edit profile" note). Reached from Profile |
 | `app/change-password.tsx` | Authenticated: new-password + confirm off the existing session, no current-password re-entry. Reached from Profile |
 | `app/index.tsx` | Home — Your events + My invitations, floating "+" |
 | `app/profile.tsx` | Account details, "Change password" row, and sign out |

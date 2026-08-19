@@ -12,7 +12,7 @@ import { checkGuestEmailInvited, checkGuestPhoneInvited } from '@/data/eventsRep
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
-import { DEFAULT_COUNTRY_CODE, toE164 } from '@/utils/countryCodes';
+import { DEFAULT_COUNTRY_CODE, toStoredPhone } from '@/utils/countryCodes';
 import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
 import { reportSupabaseError } from '@/utils/reportError';
@@ -84,7 +84,10 @@ export default function AddGuestScreen() {
       return false;
     }
 
-    const phone = toE164(dialCode, localNumber);
+    // toStoredPhone, not toE164 — this value is written to event_guests.guest_phone
+    // and compared against auth.users.phone/public.users.phone by the auto-link
+    // trigger, both of which Supabase stores without a leading `+`.
+    const phone = toStoredPhone(dialCode, localNumber);
     if (user?.phone != null && phone === user.phone) {
       setError(t('addGuestForm.selfInviteError'));
       return false;

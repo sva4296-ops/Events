@@ -14,6 +14,7 @@ import {
 } from '@/data/eventsRepository';
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import type { AppEvent, EventDraft, RsvpStatus } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
 
@@ -42,6 +43,12 @@ interface EventsResult {
 export function useEvents(): EventsResult {
   const { user } = useAuth();
   const { agency } = useAgency();
+  // Prefer the real name over user.label's email/phone fallback wherever a
+  // guest's own event_guests row is written — this is the "who's attending"
+  // case flagged for the name feature; the auto-link backfill trigger
+  // (20260820000001_user_names.sql) already covers the invited-by-email/phone
+  // side, this covers the "responds before ever being explicitly invited" side.
+  const { displayName } = useUserProfile();
   const queryClient = useQueryClient();
   const userId = user?.id ?? null;
   const queryKey = useMemo(() => ['events', userId] as const, [userId]);
@@ -187,7 +194,7 @@ export function useEvents(): EventsResult {
   const respondToInviteMutation = useMutation({
     mutationFn: (vars: { eventId: string; status: Exclude<RsvpStatus, 'pending'> }) => {
       if (user === null) throw new Error('Not signed in.');
-      return respondToInviteRow(vars.eventId, user.id, user.label, vars.status);
+      return respondToInviteRow(vars.eventId, user.id, displayName ?? user.label, vars.status);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
     onError: (error) => reportSupabaseError(error),

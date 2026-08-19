@@ -85,6 +85,33 @@
     "saving": "Se salvează…",
     "successNotice": "Parola ta a fost actualizată."
   },
+  "nameStep": {
+    "title": "Cum te numești?",
+    "subtitle": "Așa vei apărea pentru ceilalți pe PovesteaNoastra.",
+    "firstNameLabel": "Prenume",
+    "firstNamePlaceholder": "Maria",
+    "lastNameLabel": "Nume",
+    "lastNamePlaceholder": "Popescu",
+    "continue": "Continuă",
+    "saving": "Se salvează…",
+    "errorSaving": "A apărut o problemă la salvarea numelui. Te rugăm să încerci din nou."
+  },
+  "editProfile": {
+    "title": "Editează profilul",
+    "subtitle": "Actualizează-ți numele, emailul sau numărul de telefon.",
+    "saving": "Se salvează…",
+    "savedNotice": "Profilul tău a fost actualizat.",
+    "emailChangeNotice": "Verifică-ți noua adresă de email pentru linkul de confirmare.",
+    "phoneChangeNotice": "Am trimis un cod pe noul tău număr de telefon.",
+    "phoneCodeLabel": "Cod de confirmare",
+    "phoneCodePlaceholder": "123456",
+    "confirmCode": "Confirmă codul",
+    "confirming": "Se confirmă…",
+    "phoneConfirmedNotice": "Numărul tău de telefon a fost actualizat.",
+    "errors": {
+      "saveFailed": "A apărut o problemă la salvarea profilului. Te rugăm să încerci din nou."
+    }
+  },
   "accountType": {
     "headline": "Cum vrei să folosești PovesteaNoastra?",
     "subtitle": "Alege opțiunea potrivită pentru tine.",
@@ -256,6 +283,7 @@
     "subtitle": "Sesiunea ta și detaliile aplicației.",
     "signOut": "Deconectare",
     "signedInWithSupabase": "Autentificat cu Supabase",
+    "editProfile": "Editează profilul",
     "changePassword": "Schimbă parola",
     "language": "Limbă",
     "languageEnglish": "English",

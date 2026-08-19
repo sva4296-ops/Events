@@ -61,6 +61,19 @@ interface AuthContextValue {
    * app/change-password.tsx (off a normal signed-in session) — Supabase's
    * updateUser call is identical either way. */
   updatePassword: (newPassword: string) => Promise<string | null>;
+  /** Requests an email change — Supabase's normal re-verification applies
+   * (a confirmation link to the new address, since this project has email
+   * confirmation ON — see the Auth flow notes below); auth.users.email
+   * doesn't actually change until that link is followed. Never bypassed. */
+  updateEmail: (email: string) => Promise<string | null>;
+  /** Requests a phone number change — Supabase sends an OTP to the new
+   * number; auth.users.phone doesn't change until verifyPhoneChange confirms
+   * it, same "request, then verify" shape as updateEmail above. */
+  updatePhone: (phone: string) => Promise<string | null>;
+  /** Confirms a updatePhone() request with the code Supabase sent to the new
+   * number — verify type is 'phone_change', not 'sms' (that's only for
+   * signInWithPhoneOtp/verifyPhoneOtp's initial-sign-in challenge). */
+  verifyPhoneChange: (phone: string, token: string) => Promise<string | null>;
   /** Local cache first, public.users.has_completed_onboarding as source of truth. */
   hasCompletedOnboarding: () => Promise<boolean>;
   markOnboardingComplete: () => Promise<void>;
@@ -170,6 +183,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error?.message ?? null;
   }, []);
 
+  const updateEmail = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.updateUser({ email });
+    return error?.message ?? null;
+  }, []);
+
+  const updatePhone = useCallback(async (phone: string) => {
+    const { error } = await supabase.auth.updateUser({ phone });
+    return error?.message ?? null;
+  }, []);
+
+  const verifyPhoneChange = useCallback(async (phone: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'phone_change' });
+    return error?.message ?? null;
+  }, []);
+
   const hasCompletedOnboarding = useCallback(async (): Promise<boolean> => {
     if (user === null) return false;
 
@@ -208,6 +236,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestPasswordReset,
       setRecoverySession,
       updatePassword,
+      updateEmail,
+      updatePhone,
+      verifyPhoneChange,
       hasCompletedOnboarding,
       markOnboardingComplete,
     }),
@@ -222,6 +253,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestPasswordReset,
       setRecoverySession,
       updatePassword,
+      updateEmail,
+      updatePhone,
+      verifyPhoneChange,
       hasCompletedOnboarding,
       markOnboardingComplete,
     ],

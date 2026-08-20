@@ -60,6 +60,31 @@ export function toStoredPhone(dialCode: string, localNumber: string): string {
   return toE164(dialCode, localNumber).replace(/^\+/, '');
 }
 
+/** Same output shape as toStoredPhone (digits only, no `+`), but for a raw
+ * string handed back by the device contacts picker instead of a separate
+ * dial-code + local-number pair — those come in almost any format
+ * (`+40 790 586 600`, `0790586600`, `0040790586600`, ...), so there's no
+ * single known dial code to combine with. If the contact's own number
+ * already carries a `+`, its digits are trusted as already having a country
+ * code; a leading `00` international-dialing prefix is treated the same
+ * way. Otherwise there's no country code to go on at all, so — per this
+ * app's own "Romania first" default (DEFAULT_COUNTRY_CODE above) — it's
+ * treated as a Romanian national number, same leading-zero handling as
+ * toE164/toStoredPhone. This is a heuristic, not a real parser: a foreign
+ * number typed locally with neither a `+` nor a `00` prefix will be
+ * mis-normalized, same limitation any phone input without a country-code
+ * picker has. */
+export function normalizeToStoredPhone(raw: string): string {
+  if (raw.includes('+')) {
+    return raw.replace(/\D/g, '');
+  }
+  const digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('00')) {
+    return digits.slice(2);
+  }
+  return `${DEFAULT_COUNTRY_CODE.dialCode.replace('+', '')}${stripLeadingZero(digits)}`;
+}
+
 /** Reverse of toStoredPhone — splits a Supabase-stored phone (e.g.
  * `40790586600`) back into a dial code and local number so PhoneField can be
  * pre-filled with an existing value (edit-profile's phone field). Picks the

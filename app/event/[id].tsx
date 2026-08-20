@@ -68,6 +68,9 @@ export default function EventDetailScreen() {
 
   const counts = countRsvps(event.guests);
   const type = getEventType(event.type);
+  const pendingUnsentCount = event.guests.filter(
+    (guest) => guest.status === 'pending' && guest.whatsappSentAt === null && guest.phone !== null,
+  ).length;
 
   return (
     <Screen
@@ -128,17 +131,42 @@ export default function EventDetailScreen() {
             {t('event.guestListTitle', { count: counts.total })}
           </Text>
           {owner ? (
-            <TouchableOpacity
-              style={[styles.add, { backgroundColor: `${tokens.accentPrimary}22` }]}
-              onPress={() => router.push(`/add-guest/${event.id}`)}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Invite a guest"
-            >
-              <Feather name="user-plus" size={16} color={tokens.accentPrimary} />
-            </TouchableOpacity>
+            <View style={styles.sectionHeadActions}>
+              <TouchableOpacity
+                style={[styles.add, { backgroundColor: `${tokens.accentPrimary}22` }]}
+                onPress={() => router.push(`/add-guest/${event.id}`)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="Invite a guest"
+              >
+                <Feather name="user-plus" size={16} color={tokens.accentPrimary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.add, { backgroundColor: `${tokens.accentPrimary}22` }]}
+                onPress={() => router.push(`/bulk-add-guests/${event.id}`)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel={t('event.addMultipleGuests')}
+              >
+                <Feather name="users" size={16} color={tokens.accentPrimary} />
+              </TouchableOpacity>
+            </View>
           ) : null}
         </View>
+
+        {owner && pendingUnsentCount > 0 ? (
+          <TouchableOpacity
+            style={[styles.sendPending, { borderColor: tokens.accentPrimary }]}
+            onPress={() => router.push(`/send-invites/${event.id}`)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+          >
+            <Feather name="send" size={14} color={tokens.accentPrimary} />
+            <Text style={[styles.sendPendingText, { color: tokens.accentPrimary }]}>
+              {t('event.sendPendingInvites', { count: pendingUnsentCount })}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         {event.guests.length === 0 ? (
           <EmptyState
@@ -208,12 +236,29 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
+  sectionHeadActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   add: {
     width: 34,
     height: 34,
     borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sendPending: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: 40,
+    borderRadius: themeRadius.pill,
+    borderWidth: 1,
+  },
+  sendPendingText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   editHeaderButton: {
     width: 40,

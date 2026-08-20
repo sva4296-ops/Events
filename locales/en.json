@@ -238,9 +238,37 @@
     "guestListTitle": "Guest list · {{count}}",
     "noGuestsYet": "No guests invited yet.",
     "inviteGuest": "Invite a guest",
+    "addMultipleGuests": "Add multiple guests",
+    "sendPendingInvites": "Send pending invites ({{count}})",
+    "invitedBadge": "Invited",
+    "notSentBadge": "Not sent",
     "removeGuestAction": "Remove",
     "removeGuestTitle": "Remove this guest?",
     "removeGuestBody": "{{name}} will no longer appear in the guest list."
+  },
+  "bulkInviteForm": {
+    "title": "Add multiple guests",
+    "subtitle": "Add guests one by one or import them from your contacts.",
+    "importFromContacts": "Import from contacts",
+    "guestNumber": "Guest {{number}}",
+    "removeRow": "Remove",
+    "addAnother": "+ Add another",
+    "submit": "Add {{count}} guests",
+    "sending": "Adding…",
+    "contactsTitle": "Choose contacts",
+    "contactsPermissionDenied": "Contacts access is off — you can still add guests manually above, or allow access in Settings to import them.",
+    "contactsLoadError": "Something went wrong loading your contacts. Please try again.",
+    "contactsEmpty": "No contacts with a phone number were found.",
+    "contactsImportButton": "Import ({{count}})"
+  },
+  "sendInvitesQueue": {
+    "title": "Send invites",
+    "subtitle": "Open WhatsApp for each guest to send their personal invite.",
+    "progress": "{{sent}} of {{total}} sent",
+    "empty": "Everyone's been messaged.",
+    "sendButton": "Send via WhatsApp",
+    "sending": "Opening…",
+    "skipButton": "Skip"
   },
   "scheduleForm": {
     "notAvailableSubtitle": "Only the organizer can edit the schedule.",

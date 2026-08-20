@@ -14,6 +14,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import { DEFAULT_COUNTRY_CODE, toStoredPhone } from '@/utils/countryCodes';
 import { reportSupabaseError } from '@/utils/reportError';
+import { sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
 
 /**
  * Phone-only now — this app's auth is phone-only end to end (see
@@ -25,6 +26,12 @@ import { reportSupabaseError } from '@/utils/reportError';
  * functions and the `event_guests.guest_email` column/auto-link trigger are
  * untouched — inert now that nothing calls them, not reverted, since ripping
  * out working schema/trigger logic wasn't asked for.
+ *
+ * No token-based RSVP link anymore either — the event_guests row (saved
+ * here, `rsvp_status: 'pending'`) is only ever there for the auto-link
+ * trigger to match against once the guest signs in with this same phone
+ * number via the normal OTP flow. What actually gets sent is a WhatsApp
+ * message pointing at the app's own login page (utils/whatsappInvite.ts).
  */
 export default function AddGuestScreen() {
   const { t } = useTranslation();
@@ -79,6 +86,10 @@ export default function AddGuestScreen() {
       }
 
       await addGuestByPhone(event.id, phone, name.trim());
+      // event_guests row is already saved by this point — a WhatsApp-open
+      // failure here is best-effort and reports on its own, never rolls
+      // back or blocks navigating back.
+      await sendGuestWhatsAppInvite(phone, name.trim());
       router.back();
     } catch (err) {
       reportSupabaseError(err);

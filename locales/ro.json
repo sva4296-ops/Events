@@ -27,63 +27,15 @@
     "emptyInvitationsMessage": "Când cineva te invită, apare aici."
   },
   "auth": {
-    "createAccountHeadline": "Creează-ți contul",
-    "welcomeBackHeadline": "Bine ai revenit",
-    "createAccountSub": "Un singur cont pentru toate evenimentele pe care le găzduiești sau la care participi.",
-    "signInSub": "Autentifică-te pentru a continua de unde ai rămas.",
+    "headline": "Bun venit pe PovesteaNoastra",
+    "subtitle": "Organizează nunți, aniversări și orice sărbătoare, într-un singur loc frumos.",
     "emailLabel": "Email",
     "emailPlaceholder": "maria@exemplu.com",
-    "passwordLabel": "Parolă",
-    "passwordPlaceholderSignUp": "Cel puțin 6 caractere",
-    "passwordPlaceholderSignIn": "Parola ta",
-    "createAccountButton": "Creează cont",
-    "creatingAccountButton": "Se creează contul…",
-    "signInButton": "Autentificare",
-    "signingInButton": "Se autentifică…",
-    "alreadyHaveAccount": "Ai deja un cont? ",
-    "dontHaveAccount": "Nu ai un cont? ",
-    "signInToggle": "Autentifică-te",
-    "signUpToggle": "Înregistrează-te",
-    "accountCreatedNotice": "Cont creat. Confirmă-ți emailul, apoi autentifică-te.",
-    "forgotPassword": "Ai uitat parola?",
-    "usePhoneInstead": "Continuă cu numărul de telefon",
+    "sendCode": "Trimite codul",
+    "sendingCode": "Se trimite codul…",
     "errors": {
-      "alreadyRegistered": "Există deja un cont cu acest email.",
-      "invalidCredentials": "Combinația de email și parolă este incorectă.",
-      "emailNotConfirmed": "Confirmă-ți mai întâi adresa de email — verifică-ți căsuța poștală.",
-      "invalidEmail": "Introdu o adresă de email validă.",
-      "emptyPassword": "Introdu parola.",
-      "passwordTooShort": "Folosește cel puțin 6 caractere."
+      "invalidEmail": "Introdu o adresă de email validă."
     }
-  },
-  "forgotPassword": {
-    "headline": "Resetează-ți parola",
-    "subtitle": "Introdu adresa de email și îți trimitem un link pentru resetarea parolei.",
-    "sendLink": "Trimite linkul de resetare",
-    "sending": "Se trimite…",
-    "successNotice": "Dacă există un cont pentru acest email, am trimis un link de resetare."
-  },
-  "resetPassword": {
-    "headline": "Setează o parolă nouă",
-    "subtitle": "Alege o parolă nouă pentru contul tău.",
-    "newPasswordLabel": "Parolă nouă",
-    "confirmPasswordLabel": "Confirmă parola nouă",
-    "passwordsDontMatch": "Parolele nu coincid.",
-    "savePassword": "Salvează parola nouă",
-    "saving": "Se salvează…",
-    "successHeadline": "Parolă actualizată",
-    "successSubtitle": "Parola ta a fost schimbată cu succes.",
-    "continueButton": "Continuă",
-    "invalidLinkHeadline": "Acest link nu este valid",
-    "invalidLinkSubtitle": "Poate a expirat sau a fost deja folosit. Solicită unul nou mai jos.",
-    "requestNewLink": "Solicită un link nou"
-  },
-  "changePassword": {
-    "title": "Schimbă parola",
-    "subtitle": "Alege o parolă nouă pentru contul tău.",
-    "newPasswordLabel": "Parolă nouă",
-    "saving": "Se salvează…",
-    "successNotice": "Parola ta a fost actualizată."
   },
   "nameStep": {
     "title": "Cum te numești?",
@@ -101,29 +53,20 @@
     "subtitle": "Actualizează-ți numele, emailul sau numărul de telefon.",
     "saving": "Se salvează…",
     "savedNotice": "Profilul tău a fost actualizat.",
-    "emailChangeNotice": "Verifică-ți noua adresă de email pentru linkul de confirmare.",
     "phoneChangeNotice": "Am trimis un cod pe noul tău număr de telefon.",
     "phoneCodeLabel": "Cod de confirmare",
     "phoneCodePlaceholder": "123456",
     "confirmCode": "Confirmă codul",
     "confirming": "Se confirmă…",
     "phoneConfirmedNotice": "Numărul tău de telefon a fost actualizat.",
+    "businessSectionLabel": "Date firmă",
     "errors": {
       "saveFailed": "A apărut o problemă la salvarea profilului. Te rugăm să încerci din nou."
     }
   },
-  "accountType": {
-    "headline": "Cum vrei să folosești PovesteaNoastra?",
-    "subtitle": "Alege opțiunea potrivită pentru tine.",
-    "individualTitle": "Creez un eveniment pentru mine",
-    "individualSubtitle": "Fluxul obișnuit — organizezi propria nuntă, aniversare sau petrecere.",
-    "agencyTitle": "Sunt agenție / organizator profesionist",
-    "agencySubtitle": "Gestionezi evenimente pentru clienți, sub firma ta."
-  },
   "agencySignup": {
-    "headline": "Creează contul agenției",
-    "subtitle": "Avem nevoie de câteva date de firmă, pentru facturarea de mai târziu.",
-    "companySection": "Date firmă",
+    "headline": "Adaugă un cont de firmă",
+    "subtitle": "Câteva date de firmă, ca să poți gestiona evenimente pentru clienți sub compania ta.",
     "companyNameLabel": "Denumire firmă",
     "companyNamePlaceholder": "Lumière Events SRL",
     "cuiLabel": "CUI",
@@ -133,25 +76,24 @@
     "registrationNumberPlaceholder": "J40/1234/2020",
     "addressLabel": "Adresa sediului (opțional)",
     "addressPlaceholder": "Str. Exemplu nr. 1, București",
-    "contactSection": "Persoană de contact",
-    "createButton": "Creează contul agenției",
-    "creatingButton": "Se creează contul…",
-    "goToSignIn": "Mergi la autentificare",
+    "createButton": "Adaugă contul de firmă",
+    "creatingButton": "Se adaugă…",
     "errors": {
       "companyNameRequired": "Introdu denumirea firmei.",
       "cuiInvalid": "Introdu un CUI valid (ex: RO12345678)."
     }
   },
   "phoneAuth": {
-    "headline": "Autentificare cu telefonul",
-    "subtitle": "Îți trimitem un cod unic prin SMS — fără parolă.",
     "phoneLabel": "Număr de telefon",
     "phonePlaceholder": "712 345 678",
     "selectCountry": "Alege o țară",
-    "sendCode": "Trimite codul",
-    "sendingCode": "Se trimite codul…",
-    "verifyHeadline": "Introdu codul",
-    "verifySubtitle": "Am trimis un cod la {{phone}}.",
+    "errors": {
+      "invalidPhone": "Introdu un număr de telefon valid."
+    }
+  },
+  "verify": {
+    "headline": "Introdu codul",
+    "subtitle": "Am trimis un cod la {{identifier}}.",
     "codeLabel": "Cod de verificare",
     "codePlaceholder": "123456",
     "verifyButton": "Verifică",
@@ -159,7 +101,6 @@
     "resendCode": "Retrimite codul",
     "resendCooldown": "Retrimite codul ({{seconds}}s)",
     "errors": {
-      "invalidPhone": "Introdu un număr de telefon valid.",
       "emptyCode": "Introdu codul primit.",
       "invalidCode": "Codul este incorect sau a expirat."
     }
@@ -284,7 +225,7 @@
     "signOut": "Deconectare",
     "signedInWithSupabase": "Autentificat cu Supabase",
     "editProfile": "Editează profilul",
-    "changePassword": "Schimbă parola",
+    "addBusinessAccount": "Adaugă cont de firmă",
     "language": "Limbă",
     "languageEnglish": "English",
     "languageRomanian": "Română",
@@ -401,10 +342,7 @@
   },
   "addGuestForm": {
     "notAvailableSubtitle": "Doar organizatorul poate invita invitați.",
-    "subtitle": "Vor apărea la Invitațiile mele odată ce se autentifică cu acest email.",
     "subtitlePhone": "Vor apărea la Invitațiile mele odată ce verifică acest număr de telefon.",
-    "methodEmail": "Email",
-    "methodPhone": "Telefon",
     "selfInviteError": "Nu te poți invita pe tine — ești deja organizatorul.",
     "alreadyInvitedError": "Această persoană este deja invitată.",
     "sending": "Se trimite…",

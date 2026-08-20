@@ -11,6 +11,11 @@ export interface UserProfile {
   firstName: string | null;
   lastName: string | null;
   displayName: string | null;
+  /** A plain profile field now — never used for login, signup, or account
+   * verification. auth.users.email is basically always null since phone is
+   * the only auth method; this is a separate, freely-editable column the
+   * user can fill in or leave blank. */
+  email: string | null;
 }
 
 function mapUserProfileRow(row: UserProfileRow): UserProfile {
@@ -18,13 +23,14 @@ function mapUserProfileRow(row: UserProfileRow): UserProfile {
     firstName: row.first_name,
     lastName: row.last_name,
     displayName: row.display_name,
+    email: row.email,
   };
 }
 
 export async function fetchMyProfile(userId: string): Promise<UserProfile | null> {
   const { data, error } = await supabase
     .from('users')
-    .select('first_name, last_name, display_name')
+    .select('first_name, last_name, display_name, email')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
@@ -43,5 +49,15 @@ export async function saveUserName(userId: string, firstName: string, lastName: 
     .from('users')
     .update({ first_name: firstName, last_name: lastName, display_name: displayName })
     .eq('id', userId);
+  if (error) throw error;
+}
+
+/**
+ * app/edit-profile.tsx's email field — a plain column write, no Supabase Auth
+ * involved and no re-verification, unlike updatePhone/verifyPhoneChange in
+ * hooks/useAuth.tsx. `email` is `null` to clear the field back to blank.
+ */
+export async function saveContactEmail(userId: string, email: string | null): Promise<void> {
+  const { error } = await supabase.from('users').update({ email }).eq('id', userId);
   if (error) throw error;
 }

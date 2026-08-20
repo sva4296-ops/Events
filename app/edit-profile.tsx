@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
 
+import { AgencyFields, validateAgencyFields, type AgencyFieldErrors } from '@/components/AgencyFields';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
 import { PhoneField } from '@/components/PhoneField';
 import { Screen } from '@/components/Screen';
+import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -16,26 +18,43 @@ import { spacing } from '@/utils/theme';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Reached from the Account screen's "Edit profile" row. Names go straight to
- * public.users (useUserProfile.saveName — the same write the one-time name
- * step uses). Email/phone go through Supabase's normal auth.updateUser +
- * re-verification instead of a table write: an email change needs the new
- * address's confirmation link clicked before auth.users.email actually
- * changes, and a phone change needs the OTP Supabase sends to the new number
- * confirmed here before auth.users.phone changes — neither is bypassed.
+ * Reached from the Account screen's "Edit profile" row. Names and email go
+ * straight to public.users (useUserProfile.saveName/saveEmail) — plain
+ * column writes, no verification. Phone is different: it's the account's
+ * actual auth identifier, so it goes through Supabase's normal
+ * auth.updateUser + re-verification instead — a phone change needs the OTP
+ * Supabase sends to the new number confirmed here before auth.users.phone
+ * actually changes. Email used to work this same way (an "Edit profile"
+ * change needing a confirmation-link click) before auth went phone-only;
+ * now it's just optional contact info, same as a name.
+ *
+ * Business accounts (useAgency().isAgencyOwner — true whenever a row exists
+ * for this user in public.agencies, not a signup-time flag) get an extra
+ * section here for editing their company info, reusing the exact same
+ * fields/validation as app/agency-signup.tsx via components/AgencyFields.tsx.
+ * Submitting it calls useAgency().updateAgency, an UPDATE against the
+ * existing row (the "agency owner updates own agency" RLS policy), never an
+ * insert — individual accounts never see this section at all.
  */
 export default function EditProfileScreen() {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const { user } = useAuth();
-  const { updateEmail, updatePhone, verifyPhoneChange } = useAuth();
-  const { firstName: savedFirstName, lastName: savedLastName, saveName } = useUserProfile();
+  const { updatePhone, verifyPhoneChange } = useAuth();
+  const {
+    firstName: savedFirstName,
+    lastName: savedLastName,
+    email: savedEmail,
+    saveName,
+    saveEmail,
+  } = useUserProfile();
+  const { agency, isAgencyOwner, hydrated: agencyHydrated, updateAgency } = useAgency();
 
   const initialPhone = user?.phone !== null && user?.phone !== undefined ? splitStoredPhone(user.phone) : null;
 
   const [firstName, setFirstName] = useState(savedFirstName ?? '');
   const [lastName, setLastName] = useState(savedLastName ?? '');
-  const [email, setEmail] = useState(user?.email ?? '');
+  const [email, setEmail] = useState(savedEmail ?? '');
   const [dialCode, setDialCode] = useState(initialPhone?.dialCode ?? DEFAULT_COUNTRY_CODE.dialCode);
   const [localNumber, setLocalNumber] = useState(initialPhone?.localNumber ?? '');
   const [otpCode, setOtpCode] = useState('');
@@ -44,6 +63,22 @@ export default function EditProfileScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmBusy, setConfirmBusy] = useState(false);
+
+  const [companyName, setCompanyName] = useState(agency?.companyName ?? '');
+  const [cui, setCui] = useState(agency?.cui ?? '');
+  const [registrationNumber, setRegistrationNumber] = useState(agency?.registrationNumber ?? '');
+  const [address, setAddress] = useState(agency?.address ?? '');
+  const [agencyErrors, setAgencyErrors] = useState<AgencyFieldErrors>({});
+
+  // Pre-fills once the agency query resolves — covers the cold-cache case
+  // where this screen mounts before useAgency()'s data has arrived.
+  useEffect(() => {
+    if (agency === null) return;
+    setCompanyName(agency.companyName);
+    setCui(agency.cui);
+    setRegistrationNumber(agency.registrationNumber ?? '');
+    setAddress(agency.address ?? '');
+  }, [agency]);
 
   const canSubmit = firstName.trim().length > 0 && lastName.trim().length > 0;
 
@@ -58,21 +93,31 @@ export default function EditProfileScreen() {
       return;
     }
 
+    let agencyValues: { companyName: string; cui: string; registrationNumber?: string; address?: string } | null =
+      null;
+    if (isAgencyOwner) {
+      const nextAgencyErrors = validateAgencyFields(companyName, cui, t);
+      setAgencyErrors(nextAgencyErrors);
+      if (Object.keys(nextAgencyErrors).length > 0) return;
+      agencyValues = {
+        companyName: companyName.trim(),
+        cui: cui.trim().toUpperCase(),
+        registrationNumber: registrationNumber.trim().length > 0 ? registrationNumber.trim() : undefined,
+        address: address.trim().length > 0 ? address.trim() : undefined,
+      };
+    }
+
     setBusy(true);
     try {
       await saveName(firstName.trim(), lastName.trim());
+      // Plain column write — no Supabase Auth involved, no re-verification.
+      // Unlike phone below, this never touches the account's auth identity.
+      await saveEmail(trimmedEmail.length > 0 ? trimmedEmail : null);
+      if (agencyValues !== null) {
+        await updateAgency(agencyValues);
+      }
 
       const notices: string[] = [];
-
-      if (trimmedEmail.length > 0 && trimmedEmail.toLowerCase() !== (user?.email ?? '').toLowerCase()) {
-        const err = await updateEmail(trimmedEmail);
-        if (err !== null) {
-          setError(err);
-          setBusy(false);
-          return;
-        }
-        notices.push(t('editProfile.emailChangeNotice'));
-      }
 
       const trimmedLocalNumber = localNumber.trim();
       if (trimmedLocalNumber.length > 0) {
@@ -165,6 +210,31 @@ export default function EditProfileScreen() {
           placeholder={t('phoneAuth.phonePlaceholder')}
         />
 
+        {agencyHydrated && isAgencyOwner ? (
+          <>
+            <Text style={[styles.sectionLabel, { color: tokens.textSecondary }]}>
+              {t('editProfile.businessSectionLabel')}
+            </Text>
+            <AgencyFields
+              companyName={companyName}
+              onChangeCompanyName={(value) => {
+                setCompanyName(value);
+                setAgencyErrors((current) => ({ ...current, companyName: undefined }));
+              }}
+              cui={cui}
+              onChangeCui={(value) => {
+                setCui(value);
+                setAgencyErrors((current) => ({ ...current, cui: undefined }));
+              }}
+              registrationNumber={registrationNumber}
+              onChangeRegistrationNumber={setRegistrationNumber}
+              address={address}
+              onChangeAddress={setAddress}
+              errors={agencyErrors}
+            />
+          </>
+        ) : null}
+
         {error !== null ? (
           <Text style={[styles.error, { color: tokens.destructive }]}>{error}</Text>
         ) : null}
@@ -205,5 +275,12 @@ const styles = StyleSheet.create({
   notice: {
     fontSize: 13,
     paddingHorizontal: spacing.xs,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginTop: spacing.md,
   },
 });

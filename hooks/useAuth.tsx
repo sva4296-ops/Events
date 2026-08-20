@@ -10,7 +10,6 @@ import {
 
 import { supabase } from '@/data/supabaseClient';
 import { getOnboardingCache, setOnboardingCache } from '@/utils/onboarding';
-import { buildResetPasswordRedirectUrl } from '@/utils/passwordReset';
 
 export interface AppUser {
   id: string;
@@ -25,50 +24,24 @@ export interface AppUser {
  * step always uses type: 'sms' — unverified from this environment. */
 export type PhoneOtpChannel = 'sms' | 'whatsapp';
 
-/** Passed through to supabase.auth.signUp's raw_user_meta_data — read by the
- * handle_new_user() trigger to create the agencies row. Not optional client
- * insert: email confirmation is ON for this project, so signUp() never yields
- * a session, and there's no auth.uid() to insert as. See
- * supabase/migrations/20260813000001_agencies.sql. */
-export interface AgencySignupInfo {
-  companyName: string;
-  cui: string;
-  registrationNumber?: string;
-  address?: string;
-}
-
 interface AuthContextValue {
   user: AppUser | null;
   loading: boolean;
-  signUp: (email: string, password: string, agency?: AgencySignupInfo) => Promise<string | null>;
-  signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
-  /** Sends (or resends) an OTP to `phone`. Same call for a brand-new or
-   * returning phone number — Supabase creates the user on first use, so
-   * there's no separate phone "sign up" — every login is a fresh challenge,
-   * never a stored phone-password. */
+  /** Sends (or resends) an OTP to `phone` — the only auth method. Same call
+   * for a brand-new or returning phone number — Supabase creates the user on
+   * first use, so there's no separate "sign up," and no email path at all
+   * anymore: email is a plain, optional profile field now (see
+   * hooks/useUserProfile.tsx), never an identifier this layer touches. */
   signInWithPhoneOtp: (phone: string, channel?: PhoneOtpChannel) => Promise<string | null>;
   /** Verifies the code and establishes a normal session — onAuthStateChange
-   * picks it up exactly like an email sign-in, no separate handling needed. */
+   * picks it up exactly like any other sign-in, no separate handling needed. */
   verifyPhoneOtp: (phone: string, token: string) => Promise<string | null>;
-  /** Fires the "reset your password" email; the link opens app/reset-password.tsx. */
-  requestPasswordReset: (email: string) => Promise<string | null>;
-  /** Establishes the temporary recovery session from the deep link's tokens
-   * (detectSessionInUrl is off — see utils/passwordReset.ts), required before
-   * updatePassword will succeed from app/reset-password.tsx. */
-  setRecoverySession: (accessToken: string, refreshToken: string) => Promise<string | null>;
-  /** Backs both app/reset-password.tsx (off a recovery session) and
-   * app/change-password.tsx (off a normal signed-in session) — Supabase's
-   * updateUser call is identical either way. */
-  updatePassword: (newPassword: string) => Promise<string | null>;
-  /** Requests an email change — Supabase's normal re-verification applies
-   * (a confirmation link to the new address, since this project has email
-   * confirmation ON — see the Auth flow notes below); auth.users.email
-   * doesn't actually change until that link is followed. Never bypassed. */
-  updateEmail: (email: string) => Promise<string | null>;
   /** Requests a phone number change — Supabase sends an OTP to the new
    * number; auth.users.phone doesn't change until verifyPhoneChange confirms
-   * it, same "request, then verify" shape as updateEmail above. */
+   * it, a "request, then verify" shape. This is the only contact-method
+   * change left in this file — there's no updateEmail, since email is no
+   * longer part of auth.users at all as far as this app is concerned. */
   updatePhone: (phone: string) => Promise<string | null>;
   /** Confirms a updatePhone() request with the code Supabase sent to the new
    * number — verify type is 'phone_change', not 'sms' (that's only for
@@ -123,32 +96,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  /** Returns an error message, or null on success. */
-  const signUp = useCallback(async (email: string, password: string, agency?: AgencySignupInfo) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options:
-        agency !== undefined
-          ? {
-              data: {
-                account_type: 'agency',
-                company_name: agency.companyName,
-                cui: agency.cui,
-                registration_number: agency.registrationNumber,
-                address: agency.address,
-              },
-            }
-          : undefined,
-    });
-    return error?.message ?? null;
-  }, []);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error?.message ?? null;
-  }, []);
-
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
@@ -160,31 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyPhoneOtp = useCallback(async (phone: string, token: string) => {
     const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
-    return error?.message ?? null;
-  }, []);
-
-  const requestPasswordReset = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: buildResetPasswordRedirectUrl(),
-    });
-    return error?.message ?? null;
-  }, []);
-
-  const setRecoverySession = useCallback(async (accessToken: string, refreshToken: string) => {
-    const { error } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-    return error?.message ?? null;
-  }, []);
-
-  const updatePassword = useCallback(async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    return error?.message ?? null;
-  }, []);
-
-  const updateEmail = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.updateUser({ email });
     return error?.message ?? null;
   }, []);
 
@@ -228,15 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
-      signUp,
-      signIn,
       signOut,
       signInWithPhoneOtp,
       verifyPhoneOtp,
-      requestPasswordReset,
-      setRecoverySession,
-      updatePassword,
-      updateEmail,
       updatePhone,
       verifyPhoneChange,
       hasCompletedOnboarding,
@@ -245,15 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       user,
       loading,
-      signUp,
-      signIn,
       signOut,
       signInWithPhoneOtp,
       verifyPhoneOtp,
-      requestPasswordReset,
-      setRecoverySession,
-      updatePassword,
-      updateEmail,
       updatePhone,
       verifyPhoneChange,
       hasCompletedOnboarding,

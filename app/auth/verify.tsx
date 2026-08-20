@@ -16,18 +16,24 @@ import { spacing } from '@/utils/theme';
 const RESEND_COOLDOWN_SECONDS = 30;
 
 /**
- * Second step of the phone-auth path — the code the OTP was sent to is the
- * credential itself, there's no separate stored password. On success this
- * establishes a normal session (onAuthStateChange fires exactly like an
- * email sign-in), so AuthGate's existing onboarding check already handles
- * routing a brand-new account onward — nothing phone-specific needed there.
+ * Second (and last) step of the phone-auth path — `identifier` is the phone
+ * number, display-only plus what gets resent to. The code itself is the
+ * entire credential — there's no password anywhere in this flow, and no
+ * separate "sign up" step either. On success this establishes a normal
+ * session; AuthGate takes it from there — routing a brand-new account to
+ * app/auth/complete-profile.tsx for its name, then onboarding, exactly like
+ * every other account. This screen doesn't need to know or care which case
+ * it is. Previously shared between an email and a phone channel (a `channel`
+ * param picked which pair of useAuth functions to call) — email auth is
+ * gone now, so that branching is gone too, but the screen itself stayed
+ * rather than being duplicated back apart.
  */
-export default function PhoneVerifyScreen() {
+export default function VerifyScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { verifyPhoneOtp, signInWithPhoneOtp } = useAuth();
   const { tokens } = useTheme();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { identifier } = useLocalSearchParams<{ identifier: string }>();
 
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -41,20 +47,20 @@ export default function PhoneVerifyScreen() {
   }, [cooldown]);
 
   const submit = async () => {
-    if (phone === undefined) return;
+    if (identifier === undefined) return;
     setError(null);
 
     if (code.trim().length === 0) {
-      setError(t('phoneAuth.errors.emptyCode'));
+      setError(t('verify.errors.emptyCode'));
       return;
     }
 
     setBusy(true);
-    const err = await verifyPhoneOtp(phone, code.trim());
+    const err = await verifyPhoneOtp(identifier, code.trim());
     setBusy(false);
 
     if (err !== null) {
-      setError(t('phoneAuth.errors.invalidCode'));
+      setError(t('verify.errors.invalidCode'));
       return;
     }
 
@@ -62,9 +68,9 @@ export default function PhoneVerifyScreen() {
   };
 
   const resend = async () => {
-    if (phone === undefined || cooldown > 0) return;
+    if (identifier === undefined || cooldown > 0) return;
     setError(null);
-    await signInWithPhoneOtp(phone);
+    await signInWithPhoneOtp(identifier);
     setCooldown(RESEND_COOLDOWN_SECONDS);
   };
 
@@ -79,25 +85,25 @@ export default function PhoneVerifyScreen() {
       >
         <BackButton />
 
-        <Text style={[styles.headline, { color: tokens.textPrimary }]}>{t('phoneAuth.verifyHeadline')}</Text>
+        <Text style={[styles.headline, { color: tokens.textPrimary }]}>{t('verify.headline')}</Text>
         <Text style={[styles.sub, { color: tokens.textSecondary }]}>
-          {t('phoneAuth.verifySubtitle', { phone: phone ?? '' })}
+          {t('verify.subtitle', { identifier: identifier ?? '' })}
         </Text>
 
         <Field
-          label={t('phoneAuth.codeLabel')}
+          label={t('verify.codeLabel')}
           value={code}
           onChangeText={(value) => {
             setCode(value);
             setError(null);
           }}
-          placeholder={t('phoneAuth.codePlaceholder')}
+          placeholder={t('verify.codePlaceholder')}
           keyboardType="numeric"
         />
         {error !== null ? <Text style={[styles.error, { color: tokens.destructive }]}>{error}</Text> : null}
 
         <Button
-          label={busy ? t('phoneAuth.verifyingButton') : t('phoneAuth.verifyButton')}
+          label={busy ? t('verify.verifyingButton') : t('verify.verifyButton')}
           onPress={() => void submit()}
           disabled={busy || code.trim().length === 0}
           style={styles.submit}
@@ -116,7 +122,7 @@ export default function PhoneVerifyScreen() {
               { color: cooldown > 0 ? tokens.textSecondary : tokens.accentPrimary },
             ]}
           >
-            {cooldown > 0 ? t('phoneAuth.resendCooldown', { seconds: cooldown }) : t('phoneAuth.resendCode')}
+            {cooldown > 0 ? t('verify.resendCooldown', { seconds: cooldown }) : t('verify.resendCode')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

@@ -11,14 +11,17 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { spacing } from '@/utils/theme';
 
 /**
- * One-time step, reached only via AuthGate's redirect for any signed-in
- * account with no first_name yet (new email/phone sign-up, or an existing
- * account from before this feature — see AuthGate.tsx). No back button:
- * there's nowhere legitimate to return to, and skipping would defeat the
- * point. AuthGate itself decides where "next" is once firstName is no
- * longer null — this screen just saves and lets that redirect happen.
+ * "Complete your profile" — one-time first/last name step for any signed-in
+ * account with no first_name yet, old or new, email or phone. Reached only
+ * via AuthGate's redirect (the same gate that already handles onboarding),
+ * not owned by any particular auth screen — the auth flow itself (Screen 1
+ * / verify) is identifier-and-code only and never collects a name. No back
+ * button: nowhere legitimate to return to, and skipping would defeat the
+ * point. This screen doesn't navigate on success — AuthGate reacts to
+ * firstName going from null to set and moves on by itself, same mechanism
+ * it already uses for onboarding.
  */
-export default function NameStepScreen() {
+export default function CompleteProfileScreen() {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const { saveName } = useUserProfile();
@@ -38,6 +41,7 @@ export default function NameStepScreen() {
       await saveName(firstName.trim(), lastName.trim());
     } catch {
       setError(t('nameStep.errorSaving'));
+    } finally {
       setBusy(false);
     }
   };

@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 /** Route groups reachable without a session. Everything else requires one. */
-const PUBLIC_SEGMENTS = new Set(['auth', 'onboarding', 'name', 'invite', 'forgot-password', 'reset-password']);
+const PUBLIC_SEGMENTS = new Set(['auth', 'onboarding', 'invite']);
 
 /**
  * Redirects to the auth screen whenever a protected route is rendered without a
@@ -14,7 +14,9 @@ const PUBLIC_SEGMENTS = new Set(['auth', 'onboarding', 'name', 'invite', 'forgot
  * account with no first_name yet, old or new, email or phone), then the
  * onboarding tutorial. Splash always reveals into Home/whatever route is
  * current; this is what actually decides "Auth" vs "Name" vs "Onboarding" vs
- * "let it through."
+ * "let it through." The auth flow itself never collects a name (it's just
+ * identifier + code, see app/auth/index.tsx), so this is the only place a
+ * name gets requested.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading, hasCompletedOnboarding } = useAuth();
@@ -46,7 +48,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     if (!profileHydrated) return;
 
     if (firstName === null) {
-      router.replace('/name');
+      router.replace('/auth/complete-profile');
       return;
     }
 

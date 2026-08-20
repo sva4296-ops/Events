@@ -197,14 +197,14 @@ was out of scope for an infra-only pass and would have been new functionality, n
 
 | Hook | Owns |
 | --- | --- |
-| `useAuth` | The Supabase session; `signIn/signUp/signOut`, `hasCompletedOnboarding`/`markOnboardingComplete`, `requestPasswordReset`/`setRecoverySession`/`updatePassword` (see "Forgot / change password" below). No `mode` field — Supabase is the only path (see the top of this file). Still a Context provider — session state is push-driven via `supabase.auth.onAuthStateChange`, not a fit for query-style pull fetching, and it isn't a resource that exhibited the staleness bug the react-query pass fixed |
+| `useAuth` | The Supabase session; `signOut`, `signInWithPhoneOtp`/`verifyPhoneOtp`, `updatePhone`/`verifyPhoneChange`, `hasCompletedOnboarding`/`markOnboardingComplete`. Phone-only — no `signIn`/`signUp`/password functions, no email-OTP functions, no `updateEmail` (email is a plain `useUserProfile` field now, not an auth concern at all), see §3's "Phone-only auth." No `mode` field — Supabase is the only path (see the top of this file). Still a Context provider — session state is push-driven via `supabase.auth.onAuthStateChange`, not a fit for query-style pull fetching, and it isn't a resource that exhibited the staleness bug the react-query pass fixed |
 | `useEvents` | The events list, Postgres-backed, `['events', userId]` — `createEvent` (async), `updateEvent` (async), `respondToInvite`, `removeGuest`, `addGuest` (async), `isOwner` |
 | `useEventContent` | Per-event content, three queries keyed by category (`social`/`details`/`contributions`, see the table above) merged into one `content: EventContent \| null`, plus all their mutations — Supabase write-then-invalidate (of the correct category key) |
 | `useEventDraft` | The 4-step create-event wizard draft (in-memory, not persisted) — still a Context provider, this is genuinely ephemeral UI state, not a fetched resource |
 | `useGuestEvent` | Provides `{ id, name, event }` to the guest tabs, derived from `useEvents().getEvent(id)` — **see the gotcha below** |
 | `useTheme` | The Warm Story light/dark theme — `{ mode, override, tokens, setThemeMode }`. Still a Context provider, same reasoning as `useAuth`: `mode` is push-driven (system `useColorScheme()` unless the user overrides it in Profile), not a fetched resource. See §5 for the full token set and which screens actually consume it yet |
-| `useAgency` | Whether the signed-in user owns an agency (`['agency', userId]`) — plain react-query hook, no provider. See "Agency accounts" below |
-| `useUserProfile` | `first_name`/`last_name`/`display_name` (`['userProfile', userId]`) plus the one `saveName` mutation the new one-time name step uses — plain react-query hook, no provider, same shape as `useAgency`. See "Name collection" below |
+| `useAgency` | Whether the signed-in user owns an agency (`['agency', userId]`), plus `becomeAgency(info)` — a real insert mutation, not a signup-time flag. Plain react-query hook, no provider. See "Agency accounts" and "One auth screen; agency is a Profile upgrade" |
+| `useUserProfile` | `first_name`/`last_name`/`display_name`/`email` (`['userProfile', userId]`) plus `saveName` (used by the one-time name step, `app/auth/complete-profile.tsx`, gated by `AuthGate`) and `saveEmail` (a plain, unverified column write — `app/edit-profile.tsx`'s optional email field, see §3's "Phone-only auth") — plain react-query hook, no provider, same shape as `useAgency`. See "Name collection" below |
 
 **Critical gotcha — do not regress this.** `useLocalSearchParams` inside a tab child (`guest/[id]/detalii`)
 does **not** see the `[id]` param, which belongs to the parent layout route. Reading it there returns
@@ -234,10 +234,12 @@ cache entry outright rather than needing an effect to notice the session changed
      (a ref keyed on user id guards against re-checking on every navigation) and redirects to
      `/onboarding` if it's false.
 - **Routing, current:** splash → (nothing splash-specific to decide anymore) → whatever route was
-  already current, which `AuthGate` then corrects, in order: no session → `/auth`; session but no
-  `first_name` yet → `/name` (any account, old or new — see §3's "Name collection"); name set but
-  onboarding not yet completed for this account → `/onboarding`; all three satisfied → left alone
-  (normally Home). Onboarding is reached **after** authentication now, exactly once per account (any
+  already current, which `AuthGate` then corrects, in order: no session → `/auth` (the landing screen,
+  not a form — see §3's "Landing screen, phone-signup shortcuts everywhere, and name collection moved to
+  signup"); onboarding not yet completed for this account → `/onboarding`; both satisfied → left alone
+  (normally Home). **There is no longer a name-related redirect step** — that was removed this pass;
+  first/last name is collected on the Create Account form itself now, not gated post-auth (see the §3
+  section linked above). Onboarding is reached **after** authentication, exactly once per account (any
   device — see §3), not on first app launch. `app/onboarding.tsx`'s `finish()` (tapping the
   last step's "Începe," or "Sari peste" to skip) calls `markOnboardingComplete()` and routes to `/`,
   not `/auth` — see §3 and §4 for what changed and why.
@@ -252,6 +254,15 @@ cache entry outright rather than needing an effect to notice the session changed
   this file said this didn't exist; it does now (`supabase/migrations/20260810000003_guest_autolink.sql`,
   documented under §3's "Add guest by email"). Leaving this note here since it was wrong here
   specifically for a while.
+
+**Superseded — password auth is gone entirely, this whole section describes deleted code.** A later
+pass removed password sign-in/sign-up everywhere (email now goes through the same send-code/verify
+shape phone already used) — there is no password to forget or change anymore, so
+`app/forgot-password.tsx`, `app/reset-password.tsx`, `app/change-password.tsx`, `utils/passwordReset.ts`,
+and `useAuth`'s `requestPasswordReset`/`setRecoverySession`/`updatePassword` are all deleted, not just
+unused. See "Passwordless auth: email OTP, generalized verify screen" further up this section for the
+replacement. Kept below for incident history per this file's own convention — none of it describes
+current code.
 
 **Forgot / change password — new this pass, built entirely on Supabase Auth's own reset flow, no new
 tables or migrations.** Two flows:
@@ -1089,7 +1100,481 @@ every migration since `20260810000003`) — real Twilio SMS delivery (dashboard-
 configuration is the user's own step, not verifiable from here), a real OTP verify round-trip, the
 auto-link trigger's actual timing, and the RPC's behavior against real data are all unverified.
 
+### Editing business info; the business/individual identifier, made explicit
+
+**`useAgency().isAgencyOwner` was already the "is this a business account" check — this pass just
+gave it a real second consumer and an edit path.** No new state was added: `isAgencyOwner` is (and
+always was) derived purely from whether a row exists in `public.agencies` for the signed-in user
+(`['agency', userId]`, react-query), not a signup-time flag — exactly the design this section's earlier
+passes already committed to. It already updated without a restart or re-login, because `becomeAgency`'s
+`onSuccess` already invalidated that query key; this pass didn't need to add that behavior, only rely on
+it for a second mutation.
+
+**New: `useAgency().updateAgency(info)`**, alongside the existing `becomeAgency`. Same shape
+(`data/agenciesRepository.ts`'s new `updateAgency` — `update ... where owner_user_id = <uid>`, allowed
+by the `agencies` table's existing "agency owner updates own agency" policy, unchanged since
+`20260813000001_agencies.sql`), same `onSuccess` invalidation. No new migration needed — the UPDATE
+policy has been live in every migration file since the table was created; nothing about it was ever
+insert-only.
+
+**`components/AgencyFields.tsx` — new, extracted so `app/agency-signup.tsx` (create) and
+`app/edit-profile.tsx` (update) can't drift apart.** Company name / CUI / registration number / address
+as four controlled `Field`s (paired value/onChange props per field, the same shape
+`components/PhoneField.tsx` already established) plus `validateAgencyFields` and the `CUI_PATTERN`
+regex, both previously duplicated inline in `agency-signup.tsx` alone, now the one place either screen
+reads them from. `app/agency-signup.tsx` was rewritten to consume this component instead of drawing its
+own fields — no behavior change there, just de-duplication.
+
+**`app/edit-profile.tsx` gained a conditional "Business details" section** — rendered only once
+`useAgency()` has hydrated and `isAgencyOwner` is true (mirrors `app/profile.tsx`'s existing
+`agencyHydrated && !isAgencyOwner` guard for its own "Add business account" row, just inverted).
+Pre-filled from `agency` via a `useEffect` keyed on the `agency` object (not relied on being warm at
+mount — `useUserProfile`'s data can assume AuthGate already forced a fetch; `useAgency`'s can't, since
+nothing gates on it centrally, so this screen can't assume the query is warm just because Profile
+usually visits first). Folded into the screen's single existing "Save changes" button/handler rather
+than getting its own submit action — validated with the same `validateAgencyFields` right alongside the
+email-format check, before any writes start, matching how this screen already validates before saving.
+Individual accounts render nothing extra here at all; the section simply doesn't mount.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing. Unverified: the
+actual update round-trip against a real `agencies` row, and how the new section looks/feels inline with
+the rest of the edit-profile form — no simulator run has happened in any session so far.
+
+### Phone-only auth — email is no longer an identifier at all
+
+**Auth is phone-only now, end to end.** Email-based sign-in/sign-up is removed completely — not
+deprioritized, not kept as a fallback. `app/auth/index.tsx` (the one auth screen, see "One auth screen…"
+below) lost its Email/Phone tab toggle entirely; it's just a `PhoneField` + "Send code" now, the same
+shape it already had for the phone tab, minus the tab. `app/auth/verify.tsx` lost its `channel` param
+and email branches the same way — it was already generic over "phone or email," and since there's only
+one channel left, it's just phone again, but the screen itself wasn't duplicated back apart (still one
+file, still reused for what it already did). `hooks/useAuth.tsx` lost `signInWithEmailOtp`,
+`verifyEmailOtp`, and `updateEmail` outright — nothing in the auth layer touches email anymore.
+
+**Email survives as exactly one thing: an optional, unverified profile field.** `public.users.email`
+already existed (it used to mirror `auth.users.email` for whichever account created itself via email —
+see the superseded sections below) and was already nullable, so no migration was needed to repurpose it.
+What changed is *how* it's written: `app/edit-profile.tsx`'s email field used to go through
+`useAuth().updateEmail()` → `supabase.auth.updateUser({ email })`, Supabase's real auth-email-change flow
+(new address, confirmation link, `auth.users.email` doesn't change until it's clicked). That's gone.
+`hooks/useUserProfile.tsx` gained a `saveEmail` mutation (`data/usersRepository.ts`'s new
+`saveContactEmail`) that's a plain `update users set email = ...` — no Supabase Auth call, no
+verification, exactly the same shape `saveName` already used for first/last name. Basic format
+validation still runs client-side (still using `auth.errors.invalidEmail`) since that's just data
+hygiene, not identity verification — the distinction the whole redesign is about is *verification*, not
+*validation*. `useAuth().updatePhone`/`verifyPhoneChange` are untouched — phone really is the account's
+auth identifier, so a phone change still genuinely needs Supabase's OTP re-verification; that's not the
+same category of thing as email anymore.
+
+**Guest invites are phone-only too — this was explicitly requested alongside the auth change, not
+inferred.** `app/add-guest/[id].tsx` had its own, separate Email/Phone method toggle (inviting a guest
+by email, independent of how *that guest* would eventually sign in) — removed, along with its
+`submitEmail` branch, `checkGuestEmailInvited` call, and `EMAIL_PATTERN`/email `Field`. The screen is now
+exactly the phone half it already had (`checkGuestPhoneInvited` → `addGuestByPhone`), unconditionally.
+**Checked first, not assumed: there was no SMTP/email-sending integration anywhere in this repo to remove
+either** (no nodemailer, no SendGrid/Resend/Mailgun, no Supabase Edge Function doing it) — grepped the
+whole tree, nothing. The email-invite path was always just an `event_guests` row with `guest_email` set,
+the same "no actual delivery, ever" gap §7 already documents for phone invites (no Twilio send either) —
+there was never a working auto-send feature to remove, only a UI path to it.
+
+**Deliberately left alone: the email side of the guest-invite *backend*.** `data/eventsRepository.ts`'s
+`checkGuestEmailInvited`/`insertGuestInvite`, `hooks/useEvents.tsx`'s `addGuest` (email), the
+`event_guests.guest_email` column, and `20260810000003_guest_autolink.sql`'s email-matching direction
+are all untouched — inert now that no screen calls them, not reverted. Same reasoning as leaving
+`handle_new_user()`'s dormant agency-metadata branch alone in the previous pass: ripping out working
+schema/trigger logic that simply isn't exercised anymore is churn, not a fix, and wasn't asked for. If a
+future pass wants those columns/triggers actually gone, that's a deliberate schema decision to make on
+its own, not a side effect of an auth-flow change.
+
+**Nothing here touched the invite-*preview* flow (`app/invite/[id].tsx`, `get_invite_preview`) —
+checked, not assumed.** The request specifically asked to remove any "was this person invited by phone
+or email, pre-fill accordingly" branching from the invited-user sign-in flow. Traced it: no such
+branching ever existed. The auth screens have never taken an invite-related identifier as a param or
+pre-filled anything from a deep link — `app/invite/[id].tsx`'s own email/phone matching (in
+`get_invite_preview` and the auto-link triggers) is about recognizing an *already-invited* row against
+the *currently signed-in* session, which is a separate concern from the sign-in screen itself. There was
+nothing to remove here; noting that explicitly rather than silently doing nothing and leaving the request
+unaddressed.
+
+**Flag, not a code change: the Supabase Dashboard's Auth Providers panel.** Nothing in this repo
+configures which providers are enabled server-side (no `supabase/config.toml`, checked — this project
+has never had one) — that's Dashboard-only, Authentication → Providers, same category as the Twilio SMS
+and email-template gaps already flagged elsewhere in this file. The app code no longer calls
+`signInWithOtp({ email })` anywhere, so leaving the Email provider enabled there is inert from this app's
+own perspective — but if the connected Supabase project should stop accepting email-based auth
+altogether (e.g. a stray direct API call, or another client hitting the same project), disabling it
+Dashboard-side is the only way to actually close that off; app code can't do it.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing, plus a repo-wide
+grep confirming no remaining `signInWithEmailOtp`/`verifyEmailOtp`/`updateEmail` call, no email/phone
+method toggle left in either auth or guest-invite screens, and no SMTP-style email-sending code anywhere
+in the tree. Unverified: the real end-to-end phone OTP round-trip (signup, login, invite) on a device —
+no simulator run has happened in any session so far — and whatever the Supabase Dashboard's Auth
+Providers panel is actually set to today, which this environment has no credentials to check.
+
+### One auth screen; agency is a Profile upgrade, not a signup branch
+
+**Partially superseded by "Phone-only auth" above — the email/phone tab toggle this section describes
+is gone; everything else below (one screen, no account-type question, agency as a Profile upgrade) is
+still accurate.** Read this section for the screen-count/agency-location history, and "Phone-only auth"
+above for what actually happens on the identifier field today.
+
+**Supersedes both sections below — the multi-screen entry (Welcome → Mobile/Email choice →
+individual/agency choice → identifier) was overbuilt. Corrected back down to what was actually asked
+for: one screen, email or phone, OTP, done. Agency signup was never supposed to be part of account
+creation at all — it's now a Profile action on an already-existing account.** Everything in "Passwordless
+auth" and "Two-screen auth entry" further down accurately describes what those passes built, but none of
+it is current — kept for incident history per this file's own convention.
+
+**`app/auth/index.tsx` is one screen again — no Screen 2, no `choose-type.tsx`, no account-type
+question.** A two-tab toggle (`auth.emailTab`/`phoneTab`, styled like Profile's existing
+Language/Theme pill toggles — the one place in the app that pattern already existed) switches between a
+plain email `Field` and a `PhoneField`; one "Send code" button calls `signInWithEmailOtp(email)` or
+`signInWithPhoneOtp(phone)` depending on the active tab and pushes to `app/auth/verify.tsx`
+(`?channel=email|phone&identifier=...`). No `mode` param anywhere in this flow — there was never a real
+sign-in/sign-up distinction to carry (Supabase's OTP call already creates the account on first use), so
+threading `mode` through four screens to compute a `needsName` flag was solving a problem that only
+existed because the flow had been split into four screens in the first place. `app/auth/method.tsx`,
+`app/auth/choose-type.tsx`, `app/auth/email.tsx`, and the auth-flow `app/auth/agency-signup.tsx` are all
+deleted.
+
+**`app/auth/verify.tsx` is simpler too — no `needsName`, no routing decision of its own.** On a
+successful `verifyEmailOtp`/`verifyPhoneOtp` it just does `router.replace('/')`, full stop.
+`AuthGate` — not this screen — decides what actually happens next.
+
+**Name collection moved back to a global `AuthGate` check, exactly like the original pre-passwordless
+design.** `app/auth/complete-profile.tsx` (renamed from `app/name.tsx` two passes ago, then briefly
+routed to via a query-param flag) is reached the same way onboarding already is: `AuthGate` reads
+`useUserProfile().firstName`, and if it's `null` for a signed-in user, redirects there — re-evaluated on
+every effect run (not a one-shot ref, unlike the onboarding check below it), so it naturally stops
+redirecting the instant `firstName` flips to non-null, with no screen needing to own its own "next."
+This applies uniformly to every account — new or old, email or phone, agency or individual — there's no
+special-casing left to maintain. `complete-profile.tsx` itself no longer calls `router.replace('/')`
+after saving; it just calls `saveName()` and lets `AuthGate`'s effect notice.
+
+**`useAuth.tsx` is back to pure identifier-and-code — no `name`/`agency` parameters on
+`signInWithEmailOtp`/`signInWithPhoneOtp` at all anymore.** `buildSignupMetadata`, `AgencySignupInfo`,
+and `SignUpNameInfo` are deleted from this file entirely — nothing in the auth layer needs to know about
+either concept now that both are handled elsewhere (name via `complete-profile.tsx`, agency via the new
+flow below). `signInWithEmailOtp(email)` / `signInWithPhoneOtp(phone, channel?)` are the whole surface.
+
+**Agency accounts: created after signup, on Profile, by upgrading the existing account in place — not a
+different signup path.** `app/profile.tsx` gained an "Add business account" row (Feather `briefcase`,
+same row shape as "Edit profile"), rendered only while `useAgency().isAgencyOwner` is false, opening the
+new top-level `app/agency-signup.tsx` — company name, CUI, registration number (optional), address
+(optional). No name/email/password fields; the signed-in account already has all of that. Submitting
+calls a new `useAgency().becomeAgency(info)` mutation, which is a real client-side
+`insert into public.agencies` (`data/agenciesRepository.ts`'s new `insertAgency`), invalidating
+`['agency', userId]` on success so the Profile row disappears immediately once the insert lands.
+
+**This needed a real RLS policy change, not just app code — `agencies` previously had no insert policy
+on purpose.** `20260813000001_agencies.sql`'s own comment is explicit about why: at the time, the only
+way an agency row was ever created was `handle_new_user()` (security definer, fires at `auth.users`
+insert time, before email-confirmation signups even have a session) — a client-side insert was never
+needed and was deliberately not allowed. That reasoning no longer holds once agency creation is a
+Profile action taken from an established session. New migration
+`20260821000001_agency_self_signup.sql` adds exactly one policy: `for insert with check (owner_user_id =
+auth.uid())` — a session can only ever insert a row naming itself as owner, and the table's existing
+unique constraint on `owner_user_id` still caps it at one agency per account, same as before.
+`handle_new_user()`'s own agency-creation branch (reading `account_type`/`company_name`/etc. from signup
+metadata) is untouched and still there — inert now, since nothing sends that metadata anymore (the auth
+screen never collects it), but harmless to leave rather than churn a working trigger definition for a
+path that simply won't be exercised going forward.
+
+**`supabase/migrations/20260820000002_signup_name_metadata.sql`** (from the "Passwordless auth" pass,
+reading `first_name`/`last_name` out of signup metadata) is inert the same way — nothing calls
+`signInWithEmailOtp`/`signInWithPhoneOtp` with a name anymore, so those `raw_user_meta_data` keys are
+just never present. Every account's name now comes exclusively from `complete-profile.tsx`, post-signup.
+Not reverted, for the same "harmless, not worth churning" reasoning as above.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing, plus a repo-wide
+grep confirming no remaining reference to any deleted route (`/auth/method`, `/auth/choose-type`,
+`/auth/email`, `phone-verify`, `phone-name`) or dead locale namespace (`landing.*`, `method.*`,
+`emailAuth.*`, `accountType.*`). The new RLS insert policy, and the whole flow end-to-end on a real
+device, are unverified — no DB credentials and no simulator run from this environment, same as
+everything else in this file.
+
+### Passwordless auth: email OTP, generalized verify screen
+
+**Superseded — see "One auth screen; agency is a Profile upgrade, not a signup branch" above.**
+
+**The entire auth flow is passwordless now — email and phone both work the same way: enter the
+identifier, get a code, enter the code.** No password anywhere — no password field on any form, no
+"forgot password" flow, no "change password" screen. This builds directly on the two-screen entry
+redesign below (§3's "Two-screen auth entry"), which is otherwise unchanged by this pass — Screen 1,
+Screen 2, and `choose-type.tsx`'s routing are all the same; what changed is what "Email" actually means
+once you get there.
+
+**Deleted outright, not just unused:** `app/auth/login.tsx` (the password sign-in/sign-up form),
+`app/forgot-password.tsx`, `app/reset-password.tsx`, `app/change-password.tsx` (and its "Change
+password" row on `app/profile.tsx`), `utils/passwordReset.ts`, `utils/authErrors.ts` (`mapAuthError` was
+password-error-classification specific — the OTP screens all show the raw Supabase error string
+directly, same pattern `phone.tsx` already used). `useAuth`'s `signIn`, `signUp`,
+`requestPasswordReset`, `setRecoverySession`, `updatePassword` are all gone from the hook entirely — see
+"Forgot / change password" below for what they used to do, now superseded.
+
+**New: `app/auth/email.tsx`, structurally a twin of `app/auth/phone.tsx`.** Plain email `Field` instead
+of `PhoneField` + country code, calling the new `useAuth().signInWithEmailOtp(email, name?, agency?)`
+(`supabase.auth.signInWithOtp({ email, options: { data } })`) instead of `signInWithPhoneOtp`. Same
+`mode`/name/agency query-param contract as `phone.tsx` (forwarded by `method.tsx`, `choose-type.tsx`, or
+`agency-signup.tsx`), same `needsName` computation (`mode === 'sign-up' && name === undefined`), same
+push to the shared verify screen on success. `method.tsx`'s Email option and `choose-type.tsx`'s
+Individual card now both target `/auth/email` instead of the deleted `/auth/login`.
+
+**`app/auth/phone-verify.tsx` is deleted; `app/auth/verify.tsx` replaces it, generalized over both
+channels — this is the reuse the redesign asked for, not a new screen built alongside the old one.**
+Takes `channel` (`'phone' | 'email'`), `identifier` (the phone number or email string — same param name
+either way, since the UI only ever displays it, "we sent a code to {{identifier}}"), and `needsName`.
+Branches on `channel` for exactly two things: which pair of `useAuth` functions to call
+(`verifyPhoneOtp`/`signInWithPhoneOtp` vs the new `verifyEmailOtp`/`signInWithEmailOtp`, the latter for
+the resend button) — everything else (layout, the code `Field`, the resend cooldown, error copy) is
+identical for both, which is exactly why one screen could serve both instead of two near-duplicates.
+`phoneAuth.verifyHeadline`/`verifySubtitle`/`codeLabel`/`codePlaceholder`/`verifyButton`/
+`verifyingButton`/`resendCode`/`resendCooldown`/`errors.emptyCode`/`errors.invalidCode` moved out of the
+phone-specific `phoneAuth.*` namespace into a new shared `verify.*` namespace (`phoneAuth.*` keeps only
+what's genuinely phone-entry-specific: `headline`/`subtitle`/`phoneLabel`/`phonePlaceholder`/
+`selectCountry`/`sendCode`/`sendingCode`/`errors.invalidPhone`). New `emailAuth.*` namespace holds only
+`email.tsx`'s two unique strings (`headline`/`subtitle`); everything else it needs (`sendCode`/
+`sendingCode`, `auth.emailLabel`/`emailPlaceholder`, `auth.errors.invalidEmail`) is reused from existing
+keys rather than duplicated.
+
+**`app/auth/phone-name.tsx` is deleted; `app/auth/complete-profile.tsx` replaces it, renamed for the
+same reason `verify.tsx` was generalized.** Byte-for-byte the same "complete your profile" UI (still
+reads `nameStep.*`), but the old name and its doc comment specifically claimed this was "the one place
+an individual **phone** sign-up collects a name" — no longer true once email also has no password form
+to put name fields on. Same trigger as before: `verify.tsx`'s `needsName === '1'` redirect, for a plain
+individual signup on either channel. Agency signup still never reaches this screen — its own
+company-info form always collects name upfront, on both its phone and email paths (see below).
+
+**`app/auth/agency-signup.tsx` is substantially simpler now — it no longer creates the account itself.**
+Before this pass, it had two real branches: `method === 'phone'` (company + name fields, then a
+"Continue" that navigated to `/auth/phone` with those fields as params) and `method !== 'phone'`
+(the same fields plus email + password inline, with its own `signUp()` call and post-signup notice/
+"go to sign in" state). The email branch's inline password form and its `signUp()` call, `notice`/`busy`
+state, and the "Account created…" / "Go to sign in" UI are all gone. Both branches are now identical in
+shape: collect company + name, then one `continueToIdentifier()` that validates those fields and
+navigates to `/auth/phone` **or** `/auth/email` (whichever `method` says) with them as query params —
+the same shape `phone.tsx`'s agency handoff already used, just now shared by both channels instead of
+being phone-only. This screen no longer imports `useAuth` at all; account creation happens on whichever
+identifier screen comes next.
+
+**Session persistence is unaffected — investigated, not just assumed.** `data/supabaseClient.ts`'s
+`auth` config (`storage: AsyncStorage`, `persistSession: true`, `autoRefreshToken: true`,
+`detectSessionInUrl: false`) is untouched by this pass and doesn't need to change: a Supabase session
+(access + refresh JWT pair) is identical in shape and lifecycle regardless of which method created it —
+password, phone OTP, or email OTP all end at the same `onAuthStateChange` event `useAuth.tsx` already
+listens for. There was never a password-specific code path in the session-persistence layer to remove.
+
+**The one thing this pass could not verify or configure: whether the connected Supabase project's email
+template actually sends a typeable code, or a clickable magic-link instead — this needs the user's own
+check in the Supabase Dashboard, no DB/dashboard access from this environment (same class of external
+gap as Twilio's SMS configuration, §7).** `supabase.auth.signInWithOtp({ email })` and
+`verifyOtp({ email, token, type: 'email' })` are both real, correct Supabase Auth API calls (confirmed
+against the installed `@supabase/auth-js` type definitions, not guessed) — the provider already exists,
+nothing new to add there. But whether the *email* Supabase actually sends contains a `{{ .Token }}` (a
+short code the user can type into `verify.tsx`) or the default `{{ .ConfirmationURL }}` (a tappable
+link with nothing to type) is controlled entirely by the "Magic Link" / "Confirm signup" template under
+Authentication → Email Templates in the Supabase Dashboard — a project-level setting this environment
+has no credentials to read or change. If the template still uses `{{ .ConfirmationURL }}`, the code
+field on `verify.tsx` will have nothing valid to accept for an email-channel signup, even though every
+line of app code here is correct. **This needs to be checked before considering email OTP delivery
+"working," independent of anything else in this pass.**
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing, plus a targeted
+grep across `app/`, `components/`, `hooks/`, `data/`, `utils/` confirming no remaining `password`-named
+field, function, or call outside of explanatory comments. Unverified: the email-template question just
+above, whether `verifyOtp`'s `type: 'email'` is in fact the correct type for this project's specific
+OTP-vs-magic-link template configuration, and how the whole flow feels on a real device — no simulator
+run has happened in any session so far.
+
+### Two-screen auth entry: Welcome, then Mobile/Email method choice
+
+**Superseded — see "One auth screen; agency is a Profile upgrade, not a signup branch" above.**
+
+**Supersedes this section's own landing-screen design, one pass later.** The single landing screen
+described just below (two buttons, each with an inline "…with phone number" text link) is now split
+into two screens: a bare Welcome screen, and a dedicated method-choice screen one tap later. Everything
+else in the section below — the login/agency-signup split, `buildSignupMetadata`, the migration — is
+still accurate and unchanged by this pass; only the landing screen's own shape, and where the
+Mobile/Email decision happens, changed.
+
+**`app/auth/index.tsx` (Screen 1, "Welcome") is now bare.** No `BrandHeader` (no logo — an explicit
+ask), content vertically *and* horizontally centered (`flex: 1, justifyContent: 'center', alignItems:
+'center'`, replacing the old top-anchored layout), `landing.headline` unchanged ("Welcome to
+PovesteaNoastra"), but `landing.subtitle` is new warmer copy replacing the reused `home.tagline`
+("Plan weddings, birthdays, and every celebration in between — all in one beautiful place."). Exactly
+two `Button`s, both default `variant="primary"` now (the previous pass had Sign Up as `variant=
+"secondary"` to rank it under Log In — dropped since the brief called both "primary buttons," an equal
+pair, not a ranked one) — no other auth method on this screen at all; the inline phone links are gone
+from here entirely, moved one screen in.
+
+**`app/auth/method.tsx` — new, Screen 2.** Reached from either landing button, carrying `mode`
+(`sign-in`/`sign-up`) as a query param so one screen serves both directions without a third button.
+`BackButton` top-left (back to Screen 1 — `router.back()`, same control every other auth screen already
+uses), content centered below it. Exactly two options, "Mobile" and "Email" — plain `Button`s again, not
+`choose-type.tsx`'s icon-card style, since the brief asked for buttons specifically and the two screens
+serve different jobs (this one is a bare fork, `choose-type.tsx` explains two account *kinds*). No
+"Sign Up" label anywhere on this screen — it's purely method, not account type. Routing:
+sign-in + Email → `/auth/login?mode=sign-in`; sign-in + Mobile → `/auth/phone?mode=sign-in`; sign-up +
+Email → `/auth/choose-type?method=email`; sign-up + Mobile → `/auth/choose-type?method=phone`. The
+sign-in side never touches `choose-type.tsx` at all — there's no "account kind" question when logging
+into an account that already has one.
+
+**`choose-type.tsx` now forwards `method` instead of deciding it.** Both cards read the incoming
+`method` param and route accordingly: Individual → `/auth/login?mode=sign-up` (email) or
+`/auth/phone?mode=sign-up` (mobile, no name/agency params — see below); Agency → `/auth/agency-signup
+?method=email` or `?method=phone`. This is also what closes the "agency must go through the same
+Mobile/Email screen, not a separate one" requirement — agency's route into Screen 2 is identical to
+individual's, just diverging one screen further in, at `choose-type.tsx`, rather than agency getting its
+own copy of the method choice.
+
+**`agency-signup.tsx` now branches on `method` instead of always showing the full form plus an inline
+phone link.** The previous pass's "Continue with phone number" `TouchableOpacity` (reusing
+`auth.usePhoneInstead`) is gone — that link existed specifically because method wasn't decided yet by
+the time you reached this screen; now it always is, before this screen is ever pushed. `method ===
+'phone'`: company + contact-name fields only, single `Button` (`agencySignup.continueButton`, "Continue")
+running the same `continueWithPhone()` validation-and-navigate logic as before (now also passing
+`mode: 'sign-up'` in the query params it hands to `/auth/phone`). `method !== 'phone'` (the default,
+covers `'email'` and any missing param): unchanged full form — company + contact-name + email/password,
+`submit()` calling `signUp()` exactly as before. `login.tsx`'s own matching inline phone link
+(`auth.usePhoneInstead`) is removed the same way, same reasoning — `auth.usePhoneInstead` is now unused
+and trimmed from both locale files.
+
+**Individual phone sign-up gets a post-verification "complete your profile" step — new
+`app/auth/phone-name.tsx`.** This is the one gap the two-screen redesign opened up: email sign-up still
+asks for a name on the form itself (`login.tsx`, unchanged), and agency sign-up still asks on its own
+company-info form (unchanged) — but a plain individual signing up by phone has no upfront form left to
+ask on at all, once the phone shortcut no longer lives inline on `login.tsx`. Rather than resurrect the
+old global name gate (deleted last pass, see "Name collection" below), the fix is scoped to exactly the
+flow that needs it: `app/auth/phone.tsx` now also reads `mode` (forwarded by `method.tsx`/
+`choose-type.tsx`/`agency-signup.tsx`, defaulting to `sign-in` if absent) and computes `needsName = mode
+=== 'sign-up' && name === undefined` — true only for a plain individual sign-up, since agency's `name`
+is always present by the time it reaches this screen. That flag rides along as a query param to
+`app/auth/phone-verify.tsx`, which on a successful `verifyPhoneOtp` now does
+`router.replace(needsName === '1' ? '/auth/phone-name' : '/')` instead of always `'/'`. `phone-name.tsx`
+itself is a near-verbatim revival of the deleted `app/name.tsx`'s UI (same `Header`/`Field`/`Screen`/
+`Button` shape, same `nameStep.*` keys — restored to both locale files, since the prior pass had trimmed
+`title`/`subtitle`/`continue`/`saving`/`errorSaving` as unused once `app/name.tsx` was deleted) — but
+architecturally different: it's reached by one specific screen's explicit redirect, not a global
+`AuthGate` gate re-checked on every navigation, so it only ever appears once, exactly where it's needed,
+and it owns its own "next" (`router.replace('/')` after `saveName()` succeeds) rather than relying on
+`AuthGate` to notice and move on.
+
+**A known, pre-existing race, not introduced by this pass.** The moment `verifyPhoneOtp` succeeds,
+`useAuth`'s `user` flips from `null` to real, which independently re-runs `AuthGate`'s own
+onboarding-check effect — for a brand-new account (`has_completed_onboarding` still `false`), that effect
+calls `router.replace('/onboarding')` around the same time `phone-verify.tsx`'s own `submit()` calls
+`router.replace('/auth/phone-name')` (or `'/'`). Whichever `replace()` lands last wins; there's no
+coordination between the two. This exact race already existed for every brand-new phone sign-up before
+this pass too (`phone-verify.tsx` unconditionally replacing to `'/'`, racing the same onboarding
+redirect) — this pass didn't introduce it, just gave the individual-signup case a second possible
+destination to race against. Not fixed here; flagging it since it's now slightly more visible with two
+possible screen-owned redirects instead of one.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing. Unverified: how
+the two-screen entry actually looks/feels (centering, spacing), whether the `AuthGate`/`phone-verify`
+race above actually resolves the way reasoned above on a real device, and whether `needsName` correctly
+threads through a real multi-hop navigation (method → choose-type → phone → phone-verify → phone-name) —
+no simulator run has happened in any session so far.
+
+### Landing screen, phone-signup shortcuts everywhere, and name collection moved to signup
+
+**Superseded this pass — see "Two-screen auth entry: Welcome, then Mobile/Email method choice" above,
+which replaces this section's landing-screen design one pass later.** Everything below this line was
+accurate when written and mostly still is (the login/agency-signup split, `buildSignupMetadata`, the
+migration) — only the landing screen itself (§ "`app/auth/index.tsx` is now the entry/landing screen…"
+just below) and the phone-signup shortcuts' exact routing changed. Kept for incident history per this
+file's own convention, not re-verified line by line against current code.
+
+Three changes, same pass, all in service of one goal: no forced post-auth step for a name anymore, and
+a phone-based path into every signup flow, not just the individual one.
+
+**`app/auth/index.tsx` is now the entry/landing screen, not the sign-in/sign-up form.** It's what
+`AuthGate` redirects to whenever there's no session (the target, `'/auth'`, didn't change — only what
+lives there did). Two primary `Button`s — "Log In" and "Sign Up" — each with a secondary text link
+underneath for the phone path: "Log in with phone number" and "Sign up with phone number", both going
+to `app/auth/phone.tsx`. `Button`'s two calls here are the first time `variant="secondary"` is used
+outside its outlined-card original purpose — chosen for Sign Up specifically to visually rank it under
+Log In without needing a third variant. New `landing.*` locale namespace; the subtitle reuses
+`home.tagline` rather than duplicating it.
+
+**The old combined sign-in/sign-up form moved to `app/auth/login.tsx` verbatim, plus name fields.**
+Same in-place `mode` toggle as before (sign-up → sign-in flips in place; sign-in → sign-up still goes
+through `/auth/choose-type` first, unchanged), same raw `TextInput`-based fields (not the shared `Field`
+component — this screen never used it, staying consistent with itself rather than converging with
+`agency-signup.tsx`'s styling). What's new: two more fields, First name and Last name, rendered only in
+sign-up mode, required (submit-time validation, same pattern as email/password on this screen — new
+`auth.errors.firstNameRequired`/`lastNameRequired` keys), reusing `nameStep.firstNameLabel`/
+`firstNamePlaceholder`/`lastNameLabel`/`lastNamePlaceholder` — the same four keys `app/edit-profile.tsx`
+already reused from the now-deleted name screen. `choose-type.tsx`'s "Individual" card now pushes
+`/auth/login?mode=sign-up` (was `/auth?mode=sign-up`); `agency-signup.tsx`'s post-signup "go to sign in"
+link now pushes `/auth/login` (was `/auth`).
+
+**Agency signup also gained name fields and its own phone-signup shortcut.** `app/auth/agency-signup.tsx`
+gained First/last name `Field`s in its Contact section (same two reused `nameStep.*` keys), and a
+"Continue with phone number" link (reusing `auth.usePhoneInstead`'s existing label — no new key) below
+the password field. That link validates only the fields a phone path actually needs — name + company
+name + CUI, via a shared `validateAgencyFields` helper the email submit path also calls — then navigates
+to `/auth/phone` carrying all of it as query params (`router.push({ pathname, params })`), skipping
+email/password entirely. **This is what closes the gap the phone-auth pass explicitly flagged as
+deferred** ("there is no phone-based agency signup" — §7 and the old "Phone auth" section both said
+this): `app/auth/phone.tsx` now reads those optional query params (`firstName`/`lastName`/`companyName`/
+`cui`/`registrationNumber`/`address` — extracted with a small `asStringParam` guard rather than a typed
+generic on `useLocalSearchParams`, since a multi-optional-field object type doesn't reliably resolve to
+that hook's `TParams extends UnknownOutputParams` overload over its `TRoute extends RoutePath` one; the
+untyped-then-narrowed approach sidesteps that instead of fighting it) and, when present, passes them
+through to the now-three-argument `signInWithPhoneOtp(phone, channel, name?, agency?)`.
+
+**`useAuth.tsx`'s `signUp`/`signInWithPhoneOtp` both build `raw_user_meta_data` through one new shared
+helper, `buildSignupMetadata(name?, agency?)`.** Previously only `signUp` ever sent `options.data`, and
+only for agency info. Now both functions can send `first_name`/`last_name` (from a new `SignUpNameInfo`
+param), agency fields, both, or neither — `buildSignupMetadata` returns `undefined` when neither is
+given, so a plain sign-in-mode call or an OTP resend still sends no `data` option at all, unchanged from
+before. `signInWithPhoneOtp`'s `name`/`agency` params only matter on the call that actually creates the
+Supabase user (the first OTP send for that phone number) — a resend after that is a no-op for metadata,
+since the account and its `raw_user_meta_data` already exist.
+
+**`supabase/migrations/20260820000002_signup_name_metadata.sql` — not yet applied, not yet confirmed,
+same caveat as every migration since `20260810000003`.** Re-merges `handle_new_user()` (canonical form
+from `20260819000003`) with two more `raw_user_meta_data` reads, `first_name`/`last_name`, inserted into
+the columns `20260820000001` added and preferred over the old email/phone-derived fallback when deriving
+`display_name`. This is the same "re-merge the whole function rather than let `CREATE OR REPLACE` drop
+an earlier migration's block" discipline `20260819000003` itself was written to restore after
+`20260818000001` broke it once already — worth remembering for the *next* migration that touches this
+function too.
+
+**What this means for `AuthGate` and existing accounts.** `AuthGate` no longer has any name-related
+redirect — see the "Superseded" note at the top of the old "Name collection" section below. A **new**
+signup (email or phone, individual or agency) has `first_name`/`last_name` set at `handle_new_user()`
+time now, before it ever reaches the app. An **existing** account created before this pass, with no
+name, simply stays nameless until the account holder visits `app/edit-profile.tsx` — there is no
+retroactive prompt anymore, which is a deliberate behavior change from the old gate's "redirect until
+set" approach, not an oversight.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing. The migration is
+written but not applied (no DB access from this environment) — whether the re-merged `handle_new_user()`
+fires as reasoned, whether `signInWithOtp`'s `options.data` actually attaches metadata the same way
+`signUp`'s does for a real phone number, and how the new landing screen and the two phone-shortcut links
+actually look/feel are all unverified until a real device run.
+
 ### Name collection — first/last name once, after first verification
+
+**Superseded this pass — the dedicated post-auth name screen described below is gone.** `app/name.tsx`
+and `AuthGate`'s redirect to it are deleted; first/last name is now collected directly on the Create
+Account form instead (both the individual form, `app/auth/login.tsx`, and the agency form,
+`app/auth/agency-signup.tsx` — including its phone-signup shortcut), via `raw_user_meta_data` at signup
+time, the same channel agency signup already used for `company_name`/`cui`. See "Landing screen, and
+name collection moved to signup" below §3's "Phone auth + phone guest invites" for the current
+architecture. Everything in this section from here down describes the code **as it existed before this
+pass** — kept for incident history per this file's own convention (see the top of this file), not
+current behavior. In particular: `app/name.tsx` no longer exists, `AuthGate` no longer has a
+`firstName === null` redirect branch, and `'name'` is no longer in `PUBLIC_SEGMENTS`.
 
 Neither sign-up path (email/password or phone OTP) ever collected a real name — `public.users.display_name`
 was always auto-derived (email local-part, then phone, then `'Guest'`, via `handle_new_user()`), and
@@ -1236,16 +1721,11 @@ its own header). The only nested navigator is the guest event tabs.
 | --- | --- |
 | `app/_layout.tsx` | Providers, splash overlay, auth gate |
 | `app/onboarding.tsx` | Once per account, after a session exists, 4 swipeable steps, exits to `/` |
-| `app/auth/index.tsx` | Single screen, sign-in/sign-up modes toggled in place. Sign-in mode has a "Forgot password?" link to `forgot-password`. Sign-in → sign-up now routes through `auth/choose-type` first — see §3's "Agency accounts" |
-| `app/auth/choose-type.tsx` | Unauthenticated: account-type choice (individual vs agency), first step of sign-up. See §3's "Agency accounts" |
-| `app/auth/agency-signup.tsx` | Unauthenticated: agency signup form (company name, CUI, etc. + email/password). See §3's "Agency accounts" |
-| `app/auth/phone.tsx` | Unauthenticated: phone number + country-code entry, sends the OTP. See §3's "Phone auth + phone guest invites" |
-| `app/auth/phone-verify.tsx` | Unauthenticated: OTP code entry + resend, establishes the session on success. See §3's "Phone auth + phone guest invites" |
-| `app/name.tsx` | Reached only via `AuthGate`'s redirect for any signed-in account with no `first_name` yet (new or existing, email or phone) — one-time first/last name step. See §3's "Name collection" |
-| `app/forgot-password.tsx` | Unauthenticated: email input, fires Supabase's password-reset email — see §3's "Forgot / change password" |
-| `app/reset-password.tsx` | Opened only via the `povesteanoastra://reset-password` deep link from that email, never in-app navigation — establishes the recovery session, then new-password + confirm |
-| `app/edit-profile.tsx` | Authenticated: edit first/last name (saves directly), email/phone (requests a change — Supabase's own re-verification applies, see §2 Auth flow's "Edit profile" note). Reached from Profile |
-| `app/change-password.tsx` | Authenticated: new-password + confirm off the existing session, no current-password re-entry. Reached from Profile |
+| `app/auth/index.tsx` | The one auth screen — phone number + "Send code", full stop. No password, no email option, no account-type question, no sign-in/sign-up distinction. What `AuthGate` redirects to when there's no session. See §3's "Phone-only auth" |
+| `app/auth/verify.tsx` | Unauthenticated: OTP code entry + resend, shared by both the email and phone channels (`channel` param). Establishes the session on success, then just `router.replace('/')` — `AuthGate` decides what happens next (name step, onboarding, or straight through). See §3's "One auth screen; agency is a Profile upgrade" |
+| `app/auth/complete-profile.tsx` | "Complete your profile" — first/last name, reached via `AuthGate`'s redirect for any signed-in account with no `first_name` yet (old or new, email or phone) — a global gate, not owned by any particular auth screen. See §3's "One auth screen; agency is a Profile upgrade" |
+| `app/edit-profile.tsx` | Authenticated: edit first/last name and email (all three save directly, no verification — email is optional profile info, not an auth identifier), plus phone (requests a change — Supabase's own re-verification applies, since phone *is* the auth identifier; see §2 Auth flow's "Edit profile" note and §3's "Phone-only auth"). Business accounts additionally see a "Business details" section (company name/CUI/registration number/address, `useAgency().updateAgency`) — hidden entirely for individual accounts. Reached from Profile. See §3's "Editing business info" |
+| `app/agency-signup.tsx` | Authenticated: "Add business account" — company name, CUI, registration number, address (via the shared `components/AgencyFields.tsx`). Upgrades the signed-in account to an agency owner in place; only reachable from Profile, only while not already an agency owner. See §3's "Agency accounts", "One auth screen; agency is a Profile upgrade", and "Editing business info" |
 | `app/index.tsx` | Home — Your events + My invitations, floating "+" |
 | `app/profile.tsx` | Account details, "Change password" row, and sign out |
 | `app/create/type\|details\|preview\|share.tsx` | 4-step create-event wizard |
@@ -1260,7 +1740,7 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/accommodation/[id].tsx` | Owner: add or edit one accommodation option (`?itemId=` for edit) |
 | `app/vendor/[id].tsx` | Owner: add or edit one tagged vendor (`?itemId=` for edit) |
 | `app/fund/[id].tsx` | Owner: create or edit the fund |
-| `app/add-guest/[id].tsx` | Owner: invite a guest by email |
+| `app/add-guest/[id].tsx` | Owner: invite a guest by phone — the app's auth is phone-only, so a phone invite is the only kind a recipient could ever actually claim. See §3's "Phone-only auth" |
 | `app/post-moment/[id].tsx` | Owner: moment composer |
 | `app/checkout/[id].tsx` | Stubbed Stripe placeholder |
 
@@ -1913,10 +2393,13 @@ gold icon on top.
   installed; there is still no real SMS delivery integration in this repo at all, phone auth's OTP
   send included (Twilio is presumed configured in the Supabase dashboard, never verified from here).
   The invite-preview-under-RLS gap is narrower now, not gone — see §3's "Narrowed, not closed" note.
-- **Guest identity is real now.** `event_guests` rows carry a real `guest_email`/`guest_phone`/
-  `guest_user_id`, auto-linked in either direction for both contact methods (§3).
-- No push notifications. No Google/Apple/social auth — email/password and phone/OTP only (§3's
-  "Phone auth + phone guest invites"). No video streaming — the Live tab is a photo feed. No
+- **Guest identity is real now, but only the phone half is reachable from any current screen.**
+  `event_guests` still carries both `guest_email`/`guest_phone`/`guest_user_id` columns and the
+  auto-link trigger still matches either, but `app/add-guest/[id].tsx` only ever writes `guest_phone`
+  now — the email invite path is inert schema, not a live feature (§3's "Phone-only auth").
+- No push notifications. No Google/Apple/social auth, and no password auth either — phone OTP is the
+  only auth method, full stop, not "email OTP and phone OTP" (§3's "Phone-only auth" — email auth was
+  built, then removed one pass later). No video streaming — the Live tab is a photo feed. No
   venue/restaurant marketplace. No seating plans.
 - **Album's "Descarcă toate pozele" button has no handler** — it is a dead control.
 - **Moment comments.** The "Comentarii" link on a moment card navigates to the Chat tab; there is no

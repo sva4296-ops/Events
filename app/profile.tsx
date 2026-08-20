@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
+import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, type ThemeMode } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -30,6 +31,7 @@ export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
   const { displayName } = useUserProfile();
+  const { isAgencyOwner, hydrated: agencyHydrated } = useAgency();
   const { tokens, mode, setThemeMode } = useTheme();
   const activeLanguage = i18n.language;
   const contact = user?.email ?? user?.phone ?? null;
@@ -60,30 +62,32 @@ export default function ProfileScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.changePasswordRow, { borderTopColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}
+          style={[styles.profileActionRow, { borderTopColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}
           onPress={() => router.push('/edit-profile')}
           activeOpacity={0.7}
           accessibilityRole="button"
         >
           <Feather name="edit-2" size={18} color={tokens.textSecondary} />
-          <Text style={[styles.changePasswordLabel, { color: tokens.textPrimary }]}>
+          <Text style={[styles.profileActionLabel, { color: tokens.textPrimary }]}>
             {t('profile.editProfile')}
           </Text>
           <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.changePasswordRow, { borderTopColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}
-          onPress={() => router.push('/change-password')}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-        >
-          <Feather name="lock" size={18} color={tokens.textSecondary} />
-          <Text style={[styles.changePasswordLabel, { color: tokens.textPrimary }]}>
-            {t('profile.changePassword')}
-          </Text>
-          <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
-        </TouchableOpacity>
+        {agencyHydrated && !isAgencyOwner ? (
+          <TouchableOpacity
+            style={[styles.profileActionRow, { borderTopColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}
+            onPress={() => router.push('/agency-signup')}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Feather name="briefcase" size={18} color={tokens.textSecondary} />
+            <Text style={[styles.profileActionLabel, { color: tokens.textPrimary }]}>
+              {t('profile.addBusinessAccount')}
+            </Text>
+            <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
+          </TouchableOpacity>
+        ) : null}
       </Card>
 
       <Card style={styles.languageCard}>
@@ -185,7 +189,7 @@ const styles = StyleSheet.create({
   meta: {
     fontSize: 12,
   },
-  changePasswordRow: {
+  profileActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -193,7 +197,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     borderTopWidth: 1,
   },
-  changePasswordLabel: {
+  profileActionLabel: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',

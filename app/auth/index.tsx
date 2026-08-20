@@ -1,245 +1,87 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandHeader } from '@/components/BrandHeader';
+import { Button } from '@/components/Button';
+import { PhoneField } from '@/components/PhoneField';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import { mapAuthError, type AuthFieldErrors } from '@/utils/authErrors';
+import { DEFAULT_COUNTRY_CODE, toE164 } from '@/utils/countryCodes';
 import { fonts } from '@/utils/guestTheme';
-import { themeRadius } from '@/utils/themeTokens';
+import { spacing } from '@/utils/theme';
 
-type Mode = 'sign-in' | 'sign-up';
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+/**
+ * The one auth screen — phone number is the only sign-in/sign-up method
+ * (Supabase's OTP call already creates the account on first use, so there's
+ * nothing to separate). No password, no account-type choice, no email path
+ * at all — email is a plain, optional profile field now (app/edit-profile.tsx),
+ * never an identifier used here. Business/agency accounts aren't part of this
+ * flow either — that's a Profile action for an already-signed-in user, see
+ * app/agency-signup.tsx.
+ */
 export default function AuthScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { signIn, signUp } = useAuth();
+  const { signInWithPhoneOtp } = useAuth();
   const { tokens } = useTheme();
-  // Set when arriving from /auth/choose-type's "individual" option, so that
-  // choice screen can land directly on the sign-up fields instead of sign-in.
-  const params = useLocalSearchParams<{ mode?: string }>();
 
-  const [mode, setMode] = useState<Mode>(params.mode === 'sign-up' ? 'sign-up' : 'sign-in');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<AuthFieldErrors>({});
-  const [notice, setNotice] = useState<string | null>(null);
+  const [dialCode, setDialCode] = useState(DEFAULT_COUNTRY_CODE.dialCode);
+  const [localNumber, setLocalNumber] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const isSignUp = mode === 'sign-up';
-
-  const switchMode = () => {
-    setMode(isSignUp ? 'sign-in' : 'sign-up');
-    setErrors({});
-    setNotice(null);
-  };
-
-  const validate = (): boolean => {
-    const next: AuthFieldErrors = {};
-
-    if (!EMAIL_PATTERN.test(email.trim())) {
-      next.email = t('auth.errors.invalidEmail');
-    }
-    if (password.length === 0) {
-      next.password = t('auth.errors.emptyPassword');
-    } else if (isSignUp && password.length < 6) {
-      next.password = t('auth.errors.passwordTooShort');
-    }
-
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
   const submit = async () => {
-    setNotice(null);
-    if (!validate()) return;
+    setError(null);
 
+    const digits = localNumber.replace(/\D/g, '');
+    if (digits.length < 6) {
+      setError(t('phoneAuth.errors.invalidPhone'));
+      return;
+    }
+    const phone = toE164(dialCode, localNumber);
     setBusy(true);
-    const error = isSignUp
-      ? await signUp(email.trim(), password)
-      : await signIn(email.trim(), password);
+    const err = await signInWithPhoneOtp(phone);
     setBusy(false);
-
-    if (error !== null) {
-      setErrors(mapAuthError(error));
+    if (err !== null) {
+      setError(err);
       return;
     }
-
-    if (isSignUp) {
-      // Email confirmation is on for this project, so there is no session yet.
-      setNotice(t('auth.accountCreatedNotice'));
-      setMode('sign-in');
-      setPassword('');
-      return;
-    }
-
-    router.replace('/');
+    router.push(`/auth/verify?identifier=${encodeURIComponent(phone)}`);
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.fill}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScreenBackground />
-      <ScrollView
-        style={styles.page}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 48 }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.brand}>
-          <BrandHeader size="sm" />
-        </View>
-
-        <Text style={[styles.headline, { color: tokens.textPrimary }]}>
-          {isSignUp ? t('auth.createAccountHeadline') : t('auth.welcomeBackHeadline')}
-        </Text>
-        <Text style={[styles.sub, { color: tokens.textSecondary }]}>
-          {isSignUp ? t('auth.createAccountSub') : t('auth.signInSub')}
-        </Text>
+      <View style={[styles.content, { paddingTop: insets.top + 64 }]}>
+        <Text style={[styles.headline, { color: tokens.textPrimary }]}>{t('auth.headline')}</Text>
+        <Text style={[styles.sub, { color: tokens.textSecondary }]}>{t('auth.subtitle')}</Text>
 
         <View style={styles.form}>
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: tokens.textPrimary }]}>{t('auth.emailLabel')}</Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: tokens.surface,
-                  borderColor: errors.email !== undefined ? tokens.destructive : tokens.surfaceBorder ?? '#EAE4F0',
-                  color: tokens.textPrimary,
-                },
-              ]}
-              value={email}
-              onChangeText={(value) => {
-                setEmail(value);
-                setErrors((current) => ({ ...current, email: undefined }));
-              }}
-              placeholder={t('auth.emailPlaceholder')}
-              placeholderTextColor={tokens.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              accessibilityLabel="Email"
-            />
-            {errors.email !== undefined ? (
-              <Text style={[styles.error, { color: tokens.destructive }]}>{errors.email}</Text>
-            ) : null}
-          </View>
-
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: tokens.textPrimary }]}>{t('auth.passwordLabel')}</Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: tokens.surface,
-                  borderColor: errors.password !== undefined ? tokens.destructive : tokens.surfaceBorder ?? '#EAE4F0',
-                  color: tokens.textPrimary,
-                },
-              ]}
-              value={password}
-              onChangeText={(value) => {
-                setPassword(value);
-                setErrors((current) => ({ ...current, password: undefined }));
-              }}
-              placeholder={isSignUp ? t('auth.passwordPlaceholderSignUp') : t('auth.passwordPlaceholderSignIn')}
-              placeholderTextColor={tokens.textSecondary}
-              secureTextEntry
-              autoCapitalize="none"
-              accessibilityLabel="Password"
-            />
-            {errors.password !== undefined ? (
-              <Text style={[styles.error, { color: tokens.destructive }]}>{errors.password}</Text>
-            ) : null}
-          </View>
-
-          {!isSignUp ? (
-            <TouchableOpacity
-              onPress={() => router.push('/forgot-password')}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              style={styles.forgotPassword}
-            >
-              <Text style={[styles.forgotPasswordText, { color: tokens.accentPrimary }]}>
-                {t('auth.forgotPassword')}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-
-          <TouchableOpacity
-            onPress={() => router.push('/auth/phone')}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            style={styles.usePhone}
-          >
-            <Text style={[styles.usePhoneText, { color: tokens.accentPrimary }]}>
-              {t('auth.usePhoneInstead')}
-            </Text>
-          </TouchableOpacity>
-
-          {notice !== null ? (
-            <Text style={[styles.notice, { color: tokens.accentPrimary }]}>{notice}</Text>
-          ) : null}
-
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: tokens.accentPrimary }, busy && styles.buttonBusy]}
-            onPress={() => void submit()}
-            disabled={busy}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: busy }}
-          >
-            <Text style={styles.buttonLabel}>
-              {busy
-                ? isSignUp
-                  ? t('auth.creatingAccountButton')
-                  : t('auth.signingInButton')
-                : isSignUp
-                  ? t('auth.createAccountButton')
-                  : t('auth.signInButton')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => {
-              // sign-up → sign-in stays an in-place toggle, unchanged. Only
-              // sign-in → sign-up now goes through the account-type choice
-              // first — see app/auth/choose-type.tsx.
-              if (isSignUp) {
-                switchMode();
-              } else {
-                router.push('/auth/choose-type');
-              }
+          <PhoneField
+            label={t('phoneAuth.phoneLabel')}
+            dialCode={dialCode}
+            onChangeDialCode={setDialCode}
+            localNumber={localNumber}
+            onChangeLocalNumber={(value) => {
+              setLocalNumber(value);
+              setError(null);
             }}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-          >
-            <Text style={[styles.toggle, { color: tokens.textSecondary }]}>
-              {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
-              <Text style={[styles.toggleAccent, { color: tokens.accentPrimary }]}>
-                {isSignUp ? t('auth.signInToggle') : t('auth.signUpToggle')}
-              </Text>
-            </Text>
-          </TouchableOpacity>
+            placeholder={t('phoneAuth.phonePlaceholder')}
+          />
+
+          {error !== null ? <Text style={[styles.error, { color: tokens.destructive }]}>{error}</Text> : null}
+
+          <Button
+            label={busy ? t('auth.sendingCode') : t('auth.sendCode')}
+            onPress={() => void submit()}
+            disabled={busy || localNumber.trim().length === 0}
+            style={styles.submit}
+          />
         </View>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -248,92 +90,32 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
   },
-  page: {
-    flex: 1,
-    // Transparent so ScreenBackground shows through.
-    backgroundColor: 'transparent',
-  },
   content: {
+    flex: 1,
     paddingHorizontal: 28,
-    paddingBottom: 40,
-    gap: 8,
-  },
-  brand: {
-    marginBottom: 28,
   },
   headline: {
     fontFamily: fonts.displayBold,
-    fontSize: 30,
-    lineHeight: 40,
+    fontSize: 26,
+    lineHeight: 34,
+    textAlign: 'center',
   },
   sub: {
     fontSize: 14,
     lineHeight: 20,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
   form: {
-    marginTop: 28,
-    gap: 18,
-  },
-  field: {
-    gap: 7,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  input: {
-    minHeight: 52,
-    borderRadius: themeRadius.md,
-    borderWidth: 1,
-    paddingHorizontal: 18,
-    fontSize: 15,
+    marginTop: spacing.xxl,
+    gap: spacing.md,
   },
   error: {
     fontSize: 12,
     lineHeight: 17,
     paddingHorizontal: 4,
   },
-  notice: {
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    paddingVertical: 4,
-  },
-  forgotPasswordText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  usePhone: {
-    alignSelf: 'center',
-    paddingVertical: 4,
-  },
-  usePhoneText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  button: {
-    minHeight: 54,
-    borderRadius: themeRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  buttonBusy: {
-    opacity: 0.6,
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  toggle: {
-    fontSize: 14,
-    textAlign: 'center',
-    paddingVertical: 8,
-  },
-  toggleAccent: {
-    fontWeight: '700',
+  submit: {
+    marginTop: spacing.sm,
   },
 });

@@ -10,42 +10,43 @@ import {
 
 import { supabase } from '@/data/supabaseClient';
 import { getOnboardingCache, setOnboardingCache } from '@/utils/onboarding';
-import { buildResetPasswordRedirectUrl } from '@/utils/passwordReset';
 
 export interface AppUser {
   id: string;
   email: string | null;
+  phone: string | null;
   label: string;
 }
 
-/** Passed through to supabase.auth.signUp's raw_user_meta_data — read by the
- * handle_new_user() trigger to create the agencies row. Not optional client
- * insert: email confirmation is ON for this project, so signUp() never yields
- * a session, and there's no auth.uid() to insert as. See
- * supabase/migrations/20260813000001_agencies.sql. */
-export interface AgencySignupInfo {
-  companyName: string;
-  cui: string;
-  registrationNumber?: string;
-  address?: string;
-}
+/** Supabase's OTP delivery channel — SMS today; the parameter exists from the
+ * start (rather than being hardcoded) so a WhatsApp toggle later is a UI
+ * addition, not a refactor. Whichever channel sends it, Supabase's verify
+ * step always uses type: 'sms' — unverified from this environment. */
+export type PhoneOtpChannel = 'sms' | 'whatsapp';
 
 interface AuthContextValue {
   user: AppUser | null;
   loading: boolean;
-  signUp: (email: string, password: string, agency?: AgencySignupInfo) => Promise<string | null>;
-  signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
-  /** Fires the "reset your password" email; the link opens app/reset-password.tsx. */
-  requestPasswordReset: (email: string) => Promise<string | null>;
-  /** Establishes the temporary recovery session from the deep link's tokens
-   * (detectSessionInUrl is off — see utils/passwordReset.ts), required before
-   * updatePassword will succeed from app/reset-password.tsx. */
-  setRecoverySession: (accessToken: string, refreshToken: string) => Promise<string | null>;
-  /** Backs both app/reset-password.tsx (off a recovery session) and
-   * app/change-password.tsx (off a normal signed-in session) — Supabase's
-   * updateUser call is identical either way. */
-  updatePassword: (newPassword: string) => Promise<string | null>;
+  /** Sends (or resends) an OTP to `phone` — the only auth method. Same call
+   * for a brand-new or returning phone number — Supabase creates the user on
+   * first use, so there's no separate "sign up," and no email path at all
+   * anymore: email is a plain, optional profile field now (see
+   * hooks/useUserProfile.tsx), never an identifier this layer touches. */
+  signInWithPhoneOtp: (phone: string, channel?: PhoneOtpChannel) => Promise<string | null>;
+  /** Verifies the code and establishes a normal session — onAuthStateChange
+   * picks it up exactly like any other sign-in, no separate handling needed. */
+  verifyPhoneOtp: (phone: string, token: string) => Promise<string | null>;
+  /** Requests a phone number change — Supabase sends an OTP to the new
+   * number; auth.users.phone doesn't change until verifyPhoneChange confirms
+   * it, a "request, then verify" shape. This is the only contact-method
+   * change left in this file — there's no updateEmail, since email is no
+   * longer part of auth.users at all as far as this app is concerned. */
+  updatePhone: (phone: string) => Promise<string | null>;
+  /** Confirms a updatePhone() request with the code Supabase sent to the new
+   * number — verify type is 'phone_change', not 'sms' (that's only for
+   * signInWithPhoneOtp/verifyPhoneOtp's initial-sign-in challenge). */
+  verifyPhoneChange: (phone: string, token: string) => Promise<string | null>;
   /** Local cache first, public.users.has_completed_onboarding as source of truth. */
   hasCompletedOnboarding: () => Promise<boolean>;
   markOnboardingComplete: () => Promise<void>;
@@ -69,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : {
               id: session.user.id,
               email: session.user.email ?? null,
-              label: session.user.email ?? 'Tu',
+              phone: session.user.phone ?? null,
+              label: session.user.email ?? session.user.phone ?? 'Tu',
             },
       );
       setLoading(false);
@@ -82,7 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : {
               id: session.user.id,
               email: session.user.email ?? null,
-              label: session.user.email ?? 'Tu',
+              phone: session.user.phone ?? null,
+              label: session.user.email ?? session.user.phone ?? 'Tu',
             },
       );
     });
@@ -93,53 +96,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  /** Returns an error message, or null on success. */
-  const signUp = useCallback(async (email: string, password: string, agency?: AgencySignupInfo) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options:
-        agency !== undefined
-          ? {
-              data: {
-                account_type: 'agency',
-                company_name: agency.companyName,
-                cui: agency.cui,
-                registration_number: agency.registrationNumber,
-                address: agency.address,
-              },
-            }
-          : undefined,
-    });
-    return error?.message ?? null;
-  }, []);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error?.message ?? null;
-  }, []);
-
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
 
-  const requestPasswordReset = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: buildResetPasswordRedirectUrl(),
-    });
+  const signInWithPhoneOtp = useCallback(async (phone: string, channel: PhoneOtpChannel = 'sms') => {
+    const { error } = await supabase.auth.signInWithOtp({ phone, options: { channel } });
     return error?.message ?? null;
   }, []);
 
-  const setRecoverySession = useCallback(async (accessToken: string, refreshToken: string) => {
-    const { error } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
+  const verifyPhoneOtp = useCallback(async (phone: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
     return error?.message ?? null;
   }, []);
 
-  const updatePassword = useCallback(async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+  const updatePhone = useCallback(async (phone: string) => {
+    const { error } = await supabase.auth.updateUser({ phone });
+    return error?.message ?? null;
+  }, []);
+
+  const verifyPhoneChange = useCallback(async (phone: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'phone_change' });
     return error?.message ?? null;
   }, []);
 
@@ -173,24 +150,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
-      signUp,
-      signIn,
       signOut,
-      requestPasswordReset,
-      setRecoverySession,
-      updatePassword,
+      signInWithPhoneOtp,
+      verifyPhoneOtp,
+      updatePhone,
+      verifyPhoneChange,
       hasCompletedOnboarding,
       markOnboardingComplete,
     }),
     [
       user,
       loading,
-      signUp,
-      signIn,
       signOut,
-      requestPasswordReset,
-      setRecoverySession,
-      updatePassword,
+      signInWithPhoneOtp,
+      verifyPhoneOtp,
+      updatePhone,
+      verifyPhoneChange,
       hasCompletedOnboarding,
       markOnboardingComplete,
     ],

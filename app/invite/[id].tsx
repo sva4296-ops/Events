@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +10,9 @@ import { Card } from '@/components/Card';
 import { Header } from '@/components/Header';
 import { InviteCard } from '@/components/InviteCard';
 import { Screen } from '@/components/Screen';
+import { fetchInvitePreview } from '@/data/eventsRepository';
 import type { RsvpStatus } from '@/types/event';
+import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import { getEventTypeGradient } from '@/utils/eventTypes';
@@ -18,6 +21,7 @@ import { spacing } from '@/utils/theme';
 export default function InviteScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const { getEvent, respondToInvite, hydrated, isOwner } = useEvents();
   const { tokens, mode } = useTheme();
   const [editing, setEditing] = useState(false);
@@ -27,7 +31,93 @@ export default function InviteScreen() {
   // there would do nothing, so it's hidden rather than shown-but-dead.
   const canGoBack = router.canGoBack();
 
+  // Fallback for a not-yet-linked invitee (typically a phone invite whose
+  // guest_user_id the auto-link trigger hasn't reached this device's events
+  // cache with yet, or genuinely hasn't linked at all) — see
+  // get_invite_preview() in supabase/migrations/20260818000002_guest_phone_invites.sql
+  // and CLAUDE.md's "invite preview under RLS" note. Only attempted once the
+  // normal events-list lookup above has already come up empty for a signed-in
+  // session; the already-linked path above is completely unchanged.
+  const needsPreview = event === undefined && hydrated && user !== null && id !== undefined;
+  const previewQuery = useQuery({
+    queryKey: ['invitePreview', id, user?.id ?? null],
+    queryFn: () => fetchInvitePreview(id as string),
+    enabled: needsPreview,
+    staleTime: 30_000,
+  });
+  const preview = previewQuery.data ?? null;
+
   if (event === undefined) {
+    if (needsPreview && previewQuery.isLoading) {
+      return (
+        <Screen>
+          <Header title={t('rsvp.openingTitle')} showBack={canGoBack} />
+        </Screen>
+      );
+    }
+
+    if (preview !== null) {
+      const responded = preview.rsvpStatus !== 'pending';
+      const showChoices = !responded || editing;
+
+      const respond = (status: Exclude<RsvpStatus, 'pending'>) => {
+        respondToInvite(preview.eventId, status);
+        setEditing(false);
+      };
+
+      return (
+        <Screen
+          gradient={getEventTypeGradient(preview.type, mode)}
+          footer={
+            showChoices ? (
+              <>
+                <Button
+                  label={t('rsvp.confirmAttendance')}
+                  variant="success"
+                  onPress={() => respond('confirmed')}
+                />
+                <Button label={t('rsvp.cantMakeIt')} variant="neutral" onPress={() => respond('declined')} />
+              </>
+            ) : (
+              <>
+                {preview.rsvpStatus === 'confirmed' ? (
+                  <Button
+                    label={t('rsvp.openEventPage')}
+                    onPress={() => router.push(`/guest/${preview.eventId}`)}
+                  />
+                ) : null}
+                <Button label={t('rsvp.changeMyAnswer')} variant="ghost" onPress={() => setEditing(true)} />
+              </>
+            )
+          }
+          contentStyle={styles.content}
+        >
+          {canGoBack ? <BackButton style={styles.back} /> : null}
+
+          <View style={styles.centerGroup}>
+            <View style={styles.spacer} />
+            <InviteCard event={preview} />
+
+            {responded && !editing ? (
+              <Card style={styles.confirmation}>
+                <Text style={styles.confirmationEmoji}>
+                  {preview.rsvpStatus === 'confirmed' ? '🎉' : '💌'}
+                </Text>
+                <Text style={[styles.confirmationTitle, { color: tokens.textPrimary }]}>
+                  {preview.rsvpStatus === 'confirmed' ? t('rsvp.confirmedTitle') : t('rsvp.declinedTitle')}
+                </Text>
+                <Text style={[styles.confirmationBody, { color: tokens.textSecondary }]}>
+                  {preview.rsvpStatus === 'confirmed'
+                    ? t('rsvp.confirmedBody', { eventName: preview.name })
+                    : t('rsvp.declinedBody', { eventName: preview.name })}
+                </Text>
+              </Card>
+            ) : null}
+          </View>
+        </Screen>
+      );
+    }
+
     return (
       <Screen>
         <Header

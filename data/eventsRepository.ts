@@ -1,6 +1,6 @@
 import { supabase } from '@/data/supabaseClient';
-import type { AppEvent, EventDraft, Guest, RsvpStatus } from '@/types/event';
-import type { EventGuestRow, EventWithGuestsRow } from '@/types/supabase';
+import type { AppEvent, EventDraft, Guest, InvitePreview, RsvpStatus } from '@/types/event';
+import type { EventGuestRow, EventWithGuestsRow, InvitePreviewRow } from '@/types/supabase';
 
 /**
  * Supabase-backed events + guests. hooks/useEvents.tsx is the only caller.
@@ -11,10 +11,23 @@ const SELECT_WITH_GUESTS = '*, event_guests(*)';
 function mapGuestRow(row: EventGuestRow): Guest {
   return {
     id: row.id,
-    name: row.guest_name ?? row.guest_email ?? 'Guest',
+    name: row.guest_name ?? row.guest_email ?? row.guest_phone ?? 'Guest',
     status: row.rsvp_status,
     respondedAt: row.responded_at,
     dietaryPreferences: row.dietary_preferences,
+  };
+}
+
+function mapInvitePreviewRow(row: InvitePreviewRow): InvitePreview {
+  return {
+    eventId: row.event_id,
+    type: row.type,
+    name: row.name,
+    date: row.event_date ?? '',
+    location: row.location ?? '',
+    welcomeMessage: row.welcome_message ?? '',
+    guestId: row.guest_id,
+    rsvpStatus: row.rsvp_status,
   };
 }
 
@@ -176,6 +189,52 @@ export async function insertGuestInvite(eventId: string, email: string, name: st
     rsvp_status: 'pending',
   });
   if (error) throw error;
+}
+
+/** Phone equivalent of checkGuestEmailInvited — exact match, phone has no case. */
+export async function checkGuestPhoneInvited(eventId: string, phone: string): Promise<boolean> {
+  const client = supabase;
+  const { data, error } = await client
+    .from('event_guests')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('guest_phone', phone)
+    .limit(1);
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
+/**
+ * Phone equivalent of insertGuestInvite — guest_user_id is left unset, the
+ * same on_event_guest_insert trigger (extended by migration
+ * 20260818000002) fills it in immediately if the phone already has an
+ * account.
+ */
+export async function insertGuestInvitePhone(eventId: string, phone: string, name: string): Promise<void> {
+  const client = supabase;
+  const { error } = await client.from('event_guests').insert({
+    event_id: eventId,
+    guest_phone: phone,
+    guest_name: name.length > 0 ? name : null,
+    rsvp_status: 'pending',
+  });
+  if (error) throw error;
+}
+
+/**
+ * Read path for a not-yet-linked invitee (typically a phone invite whose
+ * guest_user_id hasn't been auto-linked into the caller's own events list
+ * yet) — see the get_invite_preview() RPC in
+ * 20260818000002_guest_phone_invites.sql. Returns null if the signed-in
+ * session has no matching pending (or already-linked) invite for this event;
+ * the RPC itself only ever matches the caller's own row, never anyone else's.
+ */
+export async function fetchInvitePreview(eventId: string): Promise<InvitePreview | null> {
+  const client = supabase;
+  const { data, error } = await client.rpc('get_invite_preview', { p_event_id: eventId });
+  if (error) throw error;
+  const row = (data as InvitePreviewRow[] | null)?.[0];
+  return row === undefined ? null : mapInvitePreviewRow(row);
 }
 
 /** A guest's own preference on their own row — covered by the existing "update

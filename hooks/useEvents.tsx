@@ -6,6 +6,7 @@ import {
   fetchEvents,
   insertEvent,
   insertGuestInvite,
+  insertGuestInvitePhone,
   removeGuestRow,
   respondToInviteRow,
   updateDietaryPreferencesRow,
@@ -13,6 +14,7 @@ import {
 } from '@/data/eventsRepository';
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import type { AppEvent, EventDraft, RsvpStatus } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
 
@@ -26,6 +28,7 @@ interface EventsResult {
   respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => void;
   removeGuest: (eventId: string, guestId: string) => void;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
+  addGuestByPhone: (eventId: string, phone: string, name: string) => Promise<void>;
   /** A signed-in non-organizer's own preference — no-op for an owner (no guest row to write to). */
   updateMyDietaryPreferences: (eventId: string, preferences: string[]) => void;
   isOwner: (event: AppEvent | undefined) => boolean;
@@ -40,6 +43,12 @@ interface EventsResult {
 export function useEvents(): EventsResult {
   const { user } = useAuth();
   const { agency } = useAgency();
+  // Prefer the real name over user.label's email/phone fallback wherever a
+  // guest's own event_guests row is written — this is the "who's attending"
+  // case flagged for the name feature; the auto-link backfill trigger
+  // (20260820000001_user_names.sql) already covers the invited-by-email/phone
+  // side, this covers the "responds before ever being explicitly invited" side.
+  const { displayName } = useUserProfile();
   const queryClient = useQueryClient();
   const userId = user?.id ?? null;
   const queryKey = useMemo(() => ['events', userId] as const, [userId]);
@@ -153,6 +162,30 @@ export function useEvents(): EventsResult {
     [addGuestMutation],
   );
 
+  /** Phone equivalent of addGuestMutation above — identical refetch-single-
+   * event shape, same reasoning: the auto-link trigger may have linked
+   * guest_user_id server-side and there's no way to know ahead of the round
+   * trip. */
+  const addGuestByPhoneMutation = useMutation({
+    mutationFn: async (vars: { eventId: string; phone: string; name: string }) => {
+      await insertGuestInvitePhone(vars.eventId, vars.phone, vars.name);
+      return fetchEventById(vars.eventId);
+    },
+    onSuccess: (fresh) => {
+      if (fresh === null) return;
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+        current.map((event) => (event.id === fresh.id ? fresh : event)),
+      );
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const addGuestByPhone = useCallback(
+    async (eventId: string, phone: string, name: string): Promise<void> => {
+      await addGuestByPhoneMutation.mutateAsync({ eventId, phone, name });
+    },
+    [addGuestByPhoneMutation],
+  );
+
   const isOwner = useCallback(
     (event: AppEvent | undefined) => event !== undefined && user !== null && event.owner_id === user.id,
     [user],
@@ -161,7 +194,7 @@ export function useEvents(): EventsResult {
   const respondToInviteMutation = useMutation({
     mutationFn: (vars: { eventId: string; status: Exclude<RsvpStatus, 'pending'> }) => {
       if (user === null) throw new Error('Not signed in.');
-      return respondToInviteRow(vars.eventId, user.id, user.label, vars.status);
+      return respondToInviteRow(vars.eventId, user.id, displayName ?? user.label, vars.status);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
     onError: (error) => reportSupabaseError(error),
@@ -219,6 +252,7 @@ export function useEvents(): EventsResult {
     respondToInvite,
     removeGuest,
     addGuest,
+    addGuestByPhone,
     updateMyDietaryPreferences,
     isOwner,
   };

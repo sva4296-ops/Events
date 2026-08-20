@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react';
 
 import { remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import type { DetailsContent, EventContent, ReactionType, Venue } from '@/types/guest';
 import { processPhotoVersions, type PickedPhoto } from '@/utils/imageProcessing';
 import { reportSupabaseError } from '@/utils/reportError';
@@ -67,6 +68,7 @@ type ContentCategory = 'social' | 'details' | 'contributions';
  */
 export function useEventContent(eventId: string) {
   const { user } = useAuth();
+  const { displayName } = useUserProfile();
   const queryClient = useQueryClient();
 
   const socialKey = useMemo(() => ['eventContent', 'social', eventId] as const, [eventId]);
@@ -123,9 +125,14 @@ export function useEventContent(eventId: string) {
       ? { ...socialQuery.data, ...detailsQuery.data, ...contributionsQuery.data }
       : null;
 
+  // displayName first — the real name once set; user.email was the only
+  // fallback here before (not even user.phone), fixed as part of the same
+  // change. Attribution self-selects display_name fresh at write time anyway
+  // (see remoteEventContentRepository.ts), so this only matters as the
+  // fallback-of-a-fallback when that self-select comes back empty.
   const actor: Actor = useMemo(
-    () => ({ id: user?.id ?? 'anonymous', label: user?.email ?? 'Tu' }),
-    [user],
+    () => ({ id: user?.id ?? 'anonymous', label: displayName ?? user?.email ?? user?.phone ?? 'Tu' }),
+    [user, displayName],
   );
 
   const hasReacted = useCallback(

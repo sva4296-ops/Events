@@ -27,75 +27,46 @@
     "emptyInvitationsMessage": "When someone invites you, it shows up here."
   },
   "auth": {
-    "createAccountHeadline": "Create your account",
-    "welcomeBackHeadline": "Welcome back",
-    "createAccountSub": "One account for every event you host or attend.",
-    "signInSub": "Sign in to pick up where you left off.",
+    "headline": "Welcome to PovesteaNoastra",
+    "subtitle": "Plan weddings, birthdays, and every celebration in between — all in one beautiful place.",
     "emailLabel": "Email",
     "emailPlaceholder": "maria@example.com",
-    "passwordLabel": "Password",
-    "passwordPlaceholderSignUp": "At least 6 characters",
-    "passwordPlaceholderSignIn": "Your password",
-    "createAccountButton": "Create account",
-    "creatingAccountButton": "Creating account…",
-    "signInButton": "Sign in",
-    "signingInButton": "Signing in…",
-    "alreadyHaveAccount": "Already have an account? ",
-    "dontHaveAccount": "Don't have an account? ",
-    "signInToggle": "Sign in",
-    "signUpToggle": "Sign up",
-    "accountCreatedNotice": "Account created. Confirm your email, then sign in.",
-    "forgotPassword": "Forgot password?",
+    "sendCode": "Send code",
+    "sendingCode": "Sending code…",
     "errors": {
-      "alreadyRegistered": "An account with this email already exists.",
-      "invalidCredentials": "That email and password combination is incorrect.",
-      "emailNotConfirmed": "Confirm your email address first — check your inbox.",
-      "invalidEmail": "Enter a valid email address.",
-      "emptyPassword": "Enter your password.",
-      "passwordTooShort": "Use at least 6 characters."
+      "invalidEmail": "Enter a valid email address."
     }
   },
-  "forgotPassword": {
-    "headline": "Reset your password",
-    "subtitle": "Enter your email and we'll send you a link to reset your password.",
-    "sendLink": "Send reset link",
-    "sending": "Sending…",
-    "successNotice": "If an account exists for this email, we've sent a reset link."
-  },
-  "resetPassword": {
-    "headline": "Set a new password",
-    "subtitle": "Choose a new password for your account.",
-    "newPasswordLabel": "New password",
-    "confirmPasswordLabel": "Confirm new password",
-    "passwordsDontMatch": "Passwords don't match.",
-    "savePassword": "Save new password",
+  "nameStep": {
+    "title": "What's your name?",
+    "subtitle": "This is how you'll appear to others on PovesteaNoastra.",
+    "firstNameLabel": "First name",
+    "firstNamePlaceholder": "Maria",
+    "lastNameLabel": "Last name",
+    "lastNamePlaceholder": "Popescu",
+    "continue": "Continue",
     "saving": "Saving…",
-    "successHeadline": "Password updated",
-    "successSubtitle": "Your password has been changed successfully.",
-    "continueButton": "Continue",
-    "invalidLinkHeadline": "This link isn't valid",
-    "invalidLinkSubtitle": "It may have expired or already been used. Request a new one below.",
-    "requestNewLink": "Request a new link"
+    "errorSaving": "Something went wrong saving your name. Please try again."
   },
-  "changePassword": {
-    "title": "Change password",
-    "subtitle": "Choose a new password for your account.",
-    "newPasswordLabel": "New password",
+  "editProfile": {
+    "title": "Edit profile",
+    "subtitle": "Update your name, email, or phone number.",
     "saving": "Saving…",
-    "successNotice": "Your password has been updated."
-  },
-  "accountType": {
-    "headline": "How will you use PovesteaNoastra?",
-    "subtitle": "Choose the option that fits you.",
-    "individualTitle": "I'm creating an event for myself",
-    "individualSubtitle": "The usual flow — plan your own wedding, birthday, or gathering.",
-    "agencyTitle": "I'm an agency / professional organizer",
-    "agencySubtitle": "Manage events for clients under your company."
+    "savedNotice": "Your profile has been updated.",
+    "phoneChangeNotice": "We sent a code to your new phone number.",
+    "phoneCodeLabel": "Confirmation code",
+    "phoneCodePlaceholder": "123456",
+    "confirmCode": "Confirm code",
+    "confirming": "Confirming…",
+    "phoneConfirmedNotice": "Your phone number has been updated.",
+    "businessSectionLabel": "Business details",
+    "errors": {
+      "saveFailed": "Something went wrong saving your profile. Please try again."
+    }
   },
   "agencySignup": {
-    "headline": "Create your agency account",
-    "subtitle": "We need a few business details for invoicing later.",
-    "companySection": "Company details",
+    "headline": "Add a business account",
+    "subtitle": "A few business details, so you can manage events for clients under your company.",
     "companyNameLabel": "Company name",
     "companyNamePlaceholder": "Lumière Events SRL",
     "cuiLabel": "CUI",
@@ -105,13 +76,33 @@
     "registrationNumberPlaceholder": "J40/1234/2020",
     "addressLabel": "Company address (optional)",
     "addressPlaceholder": "Str. Exemplu nr. 1, București",
-    "contactSection": "Contact person",
-    "createButton": "Create agency account",
-    "creatingButton": "Creating account…",
-    "goToSignIn": "Go to sign in",
+    "createButton": "Add business account",
+    "creatingButton": "Adding…",
     "errors": {
       "companyNameRequired": "Enter your company name.",
       "cuiInvalid": "Enter a valid CUI (e.g. RO12345678)."
+    }
+  },
+  "phoneAuth": {
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "712 345 678",
+    "selectCountry": "Select a country",
+    "errors": {
+      "invalidPhone": "Enter a valid phone number."
+    }
+  },
+  "verify": {
+    "headline": "Enter the code",
+    "subtitle": "We sent a code to {{identifier}}.",
+    "codeLabel": "Verification code",
+    "codePlaceholder": "123456",
+    "verifyButton": "Verify",
+    "verifyingButton": "Verifying…",
+    "resendCode": "Resend code",
+    "resendCooldown": "Resend code ({{seconds}}s)",
+    "errors": {
+      "emptyCode": "Enter the code we sent you.",
+      "invalidCode": "That code is incorrect or has expired."
     }
   },
   "acasa": {
@@ -230,7 +221,8 @@
     "subtitle": "Your session and app details.",
     "signOut": "Sign out",
     "signedInWithSupabase": "Signed in with Supabase",
-    "changePassword": "Change password",
+    "editProfile": "Edit profile",
+    "addBusinessAccount": "Add business account",
     "language": "Language",
     "languageEnglish": "English",
     "languageRomanian": "Română",
@@ -347,7 +339,7 @@
   },
   "addGuestForm": {
     "notAvailableSubtitle": "Only the organizer can invite guests.",
-    "subtitle": "They'll show up under My invitations once they sign in with this email.",
+    "subtitlePhone": "They'll show up under My invitations once they verify this phone number.",
     "selfInviteError": "You can't invite yourself — you're already the organizer.",
     "alreadyInvitedError": "This person is already invited.",
     "sending": "Sending…",

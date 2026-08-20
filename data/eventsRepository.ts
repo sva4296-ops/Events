@@ -15,6 +15,8 @@ function mapGuestRow(row: EventGuestRow): Guest {
     status: row.rsvp_status,
     respondedAt: row.responded_at,
     dietaryPreferences: row.dietary_preferences,
+    phone: row.guest_phone,
+    whatsappSentAt: row.whatsapp_sent_at,
   };
 }
 
@@ -218,6 +220,43 @@ export async function insertGuestInvitePhone(eventId: string, phone: string, nam
     guest_name: name.length > 0 ? name : null,
     rsvp_status: 'pending',
   });
+  if (error) throw error;
+}
+
+export interface BulkGuestEntry {
+  phone: string;
+  name: string;
+}
+
+/**
+ * Batch version of insertGuestInvitePhone — app/bulk-add-guests/[id].tsx.
+ * Calls the upsert_event_guests_batch RPC (20260822000001_bulk_guest_invites.sql)
+ * rather than a plain client-side .upsert(): a naive upsert would overwrite
+ * every column on conflict, resetting rsvp_status back to 'pending' for a
+ * guest who already responded and nulling out an existing name whenever a
+ * blank one is resubmitted. The RPC only ever refreshes guest_name (and only
+ * when non-blank), same "add or update, never regress a response" contract
+ * the single-invite path doesn't need to worry about since it only ever
+ * inserts one row at a time.
+ */
+export async function upsertGuestInvitesBatch(eventId: string, guests: BulkGuestEntry[]): Promise<void> {
+  if (guests.length === 0) return;
+  const { error } = await supabase.rpc('upsert_event_guests_batch', {
+    p_event_id: eventId,
+    p_guests: guests.map((guest) => ({ phone: guest.phone, name: guest.name })),
+  });
+  if (error) throw error;
+}
+
+/** Marks a single guest row as messaged via WhatsApp — app/send-invites/[id].tsx.
+ * "Sent" here means the app successfully opened the wa.me link, not that the
+ * organizer actually pressed Send inside WhatsApp — there's no way to detect
+ * that from outside the WhatsApp app itself. */
+export async function markGuestWhatsAppSent(guestId: string): Promise<void> {
+  const { error } = await supabase
+    .from('event_guests')
+    .update({ whatsapp_sent_at: new Date().toISOString() })
+    .eq('id', guestId);
   if (error) throw error;
 }
 

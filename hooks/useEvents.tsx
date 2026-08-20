@@ -7,10 +7,13 @@ import {
   insertEvent,
   insertGuestInvite,
   insertGuestInvitePhone,
+  markGuestWhatsAppSent,
   removeGuestRow,
   respondToInviteRow,
   updateDietaryPreferencesRow,
   updateEventRow,
+  upsertGuestInvitesBatch,
+  type BulkGuestEntry,
 } from '@/data/eventsRepository';
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,6 +32,11 @@ interface EventsResult {
   removeGuest: (eventId: string, guestId: string) => void;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
   addGuestByPhone: (eventId: string, phone: string, name: string) => Promise<void>;
+  addGuestsBatch: (eventId: string, guests: BulkGuestEntry[]) => Promise<void>;
+  /** Optimistic — patches the cached guest's whatsappSentAt immediately so
+   * app/send-invites/[id].tsx's pending-queue filter drops the row right
+   * away, without waiting on a refetch. */
+  markWhatsAppSent: (eventId: string, guestId: string) => Promise<void>;
   /** A signed-in non-organizer's own preference — no-op for an owner (no guest row to write to). */
   updateMyDietaryPreferences: (eventId: string, preferences: string[]) => void;
   isOwner: (event: AppEvent | undefined) => boolean;
@@ -186,6 +194,59 @@ export function useEvents(): EventsResult {
     [addGuestByPhoneMutation],
   );
 
+  /** Batch equivalent of addGuestByPhoneMutation — same refetch-single-event
+   * shape, one round trip for the whole batch via the upsert RPC rather than
+   * N inserts. */
+  const addGuestsBatchMutation = useMutation({
+    mutationFn: async (vars: { eventId: string; guests: BulkGuestEntry[] }) => {
+      await upsertGuestInvitesBatch(vars.eventId, vars.guests);
+      return fetchEventById(vars.eventId);
+    },
+    onSuccess: (fresh) => {
+      if (fresh === null) return;
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+        current.map((event) => (event.id === fresh.id ? fresh : event)),
+      );
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const addGuestsBatch = useCallback(
+    async (eventId: string, guests: BulkGuestEntry[]): Promise<void> => {
+      await addGuestsBatchMutation.mutateAsync({ eventId, guests });
+    },
+    [addGuestsBatchMutation],
+  );
+
+  const markWhatsAppSentMutation = useMutation({
+    mutationFn: ({ guestId }: { eventId: string; guestId: string }) => markGuestWhatsAppSent(guestId),
+    onMutate: ({ eventId, guestId }) => {
+      const sentAt = new Date().toISOString();
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+        current.map((event) =>
+          event.id === eventId
+            ? {
+                ...event,
+                guests: event.guests.map((guest) =>
+                  guest.id === guestId ? { ...guest, whatsappSentAt: sentAt } : guest,
+                ),
+              }
+            : event,
+        ),
+      );
+    },
+    onError: (error) => {
+      reportSupabaseError(error);
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
+  });
+  const markWhatsAppSent = useCallback(
+    async (eventId: string, guestId: string): Promise<void> => {
+      await markWhatsAppSentMutation.mutateAsync({ eventId, guestId });
+    },
+    [markWhatsAppSentMutation],
+  );
+
   const isOwner = useCallback(
     (event: AppEvent | undefined) => event !== undefined && user !== null && event.owner_id === user.id,
     [user],
@@ -253,6 +314,8 @@ export function useEvents(): EventsResult {
     removeGuest,
     addGuest,
     addGuestByPhone,
+    addGuestsBatch,
+    markWhatsAppSent,
     updateMyDietaryPreferences,
     isOwner,
   };

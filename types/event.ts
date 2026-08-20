@@ -26,6 +26,12 @@ export interface Guest {
   respondedAt: string | null;
   /** A guest's own preference, editable only on their own row. */
   dietaryPreferences: string[];
+  /** Stored digits-only format (see utils/countryCodes.ts's toStoredPhone) —
+   * null for an email-only invite. */
+  phone: string | null;
+  /** When the organizer tapped "Send via WhatsApp" for this guest — null
+   * means not yet sent. See app/send-invites/[id].tsx. */
+  whatsappSentAt: string | null;
 }
 
 export interface AppEvent {

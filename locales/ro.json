@@ -241,9 +241,37 @@
     "guestListTitle": "Lista de invitați · {{count}}",
     "noGuestsYet": "Niciun invitat adăugat încă.",
     "inviteGuest": "Invită un invitat",
+    "addMultipleGuests": "Adaugă mai mulți invitați",
+    "sendPendingInvites": "Trimite invitațiile în așteptare ({{count}})",
+    "invitedBadge": "Invitat",
+    "notSentBadge": "Netrimis",
     "removeGuestAction": "Elimină",
     "removeGuestTitle": "Elimini invitatul?",
     "removeGuestBody": "{{name}} nu va mai apărea în lista de invitați."
+  },
+  "bulkInviteForm": {
+    "title": "Adaugă mai mulți invitați",
+    "subtitle": "Adaugă invitați pe rând sau importă-i din agenda de contacte.",
+    "importFromContacts": "Importă din contacte",
+    "guestNumber": "Invitat {{number}}",
+    "removeRow": "Elimină",
+    "addAnother": "+ Adaugă altul",
+    "submit": "Adaugă {{count}} invitați",
+    "sending": "Se adaugă…",
+    "contactsTitle": "Alege contacte",
+    "contactsPermissionDenied": "Accesul la contacte este dezactivat — poți adăuga invitați manual mai sus, sau permite accesul din Setări pentru a-i importa.",
+    "contactsLoadError": "A apărut o problemă la încărcarea contactelor. Te rugăm să încerci din nou.",
+    "contactsEmpty": "Nu s-a găsit niciun contact cu număr de telefon.",
+    "contactsImportButton": "Importă ({{count}})"
+  },
+  "sendInvitesQueue": {
+    "title": "Trimite invitații",
+    "subtitle": "Deschide WhatsApp pentru fiecare invitat ca să-i trimiți invitația personală.",
+    "progress": "{{sent}} din {{total}} trimise",
+    "empty": "Toată lumea a fost contactată.",
+    "sendButton": "Trimite prin WhatsApp",
+    "sending": "Se deschide…",
+    "skipButton": "Sari peste"
   },
   "scheduleForm": {
     "notAvailableSubtitle": "Doar organizatorul poate edita programul.",

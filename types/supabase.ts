@@ -38,6 +38,10 @@ export interface EventGuestRow {
   guest_name: string | null;
   rsvp_status: RsvpStatusRow;
   invited_at: string;
+  /** When the organizer tapped "Send via WhatsApp" for this guest — distinct
+   * from `invited_at` above, which is just row-creation time. Null until
+   * sent. See 20260822000001_bulk_guest_invites.sql. */
+  whatsapp_sent_at: string | null;
   responded_at: string | null;
   dietary_preferences: string[];
 }

@@ -48,6 +48,7 @@ group chat, a live photo feed, and a post-event album.
 | Gestures | `react-native-gesture-handler` 2.32 + `react-native-reanimated` 4.5 |
 | Date/time input | `@react-native-community/datetimepicker` 9.1 — native picker, wrapped by `components/DateTimeField.tsx` |
 | Photo processing | `expo-image-manipulator` ~57.0.9 — client-side dual-resize (thumbnail + full) before every Live/Album photo upload, see §3 |
+| Contacts | `expo-contacts` 57.0.4 — bulk guest-invite import; no native multi-select picker in this SDK version, so `components/ContactPickerModal.tsx` builds one in-app instead, see §3 |
 | Localization | `i18next` + `react-i18next`, English default, no device-locale detection — see §2 Localization |
 
 **Core mental model: role is per-event, not per-user.** There is no global "organizer" or "guest"
@@ -1100,6 +1101,106 @@ every migration since `20260810000003`) — real Twilio SMS delivery (dashboard-
 configuration is the user's own step, not verifiable from here), a real OTP verify round-trip, the
 auto-link trigger's actual timing, and the RPC's behavior against real data are all unverified.
 
+### Bulk guest invites — manual rows + contacts import, then a WhatsApp send queue
+
+**New capability, built on the existing single-invite flow (`app/add-guest/[id].tsx`, wa.me-based —
+see "Phone-only auth" further down) rather than duplicating it.** `utils/whatsappInvite.ts`'s message
+template and URL builder are unchanged and reused as-is; the only change there is
+`sendGuestWhatsAppInvite`'s return type, `Promise<void>` → `Promise<boolean>` (did it actually open
+WhatsApp, as opposed to falling back to the share sheet or erroring) — the single-invite screen still
+ignores the return value, unaffected.
+
+**Two requested pieces already existed under different names/shapes — corrected rather than
+duplicated, see `20260822000001_bulk_guest_invites.sql`'s own header comment for the full reasoning:**
+`event_guests.invited_at` already exists (`20260810000001_initial_schema.sql`), `not null default
+now()`, meaning "when this row was created" — not available to repurpose as "when the organizer tapped
+Send," so that's a new column, `whatsapp_sent_at`, nullable, no default. And a unique index on
+`(event_id, guest_phone)` already exists (`20260818000002_guest_phone_invites.sql`), but as a *partial*
+index (`where guest_phone is not null`) — Postgres can't use a partial index as an `ON CONFLICT` arbiter
+for a plain `supabase-js` `.upsert()` call, so the migration adds a real, non-partial `unique
+(event_id, guest_phone)` constraint alongside it (safe to add unconditionally — NULLs are mutually
+distinct under standard SQL, and the existing partial index already guarantees no non-null duplicates
+exist to violate it).
+
+**The batch save goes through a new RPC, `upsert_event_guests_batch(p_event_id, p_guests jsonb)`, not a
+plain client-side upsert.** A naive `.upsert()` overwrites every column in the payload on conflict,
+which would silently reset `rsvp_status` back to `'pending'` for a guest who'd already responded, and
+null out an existing `guest_name` whenever the organizer resubmitted the same phone without retyping a
+name. The RPC only ever does `set guest_name = coalesce(excluded.guest_name, event_guests.guest_name)`
+— `rsvp_status` is never touched by it at all, so an existing response is never clobbered.
+`security invoker` (not `definer`) — runs as the calling session, so the existing "organizer manages own
+event's guest list" RLS policies apply unchanged; no new access is granted beyond what an organizer's
+session already has via a plain `.insert()`/`.update()`.
+
+**`app/bulk-add-guests/[id].tsx`** — repeatable Name + `PhoneField` rows (add/remove), reached from
+`app/event/[id].tsx`'s new second "+" button (Feather `users`, next to the existing single-invite one).
+Submitting calls `useEvents().addGuestsBatch` (the RPC above, same refetch-single-event shape every
+other guest mutation already uses) and hands off to the send queue below — it doesn't send any WhatsApp
+messages itself.
+
+**Contacts import — `components/ContactPickerModal.tsx` — is a custom in-app multi-select, not a native
+picker, because the installed `expo-contacts` (57.0.4, added this pass) genuinely doesn't expose a
+multi-select system picker in its default export.** Checked the package's own type definitions rather
+than assuming: `Contact.presentPicker()` returns a single `Contact | null`; the only multi-contact
+return is `Contact.presentAccessPicker()`, which is iOS 18+ only and is Apple's *limited-access
+grant* picker (choosing which contacts to share with the app at the OS permission level), not a "pick
+guests to invite" UI — using it for that would be both platform-limited and semantically wrong. This
+modal instead uses `Contact.getAllDetails([GIVEN_NAME, FAMILY_NAME, PHONES], ...)` (the bulk, no-N+1
+detail fetch) rendered as a checkbox `FlatList` inside a `Modal`, styled the same bottom-sheet way
+`components/PhoneField.tsx`'s own country picker already is — not a new modal pattern. A picked
+contact's phone is normalized via the new `utils/countryCodes.ts` function below, then immediately run
+through `splitStoredPhone` (already existed, previously only used to pre-fill `edit-profile.tsx`) to
+convert it back into a dialCode/localNumber pair — so an imported row renders through the exact same
+`PhoneField` a manual row does, not a separate read-only display, and stays editable.
+
+**`utils/countryCodes.ts` gained `normalizeToStoredPhone(raw)`** — for a contacts-picker string, which
+can arrive in almost any format, unlike `toStoredPhone`'s dial-code + local-number pair from a picker
+UI. A `+` or a leading `00` is trusted as already carrying a country code; otherwise the number is
+treated as Romanian (this app's existing `DEFAULT_COUNTRY_CODE`), same leading-zero handling as
+`toE164`. A heuristic, not a real parser, same limitation any phone input without an explicit
+country-code picker has — documented as such in the function's own comment.
+
+**Permission denial has no Sentry breadcrumb — there's no Sentry in this codebase (checked again for
+this feature specifically).** `ContactPickerModal` shows a visible inline message instead when
+`Contacts.requestPermissionsAsync()` comes back denied, which is strictly more useful to the organizer
+than a breadcrumb they'd never see. Same substitution for the requested `Sentry.captureException` on
+the batch-save failure path — `app/bulk-add-guests/[id].tsx` uses `reportSupabaseError`, this app's one
+real generic-failure surface, same as every other write in the app.
+
+**`app/send-invites/[id].tsx`** — the pending queue, derived client-side from `useEvents()`'s existing
+per-event `guests` array (`status === 'pending' && whatsappSentAt === null && phone !== null`) — no
+separate fetch. "X of Y sent": Y is captured once via a lazy `useState` initializer on mount (the queue
+shrinking afterward shouldn't shrink the denominator too); X only increments on a *confirmed* WhatsApp
+open (`sendGuestWhatsAppInvite`'s new boolean return), not on the share-sheet fallback or on Skip — Skip
+is session-local only (a `Set` in component state), never writes `whatsapp_sent_at`, so a skipped guest
+is back in the queue the next time this screen opens, exactly as asked. A guest whose only stored name
+is their own phone number (the `mapGuestRow` fallback when no real name/email exists) gets an empty
+greeting instead of "Bună 40790586600," — checked for `guest.name === guest.phone` rather than adding a
+new column just to distinguish "real name" from "fallback," since the existing `Guest.name` already
+collapses that distinction and this is the only place it mattered.
+
+**`components/GuestRow.tsx` gained a second, small badge — distinct from `RsvpBadge`, only shown
+alongside a still-`pending` phone-based guest.** A filled check pill ("Invited," `whatsapp_sent_at` set)
+or a clock pill ("Not sent," still null) — once a guest actually responds (confirmed/declined), the
+existing `RsvpBadge` already says everything that matters and this second badge stops rendering; an
+email-only pending guest has no WhatsApp concept to show a status for, so it's skipped for them too.
+`app/event/[id].tsx` also gained a "Send pending invites (N)" button (only rendered when N > 0) next to
+the guest list, alongside the new "+ Add multiple" entry point.
+
+**Requires a native rebuild — not achievable from this session, same as every other native dependency
+addition in this file.** `expo-contacts` (`57.0.4`) is a new native module, added to `app.json`'s
+`plugins` with a real `contactsPermission` string (not the library's generic default) rather than left
+unconfigured. See §1's Tech stack table convention and the top of this file's dev-build note.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing, against the
+`expo-contacts` types actually installed (not assumed from memory — the package's real `.d.ts` files
+were read directly before writing any code against them, specifically because this SDK version's API
+shape turned out to differ from what's commonly documented). The migration is written but not applied
+(no service-role/CLI access from this environment, same as every migration since `20260810000003`) — the
+RPC's actual behavior, the real unique constraint coexisting with the pre-existing partial index, and
+how any of the three new/changed screens look or feel are all unverified until a real device run.
+
 ### Editing business info; the business/individual identifier, made explicit
 
 **`useAgency().isAgencyOwner` was already the "is this a business account" check — this pass just
@@ -1663,7 +1764,7 @@ actually looks are all unverified until a real device run.
 | `users` | `id` (FK `auth.users`), `email`, `phone`, `first_name`, `last_name`, `display_name`, `has_completed_onboarding` | Populated by an `on_auth_user_created` trigger; `has_completed_onboarding` added by `20260810000006`; `phone` added by `20260818000001`; `first_name`/`last_name` added by `20260820000001` — see §3's "Name collection" |
 | `events` | `id`, `organizer_id`, `agency_id` (nullable), `type` (enum), `name`, `event_date`, `location`, `welcome_message` | `event_type` enum: wedding, baptism, birthday, cause, corporate, memorial, other. `agency_id` added by `20260813000001` — populated automatically for agency owners, but not currently read by any screen (no agency-specific view exists), see "Agency accounts" below |
 | `agencies` | `id`, `owner_user_id` (unique FK `users`), `company_name`, `cui`, `registration_number` (nullable), `address` (nullable) | Added by `20260813000001`. One agency per owner this pass — no staff/multi-user agencies yet. Row is created by `handle_new_user()` from signup metadata, never inserted client-side (email confirmation is ON, so `signUp()` never yields a session at insert time) |
-| `event_guests` | `id`, `event_id`, `guest_user_id` (nullable), `guest_email`, `guest_phone`, `guest_name`, `rsvp_status`, `invited_at`, `responded_at`, `dietary_preferences text[]` | Partial unique index on `(event_id, guest_user_id)`; `rsvp_status` enum: pending, confirmed, declined; `dietary_preferences` added by `20260810000008`; `guest_phone` added by `20260818000002`, with a unique `(event_id, guest_phone)` index and a check requiring at least one of `guest_email`/`guest_phone`/`guest_user_id` |
+| `event_guests` | `id`, `event_id`, `guest_user_id` (nullable), `guest_email`, `guest_phone`, `guest_name`, `rsvp_status`, `invited_at`, `whatsapp_sent_at`, `responded_at`, `dietary_preferences text[]` | Partial unique index on `(event_id, guest_user_id)`; `rsvp_status` enum: pending, confirmed, declined; `dietary_preferences` added by `20260810000008`; `guest_phone` added by `20260818000002`, with a partial unique `(event_id, guest_phone)` index and a check requiring at least one of `guest_email`/`guest_phone`/`guest_user_id`; `whatsapp_sent_at` (nullable, when the organizer tapped Send — distinct from `invited_at`, which is row-creation time) and a second, *non-partial* unique `(event_id, guest_phone)` constraint (needed as an upsert arbiter) both added by `20260822000001`, see §3's "Bulk guest invites" |
 | `schedule_items` | `id`, `event_id`, `time`, `title`, `location`, `sort_order` | Detalii tab |
 | `venue_info` | `id`, `event_id` (unique), `name`, `address`, `notes text[]` | Separate table, not folded into `events` — optional and separately edited |
 | `moments` | `id`, `event_id`, `organizer_id`, `title`, `photo_url` | Acasă feed |
@@ -1741,6 +1842,8 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/vendor/[id].tsx` | Owner: add or edit one tagged vendor (`?itemId=` for edit) |
 | `app/fund/[id].tsx` | Owner: create or edit the fund |
 | `app/add-guest/[id].tsx` | Owner: invite a guest by phone — the app's auth is phone-only, so a phone invite is the only kind a recipient could ever actually claim. See §3's "Phone-only auth" |
+| `app/bulk-add-guests/[id].tsx` | Owner: invite several guests at once — manual Name/Phone rows and/or contacts import. Saves via the `upsert_event_guests_batch` RPC, then hands off to `send-invites`. See §3's "Bulk guest invites" |
+| `app/send-invites/[id].tsx` | Owner: the pending-guests WhatsApp send queue — one tap per guest opens WhatsApp with their personalized message; Skip is session-local. Reached after a bulk save or from `event/[id].tsx`'s "Send pending invites" button. See §3's "Bulk guest invites" |
 | `app/post-moment/[id].tsx` | Owner: moment composer |
 | `app/checkout/[id].tsx` | Stubbed Stripe placeholder |
 

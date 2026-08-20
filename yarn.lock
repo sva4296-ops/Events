@@ -2251,6 +2251,11 @@ expo-constants@~57.0.10, expo-constants@~57.0.9:
   dependencies:
     "@expo/env" "~2.4.2"
 
+expo-contacts@~57.0.4:
+  version "57.0.4"
+  resolved "https://registry.yarnpkg.com/expo-contacts/-/expo-contacts-57.0.4.tgz#ab37125c027424b4c23886ffefd95db2fe9337f1"
+  integrity sha512-PX+LXr+oLPtkRI38L+ttLoSkgi6SBNFH0DbJK1N2Y1vyUwLqPkqqd5U4ibH5equ4qg6F1RbIYs0sZpyegEO6KA==
+
 expo-dev-client@~57.0.10:
   version "57.0.11"
   resolved "https://registry.yarnpkg.com/expo-dev-client/-/expo-dev-client-57.0.11.tgz#acd38a40a2c88d69433e27639d633cc1df1c3de9"

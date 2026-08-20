@@ -17,7 +17,6 @@ import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import { countRsvps, eventSubtitle } from '@/utils/format';
 import { getEventType } from '@/utils/eventTypes';
-import { shareInvite } from '@/utils/invite';
 import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
 
@@ -73,36 +72,8 @@ export default function EventDetailScreen() {
   ).length;
 
   return (
-    <Screen
-      footer={
-        <>
-          <Button label={t('event.shareInvitation')} onPress={() => void shareInvite(event)} />
-          <Button
-            label={t('event.previewAsGuest')}
-            variant="secondary"
-            onPress={() => router.push({ pathname: '/invite/[id]', params: { id: event.id } })}
-          />
-        </>
-      }
-    >
-      <Header
-        title={`${type.emoji} ${event.name}`}
-        subtitle={eventSubtitle(event)}
-        showBack
-        right={
-          owner ? (
-            <TouchableOpacity
-              style={[styles.editHeaderButton, { backgroundColor: tokens.surfaceElevated }]}
-              onPress={() => router.push(`/edit-event/${event.id}`)}
-              accessibilityRole="button"
-              accessibilityLabel={t('event.editEvent')}
-              activeOpacity={0.7}
-            >
-              <Feather name="edit-2" size={18} color={tokens.textPrimary} />
-            </TouchableOpacity>
-          ) : undefined
-        }
-      />
+    <Screen>
+      <Header title={`${type.emoji} ${event.name}`} subtitle={eventSubtitle(event)} showBack />
 
       <View style={styles.stats}>
         <StatCard
@@ -259,12 +230,5 @@ const styles = StyleSheet.create({
   sendPendingText: {
     fontSize: 13,
     fontWeight: '700',
-  },
-  editHeaderButton: {
-    width: 40,
-    height: 40,
-    borderRadius: themeRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

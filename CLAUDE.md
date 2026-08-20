@@ -1830,10 +1830,10 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/index.tsx` | Home — Your events + My invitations, floating "+" |
 | `app/profile.tsx` | Account details, "Change password" row, and sign out |
 | `app/create/type\|details\|preview\|share.tsx` | 4-step create-event wizard |
-| `app/event/[id].tsx` | Organizer dashboard — RSVP counts and guest list |
+| `app/event/[id].tsx` | Organizer dashboard — RSVP counts and guest list. No footer, no header edit action — see §4's "Guest list dashboard: no more footer buttons or edit pencil" |
 | `app/guest/[id]/` | The 6-tab guest event page |
 | `app/invite/[id].tsx` | RSVP screen — opened from an invite link by a real guest, *and* reused as the organizer's "Preview as guest" view (RSVP buttons render disabled for the organizer; see §3). **No longer a forced stop between Home and the guest tabs for an owner — see §4's routing note** |
-| `app/edit-event/[id].tsx` | Owner: basic info only — name, date, location, welcome message. Reached from the "Edit event" button on `event/[id].tsx`, the organizer dashboard |
+| `app/edit-event/[id].tsx` | Owner: basic info only — name, date, location, welcome message. Reached from the owner-only edit pencil on the Detalii tab (`app/guest/[id]/detalii.tsx`) — **not** from the organizer dashboard anymore, see §4's "Guest list dashboard: no more footer buttons or edit pencil" |
 | `app/schedule/[id].tsx` | Owner: add or edit one schedule item (`?itemId=` for edit) |
 | `app/venue/[id].tsx` | Owner: create or edit the venue |
 | `app/menu/[id].tsx` | Owner: create or edit the menu (starter/main/dessert, one save) |
@@ -1845,6 +1845,12 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/bulk-add-guests/[id].tsx` | Owner: invite several guests at once — manual Name/Phone rows and/or contacts import. Saves via the `upsert_event_guests_batch` RPC, then hands off to `send-invites`. See §3's "Bulk guest invites" |
 | `app/send-invites/[id].tsx` | Owner: the pending-guests WhatsApp send queue — one tap per guest opens WhatsApp with their personalized message; Skip is session-local. Reached after a bulk save or from `event/[id].tsx`'s "Send pending invites" button. See §3's "Bulk guest invites" |
 | `app/post-moment/[id].tsx` | Owner: moment composer |
+| `app/detalii-schedule/[id].tsx` | The full schedule list (moved out of the Detalii hub) — swipe-left a row for Edit/Delete, owner-only "+" in the header, empty state with "Adaugă programul". See §4's "Detalii tab is now a card hub" |
+| `app/detalii-location/[id].tsx` | The venue display (moved out of the Detalii hub) — map/address/notes card or empty state; owner-only edit pencil on the card itself, unchanged from before. See §4's "Detalii tab is now a card hub" |
+| `app/detalii-menu/[id].tsx` | The menu display + guest dietary pills (moved out of the Detalii hub) — owner-only edit icon in the header when a menu exists. See §4's "Detalii tab is now a card hub" |
+| `app/detalii-seating/[id].tsx` | The seating table list (moved out of the Detalii hub) — same swipe/empty-state/header-"+" shape as schedule. See §4's "Detalii tab is now a card hub" |
+| `app/detalii-accommodation/[id].tsx` | The accommodation list (moved out of the Detalii hub). See §4's "Detalii tab is now a card hub" |
+| `app/detalii-vendors/[id].tsx` | The tagged-vendor list + caption (moved out of the Detalii hub). See §4's "Detalii tab is now a card hub" |
 | `app/checkout/[id].tsx` | Stubbed Stripe placeholder |
 
 ### Owner routing — Home opens straight into Acasă, not the dashboard
@@ -1859,24 +1865,48 @@ tab bar and all, in one tap.
 **This meant `/event/[id]` needed a new entry point, since Home was its only one before this change**
 (checked — grepped the whole app for any other `router.push`/`href` targeting it; there wasn't one).
 `components/guest/EventHeaderBar.tsx` — the persistent back-chevron-and-name bar above all 6 guest
-tabs — now takes `id`/`showManage` props and renders a second icon button, owner-only, top-right: a
-`users` glyph that pushes `/event/${id}`. `app/guest/[id]/_layout.tsx` computes `showManage` from
-`isOwner(event)` and passes it down. A non-owner viewing the tabs sees exactly what they saw before —
-just the back button and the event name, nothing added to their side.
+tabs — gained a second icon button, owner-only, top-right: a `users` glyph that pushes `/event/${id}`.
+**Superseded by a later pass — see §4's "Header actions are now per-tab, in one shared row" for the
+current `EventHeaderBar` API (`actions: HeaderAction[]`, not `id`/`showManage`) and for which tab this
+icon shows on now.** A non-owner viewing the tabs still sees exactly what they saw before this whole
+section — just the back button and the event name, nothing added to their side.
 
-**The preview screen (`/invite/[id]`) itself is unchanged and still has two legitimate paths in:** the
-create-event flow's own share step (`create/share.tsx`, "Preview as guest" — unchanged, this is the
-one case the screen was always meant for), and the dashboard's own "Previzualizează ca invitat" button
-(unchanged, still a manual, explicit action once you're on the dashboard, not something Home forces on
-you anymore).
+**The preview screen (`/invite/[id]`) itself is unchanged, but it now has only one legitimate path in
+— see below.** `Header.tsx`'s `right?: ReactNode` prop (same "single custom slot, top-right" shape
+`BrandHeader`'s `right` prop already established elsewhere) is still there and still used elsewhere
+(`app/edit-event/[id].tsx` doesn't use it, but nothing else needed to change) — only `app/event/[id].tsx`
+stopped passing anything into it, per the section just below.
 
-**The dashboard's Edit action moved into its own header, off the footer.** `Header.tsx` gained a
-`right?: ReactNode` prop (same "single custom slot, top-right" shape `BrandHeader`'s `right` prop
-already established elsewhere) — a wrapping `rightGroup` groups it with the existing `onClose` X button
-so both can coexist, though no screen currently passes both. `app/event/[id].tsx`'s footer no longer has
-the "Editează evenimentul" ghost-variant text button; it's now a 40×40 pencil-icon button in the
-`Header`'s `right` slot, owner-only, same tap-target size as the back button. Share and "Preview as
-guest" stay in the footer, untouched.
+### Guest list dashboard: no more footer buttons or edit pencil
+
+**Changed in a later pass than the one above — superseding what that section said about the
+dashboard's footer/header.** Guest invites are now sent individually through the wa.me flow (the
+"Invite a guest"/"Add multiple" icons already in this screen's guest-list section header, and the
+`send-invites/[id]` queue) rather than via a generically-shared invite link, so the dashboard's own
+"share the invite" and "preview as guest" actions no longer have a reason to exist here.
+
+**`app/event/[id].tsx` lost its `Screen` `footer` entirely** — the "Distribuie invitația"
+(`shareInvite()`, `utils/invite.ts`) and "Previzualizează ca invitat" (`router.push('/invite/[id]')`)
+buttons are both gone, not hidden. `shareInvite` and the `event.shareInvitation`/`event.previewAsGuest`
+locale keys are **not** dead — `app/create/share.tsx` (the create-event wizard's own share step) still
+uses all three; only this screen's usage was removed. **The preview screen (`/invite/[id]`) now has
+exactly one legitimate path in**: the create-event flow's share step. The dashboard's own path into it
+is gone along with the footer button.
+
+**The header's owner-only edit pencil moved too — off this screen, onto the Detalii tab.**
+`app/event/[id].tsx`'s `Header` no longer passes anything into `right` at all (the prop itself is
+untouched on `Header.tsx`, just unused here now). The same "edit event" action —
+`router.push('/edit-event/${id}')`, `t('event.editEvent')` — moved to the Detalii tab.
+**Superseded by a later pass — it briefly lived as its own standalone row on the Detalii hub screen,
+then moved again into the shared `EventHeaderBar`'s top-right actions; see §4's "Header actions are now
+per-tab, in one shared row" for where it actually lives now.** `app/edit-event/[id].tsx` itself has
+never changed through any of this — same form, same fields (name, date, location, welcome message),
+same `updateEvent` call; only which screen (and now which exact button) triggers it moved.
+
+**Deliberately not touched:** the guest list's own functionality (add guest, bulk invite, stats, guest
+rows, swipe-to-remove), the Acasă tab's "+" FAB (still `router.push('/post-moment/${id}')`, unchanged —
+it creates a moment, not related to this dashboard at all), and every other screen. This was a scoped
+two-screen change: remove from the dashboard, add to Detalii.
 
 ### Splash and onboarding
 
@@ -1942,22 +1972,202 @@ app actually runs once.
 
 ### The 6 guest tabs (`app/guest/[id]/`)
 
-A persistent `EventHeaderBar` (back chevron + event name) sits above the tabs; back always returns to
-Home regardless of active tab, via `router.navigate('/')`. Owners additionally see a third icon,
-top-right — a guest-list/stats shortcut into `/event/[id]` (see the routing note above this table's
-section for why that link needed to exist here now).
+A persistent `EventHeaderBar` (event name, plus a conditional back chevron and a conditional top-right
+action slot) sits above the tabs. **The back chevron shows only on Acasă** — `router.navigate('/')`,
+the one exit point back to Home/the main events list; Detalii/Fond/Chat/Live/Album show no back arrow
+at all, since they're already one tap away via the bottom tab bar within the same event, and a back
+arrow there previously read as "go back a tab" while actually exiting the event. **Owners additionally
+see one top-right action slot whose contents change per active tab** — not a fixed third icon. See §4's
+"Header actions are now per-tab, in one shared row" for both of these (the action-slot design and the
+back-arrow fix landed as two passes in that same section).
 
 | Tab | File | Guest sees | Owner additionally sees |
 | --- | --- | --- | --- |
-| Acasă | `index.tsx` | Moment feed, reaction pills, fund promo card | "+" FAB → moment composer; swipe-left a moment to delete |
-| Detalii | `detalii.tsx` | Schedule cards, venue + map + notes, menu + dietary pills, seating tables, accommodation options, tagged vendors | "+"/edit icon per section opens that section's composer; swipe-left a list row for Edit/Delete; empty-state CTAs open the matching composer. See §3 "Detalii — menu, seating, accommodation, vendors" for the four sections added this pass |
-| Fond | `fond.tsx` | Fund card, progress bar, "Contribuie acum", Stripe disclaimer | Edit pencil + delete (trash) icon, top-right of the card; delete confirms via `confirmDelete`, warning about existing contributions when any exist; empty state with "Deschide un fond"; contribute button hidden |
-| Chat | `chat.tsx` | Group chat; organizer messages render as purple bubbles | (same; delete is per-message, not per-role) |
-| Live | `live.tsx` | Navy card, LIVE dot, hero + a bounded/scrollable filmstrip of small thumbs (not capped at 4 anymore), scannable QR, add-photo button | — |
-| Album | `album.tsx` | Recap headline, 2 stat cards, 3-col photo grid, download/back buttons | — |
+| Acasă | `index.tsx` | Moment feed, reaction pills, fund promo card | "+" FAB → moment composer; swipe-left a moment to delete. **Header:** guest-list/stats icon (`users` → `/event/[id]`) — the *only* tab that shows it |
+| Detalii | `detalii.tsx` | A compact card hub — one row per sub-feature (schedule/location/menu/seating/accommodation/vendors), icon + title + a one-line status, tap to push into that sub-feature's own screen | Same hub, no owner-only row of its own. **Header:** edit-event pencil (`edit-2` → `/edit-event/[id]`). Every "+"/edit action for the six sub-features lives inside its own sub-screen, not here |
+| Fond | `fond.tsx` | Fund card, progress bar, "Contribuie acum", Stripe disclaimer | Same card, no icons on it. **Header:** edit pencil + delete (trash) icon, shown only once a fund exists — delete confirms via `confirmDelete`, warning about existing contributions when any exist; empty state with "Deschide un fond"; contribute button hidden |
+| Chat | `chat.tsx` | Group chat; organizer messages render as purple bubbles | (same; delete is per-message, not per-role). **Header:** no action icon |
+| Live | `live.tsx` | Navy card, LIVE dot, hero + a bounded/scrollable filmstrip of small thumbs (not capped at 4 anymore), scannable QR, add-photo button | — . **Header:** no action icon |
+| Album | `album.tsx` | Recap headline, 2 stat cards, 3-col photo grid, download/back buttons | — . **Header:** no action icon |
 
 Chat swipe-to-delete is gated on `sender_id === user.id`, not on ownership. Photo deletion (Live and
 Album) is long-press → confirm, allowed for the uploader or the owner.
+
+### Header actions are now per-tab, in one shared row
+
+**Changed this pass — consolidates several icons that used to live in different, inconsistent places
+(a fixed guests icon on every tab's header, a stacked second circle under it on Detalii, a
+floating pair of icons on Fond's card) into one single-row, per-tab action slot on the shared header.**
+Before this pass: the guests/stats icon showed on *every* tab's header (Acasă through Album, plus the
+guest list screen's own header, unrelated and unaffected); Detalii additionally rendered its own
+owner-only "edit event" row as a second circle stacked directly under it; Fond rendered its edit+delete
+icons on the fund card itself, not in the header at all. None of these three things coordinated with
+each other.
+
+**`components/guest/EventHeaderBar.tsx`'s props changed shape entirely** — `id`/`showManage: boolean`
+(one fixed icon, on or off) is gone, replaced by `actions: HeaderAction[]` (0 to N icons, generic):
+
+```ts
+interface HeaderAction {
+  key: string;
+  icon: FeatherName;
+  accessibilityLabel: string;
+  onPress: () => void;
+  tone?: 'default' | 'destructive'; // recolors the icon only; same circular button
+}
+```
+
+The bar renders the back button, the event name (`flex: 1`, pushing whatever follows to the far edge),
+then every action in `actions` as same-sized 38×38 `surfaceElevated` pill buttons in a row
+(`styles.actions`, `gap: gSpace.sm`) — one row, never stacked, regardless of whether there are zero,
+one, or two actions. A `tone: 'destructive'` action keeps the same neutral circular background as every
+other header icon (consistent with the back/guests/edit buttons) but colors the glyph
+`tokens.destructive` instead of `tokens.textPrimary` — the one visual cue that survived the move from
+Fond's old card-level delete button (which used a `destructiveSoft`-tinted circle); everything else
+about the button (size, background, position) is now identical to every other header icon rather than
+its own smaller, differently-tinted style.
+
+**Who decides which actions show is `app/guest/[id]/_layout.tsx`, not `EventHeaderBar` itself** — the
+component stays a dumb renderer of whatever `actions` array it's given. The layout computes an
+`activeTab` from `usePathname()` (`'/detalii'`/`'/fond'`/`'/chat'`/`'/live'`/`'/album'` suffixes, else
+`'acasa'` — `EventHeaderBar` is mounted once above `<Tabs>`, so it has no other way to know which tab is
+currently showing) and builds the action list per tab, owner-only in every case:
+
+- **Acasă** — the `users` guest-list/stats icon → `/event/${id}`. This is now the *only* tab that shows
+  it, closing the "why does every tab have a guests icon" duplication this pass was asked to fix.
+- **Detalii** — the `edit-2` "edit event" icon → `/edit-event/${id}` (`t('event.editEvent')`). This is
+  the same action that used to live on the organizer dashboard's own header (see "Guest list dashboard:
+  no more footer buttons or edit pencil" above), then briefly as its own standalone row on the Detalii
+  hub screen — now it's here instead, one inline icon in the shared top row rather than a second
+  stacked circle.
+- **Fond** — `edit-2` (→ `/fund/${id}`) *and* `trash-2` (`tone: 'destructive'`, opens the same
+  `confirmDelete` flow as before — contributor-count-aware message, `deleteFund` mutation — unchanged
+  logic, just relocated), both gated on `content.fund !== null` in addition to `owner`: an empty Fond
+  tab has nothing to edit or delete, so no icons show until a fund actually exists. `_layout.tsx` calls
+  `useEventContent(id ?? '')` itself for this — a second call site against the same `['eventContent',
+  ...]` query keys `fond.tsx` already reads, deduped by the shared `QueryClient` cache (see §2's State
+  layer), not a second network fetch.
+- **Chat, Live, Album** — no action at all, `actions: []`, same as a non-owner on any tab.
+
+**A later pass in the same series made the back arrow itself conditional, for the same
+"one coherent row per tab" reason.** Before that pass, `EventHeaderBar`'s back arrow (→
+`router.navigate('/')`, back to Home) rendered unconditionally on all 6 tabs — confusing on Detalii/
+Fond/Chat/Live/Album specifically, since those five are already reachable from Acasă via the bottom tab
+bar within the same event; tapping "back" there read as "go back a tab" but actually exited the event
+entirely. Fixed with a new `showBack?: boolean` prop (default `false`) on `EventHeaderBar`, rendered
+conditionally the same way `actions` already is; `_layout.tsx` passes `showBack={activeTab === 'acasa'}`
+— reusing the same `activeTab` value the actions logic above already computes, no new state. Acasă is
+now the one and only exit point back to the main events list; the other five tabs show just the event
+name (and whatever `actions` apply), with tab-to-tab movement left entirely to the bottom tab bar, which
+was never touched.
+
+**`app/index.tsx`'s profile icon changed in the same pass, for a related but separate reason.** Home's
+top-right button (→ `/profile`, inside `BrandHeader`'s `right` slot) used Feather `user` — a single-
+person silhouette easily confused at a glance with the two-person `users` glyph used for the guest-list/
+stats action elsewhere in the app (see the bullet list above, and `event/[id].tsx`'s "Invite a guest"/
+"Add multiple" icons). Swapped to Feather `settings` (a gear) — visually unambiguous from `users`, and
+not previously used anywhere else in the app (checked before picking it). Nothing else about that button
+changed — same circle, same `${accentPrimary}22` tint, same `router.push('/profile')`, same
+accessibility label. `app/profile.tsx`'s own avatar-circle `user` icon (the screen's own header, not
+this button) was intentionally left alone — out of scope, and not the icon that was actually causing
+confusion.
+
+**`app/guest/[id]/detalii.tsx` and `app/guest/[id]/fond.tsx` both got smaller, not more complex, from
+this.** Detalii no longer imports `useEvents`/`useTheme` or renders anything but its six cards — the
+owner-only edit row it briefly had is gone from this file entirely. Fond no longer imports `Feather`/
+`TouchableOpacity`, no longer has an `ownerActions` block or `removeFund` function on the card — `owner`
+is still read (still gates the CTA-button-vs-disclaimer footer choice, unrelated to the header) but no
+longer drives any icon this screen renders itself.
+
+**Deliberately unaffected:** `app/event/[id].tsx` (the guest list screen) and its own header/pencil —
+already addressed by the earlier "Guest list dashboard" pass, not touched again here. The Acasă tab's
+"+" FAB (moment composer), every sub-screen under `app/detalii-*/[id].tsx`, the bottom tab bar itself,
+`app/profile.tsx`'s own content, and all underlying edit/delete mutations (`updateEvent`,
+`saveFund`/`deleteFund`, etc.) are all unchanged — this whole series was scoped purely to header/
+navigation-bar icon composition, plus the one Home icon swap.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing. How the
+single-row action set actually looks per tab (icon spacing, the destructive tint, the moment an owner's
+Fond header icons appear once `content` resolves) is unverified — no device or simulator run has
+happened in any session so far.
+
+### Detalii tab is now a card hub, not a long inline scroll
+
+**Changed this pass.** `app/guest/[id]/detalii.tsx` used to render all six of its sub-features
+(schedule, venue, menu, seating, accommodation, vendors — §3's "Detalii — menu, seating,
+accommodation, vendors" for the last four) fully inline: each with its own heading, an
+owner-only "+"/edit icon in a `sectionHead` row, an `EmptyState` block when nothing was set yet, and
+the section's own cards/list rows when it wasn't. That made the tab a very long scroll, and made the
+per-section "+" icons easy to misattribute at a glance.
+
+**It's now a compact list of six tappable rows, one per sub-feature**, each showing an icon, the
+section's title, and a single-line status (`t('detalii.hub.*')`, new locale keys, both languages) —
+"Nesetat"-style copy when nothing exists yet (`detalii.hub.scheduleUnset` etc.), otherwise a short
+summary derived from the same `useEventContent(id).content` the hub always read, no new query added:
+item counts for schedule/accommodation/vendors, a seated-persons total (`seatingTables.reduce(...,
+seat_count)`) for seating, "Meniul e setat" for menu, and the venue's own address/name (user content,
+so it's shown as-is, never translated — same convention as everywhere else in this file) for location.
+`components/guest/DetaliiHubCard.tsx` is the one new component this introduced — a themed row
+(icon circle, title, status, chevron) plus a matching `DetaliiHubCardSkeleton`; the hub's own loading
+state is now six of those skeletons instead of six shaped section skeletons.
+
+**A later pass briefly added a seventh, non-card row above the six — an owner-only "edit event" button
+rendered by this screen itself — then a pass after that removed it again.** That row was the organizer
+dashboard's old header-pencil action, relocated here (see §4's "Guest list dashboard: no more footer
+buttons or edit pencil" for why it left the dashboard). **Superseded — it doesn't live on this screen
+at all anymore.** It moved once more, into the shared `EventHeaderBar`'s top-right actions (same row as
+the back button, swapping in per active tab) — see §4's "Header actions are now per-tab, in one shared
+row." `app/guest/[id]/detalii.tsx` today renders nothing but the six cards; it has no owner-only row of
+its own, and no longer imports `useEvents`/`useTheme` for that reason.
+
+**Tapping a card pushes a dedicated screen** — the six new routes added to §4's routes table just
+above this section (`app/detalii-schedule/[id].tsx` through `app/detalii-vendors/[id].tsx`). Each one
+is a relocation, not a rewrite: the exact JSX, styles, and logic that used to render inline on the hub
+(the `EmptyState`/`GuestButton` empty case, the `SwipeableRow` list with its Edit/Delete actions, the
+menu screen's dietary pills and `updateMyDietaryPreferences` call, the vendor screen's `vendorIcon()`
+heuristic and caption) now live in these six files instead, largely unchanged. **The owner-only
+per-section "+"/edit icon moved from an inline `sectionHead` row into each sub-screen's own `Header`
+`right` slot** — the same "single action, top-right, opposite the back button" placement
+`app/event/[id].tsx`'s edit-pencil already established — except for location and menu, where the edit
+pencil already lived a different way before this pass (an absolutely-positioned button on the venue
+card itself, and a header icon shown only once a menu exists) and still does, unchanged. **There is no
+floating per-section "+" on the hub screen anymore, anywhere** — every add action now lives one tap
+deeper, inside the sub-screen it belongs to, closing the "which section does this + belong to"
+ambiguity the long inline layout had.
+
+**Routing/back:** plain stack push/pop, no new navigator. Every sub-screen is a normal
+`app/<name>/[id].tsx` route reached via `router.push` from a hub card and left via the sub-screen's own
+`Header`'s `showBack` (`BackButton`, `router.back()`) — identical to how `/event/[id]` is already
+reached from `EventHeaderBar`'s people icon and returned from. None of the sub-screens are nested
+under `app/guest/[id]/`, so — like the existing composer routes (`schedule/[id]`, `venue/[id]`, etc.)
+they read `id` via `useLocalSearchParams` and `useEvents().getEvent(id)` directly, **not**
+`useGuestEvent()`, which would throw outside the tabs' `GuestEventProvider` (see this file's own
+"Critical gotcha" note in §2). Unlike the composer routes, though, these six are **not** owner-gated at
+the top level — a non-owner guest can open any of them to see the same schedule/venue/menu/seating/
+accommodation/vendor content they'd have seen inline before; only the add/edit/delete affordances
+inside each one stay behind `isOwner(event)`, same as before this pass.
+
+**Each sub-screen wraps its content in `GuestScreen` (not `Screen`)**, with `topInset` (there's no
+`EventHeaderBar` above these routes to own the top safe-area inset the way it does inside the tabs) —
+chosen over the organizer-style `Screen`/gradient wrapper specifically so a card tapped on the
+guest-themed hub doesn't land on a jarringly different background one tap later. `GuestScreen`'s bottom
+padding still reserves space for the floating tab bar even though these routes render outside the tabs
+navigator entirely — a harmless overshoot, the same one already accepted for `checkout/[id].tsx`, the
+one pre-existing `GuestScreen` consumer outside the tabs (§5's Tab bar section documents this).
+
+**Scope: six cards, not four.** The task that prompted this pass initially named only four sub-features
+(schedule, location, menu, seating) as the target card set, and even used "Furnizori" (vendors) as an
+example of a *future* addition — but accommodation and vendors already existed as full inline sections
+before this pass (§3's "Detalii — menu, seating, accommodation, vendors"). Confirmed with the user
+before starting: all six became cards/sub-screens, not just the four named ones, so the hub doesn't end
+up half-migrated with two long sections still rendering inline.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing. How the hub's
+card list and the six new sub-screens actually look/feel (spacing, the `GuestScreen`-inside-a-pushed-
+route background, the header-slot "+" icon's placement) is unverified — no device or simulator run has
+happened in any session so far, per the top of this file.
 
 ### Editing model — three independent forms, each per-item where it applies
 

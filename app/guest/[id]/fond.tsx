@@ -1,14 +1,12 @@
-import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { ProgressBar } from '@/components/guest/ProgressBar';
 import { Skeleton } from '@/components/Skeleton';
-import { confirmDelete } from '@/utils/confirm';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
@@ -22,7 +20,7 @@ export default function FondScreen() {
   const { id, event } = useGuestEvent();
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
-  const { content, deleteFund } = useEventContent(id);
+  const { content } = useEventContent(id);
 
   const card = [
     styles.card,
@@ -70,40 +68,9 @@ export default function FondScreen() {
   // until checkout actually records a contribution.
   const contributorCount = content.contributions.length;
 
-  const removeFund = () => {
-    const message =
-      contributorCount > 0
-        ? t('fond.deleteFundWithContributions', { title: fund.title, count: contributorCount })
-        : t('fond.deleteFundNoContributions', { title: fund.title });
-    confirmDelete(t('fond.deleteFundTitle'), message, deleteFund);
-  };
-
   return (
     <GuestScreen contentStyle={styles.page} transparent>
       <View style={card}>
-        {owner ? (
-          <View style={styles.ownerActions}>
-            <TouchableOpacity
-              style={[styles.edit, { backgroundColor: `${tokens.accentPrimary}22` }]}
-              onPress={() => router.push(`/fund/${id}`)}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Editează fondul"
-            >
-              <Feather name="edit-2" size={16} color={tokens.accentPrimary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.delete, { backgroundColor: tokens.destructiveSoft }]}
-              onPress={removeFund}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Șterge fondul"
-            >
-              <Feather name="trash-2" size={16} color={tokens.destructive} />
-            </TouchableOpacity>
-          </View>
-        ) : null}
-
         <Text style={[styles.eyebrow, { color: tokens.textSecondary }]}>{fund.title.toUpperCase()}</Text>
         <Text style={[styles.message, { color: tokens.textSecondary }]}>{fund.description}</Text>
 
@@ -151,27 +118,6 @@ const styles = StyleSheet.create({
     padding: gSpace.xxl,
     alignItems: 'center',
     gap: gSpace.md,
-  },
-  ownerActions: {
-    position: 'absolute',
-    top: gSpace.lg,
-    right: gSpace.lg,
-    flexDirection: 'row',
-    gap: gSpace.sm,
-  },
-  edit: {
-    width: 34,
-    height: 34,
-    borderRadius: gRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  delete: {
-    width: 34,
-    height: 34,
-    borderRadius: gRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   eyebrow: {
     fontSize: 11,

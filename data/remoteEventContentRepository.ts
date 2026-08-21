@@ -639,6 +639,10 @@ export const remoteRepository = {
   loadContributions,
   sendMessage,
   deleteMessage,
+  // Exported so the Chat screen's Realtime subscription (app/guest/[id]/chat.tsx)
+  // can map a postgres_changes payload's raw row the same way loadSocial does,
+  // instead of duplicating this mapping and risking drift if a column is added.
+  mapMessage,
   addReaction,
   removeReaction,
   addPhoto,

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
 import { remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
@@ -34,6 +34,8 @@ export interface SeatingTableInput {
   name: string;
   label: string;
   seat_count: number;
+  /** Confirmed guests assigned to this table — see app/table/[id].tsx. */
+  guestIds: string[];
 }
 
 export interface AccommodationInput {
@@ -163,15 +165,34 @@ export function useEventContent(eventId: string) {
    * never invalidates (and re-fetches) messages/photos/moments.
    */
   const remoteMutation = useMutation({
-    mutationFn: ({ write }: { write: () => Promise<void>; category: ContentCategory }) => write(),
-    onSuccess: (_result, { category }) => {
+    mutationFn: ({
+      write,
+    }: {
+      write: () => Promise<void>;
+      category: ContentCategory;
+      extraKeys?: readonly QueryKey[];
+    }) => write(),
+    // Deliberately mutation-level, not a per-call mutate(vars, { onSuccess })
+    // option: the screens that call runRemote (e.g. app/table/[id].tsx's
+    // save()) navigate away immediately after calling the action, often
+    // before the write has resolved. TanStack Query's MutationObserver only
+    // invokes per-call mutate() callbacks while the owning component is still
+    // subscribed (hasListeners()) — they're silently dropped once it unmounts.
+    // Callbacks defined here, on useMutation itself, are bound to the
+    // Mutation object in the MutationCache instead, so they always fire once
+    // the write settles, regardless of whether anything is still mounted to
+    // hear about it. extraKeys (e.g. saveSeatingTable's cross-cache 'events'
+    // invalidation) rides along in the mutation variables for this reason.
+    onSuccess: (_result, { category, extraKeys }) => {
       const key = category === 'social' ? socialKey : category === 'details' ? detailsKey : contributionsKey;
       void queryClient.invalidateQueries({ queryKey: key });
+      extraKeys?.forEach((extraKey) => void queryClient.invalidateQueries({ queryKey: extraKey }));
     },
     onError: (error: unknown) => reportSupabaseError(error),
   });
   const runRemote = useCallback(
-    (write: () => Promise<void>, category: ContentCategory) => remoteMutation.mutate({ write, category }),
+    (write: () => Promise<void>, category: ContentCategory, extraKeys?: readonly QueryKey[]) =>
+      remoteMutation.mutate({ write, category, extraKeys }),
     [remoteMutation],
   );
 
@@ -260,15 +281,28 @@ export function useEventContent(eventId: string) {
         runRemote(() => remoteRepository.saveMenu(eventId, input), 'details');
       },
 
+      // Both of these touch event_guests.table_id (a save reassigns it, a
+      // delete frees it via `on delete set null`) — that column lives in two
+      // caches this hook's own 'details' key doesn't cover: the `events`
+      // query's guest list (assigned-count, "X / Y seats assigned"), and the
+      // `tableCompanions` RPC a guest viewer's own seating card reads (see
+      // app/detalii-seating/[id].tsx) — invalidated by prefix, without the
+      // trailing viewer-userId segment, since this hook (the organizer's own
+      // instance) has no way to know which guest's cache entry to target.
       saveSeatingTable: (item: SeatingTableInput) => {
         runRemote(
           () => remoteRepository.saveSeatingTable(eventId, item, content?.seatingTables.length ?? 0),
           'details',
+          [['events', user?.id ?? null], ['tableCompanions', eventId]],
         );
       },
 
       deleteSeatingTable: (tableId: string) => {
-        runRemote(() => remoteRepository.deleteSeatingTable(tableId), 'details');
+        runRemote(
+          () => remoteRepository.deleteSeatingTable(tableId),
+          'details',
+          [['events', user?.id ?? null], ['tableCompanions', eventId]],
+        );
       },
 
       saveAccommodation: (item: AccommodationInput) => {
@@ -293,7 +327,7 @@ export function useEventContent(eventId: string) {
         runRemote(() => remoteRepository.deleteVendor(vendorId), 'details');
       },
     }),
-    [eventId, actor, hasReacted, runRemote, content, queryClient, detailsKey],
+    [eventId, actor, hasReacted, runRemote, content, queryClient, detailsKey, user],
   );
 
   return { content, hasReacted, reactionCount, ...actions };

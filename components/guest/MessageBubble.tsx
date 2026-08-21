@@ -6,16 +6,27 @@ import type { Message } from '@/types/guest';
 import { gRadius, gSpace } from '@/utils/guestTheme';
 import { timeOfDay } from '@/utils/relativeTime';
 
-/** Organizer messages are solid accent-colored; everyone else gets a surface bubble. */
-export function MessageBubble({ message, fromOrganizer }: { message: Message; fromOrganizer: boolean }) {
+/** Organizer messages are solid accent-colored; everyone else gets a surface bubble.
+ * `isOwn` mirrors the row to the right side of the screen for the current user's own
+ * messages (standard chat UX) — colors/sender-label/timestamp are unchanged either way. */
+export function MessageBubble({
+  message,
+  fromOrganizer,
+  isOwn,
+}: {
+  message: Message;
+  fromOrganizer: boolean;
+  isOwn: boolean;
+}) {
   const { tokens } = useTheme();
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, isOwn ? styles.rowOwn : styles.rowOther]}>
       <Text style={[styles.sender, { color: tokens.textSecondary }]}>{message.sender_label}</Text>
       <View
         style={[
           styles.bubble,
+          isOwn ? styles.bubbleOwn : styles.bubbleOther,
           { backgroundColor: fromOrganizer ? tokens.accentPrimary : tokens.surfaceElevated },
         ]}
       >
@@ -42,9 +53,19 @@ export function MessageBubbleSkeleton({ bubbleWidth = 160 }: { bubbleWidth?: num
 
 const styles = StyleSheet.create({
   row: {
-    alignItems: 'flex-start',
     gap: gSpace.xs,
     maxWidth: '88%',
+  },
+  // alignSelf positions the row within the message list (left/right edge);
+  // alignItems positions the sender label and timestamp within the row's own
+  // width, so they stay flush above/below whichever side the bubble sits on.
+  rowOther: {
+    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
+  },
+  rowOwn: {
+    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
   },
   sender: {
     fontSize: 12,
@@ -53,9 +74,16 @@ const styles = StyleSheet.create({
   },
   bubble: {
     borderRadius: gRadius.md,
-    borderTopLeftRadius: gSpace.xs,
     paddingHorizontal: gSpace.lg,
     paddingVertical: gSpace.md,
+  },
+  // The small "tail" corner mirrors to the outer edge — pointing left for an
+  // incoming message, right for an outgoing one — same as the row's own alignment.
+  bubbleOther: {
+    borderTopLeftRadius: gSpace.xs,
+  },
+  bubbleOwn: {
+    borderTopRightRadius: gSpace.xs,
   },
   text: {
     fontSize: 14,

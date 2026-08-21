@@ -32,6 +32,10 @@ export interface Guest {
   /** When the organizer tapped "Send via WhatsApp" for this guest — null
    * means not yet sent. See app/send-invites/[id].tsx. */
   whatsappSentAt: string | null;
+  /** The seating table this guest is assigned to, if any — set from the
+   * "Assign guests" section on app/table/[id].tsx. A guest belongs to at
+   * most one table for a given event. */
+  tableId: string | null;
 }
 
 export interface AppEvent {

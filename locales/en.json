@@ -183,6 +183,8 @@
     "addTable": "Add a table",
     "seatCount_one": "{{count}} seat",
     "seatCount_other": "{{count}} seats",
+    "seatingYoureHere": "You're here",
+    "seatingWithYou": "With you: {{names}}",
     "accommodationDescription": "Where guests coming from out of town can stay.",
     "accommodationEmptyOwner": "You haven't added any lodging options.",
     "accommodationEmptyGuest": "Lodging options haven't been published yet.",
@@ -200,7 +202,30 @@
     "deleteAccommodationTitle": "Delete this lodging option?",
     "deleteAccommodationBody": "\"{{name}}\" will disappear from the lodging list.",
     "deleteVendorTitle": "Delete this vendor?",
-    "deleteVendorBody": "\"{{name}}\" will disappear from the list."
+    "deleteVendorBody": "\"{{name}}\" will disappear from the list.",
+    "hub": {
+      "scheduleTitle": "Today's schedule",
+      "scheduleUnset": "No schedule added yet",
+      "scheduleCount_one": "{{count}} activity",
+      "scheduleCount_other": "{{count}} activities",
+      "locationTitle": "Venue & directions",
+      "locationUnset": "Location not set",
+      "menuTitle": "The menu",
+      "menuUnset": "Menu not set",
+      "menuSet": "Menu is set",
+      "seatingTitle": "Seating chart",
+      "seatingUnset": "No tables added yet",
+      "seatingCount_one": "{{count}} guest seated",
+      "seatingCount_other": "{{count}} guests seated",
+      "accommodationTitle": "Recommended lodging",
+      "accommodationUnset": "No lodging added yet",
+      "accommodationCount_one": "{{count}} lodging option",
+      "accommodationCount_other": "{{count}} lodging options",
+      "vendorsTitle": "The people who made it happen",
+      "vendorsUnset": "No vendors added yet",
+      "vendorsCount_one": "{{count}} vendor",
+      "vendorsCount_other": "{{count}} vendors"
+    }
   },
   "fond": {
     "emptyOwner": "No fund yet. Open one so guests can contribute to something that matters to you.",
@@ -311,7 +336,14 @@
     "labelLabel": "Label",
     "labelPlaceholder": "Wedding party",
     "seatsLabel": "Seats",
-    "seatsPlaceholder": "8"
+    "seatsPlaceholder": "8",
+    "assignGuestsLabel": "Assign guests",
+    "assignGuestsPlaceholder": "No guests assigned yet",
+    "seatsAssignedCount": "{{assigned}} / {{total}} seats assigned",
+    "seatsRequiredHint": "Enter the number of seats first",
+    "seatsCapReached": "Seat limit reached",
+    "noConfirmedGuests": "No confirmed guests yet",
+    "guestAlreadyAssigned": "Already at {{table}}"
   },
   "accommodationForm": {
     "notAvailableSubtitle": "Only the organizer can edit accommodation options.",

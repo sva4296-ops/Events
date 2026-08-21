@@ -45,7 +45,7 @@ export default function DashboardScreen() {
               accessibilityRole="button"
               accessibilityLabel="Account"
             >
-              <Feather name="user" size={18} color={tokens.accentPrimary} />
+              <Feather name="settings" size={18} color={tokens.accentPrimary} />
             </TouchableOpacity>
           }
         />

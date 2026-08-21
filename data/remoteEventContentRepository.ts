@@ -491,30 +491,63 @@ interface SeatingTableDraft {
   name: string;
   label: string;
   seat_count: number;
+  /** Confirmed guests' ids to assign to this table — see
+   * app/table/[id].tsx's "Assign guests" section. Replaces whatever this
+   * table's assignment set was before the save, in one call. */
+  guestIds: string[];
 }
 
+/**
+ * Upserts the table row, then (re)assigns event_guests.table_id for it in
+ * the same call — one save action covers both, so the composer screen never
+ * has to sequence "save table, then use its id to assign guests" itself.
+ * Reassignment is "clear everyone currently on this table, then set the new
+ * selection" rather than a diff — simpler, and correct either way since a
+ * guest belongs to at most one table (see the migration's own reasoning).
+ */
 async function saveSeatingTable(
   eventId: string,
   item: SeatingTableDraft,
   sortOrder: number,
 ): Promise<void> {
   const client = supabase;
-  if (item.id === null) {
-    const { error } = await client.from('seating_tables').insert({
-      event_id: eventId,
-      name: item.name,
-      label: item.label,
-      seat_count: item.seat_count,
-      sort_order: sortOrder,
-    });
+  let tableId = item.id;
+
+  if (tableId === null) {
+    const { data, error } = await client
+      .from('seating_tables')
+      .insert({
+        event_id: eventId,
+        name: item.name,
+        label: item.label,
+        seat_count: item.seat_count,
+        sort_order: sortOrder,
+      })
+      .select('id')
+      .single();
     if (error) throw error;
-    return;
+    tableId = (data as { id: string }).id;
+  } else {
+    const { error } = await client
+      .from('seating_tables')
+      .update({ name: item.name, label: item.label, seat_count: item.seat_count })
+      .eq('id', tableId);
+    if (error) throw error;
   }
-  const { error } = await client
-    .from('seating_tables')
-    .update({ name: item.name, label: item.label, seat_count: item.seat_count })
-    .eq('id', item.id);
-  if (error) throw error;
+
+  const { error: clearError } = await client
+    .from('event_guests')
+    .update({ table_id: null })
+    .eq('table_id', tableId);
+  if (clearError) throw clearError;
+
+  if (item.guestIds.length > 0) {
+    const { error: assignError } = await client
+      .from('event_guests')
+      .update({ table_id: tableId })
+      .in('id', item.guestIds);
+    if (assignError) throw assignError;
+  }
 }
 
 async function deleteSeatingTable(tableId: string): Promise<void> {

@@ -184,6 +184,8 @@
     "seatCount_one": "{{count}} loc",
     "seatCount_few": "{{count}} locuri",
     "seatCount_other": "{{count}} de locuri",
+    "seatingYoureHere": "Ești aici",
+    "seatingWithYou": "Alături de tine: {{names}}",
     "accommodationDescription": "Unde pot sta invitații care vin de departe.",
     "accommodationEmptyOwner": "Nu ai adăugat opțiuni de cazare.",
     "accommodationEmptyGuest": "Opțiunile de cazare nu au fost publicate încă.",
@@ -341,7 +343,14 @@
     "labelLabel": "Etichetă",
     "labelPlaceholder": "Familia mirilor",
     "seatsLabel": "Locuri",
-    "seatsPlaceholder": "8"
+    "seatsPlaceholder": "8",
+    "assignGuestsLabel": "Alocă invitați",
+    "assignGuestsPlaceholder": "Niciun invitat alocat încă",
+    "seatsAssignedCount": "{{assigned}} / {{total}} locuri ocupate",
+    "seatsRequiredHint": "Completează mai întâi numărul de locuri",
+    "seatsCapReached": "Limita de locuri a fost atinsă",
+    "noConfirmedGuests": "Niciun invitat confirmat încă",
+    "guestAlreadyAssigned": "Deja la {{table}}"
   },
   "accommodationForm": {
     "notAvailableSubtitle": "Doar organizatorul poate edita opțiunile de cazare.",

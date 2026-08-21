@@ -2,6 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Skeleton } from '@/components/Skeleton';
+import { StatusDot } from '@/components/guest/StatusDot';
 import { useTheme } from '@/hooks/useTheme';
 import { gRadius, gSpace } from '@/utils/guestTheme';
 import { themeRadius } from '@/utils/themeTokens';
@@ -12,15 +13,21 @@ interface DetaliiHubCardProps {
   icon: FeatherName;
   title: string;
   status: string;
+  /** Drives the at-a-glance `StatusDot` — whether this section has any data
+   * set yet. The status text stays the detail; the dot is the quick signal,
+   * same visible to owner and guest alike (this screen has no owner-only
+   * rendering branch at all). */
+  complete: boolean;
   onPress: () => void;
 }
 
 /**
  * One compact row per Detalii sub-feature — icon, title, a short one-line
- * status, chevron. Tapping is the only way in; there is no per-card "+"
- * anymore, add actions live inside the sub-screen this navigates to.
+ * status, a set/not-set `StatusDot`, chevron. Tapping is the only way in;
+ * there is no per-card "+" anymore, add actions live inside the sub-screen
+ * this navigates to.
  */
-export function DetaliiHubCard({ icon, title, status, onPress }: DetaliiHubCardProps) {
+export function DetaliiHubCard({ icon, title, status, complete, onPress }: DetaliiHubCardProps) {
   const { tokens } = useTheme();
 
   return (
@@ -52,7 +59,10 @@ export function DetaliiHubCard({ icon, title, status, onPress }: DetaliiHubCardP
         </Text>
       </View>
 
-      <Feather name="chevron-right" size={20} color={tokens.textSecondary} />
+      <View style={styles.trailing}>
+        <StatusDot complete={complete} />
+        <Feather name="chevron-right" size={20} color={tokens.textSecondary} />
+      </View>
     </TouchableOpacity>
   );
 }
@@ -66,7 +76,10 @@ export function DetaliiHubCardSkeleton() {
         <Skeleton height={16} width="55%" radius={4} />
         <Skeleton height={13} width="40%" radius={4} />
       </View>
-      <Skeleton width={20} height={20} radius={10} />
+      <View style={styles.trailing}>
+        <Skeleton width={18} height={18} radius={9} />
+        <Skeleton width={20} height={20} radius={10} />
+      </View>
     </View>
   );
 }
@@ -96,5 +109,10 @@ const styles = StyleSheet.create({
   },
   status: {
     fontSize: 13,
+  },
+  trailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: gSpace.sm,
   },
 });

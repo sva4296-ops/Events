@@ -1,6 +1,11 @@
 import { supabase } from '@/data/supabaseClient';
 import type { AppEvent, EventDraft, Guest, InvitePreview, RsvpStatus } from '@/types/event';
-import type { EventGuestRow, EventWithGuestsRow, InvitePreviewRow } from '@/types/supabase';
+import type {
+  EventGuestRow,
+  EventWithGuestsRow,
+  InvitePreviewRow,
+  TableCompanionRow,
+} from '@/types/supabase';
 
 /**
  * Supabase-backed events + guests. hooks/useEvents.tsx is the only caller.
@@ -17,6 +22,7 @@ function mapGuestRow(row: EventGuestRow): Guest {
     dietaryPreferences: row.dietary_preferences,
     phone: row.guest_phone,
     whatsappSentAt: row.whatsapp_sent_at,
+    tableId: row.table_id,
   };
 }
 
@@ -274,6 +280,21 @@ export async function fetchInvitePreview(eventId: string): Promise<InvitePreview
   if (error) throw error;
   const row = (data as InvitePreviewRow[] | null)?.[0];
   return row === undefined ? null : mapInvitePreviewRow(row);
+}
+
+/**
+ * Names of the caller's own confirmed table-mates for this event — see
+ * get_table_companions() (20260822000003_table_companions_rpc.sql).
+ * event_guests' own RLS only lets a guest read their own row, so this has to
+ * go through the RPC rather than a plain .select() the way the rest of the
+ * app's guest-list reads do. Empty array if the caller isn't a guest here,
+ * isn't confirmed, or isn't assigned to a table yet.
+ */
+export async function fetchTableCompanions(eventId: string): Promise<string[]> {
+  const client = supabase;
+  const { data, error } = await client.rpc('get_table_companions', { p_event_id: eventId });
+  if (error) throw error;
+  return ((data as TableCompanionRow[] | null) ?? []).map((row) => row.name);
 }
 
 /** A guest's own preference on their own row — covered by the existing "update

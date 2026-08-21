@@ -183,6 +183,8 @@
     "addTable": "Add a table",
     "seatCount_one": "{{count}} seat",
     "seatCount_other": "{{count}} seats",
+    "seatingYoureHere": "You're here",
+    "seatingWithYou": "With you: {{names}}",
     "accommodationDescription": "Where guests coming from out of town can stay.",
     "accommodationEmptyOwner": "You haven't added any lodging options.",
     "accommodationEmptyGuest": "Lodging options haven't been published yet.",
@@ -334,7 +336,14 @@
     "labelLabel": "Label",
     "labelPlaceholder": "Wedding party",
     "seatsLabel": "Seats",
-    "seatsPlaceholder": "8"
+    "seatsPlaceholder": "8",
+    "assignGuestsLabel": "Assign guests",
+    "assignGuestsPlaceholder": "No guests assigned yet",
+    "seatsAssignedCount": "{{assigned}} / {{total}} seats assigned",
+    "seatsRequiredHint": "Enter the number of seats first",
+    "seatsCapReached": "Seat limit reached",
+    "noConfirmedGuests": "No confirmed guests yet",
+    "guestAlreadyAssigned": "Already at {{table}}"
   },
   "accommodationForm": {
     "notAvailableSubtitle": "Only the organizer can edit accommodation options.",

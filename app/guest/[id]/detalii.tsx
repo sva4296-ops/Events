@@ -15,6 +15,9 @@ interface DetaliiHubCardEntry {
   icon: FeatherName;
   title: string;
   status: string;
+  /** Drives the card's at-a-glance StatusDot — same true/false condition
+   * that picks between the "unset" and "set" status text below. */
+  complete: boolean;
   route: string;
 }
 
@@ -52,6 +55,7 @@ export default function DetaliiScreen() {
         content.schedule.length === 0
           ? t('detalii.hub.scheduleUnset')
           : t('detalii.hub.scheduleCount', { count: content.schedule.length }),
+      complete: content.schedule.length > 0,
       route: `/detalii-schedule/${id}`,
     },
     {
@@ -63,6 +67,7 @@ export default function DetaliiScreen() {
           ? content.venue.address
           : content.venue.name
         : t('detalii.hub.locationUnset'),
+      complete: hasVenue,
       route: `/detalii-location/${id}`,
     },
     {
@@ -70,6 +75,7 @@ export default function DetaliiScreen() {
       icon: 'coffee',
       title: t('detalii.hub.menuTitle'),
       status: content.menu === null ? t('detalii.hub.menuUnset') : t('detalii.hub.menuSet'),
+      complete: content.menu !== null,
       route: `/detalii-menu/${id}`,
     },
     {
@@ -80,6 +86,7 @@ export default function DetaliiScreen() {
         content.seatingTables.length === 0
           ? t('detalii.hub.seatingUnset')
           : t('detalii.hub.seatingCount', { count: seatedCount }),
+      complete: content.seatingTables.length > 0,
       route: `/detalii-seating/${id}`,
     },
     {
@@ -90,6 +97,7 @@ export default function DetaliiScreen() {
         content.accommodations.length === 0
           ? t('detalii.hub.accommodationUnset')
           : t('detalii.hub.accommodationCount', { count: content.accommodations.length }),
+      complete: content.accommodations.length > 0,
       route: `/detalii-accommodation/${id}`,
     },
     {
@@ -100,6 +108,7 @@ export default function DetaliiScreen() {
         content.vendors.length === 0
           ? t('detalii.hub.vendorsUnset')
           : t('detalii.hub.vendorsCount', { count: content.vendors.length }),
+      complete: content.vendors.length > 0,
       route: `/detalii-vendors/${id}`,
     },
   ];
@@ -112,6 +121,7 @@ export default function DetaliiScreen() {
           icon={card.icon}
           title={card.title}
           status={card.status}
+          complete={card.complete}
           onPress={() => router.push(card.route)}
         />
       ))}

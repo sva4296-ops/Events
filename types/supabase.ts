@@ -44,6 +44,9 @@ export interface EventGuestRow {
   whatsapp_sent_at: string | null;
   responded_at: string | null;
   dietary_preferences: string[];
+  /** Which seating_tables row this guest is assigned to, if any — see
+   * 20260822000002_seating_table_guest_assignment.sql. */
+  table_id: string | null;
 }
 
 /** Row shape returned by the get_invite_preview(uuid) RPC — see
@@ -59,6 +62,15 @@ export interface InvitePreviewRow {
   welcome_message: string | null;
   guest_id: string;
   rsvp_status: RsvpStatusRow;
+}
+
+/** Row shape returned by the get_table_companions(uuid) RPC — see
+ * supabase/migrations/20260822000003_table_companions_rpc.sql. The caller's
+ * own confirmed table-mates only; event_guests' own RLS doesn't let a guest
+ * read this any other way. */
+export interface TableCompanionRow {
+  id: string;
+  name: string;
 }
 
 export interface EventWithGuestsRow extends EventRow {

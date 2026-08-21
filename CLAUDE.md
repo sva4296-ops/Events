@@ -867,8 +867,131 @@ two sections in the scroll order changed.
 - All four sections' repository/hook wiring is the exact same write-then-invalidate shape as
   `saveScheduleItem`/`updateVenue` (§3's "Where data lives") — nothing new architecturally, just more
   instances of it.
-- **Guest-to-table assignment is out of scope, as specified** — the seating list is just a list; no
-  guest is linked to a table yet. `seating_tables` has no guest-facing column for this at all.
+- **Guest-to-table assignment was out of scope when this section was first written — no longer true,
+  a later pass built it. See "Seating chart guest assignment" directly below.**
+
+### Seating chart guest assignment
+
+**Changed in a later pass than the section above — closes the "seating list is just a list" gap that
+section's own last bullet used to describe.** `app/table/[id].tsx` (the Add/Edit table composer) gained
+an "Assign guests" section below the existing Seats field: a tappable row showing the names already
+picked (or a placeholder when empty), a live "X / Y seats assigned" counter, and
+`components/TableGuestPickerModal.tsx` — a multi-select bottom sheet reusing the exact Modal/backdrop/
+sheet/checkbox-`FlatList` shape `components/ContactPickerModal.tsx` already established (the app's one
+existing multi-select pattern), not a new one invented for this. Only guests with `status === 'confirmed'`
+for the event are listable at all; a guest already seated at a *different* table shows disabled/grayed
+with a note (`t('tableForm.guestAlreadyAssigned', { table })`) rather than being silently excluded, so
+it's clear why they can't be picked here instead of just missing.
+
+**Cap enforcement is real, not just a hint.** Once the selection reaches the parsed `seatCount`, the
+modal disables every remaining unchecked row (`capReached` in `TableGuestPickerModal`); `toggleGuest`'s
+own updater has the same check as a defensive no-op backstop. The "Assign guests" row itself is disabled
+until Seats holds a valid positive number at all (`hasSeatCap`), with `tableForm.seatsRequiredHint`
+shown in its place — assigning guests before a seat count exists has no cap to enforce against.
+**Shrinking Seats below the current assignment count trims the selection to fit immediately**
+(`handleSeatCountChange`, keeps the earliest-picked names and drops the most recently added ones past
+the new cap) — without this, editing Seats down after already assigning guests would leave the table
+silently over-assigned relative to its own cap until the picker was reopened.
+
+**Data model: `event_guests.table_id`, a nullable FK to `seating_tables`, not a join table.** A guest
+can only sit at one table for a given event — there's no scenario in this product where the added
+flexibility of a `table_assignments` join table is actually needed — so the simpler shape was used, per
+the same "no join table unless the relationship is genuinely many-to-many" reasoning already applied
+elsewhere in this schema. Added by `20260822000002_seating_table_guest_assignment.sql`, `on delete set
+null` (deleting a table via the seating chart's existing swipe-to-delete frees its guests instead of
+touching their rows at all). **No new RLS policy was needed** — checked first: "update own rsvp or as
+organizer" (`20260810000002_rls_policies.sql`) already covers any column on a guest row, for the
+organizer of that guest's event, the same way it already covered `dietary_preferences` without its own
+policy (§3's "Detalii — menu, seating, accommodation, vendors").
+
+**One save action covers both the table row and its guest assignments, not two sequenced calls.**
+`remoteEventContentRepository.ts`'s `saveSeatingTable` now also takes `guestIds: string[]`; internally
+it upserts the table row first (inserting returns the new id via `.select('id').single()` when there
+wasn't one yet), then does a "clear everyone currently on this table, then set the new selection" pair
+of updates against `event_guests.table_id` — a full replace, not a diff, which is simpler and exactly
+as correct given a guest belongs to at most one table anyway. Keeping this as one repository function
+(rather than the composer sequencing "save the table, then use its returned id to assign guests" as two
+separate hook actions) sidesteps a real ordering problem: `useEventContent`'s mutations are fire-and-
+forget (`useMutation.mutate`, not `mutateAsync`), so there'd have been no clean way for the screen to
+wait for a new table's id before writing assignments against it.
+
+**A cross-cache invalidation had to be added for this specific mutation.** `event_guests.table_id`
+lives in the `['events', userId]` query (guest list), a completely different cache from this hook's own
+`'details'` category (`seatingTables`) — the generic `runRemote(write, category)` only ever invalidates
+one of the three `eventContent` keys, never `events`. Without an extra invalidation, the seating chart's
+assigned-guest count would only refresh on the `events` query's own 30s `staleTime` tick, not
+immediately after saving. `runRemote` gained an optional third parameter, `onSuccessExtra?: () => void`,
+passed through to `useMutation`'s per-call `mutate(variables, { onSuccess })` — TanStack Query guarantees
+per-call callbacks fire in addition to (after) the mutation-level ones, so this didn't require touching
+the shared `remoteMutation` config at all. `saveSeatingTable` and `deleteSeatingTable` are the only two
+actions that pass it, both invalidating `['events', user?.id ?? null]` (matching `hooks/useEvents.tsx`'s
+own query key exactly) alongside the usual `'details'` invalidation.
+
+**The Seating chart list card (`app/detalii-seating/[id].tsx`) gained a second meta line, the existing
+"X seats" line stays as-is.** `label` (the free-text "Familia Stroe"-style field) was checked before
+deciding anything here — it's a plain manually-typed field, structurally unrelated to guest data, so it
+stays exactly as-is rather than being replaced. What's new is an additional line, shown only once at
+least one guest is actually assigned (`assignedCount > 0`, so an unassigned table doesn't show a
+redundant "0 / 5"): `t('tableForm.seatsAssignedCount', { assigned, total })`, the exact same key (and
+phrasing) the composer's own counter uses, reused across namespaces rather than duplicated — colored
+`tokens.accentPrimary` to stand out from the plain seat-count line above it.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing.
+`20260822000002_seating_table_guest_assignment.sql` is written but not applied (no service-role/CLI
+access from this environment, same as every migration since `20260810000003`) — whether the FK/index
+actually apply cleanly, whether the two-step clear-then-assign update round-trips correctly against real
+data, and how the new "Assign guests" section and picker sheet actually look/feel are all unverified
+until a real device run.
+
+### Seating chart — a guest sees their own table highlighted, with who else is there
+
+**Changed in a later pass than the section above — the guest-facing half of the same feature.**
+`app/detalii-seating/[id].tsx` already computed `assignedCount` per table from `event.guests`, but that
+was only ever correct for the organizer: RLS scopes a non-organizer's `event.guests` to their own single
+row (§2's Critical gotcha references this same wall for `myRsvp`/dietary preferences), so for a guest
+viewer that count was silently wrong on every table that wasn't theirs (0 or 1, never the real number).
+This pass fixed that as a side effect of doing what was actually asked: **the "X / Y seats assigned"
+line is now `owner &&`-gated**, shown only to the organizer; a guest never sees a seat-count number for
+any table but their own.
+
+**Determining "my table" needed no new query — `event.guests[0]` already is the caller's own row**
+(same RLS-scoped-to-one-row fact above, same pattern `detalii-menu`'s dietary pills already rely on).
+`myTableId = myGuest?.tableId ?? null` is all it takes; no phone-number lookup was added, since
+`guest_user_id = auth.uid()` is the identity this whole schema already keys guest-list RLS off of, and
+introducing a second, phone-based path to the same row would just be a redundant, less consistent way to
+get there.
+
+**Seeing *other* guests at that table is a different problem — RLS blocks it outright, so this needed a
+new RPC.** `event_guests`'s only select policy is "own row or organizer"; there's no way for a guest to
+read a table-mate's row directly, ever. `get_table_companions(p_event_id uuid)`
+(`20260822000003_table_companions_rpc.sql`) is a `security definer` function, same shape as
+`get_invite_preview()` — it derives the caller's own `table_id` from their own `event_guests` row
+server-side (never a client-supplied parameter, so it can't be used to peek at an arbitrary table),
+then returns the names of every other **confirmed** guest sharing that table. `execute` is granted to
+`authenticated` only, matching the rest of this file's RPC grants.
+`data/eventsRepository.ts`'s `fetchTableCompanions(eventId)` wraps the call; the screen reaches it via a
+plain `useQuery` (not a hook — same "screen calls a repository RPC wrapper directly through `useQuery`"
+shape `app/invite/[id].tsx`'s `previewQuery` already established, reused rather than inventing a
+dedicated hook for one screen), `enabled: !owner && myTableId !== null`, `staleTime: 30_000` matching
+`invitePreview`'s own user-facing-list treatment.
+
+**Rendering, guest side only:** the table matching `myTableId` gets a 2px `tokens.accentPrimary` border,
+a `${tokens.accentPrimary}14` tinted background, and a small filled "You're here" pill
+(`detalii.seatingYoureHere`) next to the table name. If the query returns any companions, that same card
+additionally shows `detalii.seatingWithYou` ("With you: {{names}}") — never rendered on any other card,
+so a guest can see who's with *them* but never another table's full guest list, matching the ask exactly.
+A guest not yet assigned to a table (`myTableId === null`) gets no highlight and no query at all
+(`enabled` is false) — the screen looks exactly as it did before this pass, no error state to handle.
+**The organizer view is untouched** beyond the one `owner &&` gate already mentioned above — they still
+see every table's real assigned-count via the full guest list they already have, same as before.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing.
+`20260822000003_table_companions_rpc.sql` is written but not applied (no service-role/CLI access from
+this environment, same as every migration since `20260810000003`) — whether the function actually
+returns the right rows against real data, and how the highlight/badge/companions line actually look on a
+real card, are unverified until a real device run.
 
 ### Add guest by email (owner only)
 
@@ -1764,7 +1887,7 @@ actually looks are all unverified until a real device run.
 | `users` | `id` (FK `auth.users`), `email`, `phone`, `first_name`, `last_name`, `display_name`, `has_completed_onboarding` | Populated by an `on_auth_user_created` trigger; `has_completed_onboarding` added by `20260810000006`; `phone` added by `20260818000001`; `first_name`/`last_name` added by `20260820000001` — see §3's "Name collection" |
 | `events` | `id`, `organizer_id`, `agency_id` (nullable), `type` (enum), `name`, `event_date`, `location`, `welcome_message` | `event_type` enum: wedding, baptism, birthday, cause, corporate, memorial, other. `agency_id` added by `20260813000001` — populated automatically for agency owners, but not currently read by any screen (no agency-specific view exists), see "Agency accounts" below |
 | `agencies` | `id`, `owner_user_id` (unique FK `users`), `company_name`, `cui`, `registration_number` (nullable), `address` (nullable) | Added by `20260813000001`. One agency per owner this pass — no staff/multi-user agencies yet. Row is created by `handle_new_user()` from signup metadata, never inserted client-side (email confirmation is ON, so `signUp()` never yields a session at insert time) |
-| `event_guests` | `id`, `event_id`, `guest_user_id` (nullable), `guest_email`, `guest_phone`, `guest_name`, `rsvp_status`, `invited_at`, `whatsapp_sent_at`, `responded_at`, `dietary_preferences text[]` | Partial unique index on `(event_id, guest_user_id)`; `rsvp_status` enum: pending, confirmed, declined; `dietary_preferences` added by `20260810000008`; `guest_phone` added by `20260818000002`, with a partial unique `(event_id, guest_phone)` index and a check requiring at least one of `guest_email`/`guest_phone`/`guest_user_id`; `whatsapp_sent_at` (nullable, when the organizer tapped Send — distinct from `invited_at`, which is row-creation time) and a second, *non-partial* unique `(event_id, guest_phone)` constraint (needed as an upsert arbiter) both added by `20260822000001`, see §3's "Bulk guest invites" |
+| `event_guests` | `id`, `event_id`, `guest_user_id` (nullable), `guest_email`, `guest_phone`, `guest_name`, `rsvp_status`, `invited_at`, `whatsapp_sent_at`, `responded_at`, `dietary_preferences text[]`, `table_id` (nullable FK → `seating_tables`) | Partial unique index on `(event_id, guest_user_id)`; `rsvp_status` enum: pending, confirmed, declined; `dietary_preferences` added by `20260810000008`; `guest_phone` added by `20260818000002`, with a partial unique `(event_id, guest_phone)` index and a check requiring at least one of `guest_email`/`guest_phone`/`guest_user_id`; `whatsapp_sent_at` (nullable, when the organizer tapped Send — distinct from `invited_at`, which is row-creation time) and a second, *non-partial* unique `(event_id, guest_phone)` constraint (needed as an upsert arbiter) both added by `20260822000001`, see §3's "Bulk guest invites"; `table_id` added by `20260822000002`, `on delete set null` — see §3's "Seating chart guest assignment" |
 | `schedule_items` | `id`, `event_id`, `time`, `title`, `location`, `sort_order` | Detalii tab |
 | `venue_info` | `id`, `event_id` (unique), `name`, `address`, `notes text[]` | Separate table, not folded into `events` — optional and separately edited |
 | `moments` | `id`, `event_id`, `organizer_id`, `title`, `photo_url` | Acasă feed |
@@ -2111,6 +2234,20 @@ so it's shown as-is, never translated — same convention as everywhere else in 
 `components/guest/DetaliiHubCard.tsx` is the one new component this introduced — a themed row
 (icon circle, title, status, chevron) plus a matching `DetaliiHubCardSkeleton`; the hub's own loading
 state is now six of those skeletons instead of six shaped section skeletons.
+
+**A later pass added a `StatusDot` next to the chevron, since the status text alone (color-only via
+`textSecondary`) wasn't a strong enough at-a-glance signal for "is this set yet."**
+`components/guest/StatusDot.tsx` is a second small new component — a filled check in
+`tokens.statusConfirmed`/`statusConfirmedSoft` (the exact same success tone `RsvpBadge`'s "Confirmat"
+pill already uses, not a new color) when a section has data, or an empty outline circle
+(`tokens.surfaceBorder`) when it doesn't. `DetaliiHubCard` gained a `complete: boolean` prop driving it,
+sitting in a small `trailing` row alongside the chevron; the status text itself is unchanged — still the
+detail, with the dot as the primary quick signal per-card. Each of the six cards in
+`app/guest/[id]/detalii.tsx` computes `complete` from the exact same condition that already picked
+between its "unset" and "set" status string (`content.schedule.length > 0`, `hasVenue`,
+`content.menu !== null`, etc.) — no new data source, no new query, just reusing what was already there
+to drive a second, visual expression of the same fact. This screen has never had an owner-only
+rendering branch, so the dot is visible to owner and guest alike, same as everything else on this hub.
 
 **A later pass briefly added a seventh, non-card row above the six — an owner-only "edit event" button
 rendered by this screen itself — then a pass after that removed it again.** That row was the organizer
@@ -2713,7 +2850,9 @@ gold icon on top.
 - No push notifications. No Google/Apple/social auth, and no password auth either — phone OTP is the
   only auth method, full stop, not "email OTP and phone OTP" (§3's "Phone-only auth" — email auth was
   built, then removed one pass later). No video streaming — the Live tab is a photo feed. No
-  venue/restaurant marketplace. No seating plans.
+  venue/restaurant marketplace. **Seating plans exist now, not deferred anymore** — see §3's "Seating
+  chart guest assignment" for guest-to-table assignment; this bullet used to say "no seating plans" when
+  the seating chart was still just a manual list.
 - **Album's "Descarcă toate pozele" button has no handler** — it is a dead control.
 - **Moment comments.** The "Comentarii" link on a moment card navigates to the Chat tab; there is no
   comments table or thread UI.

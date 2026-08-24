@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { fetchMyProfile, saveContactEmail, saveUserName } from '@/data/usersRepository';
+import { fetchMyProfile, saveContactEmail, saveUserName, uploadUserAvatar } from '@/data/usersRepository';
 import { useAuth } from '@/hooks/useAuth';
 
 interface UserProfileResult {
@@ -13,12 +13,18 @@ interface UserProfileResult {
   /** Optional contact info the user can fill in from Profile — not an auth
    * identifier, never verified. See app/edit-profile.tsx and saveEmail. */
   email: string | null;
+  /** Signed URL for the private avatars bucket, or null if none uploaded
+   * yet — see data/usersRepository.ts's fetchAvatarUrl. */
+  avatarUrl: string | null;
   /** False until the initial fetch completes — AuthGate's name-step redirect
    * waits on this so it doesn't fire on stale/absent data. */
   hydrated: boolean;
   saveName: (firstName: string, lastName: string) => Promise<void>;
   /** Pass null to clear the field back to blank. */
   saveEmail: (email: string | null) => Promise<void>;
+  /** `localUri` should already be resized (utils/imageProcessing.ts's
+   * processAvatarPhoto) — app/profile.tsx is the only caller. */
+  uploadAvatar: (localUri: string) => Promise<void>;
 }
 
 /**
@@ -59,17 +65,29 @@ export function useUserProfile(): UserProfileResult {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
   });
 
+  const uploadAvatarMutation = useMutation({
+    mutationFn: (localUri: string) => {
+      if (userId === null) throw new Error('Not signed in.');
+      return uploadUserAvatar(userId, localUri);
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
+  });
+
   return {
     firstName: query.data?.firstName ?? null,
     lastName: query.data?.lastName ?? null,
     displayName: query.data?.displayName ?? null,
     email: query.data?.email ?? null,
+    avatarUrl: query.data?.avatarUrl ?? null,
     hydrated: userId === null ? true : query.isFetched,
     saveName: async (firstName, lastName) => {
       await saveNameMutation.mutateAsync({ firstName, lastName });
     },
     saveEmail: async (email) => {
       await saveEmailMutation.mutateAsync(email);
+    },
+    uploadAvatar: async (localUri) => {
+      await uploadAvatarMutation.mutateAsync(localUri);
     },
   };
 }

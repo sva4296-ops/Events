@@ -73,7 +73,7 @@ export function EventListItem({
         </Text>
       </View>
 
-      <Feather name="chevron-right" size={20} color={tokens.textSecondary} />
+      <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
 
       <PlanTierBadge planLabel={planLabel} onPressChoose={onPressChoosePlan} />
     </TouchableOpacity>
@@ -84,13 +84,13 @@ export function EventListItem({
 export function EventListItemSkeleton() {
   return (
     <View style={styles.row}>
-      <Skeleton width={34} height={34} radius={10} />
+      <Skeleton width={30} height={30} radius={9} />
       <View style={styles.info}>
-        <Skeleton height={16} width="70%" radius={4} />
-        <Skeleton height={13} width="50%" radius={4} />
-        <Skeleton height={12} width="35%" radius={4} />
+        <Skeleton height={15} width="70%" radius={4} />
+        <Skeleton height={12} width="50%" radius={4} />
+        <Skeleton height={11} width="35%" radius={4} />
       </View>
-      <Skeleton width={20} height={20} radius={10} />
+      <Skeleton width={18} height={18} radius={9} />
       <Skeleton height={20} width={72} radius={themeRadius.pill} style={styles.planBadgeSkeleton} />
     </View>
   );
@@ -100,8 +100,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
-    padding: spacing.lg,
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: themeRadius.lg,
     // The plan-tier ribbon is absolutely positioned half outside the card's
     // top-right corner (see PlanTierBadge) — without this, the card's own
@@ -109,18 +110,18 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   badge: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emoji: {
-    fontSize: 17,
+    fontSize: 15,
   },
   info: {
     flex: 1,
-    gap: 2,
+    gap: 1,
   },
   // Matches PlanTierBadge's own absolute top/right offsets exactly, so the
   // skeleton occupies the same corner the real ribbon renders in once data
@@ -131,13 +132,13 @@ const styles = StyleSheet.create({
     right: -10,
   },
   name: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 12,
   },
   counts: {
-    fontSize: 12,
+    fontSize: 11,
   },
 });

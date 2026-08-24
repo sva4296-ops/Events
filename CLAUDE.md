@@ -591,6 +591,12 @@ Eight migration files exist under `supabase/migrations/`:
   phone-guest-link update once more, since a phone invite created before its invitee had a
   `public.users` row would miss the auto-link trigger for that reason alone, independent of the phone
   formatting fixed by `20260819000002`.
+- `20260827000001_user_avatars.sql` — **not yet applied, not yet confirmed.** Creates a private
+  `avatars` Storage bucket plus three `storage.objects` RLS policies (view/insert/update), scoped to
+  the caller's own `{userId}/...` path prefix only. No new `public.users` column — see "Profile avatar
+  upload and phone display" below for why the avatar path is derived the same way event-photo paths
+  are, not stored. Same no-verification-path caveat as the event-photos migration above (PostgREST's
+  anonymous schema check can't see `storage.objects` policies or bucket existence at all).
 
 **The first three are applied.** The user ran them against the connected project (not this session —
 no DB password/service-role key/CLI is available here, only the anon key). The first two were verified
@@ -1321,6 +1327,22 @@ is their own phone number (the `mapGuestRow` fallback when no real name/email ex
 greeting instead of "Bună 40790586600," — checked for `guest.name === guest.phone` rather than adding a
 new column just to distinguish "real name" from "fallback," since the existing `Guest.name` already
 collapses that distinction and this is the only place it mattered.
+
+**Fixed, a later pass — the single "+person" invite flow never marked `whatsapp_sent_at`, so every
+guest added that way also sat in the bulk "Send pending invites (N)" queue forever, at risk of a second
+WhatsApp send.** `app/add-guest/[id].tsx`'s `submit()` always did call `sendGuestWhatsAppInvite`
+immediately after `addGuestByPhone` — the single-add flow's own intent (send right away, as designed)
+was already correct — but it never wrote the result back to `event_guests.whatsapp_sent_at`, the exact
+column `app/send-invites/[id].tsx`'s pending-queue filter (`whatsappSentAt === null`) and
+`app/event/[id].tsx`'s `pendingUnsentCount` badge both key off. So a single-added guest, despite having
+already been messaged, stayed indistinguishable from a genuinely-never-sent bulk-imported one. There's
+no separate "how was this guest added" flag anywhere in the schema (and none was added) — the fix is
+simply to make the single-add path set `whatsapp_sent_at` the same way the bulk queue already does,
+which is sufficient on its own to exclude it from both: `hooks/useEvents.tsx`'s `addGuestByPhone` now
+returns the newly-created guest's id (found by phone in the refetched event — `guest_phone` is unique
+per event, so this needs no new column either), and `add-guest/[id].tsx` calls the existing
+`markWhatsAppSent(eventId, guestId)` right after a *confirmed* `wa.me` open (never on the share-sheet
+fallback, matching `send-invites/[id].tsx`'s own "sent" definition exactly) before navigating back.
 
 **`components/GuestRow.tsx` gained a second, small badge — distinct from `RsvpBadge`, only shown
 alongside a still-`pending` phone-based guest.** A filled check pill ("Invited," `whatsapp_sent_at` set)
@@ -2115,12 +2137,73 @@ reads as a smaller, less "final" action prompt next to the solid ribbon a chosen
 `EventListItemSkeleton`'s placeholder moved to the same absolute corner (`planBadgeSkeleton`, matching
 offsets exactly) so the loading state still doesn't shift layout once real data replaces it.
 
+### Profile avatar upload and phone display
+
+**New this pass.** `app/profile.tsx`'s avatar circle is tappable now — an `Alert.alert` action sheet
+(Take photo / Choose from library / Cancel, reusing `expo-image-picker`'s existing
+`requestCameraPermissionsAsync`/`requestMediaLibraryPermissionsAsync` + `launchCameraAsync`/
+`launchImageLibraryAsync` calls, the same package `post-moment/[id].tsx` and `live.tsx` already use for
+library-only picking) — picks a square (`allowsEditing`, `aspect: [1, 1]`) image, resizes it via a new
+`utils/imageProcessing.ts` export, `processAvatarPhoto` (single JPEG, longest edge 512, quality 0.8 —
+no dual-resolution need like event photos, since an avatar only ever renders small), and uploads it to
+a new private `avatars` Storage bucket.
+
+**No new `public.users` column, on purpose — same "derive the path, don't store it" convention
+`addPhoto`'s thumb/full paths already established.** Every avatar lives at the single fixed path
+`{userId}/avatar.jpg` (`data/usersRepository.ts`'s `avatarStoragePath`), fully derivable from
+`auth.uid()` alone, so `uploadUserAvatar` always uploads with `upsert: true` to the same path — a
+re-upload just replaces the file in place, no old-object cleanup step needed, no "which avatar is
+current" column to keep in sync. Reading it back (`fetchAvatarUrl`) asks the bucket for a signed URL
+(1 hour TTL, same reasoning as event photos' own TTL) and treats an error (object doesn't exist) as
+"no avatar yet" — `avatarUrl: null` — rather than throwing, since that's an expected, common state for
+most accounts, not a failure. `hooks/useUserProfile.tsx`'s existing query (`['userProfile', userId]`,
+already fetching first/last name + email) now fetches the signed URL in parallel and returns
+`avatarUrl` alongside them, and gained one new mutation, `uploadAvatar(localUri)`, invalidating that
+same query key on success so the new avatar shows immediately.
+
+**Phone display is not a new fetch at all — `useAuth().user.phone` already existed** (mirrors
+`auth.users.phone`, the canonical value, via the session `useAuth` already reads on every auth-state
+change) and simply wasn't rendered anywhere on this screen before. `utils/countryCodes.ts` gained
+`formatPhoneDisplay(stored)` — reuses the existing `splitStoredPhone` to get a dial code + local
+number, then groups the local digits in 3s (`+40 790 586 600`) — purely cosmetic, never used for
+storage or comparison, unlike every other function in that file. The Account card's secondary line
+(previously `contact ?? 'Signed in with Supabase'`, where `contact` was `email ?? phone`) is now
+`formatPhoneDisplay(user.phone) ?? 'Signed in with Supabase'` specifically — phone, not
+whichever-of-email-or-phone-exists-first, since phone is this app's one real auth identifier
+(§3's "Phone-only auth") and the ask was specifically to show it. The primary name line's own fallback
+chain (`displayName ?? contact ?? title`) is unchanged.
+
+**Requires a native rebuild for the camera path specifically — not achievable from this session.**
+`expo-image-picker`'s library-picking path was already exercised elsewhere in this app without a
+`plugins` entry in `app.json`; this pass doesn't add one either, matching that existing convention
+(camera permission strings ship with the package's own config-plugin defaults). Same "the user runs
+`pod-install`/rebuild themselves" caveat as every other native-surface change in this file.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing.
+`20260827000001_user_avatars.sql` is written but not applied (no DB credentials from this environment,
+same as every migration since `20260810000003`) — whether the bucket/RLS apply cleanly, whether a real
+upload/signed-URL round-trip actually works, and how the avatar circle/action sheet/phone line actually
+look are all unverified until a real device run.
+
 **Verification status — same caveat as the rest of this file.** Confirmed only by
 `npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing.
 `20260826000001_event_plan_tier.sql` is written but not applied (no DB credentials from this
 environment, same as every migration since `20260810000003`) — whether it applies cleanly, whether the
 create-flow's `replace`-based navigation actually produces the reasoned stack shape on a real device, and
 how the badge/skeleton actually look on a real Home card are all unverified until a real device run.
+
+**Fixed, a later pass — the ribbon's `right` offset had drifted from its own skeleton.**
+`components/PlanTierBadge.tsx`'s `styles.badge` had `top: -10, right: 20` while
+`EventListItemSkeleton`'s placeholder (`EventListItem.tsx`'s own `planBadgeSkeleton` style, meant to
+occupy the exact same spot per its own comment) used `top: -10, right: -10` — the two had quietly
+drifted apart, so the real badge sat 30px further left than its loading placeholder and read as
+misaligned/floating rather than corner-anchored. Fixed by restoring `right: -10` on the real badge,
+matching the skeleton and the component's own doc comment ("half on the card, half hanging outside
+it"). `EventListItem.tsx`'s row also got a general compaction pass in the same session — padding,
+gaps, and font sizes trimmed (badge 34→30, name 16→15, subtitle 13→12, counts 12→11, row padding
+`spacing.lg` all around → `spacing.md` vertical / `spacing.lg` horizontal) — a density change only, no
+structural change to what a card shows.
 
 ### Schema as written in the migrations
 

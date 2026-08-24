@@ -36,7 +36,7 @@ import { sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
 export default function AddGuestScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, isOwner, addGuestByPhone } = useEvents();
+  const { getEvent, isOwner, addGuestByPhone, markWhatsAppSent } = useEvents();
   const { user } = useAuth();
   const { tokens } = useTheme();
   const event = getEvent(id);
@@ -85,11 +85,23 @@ export default function AddGuestScreen() {
         return;
       }
 
-      await addGuestByPhone(event.id, phone, name.trim());
+      const guestId = await addGuestByPhone(event.id, phone, name.trim());
       // event_guests row is already saved by this point — a WhatsApp-open
       // failure here is best-effort and reports on its own, never rolls
-      // back or blocks navigating back.
-      await sendGuestWhatsAppInvite(phone, name.trim());
+      // back or blocks navigating back. Marking whatsapp_sent_at only on a
+      // confirmed open (not the share-sheet fallback) matches
+      // app/send-invites/[id].tsx's own "sent" semantics — this is what
+      // keeps a guest invited here from also showing up in that screen's
+      // pending queue and getting messaged a second time.
+      const opened = await sendGuestWhatsAppInvite(phone, name.trim());
+      if (opened && guestId !== null) {
+        try {
+          await markWhatsAppSent(event.id, guestId);
+        } catch {
+          // markWhatsAppSent's own onError already reports and reconciles
+          // the cache — swallow here so it isn't reported a second time.
+        }
+      }
       router.back();
     } catch (err) {
       reportSupabaseError(err);

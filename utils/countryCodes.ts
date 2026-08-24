@@ -102,3 +102,13 @@ export function splitStoredPhone(stored: string): { dialCode: string; localNumbe
   }
   return { dialCode: `+${best}`, localNumber: digits.slice(best.length) };
 }
+
+/** A stored phone (e.g. `40790586600`) as a display string (`+40 790 586 600`)
+ * — splits into dial code + local number via splitStoredPhone, then groups
+ * the local digits in 3s for readability. Purely cosmetic, never used for
+ * comparison/storage. */
+export function formatPhoneDisplay(stored: string): string {
+  const { dialCode, localNumber } = splitStoredPhone(stored);
+  const groups = localNumber.match(/.{1,3}/g) ?? [localNumber];
+  return `${dialCode} ${groups.join(' ')}`;
+}

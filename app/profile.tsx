@@ -1,7 +1,9 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -11,6 +13,9 @@ import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, type ThemeMode } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { formatPhoneDisplay } from '@/utils/countryCodes';
+import { processAvatarPhoto } from '@/utils/imageProcessing';
+import { reportSupabaseError } from '@/utils/reportError';
 import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
 import { setLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/utils/i18n';
@@ -30,11 +35,57 @@ const THEME_LABEL_KEY: Record<ThemeMode, string> = {
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
-  const { displayName } = useUserProfile();
+  const { displayName, avatarUrl, uploadAvatar } = useUserProfile();
   const { isAgencyOwner, hydrated: agencyHydrated } = useAgency();
   const { tokens, mode, setThemeMode } = useTheme();
   const activeLanguage = i18n.language;
   const contact = user?.email ?? user?.phone ?? null;
+  const phoneDisplay = user?.phone != null ? formatPhoneDisplay(user.phone) : null;
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const pickAndUploadAvatar = async (source: 'camera' | 'library') => {
+    const permission =
+      source === 'camera'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+
+    const pickerOptions: ImagePicker.ImagePickerOptions = {
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+    };
+    const result =
+      source === 'camera'
+        ? await ImagePicker.launchCameraAsync(pickerOptions)
+        : await ImagePicker.launchImageLibraryAsync(pickerOptions);
+    const asset = result.assets?.[0];
+    if (result.canceled || asset === undefined) return;
+
+    setUploadingAvatar(true);
+    try {
+      const processedUri = await processAvatarPhoto({
+        uri: asset.uri,
+        width: asset.width ?? 0,
+        height: asset.height ?? 0,
+      });
+      await uploadAvatar(processedUri);
+    } catch (err) {
+      reportSupabaseError(err);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const chooseAvatarSource = () => {
+    Alert.alert(t('profile.changePhoto'), undefined, [
+      { text: t('profile.takePhoto'), onPress: () => void pickAndUploadAvatar('camera') },
+      { text: t('profile.chooseFromLibrary'), onPress: () => void pickAndUploadAvatar('library') },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
+  };
 
   return (
     <Screen
@@ -48,15 +99,43 @@ export default function ProfileScreen() {
 
       <Card>
         <View style={styles.row}>
-          <View style={[styles.avatar, { backgroundColor: `${tokens.accentPrimary}22` }]}>
-            <Feather name="user" size={20} color={tokens.accentPrimary} />
-          </View>
+          <TouchableOpacity
+            style={styles.avatar}
+            onPress={chooseAvatarSource}
+            disabled={uploadingAvatar}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.changePhoto')}
+          >
+            <View style={[styles.avatarInner, { backgroundColor: `${tokens.accentPrimary}22` }]}>
+              {avatarUrl !== null ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <Feather name="user" size={20} color={tokens.accentPrimary} />
+              )}
+              {uploadingAvatar ? (
+                <View style={styles.avatarOverlay}>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                </View>
+              ) : null}
+            </View>
+            {uploadingAvatar ? null : (
+              <View
+                style={[
+                  styles.avatarBadge,
+                  { backgroundColor: tokens.accentPrimary, borderColor: tokens.surfaceElevated },
+                ]}
+              >
+                <Feather name="camera" size={10} color="#FFFFFF" />
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={styles.info}>
             <Text style={[styles.email, { color: tokens.textPrimary }]}>
               {displayName ?? contact ?? t('profile.title')}
             </Text>
             <Text style={[styles.meta, { color: tokens.textSecondary }]}>
-              {contact ?? t('profile.signedInWithSupabase')}
+              {phoneDisplay ?? t('profile.signedInWithSupabase')}
             </Text>
           </View>
         </View>
@@ -174,7 +253,37 @@ const styles = StyleSheet.create({
   avatar: {
     width: 46,
     height: 46,
+  },
+  avatarInner: {
+    width: 46,
+    height: 46,
     borderRadius: themeRadius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: themeRadius.pill,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

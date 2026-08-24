@@ -16,6 +16,8 @@ const THUMBNAIL_LONGEST_EDGE = 400;
 const THUMBNAIL_QUALITY = 0.65;
 const FULL_LONGEST_EDGE = 2800;
 const FULL_QUALITY = 0.9;
+const AVATAR_LONGEST_EDGE = 512;
+const AVATAR_QUALITY = 0.8;
 
 /**
  * Resizes so the longest edge is `longestEdge`, only ever downscaling —
@@ -51,4 +53,10 @@ export async function processPhotoVersions(photo: PickedPhoto): Promise<Processe
     resizeToLongestEdge(photo, FULL_LONGEST_EDGE, FULL_QUALITY),
   ]);
   return { thumbnailUri, fullUri };
+}
+
+/** Single resized JPEG for a profile avatar — no dual-resolution need like
+ * event photos, since it's only ever rendered small (a header circle). */
+export async function processAvatarPhoto(photo: PickedPhoto): Promise<string> {
+  return resizeToLongestEdge(photo, AVATAR_LONGEST_EDGE, AVATAR_QUALITY);
 }

@@ -32,7 +32,12 @@ interface EventsResult {
   respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => void;
   removeGuest: (eventId: string, guestId: string) => void;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
-  addGuestByPhone: (eventId: string, phone: string, name: string) => Promise<void>;
+  /** Returns the newly created guest's id (found by phone in the refetched
+   * event — guest_phone is unique per event) so the single-invite screen can
+   * mark it whatsapp_sent_at right after a confirmed wa.me open, matching
+   * the bulk send-queue's own semantics. Null if the refetch somehow didn't
+   * come back with a matching row. */
+  addGuestByPhone: (eventId: string, phone: string, name: string) => Promise<string | null>;
   addGuestsBatch: (eventId: string, guests: BulkGuestEntry[]) => Promise<void>;
   /** Optimistic — patches the cached guest's whatsappSentAt immediately so
    * app/send-invites/[id].tsx's pending-queue filter drops the row right
@@ -181,9 +186,9 @@ export function useEvents(): EventsResult {
   const addGuestByPhoneMutation = useMutation({
     mutationFn: async (vars: { eventId: string; phone: string; name: string }) => {
       await insertGuestInvitePhone(vars.eventId, vars.phone, vars.name);
-      return fetchEventById(vars.eventId);
+      return { phone: vars.phone, fresh: await fetchEventById(vars.eventId) };
     },
-    onSuccess: (fresh) => {
+    onSuccess: ({ fresh }) => {
       if (fresh === null) return;
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
         current.map((event) => (event.id === fresh.id ? fresh : event)),
@@ -192,8 +197,9 @@ export function useEvents(): EventsResult {
     },
   });
   const addGuestByPhone = useCallback(
-    async (eventId: string, phone: string, name: string): Promise<void> => {
-      await addGuestByPhoneMutation.mutateAsync({ eventId, phone, name });
+    async (eventId: string, phone: string, name: string): Promise<string | null> => {
+      const { fresh } = await addGuestByPhoneMutation.mutateAsync({ eventId, phone, name });
+      return fresh?.guests.find((guest) => guest.phone === phone)?.id ?? null;
     },
     [addGuestByPhoneMutation],
   );

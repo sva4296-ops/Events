@@ -10,6 +10,7 @@ import {
   markGuestWhatsAppSent,
   removeGuestRow,
   respondToInviteRow,
+  setEventPlanTierRow,
   updateDietaryPreferencesRow,
   updateEventRow,
   upsertGuestInvitesBatch,
@@ -27,7 +28,7 @@ interface EventsResult {
   hydrated: boolean;
   getEvent: (id: string | undefined) => AppEvent | undefined;
   createEvent: (draft: EventDraft) => Promise<AppEvent>;
-  updateEvent: (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id'>>) => Promise<void>;
+  updateEvent: (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt' | 'planTier' | 'planPurchasedAt'>>) => Promise<void>;
   respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => void;
   removeGuest: (eventId: string, guestId: string) => void;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
@@ -39,6 +40,9 @@ interface EventsResult {
   markWhatsAppSent: (eventId: string, guestId: string) => Promise<void>;
   /** A signed-in non-organizer's own preference — no-op for an owner (no guest row to write to). */
   updateMyDietaryPreferences: (eventId: string, preferences: string[]) => void;
+  /** Placeholder "purchase" — sets plan_tier + plan_purchased_at directly, no
+   * RevenueCat call. See data/eventsRepository.ts's setEventPlanTierRow. */
+  setPlanTier: (eventId: string, planTier: string) => Promise<void>;
   isOwner: (event: AppEvent | undefined) => boolean;
 }
 
@@ -107,7 +111,7 @@ export function useEvents(): EventsResult {
   );
 
   const updateEventMutation = useMutation({
-    mutationFn: (vars: { eventId: string; patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id'>> }) =>
+    mutationFn: (vars: { eventId: string; patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt' | 'planTier' | 'planPurchasedAt'>> }) =>
       updateEventRow(vars.eventId, vars.patch),
     onSuccess: (_result, { eventId, patch }) => {
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
@@ -117,7 +121,7 @@ export function useEvents(): EventsResult {
     },
   });
   const updateEvent = useCallback(
-    async (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id'>>): Promise<void> => {
+    async (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt' | 'planTier' | 'planPurchasedAt'>>): Promise<void> => {
       await updateEventMutation.mutateAsync({ eventId, patch });
     },
     [updateEventMutation],
@@ -304,6 +308,26 @@ export function useEvents(): EventsResult {
     [updateDietaryMutation],
   );
 
+  const setPlanTierMutation = useMutation({
+    mutationFn: (vars: { eventId: string; planTier: string }) =>
+      setEventPlanTierRow(vars.eventId, vars.planTier),
+    onSuccess: (_result, { eventId, planTier }) => {
+      const purchasedAt = new Date().toISOString();
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+        current.map((event) =>
+          event.id === eventId ? { ...event, planTier, planPurchasedAt: purchasedAt } : event,
+        ),
+      );
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const setPlanTier = useCallback(
+    async (eventId: string, planTier: string): Promise<void> => {
+      await setPlanTierMutation.mutateAsync({ eventId, planTier });
+    },
+    [setPlanTierMutation],
+  );
+
   return {
     events,
     hydrated,
@@ -317,6 +341,7 @@ export function useEvents(): EventsResult {
     addGuestsBatch,
     markWhatsAppSent,
     updateMyDietaryPreferences,
+    setPlanTier,
     isOwner,
   };
 }

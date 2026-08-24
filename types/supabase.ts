@@ -27,6 +27,11 @@ export interface EventRow {
   location: string | null;
   welcome_message: string | null;
   created_at: string;
+  /** Which plan_features row (by plan_key) this event has picked, if any —
+   * see supabase/migrations/20260826000001_event_plan_tier.sql and
+   * CLAUDE.md's "Pricing screen". Null until the organizer picks a plan. */
+  plan_tier: string | null;
+  plan_purchased_at: string | null;
 }
 
 export interface EventGuestRow {
@@ -195,6 +200,13 @@ export interface AgencyRow {
   registration_number: string | null;
   address: string | null;
   created_at: string;
+  /** Agency-account-level capabilities from the Agenție pricing tier — not
+   * per-event, so they live here rather than on plan_features. Added by
+   * 20260824000002_agency_plan_capabilities.sql; see that migration and
+   * CLAUDE.md's "Pricing screen" for why. */
+  branding_enabled: boolean;
+  centralized_panel_enabled: boolean;
+  volume_billing_enabled: boolean;
 }
 
 export interface UserProfileRow {
@@ -202,4 +214,35 @@ export interface UserProfileRow {
   last_name: string | null;
   display_name: string | null;
   email: string | null;
+}
+
+/** Row shape for the pricing screen's config table — see
+ * supabase/migrations/20260824000001_plan_features.sql. The *_enabled/
+ * max_guests columns are real capability flags, one per pricing-card
+ * bullet — not free-text — so the client can derive a card's feature list
+ * without trusting stored copy to stay in sync with what a plan actually
+ * unlocks. Price for a purchasable row is resolved client-side from
+ * RevenueCat, never stored here. */
+export interface PlanFeatureRow {
+  id: string;
+  plan_key: string;
+  display_name: string;
+  is_highlighted: boolean;
+  badge_text: string | null;
+  button_label: string;
+  revenuecat_package_id: string | null;
+  is_navigation_only: boolean;
+  navigate_to: string | null;
+  price_text: string | null;
+  sort_order: number;
+  rsvp_enabled: boolean;
+  progress_feed_enabled: boolean;
+  photo_album_enabled: boolean;
+  max_guests: number | null;
+  contributions_enabled: boolean;
+  live_screen_enabled: boolean;
+  chat_enabled: boolean;
+  lodging_transport_enabled: boolean;
+  vendor_tagging_enabled: boolean;
+  priority_support_enabled: boolean;
 }

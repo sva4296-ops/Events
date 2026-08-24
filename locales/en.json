@@ -12,7 +12,8 @@
     "done": "Done",
     "notAvailable": "Not available",
     "guestsSeeOnDetalii": "Guests will see this on the Detalii tab.",
-    "eventRsvpSummary": "{{confirmed}} confirmed · {{pending}} pending"
+    "eventRsvpSummary": "{{confirmed}} confirmed · {{pending}} pending",
+    "choosePlan": "Choose a plan"
   },
   "home": {
     "tagline": "More than an invitation — the whole story.",
@@ -254,6 +255,31 @@
     "theme": "Appearance",
     "themeLight": "Light",
     "themeDark": "Dark"
+  },
+  "pricing": {
+    "title": "Plans & pricing",
+    "subtitle": "Pick the plan that fits {{eventName}}.",
+    "empty": "Plans aren't available right now.",
+    "priceUnavailable": "Price unavailable right now",
+    "processingButton": "Processing…",
+    "skipForNow": "Skip for now",
+    "disclaimer": "Prices are shown in your local currency and billed through the App Store or Google Play. You can cancel anytime from your device's subscription settings.",
+    "featureRsvp": "Invitation & RSVP",
+    "featureProgressFeed": "Story feed",
+    "featurePhotoAlbum": "Photo album",
+    "featureMaxGuests_one": "Up to {{count}} guest",
+    "featureMaxGuests_other": "Up to {{count}} guests",
+    "featureUnlimitedGuests": "Unlimited guests",
+    "featureContributions": "Contribution fund",
+    "featureLiveScreen": "Live screen + QR",
+    "featureChat": "Chat & comments",
+    "featureLodgingTransport": "Lodging & transport",
+    "featureVendorTagging": "Tagged vendors",
+    "featurePrioritySupport": "Priority support",
+    "featureMultipleEvents": "Manage multiple events",
+    "featureBranding": "Your own branding",
+    "featureCentralizedPanel": "Centralized dashboard",
+    "featureVolumeBilling": "Per-event billing"
   },
   "event": {
     "notFound": "Event not found",

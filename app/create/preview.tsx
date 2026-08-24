@@ -23,7 +23,13 @@ export default function PreviewScreen() {
   const handleGenerate = async () => {
     try {
       const event = await createEvent(draft);
-      router.push({ pathname: '/create/share', params: { id: event.id } });
+      // Pricing comes before the share step and before the event's Acasă tab
+      // is ever reached — replace, not push, so pricing's own forward-only
+      // navigation (see app/pricing/[id].tsx) ends up with the same final
+      // stack shape this screen produced before (details → preview → share),
+      // rather than leaving this submit screen behind pricing where a literal
+      // back tap could resubmit and create a second event.
+      router.replace({ pathname: '/pricing/[id]', params: { id: event.id, context: 'create' } });
     } catch (error) {
       reportSupabaseError(error);
     }

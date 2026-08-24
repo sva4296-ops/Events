@@ -57,6 +57,11 @@ export interface AppEvent {
   welcomeMessage: string;
   createdAt: string;
   guests: Guest[];
+  /** plan_features.plan_key this event has picked ('esential'/'complet'/
+   * 'premium'/'agentie'), or null before the organizer has chosen one — see
+   * app/pricing/[id].tsx and hooks/useEvents.tsx's setPlanTier. */
+  planTier: string | null;
+  planPurchasedAt: string | null;
 }
 
 /** Work-in-progress event inside the 4-step creation wizard. */

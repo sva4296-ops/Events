@@ -51,6 +51,8 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     welcomeMessage: row.welcome_message ?? '',
     createdAt: row.created_at,
     guests: row.event_guests.map(mapGuestRow),
+    planTier: row.plan_tier,
+    planPurchasedAt: row.plan_purchased_at,
   };
 }
 
@@ -105,7 +107,7 @@ export async function insertEvent(
 
 export async function updateEventRow(
   eventId: string,
-  patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt'>>,
+  patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt' | 'planTier' | 'planPurchasedAt'>>,
 ): Promise<void> {
   const client = supabase;
   const columns: Record<string, unknown> = {};
@@ -119,6 +121,23 @@ export async function updateEventRow(
   if (Object.keys(columns).length === 0) return;
 
   const { error } = await client.from('events').update(columns).eq('id', eventId);
+  if (error) throw error;
+}
+
+/**
+ * Placeholder "purchase" — app/pricing/[id].tsx's Alege buttons call this
+ * directly instead of any RevenueCat purchase call, so the plan_tier flow is
+ * fully testable before real IAP wiring exists. Deliberately throwaway: no
+ * payment, no RevenueCat SDK involved, just the two columns a real purchase
+ * would eventually also set. See CLAUDE.md's "Pricing screen" for what
+ * replaces this once RevenueCat purchasing is actually wired up.
+ */
+export async function setEventPlanTierRow(eventId: string, planTier: string): Promise<void> {
+  const client = supabase;
+  const { error } = await client
+    .from('events')
+    .update({ plan_tier: planTier, plan_purchased_at: new Date().toISOString() })
+    .eq('id', eventId);
   if (error) throw error;
 }
 

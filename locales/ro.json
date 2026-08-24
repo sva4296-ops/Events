@@ -12,7 +12,8 @@
     "done": "Gata",
     "notAvailable": "Nu este disponibil",
     "guestsSeeOnDetalii": "Invitații vor vedea asta în tab-ul Detalii.",
-    "eventRsvpSummary": "{{confirmed}} confirmați · {{pending}} în așteptare"
+    "eventRsvpSummary": "{{confirmed}} confirmați · {{pending}} în așteptare",
+    "choosePlan": "Alege pachet"
   },
   "home": {
     "tagline": "Mai mult decât o invitație — întreaga poveste.",
@@ -261,6 +262,32 @@
     "theme": "Aspect",
     "themeLight": "Luminos",
     "themeDark": "Întunecat"
+  },
+  "pricing": {
+    "title": "Planuri și prețuri",
+    "subtitle": "Alege planul potrivit pentru {{eventName}}.",
+    "empty": "Planurile nu sunt disponibile momentan.",
+    "priceUnavailable": "Preț indisponibil momentan",
+    "processingButton": "Se procesează…",
+    "skipForNow": "Sar peste, mai târziu",
+    "disclaimer": "Prețurile sunt afișate în moneda locală și sunt facturate prin App Store sau Google Play. Poți anula oricând din setările de abonament ale dispozitivului tău.",
+    "featureRsvp": "Invitație & RSVP",
+    "featureProgressFeed": "Feed de parcurs",
+    "featurePhotoAlbum": "Album foto",
+    "featureMaxGuests_one": "Până la {{count}} invitat",
+    "featureMaxGuests_few": "Până la {{count}} invitați",
+    "featureMaxGuests_other": "Până la {{count}} de invitați",
+    "featureUnlimitedGuests": "Invitați nelimitați",
+    "featureContributions": "Fond de contribuții",
+    "featureLiveScreen": "Ecran live + QR",
+    "featureChat": "Chat & comentarii",
+    "featureLodgingTransport": "Cazare & transport",
+    "featureVendorTagging": "Furnizori tag-uiți",
+    "featurePrioritySupport": "Suport prioritar",
+    "featureMultipleEvents": "Volum multiplu",
+    "featureBranding": "Branding propriu",
+    "featureCentralizedPanel": "Panou centralizat",
+    "featureVolumeBilling": "Facturare pe volum"
   },
   "event": {
     "notFound": "Evenimentul nu a fost găsit",

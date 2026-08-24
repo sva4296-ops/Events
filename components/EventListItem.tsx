@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { PlanTierBadge } from '@/components/PlanTierBadge';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent } from '@/types/event';
@@ -21,7 +22,20 @@ import { themeRadius } from '@/utils/themeTokens';
  * block-above-name card — better list scanability at this density, and the
  * badge already served as the row's visual anchor before this pass.
  */
-export function EventListItem({ event, onPress }: { event: AppEvent; onPress: () => void }) {
+export function EventListItem({
+  event,
+  onPress,
+  planLabel,
+  onPressChoosePlan,
+}: {
+  event: AppEvent;
+  onPress: () => void;
+  /** Resolved plan_features.display_name for event.planTier, or null when
+   * planTier itself is null (no plan chosen yet) — see app/index.tsx, the
+   * only caller, for how this is looked up. */
+  planLabel: string | null;
+  onPressChoosePlan: () => void;
+}) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const type = getEventType(event.type);
@@ -60,6 +74,8 @@ export function EventListItem({ event, onPress }: { event: AppEvent; onPress: ()
       </View>
 
       <Feather name="chevron-right" size={20} color={tokens.textSecondary} />
+
+      <PlanTierBadge planLabel={planLabel} onPressChoose={onPressChoosePlan} />
     </TouchableOpacity>
   );
 }
@@ -75,6 +91,7 @@ export function EventListItemSkeleton() {
         <Skeleton height={12} width="35%" radius={4} />
       </View>
       <Skeleton width={20} height={20} radius={10} />
+      <Skeleton height={20} width={72} radius={themeRadius.pill} style={styles.planBadgeSkeleton} />
     </View>
   );
 }
@@ -86,6 +103,10 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     padding: spacing.lg,
     borderRadius: themeRadius.lg,
+    // The plan-tier ribbon is absolutely positioned half outside the card's
+    // top-right corner (see PlanTierBadge) — without this, the card's own
+    // rounded-corner clipping would cut the overhanging half off.
+    overflow: 'visible',
   },
   badge: {
     width: 34,
@@ -100,6 +121,14 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
     gap: 2,
+  },
+  // Matches PlanTierBadge's own absolute top/right offsets exactly, so the
+  // skeleton occupies the same corner the real ribbon renders in once data
+  // lands.
+  planBadgeSkeleton: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
   },
   name: {
     fontSize: 16,

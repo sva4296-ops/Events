@@ -4,13 +4,32 @@
 > structure, design system, or core conventions — keep it in sync with the actual codebase, not with
 > what was merely planned.
 
+> **Correction, later session — "no DB credentials/CLI access from this environment" was wrong, and
+> every instance of that claim below (there are over 20) is now stale.** That claim was never actually
+> re-checked after the environment first didn't have it — it was copy-forward assumption, repeated
+> pass after pass. A live session eventually just tried the `supabase` CLI directly rather than
+> continuing to assume: it was already installed, already logged in, and already linked to this
+> project (`supabase migration list` — no setup needed). Confirmed directly against the live database
+> (not just the migration ledger): **all 26 migration files, `20260810000001` through
+> `20260826000001`, are applied**, `link_guest_on_invite()`'s live source matches the latest version
+> in the repo exactly, and a live data check found zero orphaned rows and zero backfill gaps. So: the
+> `ios/`/`android`-native-rebuild caveat below and the "app never run on a device" claim are still real
+> (no simulator access exists here) — but **every "unverified, no DB access" claim about Supabase
+> schema/data specifically is no longer reliable and needs to be re-checked with `supabase migration
+> list` / `supabase db query --linked "..."` before being trusted**, not assumed true from this file's
+> own prior wording. Update each such claim to reflect reality as you touch that section, the same way
+> this file's own maintenance note above asks — don't let this correction go stale the same way the
+> claim it's correcting did.
+>
 > **Verification status (read this first):** The app has **never been run on a device or simulator**
 > in any session so far. Everything below is verified only by `npx tsc --noEmit --noUnusedLocals` and
 > `npx expo export --platform ios`, both of which pass, plus — for the Supabase data layer specifically
-> — an anonymous REST check confirming all 11 tables exist and RLS is active (§3). Anything visual or
-> runtime — layout, gesture feel, animation timing, Supabase auth actually completing, **or a real
-> signed-in write actually landing in a table** — is **unconfirmed**; there's no way to authenticate as
-> a real user from this environment. Sections below mark uncertain items explicitly. The `ios/` and
+> — an anonymous REST check confirming all 11 tables exist and RLS is active (§3), **now superseded by
+> the direct-DB-access correction immediately above for anything about which migrations are applied.**
+> Anything visual or runtime — layout, gesture feel, animation timing, Supabase auth actually
+> completing, **or a real signed-in write actually landing in a table** — is **still unconfirmed**;
+> direct SQL access doesn't mean a simulator/device exists here, and no session has driven the actual
+> app UI to produce a write. Sections below mark uncertain items explicitly. The `ios/` and
 > `android/` native folders exist from `expo prebuild`, but pods are stale relative to the current
 > dependency list — this is now also true of `@react-native-community/datetimepicker` and, added this
 > pass, `expo-image-manipulator` (see §3's "Photo uploads — real Supabase Storage, dual-resolution");
@@ -49,6 +68,7 @@ group chat, a live photo feed, and a post-event album.
 | Date/time input | `@react-native-community/datetimepicker` 9.1 — native picker, wrapped by `components/DateTimeField.tsx` |
 | Photo processing | `expo-image-manipulator` ~57.0.9 — client-side dual-resize (thumbnail + full) before every Live/Album photo upload, see §3 |
 | Contacts | `expo-contacts` 57.0.4 — bulk guest-invite import; no native multi-select picker in this SDK version, so `components/ContactPickerModal.tsx` builds one in-app instead, see §3 |
+| In-app purchases | `react-native-purchases` 10.7.2 (RevenueCat) — pricing screen only (`app/pricing/[id].tsx`), price lookup via `getOfferings()`; purchasing itself is currently a placeholder Supabase write, not a real `purchasePackage` call, see §3's "Pricing screen" |
 | Localization | `i18next` + `react-i18next`, English default, no device-locale detection — see §2 Localization |
 
 **Core mental model: role is per-event, not per-user.** There is no global "organizer" or "guest"
@@ -1880,13 +1900,235 @@ whether the two trigger extensions actually fire as reasoned, whether `AuthGate`
 loop behaves correctly against a real query lifecycle (not just typechecks), and how the new screen
 actually looks are all unverified until a real device run.
 
+### Pricing screen — plan_features config table + RevenueCat price lookup
+
+**New this pass — no pricing screen, no `plan_features` table, and no RevenueCat integration existed
+anywhere in this repo before it.** A prompt requested changes to "the pricing screen's data model,"
+described `plan_features` as "already built" and the purchase flow/webhook/entitlement-gating as
+"already implemented" — checked first, same as every other "prompt describes a pass that never actually
+landed here" incident this file documents: no `react-native-purchases` dependency, no `plan_features`
+migration, no file matching `*pricing*`, and no Sentry dependency anywhere in the tree. Confirmed with
+the user before writing anything, then scoped deliberately narrow per their direction: the table, the
+fetch/render layer, and a real `purchasePackage` call — not a purchase-recording write, not webhook
+verification, not entitlement gating, all of which stay unbuilt (see §7).
+
+**Corrected one pass later — the original `features jsonb` column was guessed placeholder copy that
+never matched the real four-tier pricing cards, replaced with real capability columns.** A follow-up
+request supplied the exact feature grid (Esențial/Complet/Premium/Agenție, each tier's bullets given
+verbatim) and asked for named boolean columns instead of a free-text array that could silently drift
+from what a plan actually unlocks. `20260824000001_plan_features.sql` was rewritten in place (never
+applied — no DB credentials from this environment for any migration since `20260810000003`, so editing
+directly rather than layering a correction migration on top is safe and correct here) rather than left
+as a second, superseding migration.
+
+**`plan_features` is the single source of truth for a pricing card's content — everything except
+price.** Shell columns: `display_name`, `is_highlighted`, `badge_text`, `button_label`,
+`is_navigation_only` + `navigate_to` (for a card like "Agenție" whose button pushes a route instead of
+purchasing), `revenuecat_package_id` (the RevenueCat package identifier this row resolves a price from;
+null for a navigation-only row, enforced by a check constraint), and `price_text` (a plain display
+string for a navigation-only card's price line, since that's not a real IAP price RevenueCat could ever
+resolve). Capability columns, one per real bullet a card can show: `rsvp_enabled`,
+`progress_feed_enabled`, `photo_album_enabled` (true on every tier today — the baseline, not something a
+tier adds, kept as real columns rather than assumed-always-true in code so a future tier that genuinely
+lacks one doesn't need a schema change), `max_guests` (integer, null = unlimited — 50 for Esențial, null
+for every other current tier), `contributions_enabled`, `live_screen_enabled`, `chat_enabled`,
+`lodging_transport_enabled`, `vendor_tagging_enabled`, `priority_support_enabled`. `app/pricing.tsx`'s
+`buildFeatureBullets()` derives each card's bullet list from these flags at render time, in a fixed
+order (baseline three → guest cap → each additive capability in tier order) — never from stored
+free-text. RLS: publicly readable (`for select using (true)`) — pricing is non-sensitive app
+configuration, not user data, same category as the hardcoded event-type metadata in
+`utils/eventTypes.ts`; no client insert/update/delete policy, same "managed from the dashboard, not the
+app" precedent as `agencies` before its self-signup policy. The migration seeds four rows
+(`esential`/`complet`/`premium`/`agentie`, exact plan_key spelling from the request) with the exact
+booleans given — Esențial has only the baseline + 50-guest cap; Complet adds
+contributions/live-screen/chat + unlimited guests; Premium adds lodging-transport/vendor-tagging/
+priority-support on top of Complet; Agenție (navigation-only) carries the same capability flags as
+Premium. This is config, not fixtures the app depends on — CLAUDE.md §6's "no mock or seeded data" rule
+is about a new *event* starting with fake guests/moments, not about a config table needing at least one
+row to render anything.
+
+**Agenție's four account-level extras (Volum multiplu/Branding propriu/Panou centralizat/Facturare pe
+volum) are split across two places, not all four on `plan_features`.** Three of them —
+`branding_enabled`, `centralized_panel_enabled`, `volume_billing_enabled` — describe what an *agency
+account* can do, not what a single event's plan unlocks, so they were added to `agencies`
+(`20260824000002_agency_plan_capabilities.sql`, `AgencyRow` in `types/supabase.ts`) rather than
+`plan_features`, which is otherwise scoped entirely per-event-plan. Defaulted `true, not null`: this app
+has exactly one agency tier today and `becomeAgency()` (`hooks/useAgency.tsx`) is the only way an
+`agencies` row is ever created, so every agency account already gets everything Agenție includes the
+moment it exists — if a second agency sub-tier is ever added, that's the point these stop being
+unconditional defaults. **Not wired into `useAgency`/`Agency` (the app type) or any screen** — nothing
+in this app reads them yet (no agency dashboard, no entitlement check anywhere), so wiring them into the
+hook layer was left undone rather than built speculatively; they exist on the row today so the schema is
+correct, not so a screen can already gate on them. The fourth bullet, "Volum multiplu" (managing many
+events under one account), has no column anywhere — it's the defining trait of an agency account already
+(§3's "Agency accounts": one owner, any number of agency-tagged events), not a togglable capability. All
+four bullets are appended as fixed, translated copy by `buildFeatureBullets()` only when
+`plan.isNavigationOnly` is true, rather than being read from either table at render time — the pricing
+screen shows what the Agenție tier includes as a general marketing card, not a specific signed-in
+agency's own row (a signed-out visitor or a non-agency user looking at pricing has no `agencies` row to
+read in the first place).
+
+**No `useEventEntitlements` hook exists in this app, so there was nothing to update there.** The request
+that prompted this correction asked to "update the `useEventEntitlements` hook and any screen currently
+reading the old column names" — checked, same as the pricing screen's own original request: no hook by
+that name, or any entitlement-gating hook at all, exists anywhere in this repo (§7 already documents
+that entitlement gating isn't built). The only real consumers of `plan_features`' column names are
+`data/planFeaturesRepository.ts`, `types/supabase.ts`'s `PlanFeatureRow`, `types/pricing.ts`'s
+`PlanFeature`/`PlanCapabilities`, and `app/pricing.tsx` itself — all four were updated to the corrected
+columns; nothing else in the app reads this table.
+
+**Price, and only price, comes from RevenueCat — never hardcoded in JSX.** `utils/revenueCat.ts`
+wraps `Purchases.configure()` (idempotent, guarded by a module-level flag, reads
+`EXPO_PUBLIC_REVENUECAT_IOS_KEY`/`EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` — new env vars, `.env.example`
+updated) and `Purchases.getOfferings()`, flattened into a `Map<packageId, PurchasesPackage>` across
+every offering. `app/pricing.tsx` fetches `plan_features` (via the new `usePlanFeatures` hook,
+`data/planFeaturesRepository.ts` — same plain react-query-hook, no-Provider shape as `useAgency`) and
+this offerings map as two independent queries, then merges them per card by matching
+`revenuecat_package_id` against the map's keys; `pkg.product.priceString` is the only thing that ever
+reaches a price `<Text>`. A row naming a `revenuecat_package_id` that isn't in the fetched offerings
+(misconfiguration, or the RevenueCat fetch itself failing) renders that one card with a
+"Preț indisponibil momentan" state instead of crashing — the rest of the card (title/features/badge/
+button) is unaffected, since it never depended on RevenueCat in the first place. A navigation-only row
+skips the RevenueCat lookup entirely (`price.status: 'not-applicable'`) and shows its own `price_text`.
+
+**No Sentry in this codebase — checked again for this screen specifically, same substitution CLAUDE.md
+already documents for the bulk-guest-invites pass.** The request asked for
+`Sentry.captureException` when a plan's package isn't found in the offerings. `app/pricing.tsx` logs via
+`console.warn` instead, once per unmatched row, after the offerings fetch has actually settled (not
+while still loading) — this is a deliberate substitution, not a silent downgrade, and adding a real
+Sentry integration (a new dependency, a DSN, an account) was out of scope for a pricing-screen data-model
+change.
+
+**Purchasing calls `Purchases.purchasePackage()` for real, but nothing downstream of it is built.**
+Tapping a purchasable card's button resolves the matched `PurchasesPackage` and calls
+`purchasePlanPackage()`; a user backing out of the native purchase sheet
+(`error.userCancelled === true`) is treated as a no-op, any other failure goes through the existing
+`reportSupabaseError` `Alert.alert` surface (misnamed for this call site, but it's this app's one real
+generic-failure surface, same reasoning the bulk-invites pass gave for reusing it over inventing a new
+one). **No Supabase purchase row is written, no webhook exists, and no entitlement is granted anywhere
+in this app** — a successful purchase today does nothing beyond what RevenueCat's own SDK/dashboard
+already records. See §7.
+
+**Superseded one pass later — never reachable from Profile at all anymore, and the screen itself is now
+per-event.** The "Plans & pricing" Profile row this paragraph used to describe is gone — see "Pricing
+screen becomes per-event" below for the current entry points and why a standalone, event-less pricing
+screen stopped making sense once purchasing a plan meant writing to a specific event's row.
+
+**Requires a native rebuild — not achievable from this session, same as every other native dependency
+addition in this file.** `react-native-purchases` (10.7.2) is a new native module; see §1's dev-build
+note. Verified only by `npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both
+passing, after both the original pass and the capability-column correction. Unverified from this
+environment: whether `Purchases.configure`/`getOfferings`/`purchasePackage` actually round-trip against
+a real RevenueCat project (no API keys, no device), whether the `plan_features`/`agencies` migrations
+apply cleanly (no DB credentials, same as every migration since `20260810000003`), and how the cards
+actually look/feel — no simulator run has happened in any session so far, per the top of this file.
+
+### Pricing screen becomes per-event; Profile entry removed; placeholder purchase; Home badge
+
+**Changed in a later pass than the two sections above.** Three real gaps closed at once, all because the
+pricing screen was still reachable only from Profile and had no connection to any specific event: (1) it
+had to be removable from Profile entirely, (2) picking a plan needed somewhere to actually be *for* — a
+specific event — and (3) testing the whole flow needed to not depend on RevenueCat actually being
+configured, which it still isn't in this environment.
+
+**`app/pricing.tsx` → `app/pricing/[id].tsx`.** The screen now always renders for one specific event —
+its title bar shows that event's name (`pricing.subtitle` gained an `{{eventName}}` interpolation), and
+picking a plan writes to that event's row (see below), not to a global "the user's plan" concept that
+never existed here. There is no longer a standalone, event-less pricing route at all — Profile's "Plans
+& pricing" row is deleted outright (`profile.plansAndPricing` removed from both locale files), and
+nothing else links to the old path.
+
+**`events.plan_tier` + `events.plan_purchased_at`** (`supabase/migrations/20260826000001_event_plan_tier.sql`)
+— which `plan_features.plan_key` (if any) this event has picked, and when. Both null until an organizer
+actually visits this event's pricing screen and picks something; a check constraint restricts `plan_tier`
+to the four known keys. No RLS change needed — "only the organizer updates or deletes" already covers any
+column on `events`, the same way it already covered `agency_id`. `types/event.ts`'s `AppEvent` gained
+`planTier`/`planPurchasedAt`; `data/eventsRepository.ts`'s `mapEventRow` maps them straight through.
+**Deliberately excluded from the generic `updateEvent()` patch type** (`hooks/useEvents.tsx`,
+`data/eventsRepository.ts`'s `updateEventRow`) — before this pass, every field that type-checked in an
+`updateEvent()` patch was actually handled by `updateEventRow`; letting `planTier`/`planPurchasedAt`
+through that same generic path would have silently done nothing (there's no column-write branch for
+them there), since the real write goes through a dedicated function instead — see next.
+
+**Two entry points, both event-scoped, neither a standalone "browse plans" screen:**
+
+1. **Right after create-event finishes.** `app/create/preview.tsx`'s `handleGenerate()` used to
+   `router.push` straight to `/create/share` once `createEvent()` resolved; it now `router.replace`s to
+   `/pricing/[id]?context=create` instead — `replace`, not `push`, specifically so the preview screen
+   (whose button re-running `createEvent()` would create a *second* event) is removed from the stack
+   rather than sitting underneath pricing where a literal back-button tap could return to it. Pricing's
+   own forward-only navigation from this context (below) then lands on `/create/share`, giving the exact
+   same final stack shape (`details → preview → share`) the flow always had — pricing sits in front of
+   `preview` only for the length of one screen, never behind `share`.
+2. **A "no plan yet" badge on that event's own Home card** — see below. Reached with no `context` param,
+   so the screen behaves like a normal pushed screen (real back button, `router.back()` after picking a
+   plan) rather than the create-flow's forward-only shape.
+
+**`context=create` changes two things about the screen, nothing else:** no back chevron (`Header`'s
+`showBack` is `false`) — the same "no legitimate step to return to" reasoning `app/name.tsx`/
+`app/onboarding.tsx` already established, since a real back tap here would land on the wizard's `details`
+step, one past where `preview` used to be, per the `replace` above — and a footer "Skip for now"
+button (`pricing.skipForNow`) that does the same forward `router.replace` to `/create/share` a completed
+purchase would. Every other case (no `context` param) shows the normal back button and, after a
+placeholder purchase, just `router.back()`.
+
+**Purchasing is a hardcoded placeholder now — the RevenueCat price *display* is untouched.** Tapping a
+purchasable card's "Alege" no longer calls `purchasePlanPackage`/`Purchases.purchasePackage` at all; it
+calls the new `useEvents().setPlanTier(eventId, plan.planKey)` →
+`data/eventsRepository.ts`'s `setEventPlanTierRow` → a plain
+`update events set plan_tier = ..., plan_purchased_at = now()`. No payment, no RevenueCat SDK call —
+explicitly throwaway, meant to be replaced when real purchasing is wired up (§7). **Price itself still
+comes from RevenueCat exactly as before** (`fetchOfferingPackages`/`resolvePrice`/`PriceLine` are
+unchanged) — only the button's *action* changed, not where the price on the card comes from. This also
+meant a button could no longer stay disabled while waiting on a resolved `PurchasesPackage` (`canPress`
+used to require `price.status === 'resolved'`) — with no RevenueCat API keys configured anywhere in this
+environment, that would have permanently disabled every purchasable button, defeating the entire point of
+a placeholder flow that's "fully testable end to end without RevenueCat wired in." The button is now only
+disabled while its own placeholder mutation is in flight (`busy`).
+
+**Dashboard badge — `components/PlanTierBadge.tsx`, new.** Rendered on every card in
+`components/EventListItem.tsx` ("Your events" on Home). Two states: a plan is set → a plain,
+non-interactive pill showing that tier's `plan_features.display_name` (looked up in `app/index.tsx` via
+`usePlanFeatures()`, passed down as an already-resolved `planLabel` string — `EventListItem` never
+re-derives it, so this label can't drift from what the pricing screen's own card calls that same tier);
+no plan yet → a tappable pill (`common.choosePlan`) that pushes `/pricing/${event.id}` with no `context`
+param. The badge is its own nested `TouchableOpacity`/`View` inside the row's own `TouchableOpacity` —
+React Native's responder system resolves a tap to whichever one is actually under the finger, so tapping
+the badge never also fires the row's own "open this event" `onPress`. `EventListItemSkeleton` grew a
+matching pill-shaped placeholder so the loading state doesn't shift layout once real data lands, same
+convention every other skeleton in this file already follows.
+
+**Repositioned one pass later — a ribbon overlay, not an inline pill.** The badge originally rendered
+inline below the RSVP-summary line, in normal flow, styled like `RsvpBadge` (`statusPending`/
+`statusPendingSoft` for the "no plan" state, a soft `accentPrimary` tint for a chosen plan). It's now
+`position: 'absolute'`, pinned to the card's top-right corner with a `top: -10, right: -10` offset — half
+on the card, half hanging outside it, ribbon/notification-badge style — which required
+`EventListItem`'s `row` style to gain an explicit `overflow: 'visible'` (RN Views default to visible
+already, but the card renders a `borderRadius`, and the request specifically wanted this made
+non-implicit rather than relying on a default that a future style change could silently flip). Colors
+changed to match: a chosen plan is now a **solid** `accentPrimary` ribbon with white text (the same
+purple `Button`'s `primary` variant uses) plus a small dedicated shadow (not the app's existing large
+diffuse button/FAB shadow — a tight `shadowRadius: 5` reads correctly at ribbon size, where the bigger
+one would look like a blurry halo); the "no plan" state is now an **outlined** chip — card-colored fill,
+a `statusPending`-colored border and text, a lighter shadow than the solid ribbon's — specifically so it
+reads as a smaller, less "final" action prompt next to the solid ribbon a chosen plan gets.
+`EventListItemSkeleton`'s placeholder moved to the same absolute corner (`planBadgeSkeleton`, matching
+offsets exactly) so the loading state still doesn't shift layout once real data replaces it.
+
+**Verification status — same caveat as the rest of this file.** Confirmed only by
+`npx tsc --noEmit --noUnusedLocals` and `npx expo export --platform ios`, both passing.
+`20260826000001_event_plan_tier.sql` is written but not applied (no DB credentials from this
+environment, same as every migration since `20260810000003`) — whether it applies cleanly, whether the
+create-flow's `replace`-based navigation actually produces the reasoned stack shape on a real device, and
+how the badge/skeleton actually look on a real Home card are all unverified until a real device run.
+
 ### Schema as written in the migrations
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | `users` | `id` (FK `auth.users`), `email`, `phone`, `first_name`, `last_name`, `display_name`, `has_completed_onboarding` | Populated by an `on_auth_user_created` trigger; `has_completed_onboarding` added by `20260810000006`; `phone` added by `20260818000001`; `first_name`/`last_name` added by `20260820000001` — see §3's "Name collection" |
-| `events` | `id`, `organizer_id`, `agency_id` (nullable), `type` (enum), `name`, `event_date`, `location`, `welcome_message` | `event_type` enum: wedding, baptism, birthday, cause, corporate, memorial, other. `agency_id` added by `20260813000001` — populated automatically for agency owners, but not currently read by any screen (no agency-specific view exists), see "Agency accounts" below |
-| `agencies` | `id`, `owner_user_id` (unique FK `users`), `company_name`, `cui`, `registration_number` (nullable), `address` (nullable) | Added by `20260813000001`. One agency per owner this pass — no staff/multi-user agencies yet. Row is created by `handle_new_user()` from signup metadata, never inserted client-side (email confirmation is ON, so `signUp()` never yields a session at insert time) |
+| `events` | `id`, `organizer_id`, `agency_id` (nullable), `type` (enum), `name`, `event_date`, `location`, `welcome_message`, `plan_tier` (nullable), `plan_purchased_at` (nullable) | `event_type` enum: wedding, baptism, birthday, cause, corporate, memorial, other. `agency_id` added by `20260813000001` — populated automatically for agency owners, but not currently read by any screen (no agency-specific view exists), see "Agency accounts" below. `plan_tier`/`plan_purchased_at` added by `20260826000001` — which `plan_features.plan_key` this event picked, if any; see §3's "Pricing screen becomes per-event" |
+| `agencies` | `id`, `owner_user_id` (unique FK `users`), `company_name`, `cui`, `registration_number` (nullable), `address` (nullable), `branding_enabled`, `centralized_panel_enabled`, `volume_billing_enabled` | Added by `20260813000001`. One agency per owner this pass — no staff/multi-user agencies yet. Row is created by `handle_new_user()` from signup metadata, never inserted client-side (email confirmation is ON, so `signUp()` never yields a session at insert time). The three `*_enabled` columns (added by `20260824000002`, all default `true`) are the Agenție pricing tier's account-level extras — not read by any screen yet, see §3's "Pricing screen" |
 | `event_guests` | `id`, `event_id`, `guest_user_id` (nullable), `guest_email`, `guest_phone`, `guest_name`, `rsvp_status`, `invited_at`, `whatsapp_sent_at`, `responded_at`, `dietary_preferences text[]`, `table_id` (nullable FK → `seating_tables`) | Partial unique index on `(event_id, guest_user_id)`; `rsvp_status` enum: pending, confirmed, declined; `dietary_preferences` added by `20260810000008`; `guest_phone` added by `20260818000002`, with a partial unique `(event_id, guest_phone)` index and a check requiring at least one of `guest_email`/`guest_phone`/`guest_user_id`; `whatsapp_sent_at` (nullable, when the organizer tapped Send — distinct from `invited_at`, which is row-creation time) and a second, *non-partial* unique `(event_id, guest_phone)` constraint (needed as an upsert arbiter) both added by `20260822000001`, see §3's "Bulk guest invites"; `table_id` added by `20260822000002`, `on delete set null` — see §3's "Seating chart guest assignment" |
 | `schedule_items` | `id`, `event_id`, `time`, `title`, `location`, `sort_order` | Detalii tab |
 | `venue_info` | `id`, `event_id` (unique), `name`, `address`, `notes text[]` | Separate table, not folded into `events` — optional and separately edited |
@@ -1900,6 +2142,7 @@ actually looks are all unverified until a real device run.
 | `seating_tables` | `id`, `event_id`, `name`, `label`, `seat_count`, `sort_order` | Added by `20260810000008`; Detalii tab |
 | `accommodations` | `id`, `event_id`, `name`, `detail_line`, `price_line`, `sort_order` | Added by `20260810000008`; Detalii tab |
 | `vendors` | `id`, `event_id`, `name`, `category`, `handle`, `external_url`, `sort_order` | Added by `20260810000008`; Detalii tab |
+| `plan_features` | `id`, `plan_key`, `display_name`, `is_highlighted`, `badge_text`, `button_label`, `revenuecat_package_id`, `is_navigation_only`, `navigate_to`, `price_text`, `sort_order`, `rsvp_enabled`, `progress_feed_enabled`, `photo_album_enabled`, `max_guests` (nullable), `contributions_enabled`, `live_screen_enabled`, `chat_enabled`, `lodging_transport_enabled`, `vendor_tagging_enabled`, `priority_support_enabled` | Added by `20260824000001`; the pricing screen's card content — price is resolved client-side from RevenueCat, never stored here. Capability columns replaced an original guessed `features jsonb` bullet list one pass later. See §3's "Pricing screen" |
 
 ### RLS logic in plain English
 
@@ -1975,6 +2218,7 @@ its own header). The only nested navigator is the guest event tabs.
 | `app/detalii-accommodation/[id].tsx` | The accommodation list (moved out of the Detalii hub). See §4's "Detalii tab is now a card hub" |
 | `app/detalii-vendors/[id].tsx` | The tagged-vendor list + caption (moved out of the Detalii hub). See §4's "Detalii tab is now a card hub" |
 | `app/checkout/[id].tsx` | Stubbed Stripe placeholder |
+| `app/pricing/[id].tsx` | Per-event plan cards sourced from `plan_features` (Supabase) + price from RevenueCat's `getOfferings()`. Reached right after create-event finishes (`?context=create`) and from a "no plan yet" badge on that event's own Home card — not reachable from Profile. "Alege" is a placeholder Supabase write (`events.plan_tier`/`plan_purchased_at`), not a real purchase. See §3's "Pricing screen becomes per-event" |
 
 ### Owner routing — Home opens straight into Acasă, not the dashboard
 
@@ -2816,6 +3060,19 @@ gold icon on top.
 
 ## 7. Not built / deliberately deferred
 
+- **Real RevenueCat purchasing, purchase recording, webhook verification, and entitlement gating.**
+  `app/pricing/[id].tsx`'s "Alege" no longer even calls `Purchases.purchasePackage()` — a later pass
+  replaced that with a hardcoded placeholder (`useEvents().setPlanTier`, a plain
+  `events.plan_tier`/`plan_purchased_at` write) specifically so the plan-selection flow could be tested
+  end to end without RevenueCat configured at all. Nothing writes a purchase record beyond those two
+  columns, no webhook receives/verifies RevenueCat's server-to-server events, and no screen anywhere
+  checks an entitlement to gate a feature. All of this was explicitly out of scope for the passes that
+  built the pricing screen's data model and per-event flow — flagged rather than stubbed with
+  fake-looking infrastructure. RevenueCat's `getOfferings()`-based **price display** is real and
+  unaffected by the placeholder-purchase change — see §3's "Pricing screen becomes per-event". **Sentry
+  doesn't exist in this codebase either** — checked again for this screen specifically;
+  `app/pricing/[id].tsx` substitutes `console.warn` for the `Sentry.captureException` a prompt asked
+  for, same substitution this file already documents for the bulk-guest-invites pass.
 - **Supabase Storage uploads — now built for event photos, still not for moments.** As of
   `20260812000001_event_photos_storage.sql` (§3, "Photo uploads — real Supabase Storage,
   dual-resolution"), `addPhoto` (Live/Album) really resizes and uploads two JPEGs to a private

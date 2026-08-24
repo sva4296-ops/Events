@@ -12,6 +12,7 @@ import { Screen } from '@/components/Screen';
 import { useAgency } from '@/hooks/useAgency';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
+import { usePlanFeatures } from '@/hooks/usePlanFeatures';
 import { useTheme } from '@/hooks/useTheme';
 import { myInvitations } from '@/utils/invitations';
 import { spacing } from '@/utils/theme';
@@ -23,9 +24,21 @@ export default function DashboardScreen() {
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
   const { isAgencyOwner } = useAgency();
+  const { plans } = usePlanFeatures();
 
   const ownedEvents = events.filter((event) => isOwner(event));
   const invitations = myInvitations(events, isOwner);
+
+  // plan_features.display_name is the single source of truth for a tier's
+  // label (the exact same string the pricing screen's own card shows) —
+  // looked up here rather than duplicated as a second set of tier-name
+  // strings, so a card's badge can't drift from what the pricing screen
+  // itself calls that plan. Falls back to the raw plan_tier value only if
+  // plan_features doesn't (yet, or anymore) have a matching row.
+  const planLabelFor = (planTier: string | null): string | null => {
+    if (planTier === null) return null;
+    return plans.find((plan) => plan.planKey === planTier)?.displayName ?? planTier;
+  };
 
   const startCreating = () => {
     resetDraft();
@@ -78,6 +91,8 @@ export default function DashboardScreen() {
                 key={event.id}
                 event={event}
                 onPress={() => router.push(`/guest/${event.id}`)}
+                planLabel={planLabelFor(event.planTier)}
+                onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
               />
             ))
           )}

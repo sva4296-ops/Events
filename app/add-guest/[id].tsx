@@ -11,6 +11,7 @@ import { Screen } from '@/components/Screen';
 import { checkGuestPhoneInvited } from '@/data/eventsRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
+import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import { DEFAULT_COUNTRY_CODE, toStoredPhone } from '@/utils/countryCodes';
 import { reportSupabaseError } from '@/utils/reportError';
@@ -39,6 +40,7 @@ export default function AddGuestScreen() {
   const { getEvent, isOwner, addGuestByPhone, markWhatsAppSent } = useEvents();
   const { user } = useAuth();
   const { tokens } = useTheme();
+  const { hydrated: planHydrated, canAddGuests, capabilities } = usePlanGate(id);
   const event = getEvent(id);
 
   const [dialCode, setDialCode] = useState(DEFAULT_COUNTRY_CODE.dialCode);
@@ -53,6 +55,26 @@ export default function AddGuestScreen() {
         <Header
           title={t('common.notAvailable')}
           subtitle={t('addGuestForm.notAvailableSubtitle')}
+          showBack
+        />
+      </Screen>
+    );
+  }
+
+  // Server-side backstop for this same limit: a trigger on event_guests
+  // inserts (see the plan-feature-gating migration) — this is what actually
+  // stops a bypass, this check is only for a clear UI message instead of a
+  // raw insert-error round trip.
+  if (planHydrated && !canAddGuests) {
+    return (
+      <Screen
+        footer={
+          <Button label={t('common.viewPlans')} onPress={() => router.push(`/pricing/${event.id}`)} />
+        }
+      >
+        <Header
+          title={t('planGate.guestLimitReachedTitle')}
+          subtitle={t('planGate.guestLimitReachedBody', { count: capabilities.maxGuests ?? 0 })}
           showBack
         />
       </Screen>

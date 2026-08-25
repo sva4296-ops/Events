@@ -11,6 +11,7 @@ import { Header } from '@/components/Header';
 import { PhoneField } from '@/components/PhoneField';
 import { Screen } from '@/components/Screen';
 import { useEvents } from '@/hooks/useEvents';
+import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import { DEFAULT_COUNTRY_CODE, splitStoredPhone, toStoredPhone } from '@/utils/countryCodes';
 import { reportSupabaseError } from '@/utils/reportError';
@@ -45,6 +46,7 @@ export default function BulkAddGuestsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, isOwner, addGuestsBatch } = useEvents();
   const { tokens } = useTheme();
+  const { hydrated: planHydrated, canAddGuests, capabilities } = usePlanGate(id);
   const event = getEvent(id);
 
   const [rows, setRows] = useState<GuestFormRow[]>([emptyRow()]);
@@ -57,6 +59,26 @@ export default function BulkAddGuestsScreen() {
         <Header
           title={t('common.notAvailable')}
           subtitle={t('addGuestForm.notAvailableSubtitle')}
+          showBack
+        />
+      </Screen>
+    );
+  }
+
+  // Same limit as app/add-guest/[id].tsx, same server-side backstop (a
+  // trigger on event_guests inserts — see the plan-feature-gating migration,
+  // which also correctly caps a multi-row batch insert like this screen's
+  // own submit produces, not just a single row).
+  if (planHydrated && !canAddGuests) {
+    return (
+      <Screen
+        footer={
+          <Button label={t('common.viewPlans')} onPress={() => router.push(`/pricing/${event.id}`)} />
+        }
+      >
+        <Header
+          title={t('planGate.guestLimitReachedTitle')}
+          subtitle={t('planGate.guestLimitReachedBody', { count: capabilities.maxGuests ?? 0 })}
           showBack
         />
       </Screen>

@@ -16,18 +16,32 @@ interface DetaliiHubCardProps {
   /** Drives the at-a-glance `StatusDot` — whether this section has any data
    * set yet. The status text stays the detail; the dot is the quick signal,
    * same visible to owner and guest alike (this screen has no owner-only
-   * rendering branch at all). */
+   * rendering branch at all). Ignored (StatusDot isn't rendered at all) when
+   * `locked` is true. */
   complete: boolean;
+  /** True when this sub-feature isn't included in the event's current plan
+   * (see hooks/usePlanGate.tsx) — swaps the StatusDot for a lock glyph.
+   * `onPress`/the row's own route are the caller's responsibility to point
+   * at the pricing screen instead of the real sub-screen when this is set;
+   * this component only changes what it renders, not where it navigates. */
+  locked?: boolean;
   onPress: () => void;
 }
 
 /**
  * One compact row per Detalii sub-feature — icon, title, a short one-line
- * status, a set/not-set `StatusDot`, chevron. Tapping is the only way in;
- * there is no per-card "+" anymore, add actions live inside the sub-screen
- * this navigates to.
+ * status, a set/not-set `StatusDot` (or a lock glyph when plan-gated),
+ * chevron. Tapping is the only way in; there is no per-card "+" anymore, add
+ * actions live inside the sub-screen this navigates to.
  */
-export function DetaliiHubCard({ icon, title, status, complete, onPress }: DetaliiHubCardProps) {
+export function DetaliiHubCard({
+  icon,
+  title,
+  status,
+  complete,
+  locked = false,
+  onPress,
+}: DetaliiHubCardProps) {
   const { tokens } = useTheme();
 
   return (
@@ -46,8 +60,13 @@ export function DetaliiHubCard({ icon, title, status, complete, onPress }: Detal
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      <View style={[styles.iconWrap, { backgroundColor: `${tokens.accentPrimary}1A` }]}>
-        <Feather name={icon} size={19} color={tokens.accentPrimary} />
+      <View
+        style={[
+          styles.iconWrap,
+          { backgroundColor: locked ? `${tokens.statusPending}1A` : `${tokens.accentPrimary}1A` },
+        ]}
+      >
+        <Feather name={icon} size={19} color={locked ? tokens.statusPending : tokens.accentPrimary} />
       </View>
 
       <View style={styles.info}>
@@ -60,7 +79,11 @@ export function DetaliiHubCard({ icon, title, status, complete, onPress }: Detal
       </View>
 
       <View style={styles.trailing}>
-        <StatusDot complete={complete} />
+        {locked ? (
+          <Feather name="lock" size={16} color={tokens.statusPending} />
+        ) : (
+          <StatusDot complete={complete} />
+        )}
         <Feather name="chevron-right" size={20} color={tokens.textSecondary} />
       </View>
     </TouchableOpacity>

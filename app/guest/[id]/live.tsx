@@ -1,8 +1,10 @@
+import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
+import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { PhotoTile } from '@/components/guest/PhotoTile';
@@ -11,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
+import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import { fonts, guest, gRadius, gSpace } from '@/utils/guestTheme';
 import { buildInviteLink } from '@/utils/invite';
@@ -30,6 +33,7 @@ export default function LiveScreen() {
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
   const { content, addPhoto, deletePhoto } = useEventContent(id);
+  const { hydrated: planHydrated, capabilities } = usePlanGate(id);
   const dark = tokens.mode === 'dark';
 
   const cardBg = dark ? guest.navy : tokens.surfaceElevated;
@@ -57,6 +61,29 @@ export default function LiveScreen() {
 
     addPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
   };
+
+  // Live isn't included in this event's current plan (Esențial). Client-side
+  // only, by design — see the plan-feature-gating migration's header comment
+  // on why the Live screen has no distinct server-side write to enforce (it
+  // shares the `photos` table with Album, which is baseline-always-on).
+  if (planHydrated && !capabilities.liveScreenEnabled) {
+    return (
+      <GuestScreen transparent contentStyle={styles.lockedContent}>
+        <EmptyState
+          icon="lock"
+          message={t('planGate.liveLocked')}
+          action={
+            owner ? (
+              <GuestButton
+                label={t('common.viewPlans')}
+                onPress={() => router.push(`/pricing/${id}`)}
+              />
+            ) : undefined
+          }
+        />
+      </GuestScreen>
+    );
+  }
 
   return (
     <GuestScreen transparent>
@@ -135,6 +162,10 @@ export default function LiveScreen() {
 }
 
 const styles = StyleSheet.create({
+  lockedContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   card: {
     borderRadius: gRadius.xl,
     padding: gSpace.xl,

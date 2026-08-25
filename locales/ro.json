@@ -13,7 +13,8 @@
     "notAvailable": "Nu este disponibil",
     "guestsSeeOnDetalii": "Invitații vor vedea asta în tab-ul Detalii.",
     "eventRsvpSummary": "{{confirmed}} confirmați · {{pending}} în așteptare",
-    "choosePlan": "Alege pachet"
+    "choosePlan": "Alege pachet",
+    "viewPlans": "Vezi planurile"
   },
   "home": {
     "tagline": "Mai mult decât o invitație — întreaga poveste.",
@@ -291,6 +292,18 @@
     "featureBranding": "Branding propriu",
     "featureCentralizedPanel": "Panou centralizat",
     "featureVolumeBilling": "Facturare pe volum"
+  },
+  "planGate": {
+    "chatLocked": "Chatul de grup nu este inclus în planul curent al acestui eveniment.",
+    "liveLocked": "Ecranul Live nu este inclus în planul curent al acestui eveniment.",
+    "fondLocked": "Fondul de contribuții nu este inclus în planul curent al acestui eveniment.",
+    "accommodationLocked": "Opțiunile de cazare nu sunt incluse în planul curent al acestui eveniment.",
+    "vendorsLocked": "Etichetarea furnizorilor nu este inclusă în planul curent al acestui eveniment.",
+    "hubLockedStatus": "Necesită un plan superior",
+    "guestLimitReachedTitle": "Limita de invitați a fost atinsă",
+    "guestLimitReachedBody_one": "Planul curent al acestui eveniment permite până la {{count}} invitat. Fă upgrade planului pentru a adăuga mai mulți.",
+    "guestLimitReachedBody_few": "Planul curent al acestui eveniment permite până la {{count}} invitați. Fă upgrade planului pentru a adăuga mai mulți.",
+    "guestLimitReachedBody_other": "Planul curent al acestui eveniment permite până la {{count}} de invitați. Fă upgrade planului pentru a adăuga mai mulți."
   },
   "event": {
     "notFound": "Evenimentul nu a fost găsit",

@@ -13,7 +13,8 @@
     "notAvailable": "Not available",
     "guestsSeeOnDetalii": "Guests will see this on the Detalii tab.",
     "eventRsvpSummary": "{{confirmed}} confirmed · {{pending}} pending",
-    "choosePlan": "Choose a plan"
+    "choosePlan": "Choose a plan",
+    "viewPlans": "View plans"
   },
   "home": {
     "tagline": "More than an invitation — the whole story.",
@@ -283,6 +284,17 @@
     "featureBranding": "Your own branding",
     "featureCentralizedPanel": "Centralized dashboard",
     "featureVolumeBilling": "Per-event billing"
+  },
+  "planGate": {
+    "chatLocked": "Group chat isn't included in this event's current plan.",
+    "liveLocked": "The Live screen isn't included in this event's current plan.",
+    "fondLocked": "The contribution fund isn't included in this event's current plan.",
+    "accommodationLocked": "Accommodation options aren't included in this event's current plan.",
+    "vendorsLocked": "Vendor tagging isn't included in this event's current plan.",
+    "hubLockedStatus": "Requires a higher plan",
+    "guestLimitReachedTitle": "Guest limit reached",
+    "guestLimitReachedBody_one": "This event's current plan allows up to {{count}} guest. Upgrade the plan to add more.",
+    "guestLimitReachedBody_other": "This event's current plan allows up to {{count}} guests. Upgrade the plan to add more."
   },
   "event": {
     "notFound": "Event not found",

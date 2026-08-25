@@ -49,6 +49,9 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
 
   useEffect(() => {
     if (!visible) return;
+    // Resetting local modal state on open; a key-based remount would need
+    // broader restructuring this pass didn't scope in.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState('loading');
     setSelected(new Set());
 

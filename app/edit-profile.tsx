@@ -74,6 +74,10 @@ export default function EditProfileScreen() {
   // where this screen mounts before useAgency()'s data has arrived.
   useEffect(() => {
     if (agency === null) return;
+    // Syncing local form fields from async agency data once it resolves; a
+    // key-based remount would need broader restructuring this pass didn't
+    // scope in.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCompanyName(agency.companyName);
     setCui(agency.cui);
     setRegistrationNumber(agency.registrationNumber ?? '');

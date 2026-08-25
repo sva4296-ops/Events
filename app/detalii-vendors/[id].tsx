@@ -11,6 +11,7 @@ import { Screen } from '@/components/Screen';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
+import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import { confirmDelete } from '@/utils/confirm';
 import { gRadius, gSpace } from '@/utils/guestTheme';
@@ -51,6 +52,7 @@ export default function DetaliiVendorsScreen() {
   const event = getEvent(id);
   const owner = isOwner(event);
   const { content, deleteVendor } = useEventContent(id ?? '');
+  const { hydrated: planHydrated, capabilities } = usePlanGate(id ?? '');
   const { tokens } = useTheme();
 
   if (content === null) {
@@ -58,6 +60,29 @@ export default function DetaliiVendorsScreen() {
       <Screen>
         <Header title={t('detalii.hub.vendorsTitle')} showBack />
       </Screen>
+    );
+  }
+
+  // Reached both via the hub card (already routed to /pricing instead when
+  // locked) and directly, e.g. a stale deep link. Server-side: a trigger on
+  // vendors inserts (see the plan-feature-gating migration).
+  if (planHydrated && !capabilities.vendorTaggingEnabled) {
+    return (
+      <GuestScreen topInset>
+        <Header title={t('detalii.hub.vendorsTitle')} showBack />
+        <EmptyState
+          icon="lock"
+          message={t('planGate.vendorsLocked')}
+          action={
+            owner ? (
+              <GuestButton
+                label={t('common.viewPlans')}
+                onPress={() => router.push(`/pricing/${id}`)}
+              />
+            ) : undefined
+          }
+        />
+      </GuestScreen>
     );
   }
 

@@ -12,7 +12,10 @@ import {
   View,
 } from 'react-native';
 
+import { router } from 'expo-router';
+
 import { EmptyState } from '@/components/EmptyState';
+import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { MessageBubble, MessageBubbleSkeleton } from '@/components/guest/MessageBubble';
 import { SectionLabel } from '@/components/guest/SectionLabel';
@@ -21,7 +24,9 @@ import { remoteRepository } from '@/data/remoteEventContentRepository';
 import { supabase } from '@/data/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
+import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
+import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import type { SocialContent } from '@/types/guest';
 import type { MessageRow } from '@/types/supabase';
@@ -31,8 +36,10 @@ export default function ChatScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { user } = useAuth();
+  const { isOwner } = useEvents();
   const { tokens } = useTheme();
   const { content, sendMessage, deleteMessage } = useEventContent(id);
+  const { hydrated: planHydrated, capabilities } = usePlanGate(id);
   const [draft, setDraft] = useState('');
   const queryClient = useQueryClient();
   const scrollRef = useRef<ScrollView>(null);
@@ -83,6 +90,29 @@ export default function ChatScreen() {
     sendMessage(draft);
     setDraft('');
   };
+
+  // Chat isn't included in this event's current plan (Esențial). Server-side
+  // enforcement is a trigger on messages inserts (see the plan-feature-gating
+  // migration) — this is the client-side reflection of the same rule, shown
+  // to owner and guest alike rather than just hiding the tab's contents.
+  if (planHydrated && !capabilities.chatEnabled) {
+    return (
+      <GuestScreen transparent contentStyle={styles.lockedContent}>
+        <EmptyState
+          icon="lock"
+          message={t('planGate.chatLocked')}
+          action={
+            isOwner(event) ? (
+              <GuestButton
+                label={t('common.viewPlans')}
+                onPress={() => router.push(`/pricing/${id}`)}
+              />
+            ) : undefined
+          }
+        />
+      </GuestScreen>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -195,6 +225,10 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+  },
+  lockedContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   // scroll={false} on GuestScreen means this styles the fixed outer column
   // directly (header + messages ScrollView + composer), not a ScrollView's

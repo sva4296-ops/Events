@@ -1,30 +1,37 @@
-import Feather from '@expo/vector-icons/Feather';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Feather from "@expo/vector-icons/Feather";
+import { router, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
-import { EmptyState } from '@/components/EmptyState';
-import { GuestRow, GuestRowSkeleton } from '@/components/GuestRow';
-import { Header } from '@/components/Header';
-import { Screen } from '@/components/Screen';
-import { Skeleton } from '@/components/Skeleton';
-import { StatCard } from '@/components/StatCard';
-import { SwipeableRow } from '@/components/SwipeableRow';
-import { confirmDelete } from '@/utils/confirm';
-import { useEvents } from '@/hooks/useEvents';
-import { useTheme } from '@/hooks/useTheme';
-import { countRsvps, eventSubtitle } from '@/utils/format';
-import { getEventType } from '@/utils/eventTypes';
-import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
+import { GuestRow, GuestRowSkeleton } from "@/components/GuestRow";
+import { Header } from "@/components/Header";
+import { Screen } from "@/components/Screen";
+import { Skeleton } from "@/components/Skeleton";
+import { StatCard } from "@/components/StatCard";
+import { SwipeableRow } from "@/components/SwipeableRow";
+import { confirmDelete } from "@/utils/confirm";
+import { useEvents } from "@/hooks/useEvents";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import { useTheme } from "@/hooks/useTheme";
+import { countRsvps, eventSubtitle } from "@/utils/format";
+import { getEventType } from "@/utils/eventTypes";
+import { spacing } from "@/utils/theme";
+import { themeRadius } from "@/utils/themeTokens";
 
 export default function EventDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, hydrated, removeGuest, isOwner } = useEvents();
   const { tokens } = useTheme();
+  const {
+    hydrated: planHydrated,
+    canAddGuests,
+    capabilities,
+  } = usePlanGate(id);
+
   const event = getEvent(id);
   const owner = isOwner(event);
 
@@ -40,9 +47,21 @@ export default function EventDetailScreen() {
         </View>
 
         <View style={styles.stats}>
-          <Skeleton height={78} radius={themeRadius.md} style={styles.statSkeleton} />
-          <Skeleton height={78} radius={themeRadius.md} style={styles.statSkeleton} />
-          <Skeleton height={78} radius={themeRadius.md} style={styles.statSkeleton} />
+          <Skeleton
+            height={78}
+            radius={themeRadius.md}
+            style={styles.statSkeleton}
+          />
+          <Skeleton
+            height={78}
+            radius={themeRadius.md}
+            style={styles.statSkeleton}
+          />
+          <Skeleton
+            height={78}
+            radius={themeRadius.md}
+            style={styles.statSkeleton}
+          />
         </View>
 
         <View style={styles.section}>
@@ -60,7 +79,7 @@ export default function EventDetailScreen() {
   if (event === undefined) {
     return (
       <Screen>
-        <Header title={t('event.notFound')} showBack />
+        <Header title={t("event.notFound")} showBack />
       </Screen>
     );
   }
@@ -68,28 +87,35 @@ export default function EventDetailScreen() {
   const counts = countRsvps(event.guests);
   const type = getEventType(event.type);
   const pendingUnsentCount = event.guests.filter(
-    (guest) => guest.status === 'pending' && guest.whatsappSentAt === null && guest.phone !== null,
+    (guest) =>
+      guest.status === "pending" &&
+      guest.whatsappSentAt === null &&
+      guest.phone !== null,
   ).length;
 
   return (
     <Screen>
-      <Header title={`${type.emoji} ${event.name}`} subtitle={eventSubtitle(event)} showBack />
+      <Header
+        title={`${type.emoji} ${event.name}`}
+        subtitle={eventSubtitle(event)}
+        showBack
+      />
 
       <View style={styles.stats}>
         <StatCard
-          label={t('common.confirmed')}
+          label={t("common.confirmed")}
           value={counts.confirmed}
           tint={tokens.statusConfirmed}
           background={tokens.statusConfirmedSoft}
         />
         <StatCard
-          label={t('common.pending')}
+          label={t("common.pending")}
           value={counts.pending}
           tint={tokens.statusPending}
           background={tokens.statusPendingSoft}
         />
         <StatCard
-          label={t('common.declined')}
+          label={t("common.declined")}
           value={counts.declined}
           tint={tokens.statusDeclined}
           background={tokens.statusDeclinedSoft}
@@ -99,31 +125,69 @@ export default function EventDetailScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHead}>
           <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>
-            {t('event.guestListTitle', { count: counts.total })}
+            {t("event.guestListTitle", { count: counts.total })}
           </Text>
           {owner ? (
             <View style={styles.sectionHeadActions}>
               <TouchableOpacity
-                style={[styles.add, { backgroundColor: `${tokens.accentPrimary}22` }]}
+                style={[
+                  styles.add,
+                  {
+                    backgroundColor: `${tokens.accentPrimary}22`,
+                    opacity: planHydrated && !canAddGuests ? 0.4 : 1,
+                  },
+                ]}
                 onPress={() => router.push(`/add-guest/${event.id}`)}
                 activeOpacity={0.75}
                 accessibilityRole="button"
                 accessibilityLabel="Invite a guest"
               >
-                <Feather name="user-plus" size={16} color={tokens.accentPrimary} />
+                <Feather
+                  name={planHydrated && !canAddGuests ? "lock" : "user-plus"}
+                  size={16}
+                  color={tokens.accentPrimary}
+                />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.add, { backgroundColor: `${tokens.accentPrimary}22` }]}
+                style={[
+                  styles.add,
+                  {
+                    backgroundColor: `${tokens.accentPrimary}22`,
+                    opacity: planHydrated && !canAddGuests ? 0.4 : 1,
+                  },
+                ]}
                 onPress={() => router.push(`/bulk-add-guests/${event.id}`)}
                 activeOpacity={0.75}
                 accessibilityRole="button"
-                accessibilityLabel={t('event.addMultipleGuests')}
+                accessibilityLabel={t("event.addMultipleGuests")}
               >
-                <Feather name="users" size={16} color={tokens.accentPrimary} />
+                <Feather
+                  name={planHydrated && !canAddGuests ? "lock" : "users"}
+                  size={16}
+                  color={tokens.accentPrimary}
+                />
               </TouchableOpacity>
             </View>
           ) : null}
         </View>
+
+        {owner && planHydrated && !canAddGuests ? (
+          <TouchableOpacity
+            style={[styles.sendPending, { borderColor: tokens.statusPending }]}
+            onPress={() => router.push(`/pricing/${event.id}`)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+          >
+            <Feather name="lock" size={14} color={tokens.statusPending} />
+            <Text
+              style={[styles.sendPendingText, { color: tokens.statusPending }]}
+            >
+              {t("planGate.guestLimitReachedBody", {
+                count: capabilities.maxGuests ?? 0,
+              })}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         {owner && pendingUnsentCount > 0 ? (
           <TouchableOpacity
@@ -133,19 +197,21 @@ export default function EventDetailScreen() {
             accessibilityRole="button"
           >
             <Feather name="send" size={14} color={tokens.accentPrimary} />
-            <Text style={[styles.sendPendingText, { color: tokens.accentPrimary }]}>
-              {t('event.sendPendingInvites', { count: pendingUnsentCount })}
+            <Text
+              style={[styles.sendPendingText, { color: tokens.accentPrimary }]}
+            >
+              {t("event.sendPendingInvites", { count: pendingUnsentCount })}
             </Text>
           </TouchableOpacity>
         ) : null}
 
         {event.guests.length === 0 ? (
           <EmptyState
-            message={t('event.noGuestsYet')}
+            message={t("event.noGuestsYet")}
             action={
               owner ? (
                 <Button
-                  label={t('event.inviteGuest')}
+                  label={t("event.inviteGuest")}
                   onPress={() => router.push(`/add-guest/${event.id}`)}
                 />
               ) : undefined
@@ -159,13 +225,13 @@ export default function EventDetailScreen() {
                 enabled={owner}
                 actions={[
                   {
-                    label: t('event.removeGuestAction'),
-                    icon: 'user-x',
-                    tone: 'delete',
+                    label: t("event.removeGuestAction"),
+                    icon: "user-x",
+                    tone: "delete",
                     onPress: () =>
                       confirmDelete(
-                        t('event.removeGuestTitle'),
-                        t('event.removeGuestBody', { name: guest.name }),
+                        t("event.removeGuestTitle"),
+                        t("event.removeGuestBody", { name: guest.name }),
                         () => removeGuest(event.id, guest.id),
                       ),
                   },
@@ -190,38 +256,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stats: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
   },
   section: {
     gap: spacing.md,
   },
   sectionHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   sectionHeadActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
   },
   add: {
     width: 34,
     height: 34,
     borderRadius: themeRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   sendPending: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.sm,
     minHeight: 40,
     borderRadius: themeRadius.pill,
@@ -229,6 +295,6 @@ const styles = StyleSheet.create({
   },
   sendPendingText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });

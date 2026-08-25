@@ -6,6 +6,7 @@ import { DetaliiHubCard, DetaliiHubCardSkeleton } from '@/components/guest/Detal
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
+import { usePlanGate } from '@/hooks/usePlanGate';
 import { gSpace } from '@/utils/guestTheme';
 
 type FeatherName = keyof typeof Feather.glyphMap;
@@ -18,6 +19,8 @@ interface DetaliiHubCardEntry {
   /** Drives the card's at-a-glance StatusDot — same true/false condition
    * that picks between the "unset" and "set" status text below. */
   complete: boolean;
+  /** Plan-gated sub-feature — see hooks/usePlanGate.tsx. */
+  locked?: boolean;
   route: string;
 }
 
@@ -40,6 +43,7 @@ export default function DetaliiScreen() {
   const { t } = useTranslation();
   const { id } = useGuestEvent();
   const { content } = useEventContent(id);
+  const { capabilities } = usePlanGate(id);
 
   if (content === null) return <DetaliiSkeleton />;
 
@@ -93,23 +97,27 @@ export default function DetaliiScreen() {
       key: 'accommodation',
       icon: 'home',
       title: t('detalii.hub.accommodationTitle'),
-      status:
-        content.accommodations.length === 0
+      status: capabilities.lodgingTransportEnabled
+        ? content.accommodations.length === 0
           ? t('detalii.hub.accommodationUnset')
-          : t('detalii.hub.accommodationCount', { count: content.accommodations.length }),
+          : t('detalii.hub.accommodationCount', { count: content.accommodations.length })
+        : t('planGate.hubLockedStatus'),
       complete: content.accommodations.length > 0,
-      route: `/detalii-accommodation/${id}`,
+      locked: !capabilities.lodgingTransportEnabled,
+      route: capabilities.lodgingTransportEnabled ? `/detalii-accommodation/${id}` : `/pricing/${id}`,
     },
     {
       key: 'vendors',
       icon: 'briefcase',
       title: t('detalii.hub.vendorsTitle'),
-      status:
-        content.vendors.length === 0
+      status: capabilities.vendorTaggingEnabled
+        ? content.vendors.length === 0
           ? t('detalii.hub.vendorsUnset')
-          : t('detalii.hub.vendorsCount', { count: content.vendors.length }),
+          : t('detalii.hub.vendorsCount', { count: content.vendors.length })
+        : t('planGate.hubLockedStatus'),
       complete: content.vendors.length > 0,
-      route: `/detalii-vendors/${id}`,
+      locked: !capabilities.vendorTaggingEnabled,
+      route: capabilities.vendorTaggingEnabled ? `/detalii-vendors/${id}` : `/pricing/${id}`,
     },
   ];
 
@@ -122,6 +130,7 @@ export default function DetaliiScreen() {
           title={card.title}
           status={card.status}
           complete={card.complete}
+          locked={card.locked}
           onPress={() => router.push(card.route)}
         />
       ))}

@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/Skeleton';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
+import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import { fonts, gRadius, gSpace } from '@/utils/guestTheme';
 import { themeRadius } from '@/utils/themeTokens';
@@ -21,6 +22,7 @@ export default function FondScreen() {
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
   const { content } = useEventContent(id);
+  const { hydrated: planHydrated, capabilities } = usePlanGate(id);
 
   const card = [
     styles.card,
@@ -47,6 +49,31 @@ export default function FondScreen() {
   }
 
   const owner = isOwner(event);
+
+  // The contribution fund isn't included in this event's current plan
+  // (Esențial). Checked before the "no fund yet" empty state below, since
+  // that state's own CTA would let an owner attempt to open a fund that
+  // fund-insert's server-side trigger (see the plan-feature-gating
+  // migration) would then reject anyway.
+  if (planHydrated && !capabilities.contributionsEnabled) {
+    return (
+      <GuestScreen contentStyle={styles.page} transparent>
+        <EmptyState
+          icon="lock"
+          message={t('planGate.fondLocked')}
+          action={
+            owner ? (
+              <GuestButton
+                label={t('common.viewPlans')}
+                onPress={() => router.push(`/pricing/${id}`)}
+              />
+            ) : undefined
+          }
+        />
+      </GuestScreen>
+    );
+  }
+
   const { fund } = content;
 
   if (fund === null) {

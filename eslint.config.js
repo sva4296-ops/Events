@@ -63,6 +63,12 @@ module.exports = [
       ...reactHooks.configs.flat.recommended.rules,
       // TypeScript already enforces prop shapes; PropTypes are unused here.
       'react/prop-types': 'off',
+      // react-hooks/refs is aimed at React Compiler compatibility; this app
+      // doesn't use the Compiler, and it false-positives on the standard
+      // `useRef(new Animated.Value(...)).current` pattern the legacy RN
+      // Animated API requires (a stable, non-reactive ref read at render
+      // time is correct and intentional here, not a bug).
+      'react-hooks/refs': 'off',
     },
   },
 

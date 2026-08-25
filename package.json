@@ -37,7 +37,16 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.5",
     "@types/react": "~19.2.2",
+    "@typescript-eslint/eslint-plugin": "^8.68.0",
+    "@typescript-eslint/parser": "^8.68.0",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -46,7 +55,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "reset-test-data": "node scripts/reset-test-data.js"
+    "reset-test-data": "node scripts/reset-test-data.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "private": true
 }

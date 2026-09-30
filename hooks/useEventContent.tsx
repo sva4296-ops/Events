@@ -5,7 +5,7 @@ import { remoteRepository, type Actor } from '@/data/remoteEventContentRepositor
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { DetailsContent, EventContent, ReactionType, Venue } from '@/types/guest';
-import { processPhotoVersions, type PickedPhoto } from '@/utils/imageProcessing';
+import { processMomentPhoto, processPhotoVersions, type PickedPhoto } from '@/utils/imageProcessing';
 import { reportSupabaseError } from '@/utils/reportError';
 import { generateId } from '@/utils/uuid';
 
@@ -238,8 +238,12 @@ export function useEventContent(eventId: string) {
               },
         ),
 
-      addMoment: (title: string, photoUrl: string) => {
-        runRemote(() => remoteRepository.createMoment(eventId, title, photoUrl, actor), 'social');
+      addMoment: (title: string, photo: PickedPhoto | null) => {
+        runRemote(async () => {
+          const momentId = generateId();
+          const photoUri = photo === null ? null : await processMomentPhoto(photo);
+          await remoteRepository.createMoment(eventId, momentId, title, photoUri, actor);
+        }, 'social');
       },
 
       saveFund: (input: FundInput) => {
@@ -262,7 +266,7 @@ export function useEventContent(eventId: string) {
       },
 
       deleteMoment: (momentId: string) => {
-        runRemote(() => remoteRepository.deleteMoment(momentId), 'social');
+        runRemote(() => remoteRepository.deleteMoment(eventId, momentId), 'social');
       },
 
       deleteMessage: (messageId: string) => {

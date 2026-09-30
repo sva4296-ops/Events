@@ -20,6 +20,7 @@ import { Screen } from '@/components/Screen';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
+import type { PickedPhoto } from '@/utils/imageProcessing';
 import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
 
@@ -34,7 +35,7 @@ export default function PostMomentScreen() {
   const { addMoment } = useEventContent(id ?? '');
 
   const [title, setTitle] = useState('');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<PickedPhoto | null>(null);
 
   if (!isOwner(event)) {
     return (
@@ -59,11 +60,11 @@ export default function PostMomentScreen() {
     const asset = result.assets?.[0];
     if (result.canceled || asset === undefined) return;
 
-    setPhotoUri(asset.uri);
+    setPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
   };
 
   const post = () => {
-    addMoment(title.trim(), photoUri ?? '');
+    addMoment(title.trim(), photo);
     router.back();
   };
 
@@ -123,7 +124,7 @@ export default function PostMomentScreen() {
           activeOpacity={0.8}
           accessibilityRole="button"
         >
-          {photoUri === null ? (
+          {photo === null ? (
             <View style={styles.pickerEmpty}>
               <Feather name="image" size={22} color={tokens.accentPrimary} />
               <Text style={[styles.pickerLabel, { color: tokens.accentPrimary }]}>
@@ -131,7 +132,7 @@ export default function PostMomentScreen() {
               </Text>
             </View>
           ) : (
-            <Image source={{ uri: photoUri }} style={styles.preview} />
+            <Image source={{ uri: photo.uri }} style={styles.preview} />
           )}
         </TouchableOpacity>
       </Screen>

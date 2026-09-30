@@ -54,6 +54,14 @@
 >   not just its id. The page itself lives in a separate Next.js repo, `~/Desktop/povestea-web`.
 >   Accepted trade-off: a forwarded link can answer for that guest. **Not applied yet** — apply the
 >   migration before shipping an app build, or `inviteToken` is undefined and links break.
+> - **Moment photos go through Storage now (2026-09-30).** `app/post-moment/[id].tsx` passes the picked
+>   asset (`PickedPhoto`) to `addMoment`, which resizes it once (`processMomentPhoto`, longest edge 1600,
+>   JPEG 0.8) and `createMoment` uploads it to the same private `event-photos` bucket at
+>   `{eventId}/moments/{momentId}.jpg` before inserting the row with a client-generated id. `moments.photo_url`
+>   stores that **path**, not a URL; `loadSocial` (and povestea-web's `getMoments`) batch-sign it. Any other
+>   `photo_url` value is a legacy device-local URI, passed through unchanged. `deleteMoment(eventId, id)`
+>   removes the file best-effort. No migration: the bucket's existing RLS (first segment = eventId) covers it.
+>   Every "createMoment is untouched / still local URIs" line below is stale.
 > - **Web app (povestea-web) now mirrors the guest side of this app** (2026-09-29): phone+SMS login
 >   (same Supabase accounts), name step, invitations list, signed-in RSVP, and the 6 event tabs
 >   (Acasă reactions, Detalii + sections incl. dietary pills and table companions, Fond read-only,

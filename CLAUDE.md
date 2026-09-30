@@ -21,9 +21,8 @@
 >   `event_guests`, insert-blocking triggers on `messages`/`fund`/`accommodations`/`vendors`). Seating
 >   and bulk WhatsApp invites are deliberately not gated. §7's "no entitlement gating" is stale; real
 >   purchasing is still not built (the "Alege" button is still a placeholder write).
-> - **Migration status:** the correction below confirmed everything through `20260826000001`.
->   `20260827000001_user_avatars.sql` and `20260828000001_plan_feature_gating.sql` came later and are
->   **not re-confirmed** — check with `supabase migration list` before assuming either is live.
+> - **Migration status (confirmed 2026-09-30 via `supabase migration list`):** every migration through
+>   `20260929000002` is applied on the remote project.
 > - **Lint + CI exist** (`874c142`, `233dba5`). `yarn lint` (ESLint) and `yarn typecheck` (`tsc
 >   --noEmit`) run on every PR to `main`/`develop` via `.github/workflows/ci.yml`; Dependabot is
 >   configured. Use `yarn`, not `npm`.
@@ -52,8 +51,7 @@
 >   "Bună X, te invităm la „<event>”. ... https://povesteanoastra.ro/i/<token>" (was a generic
 >   "party" message pointing at the bare domain). `addGuestByPhone` now resolves to the new `Guest`,
 >   not just its id. The page itself lives in a separate Next.js repo, `~/Desktop/povestea-web`.
->   Accepted trade-off: a forwarded link can answer for that guest. **Not applied yet** — apply the
->   migration before shipping an app build, or `inviteToken` is undefined and links break.
+>   Accepted trade-off: a forwarded link can answer for that guest. Applied on the remote (2026-09-30).
 > - **Moment photos go through Storage now (2026-09-30).** `app/post-moment/[id].tsx` passes the picked
 >   asset (`PickedPhoto`) to `addMoment`, which resizes it once (`processMomentPhoto`, longest edge 1600,
 >   JPEG 0.8) and `createMoment` uploads it to the same private `event-photos` bucket at

@@ -36,6 +36,8 @@ export interface Guest {
    * "Assign guests" section on app/table/[id].tsx. A guest belongs to at
    * most one table for a given event. */
   tableId: string | null;
+  /** Personal link token for the web RSVP page (https://povesteanoastra.ro/i/<token>). */
+  inviteToken: string;
 }
 
 export interface AppEvent {
@@ -62,6 +64,8 @@ export interface AppEvent {
    * app/pricing/[id].tsx and hooks/useEvents.tsx's setPlanTier. */
   planTier: string | null;
   planPurchasedAt: string | null;
+  /** events.album_status — 'ready' ~72h after the event date (server cron). */
+  albumStatus: 'not_started' | 'generating' | 'ready';
 }
 
 /** Work-in-progress event inside the 4-step creation wizard. */

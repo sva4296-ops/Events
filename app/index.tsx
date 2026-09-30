@@ -128,10 +128,14 @@ export default function DashboardScreen() {
                   key={invitation.event.id}
                   invitation={invitation}
                   onPress={() =>
+                    // Only a confirmed guest enters the event. Pending and
+                    // declined both land on the RSVP screen, which for a
+                    // declined guest shows no event-access button, only
+                    // "Change my answer".
                     router.push(
-                      invitation.guest.status === 'pending'
-                        ? `/invite/${invitation.event.id}`
-                        : `/guest/${invitation.event.id}`,
+                      invitation.guest.status === 'confirmed'
+                        ? `/guest/${invitation.event.id}`
+                        : `/invite/${invitation.event.id}`,
                     )
                   }
                 />

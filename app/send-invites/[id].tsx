@@ -76,7 +76,11 @@ export default function SendInvitesScreen() {
     // list display, but "Bună 40790586600," is an awkward greeting, so treat
     // that specific fallback as "no name" for the message itself.
     const displayName = guest.name === guest.phone ? '' : guest.name;
-    const opened = await sendGuestWhatsAppInvite(guest.phone, displayName);
+    const opened = await sendGuestWhatsAppInvite(guest.phone, {
+      guestName: displayName,
+      eventName: event.name,
+      inviteToken: guest.inviteToken,
+    });
     setSendingId(null);
     if (opened) {
       await markWhatsAppSent(event.id, guest.id);

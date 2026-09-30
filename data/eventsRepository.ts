@@ -23,6 +23,7 @@ function mapGuestRow(row: EventGuestRow): Guest {
     phone: row.guest_phone,
     whatsappSentAt: row.whatsapp_sent_at,
     tableId: row.table_id,
+    inviteToken: row.invite_token,
   };
 }
 
@@ -53,6 +54,7 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     guests: row.event_guests.map(mapGuestRow),
     planTier: row.plan_tier,
     planPurchasedAt: row.plan_purchased_at,
+    albumStatus: row.album_status,
   };
 }
 

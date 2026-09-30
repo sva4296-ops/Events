@@ -25,6 +25,9 @@ interface DetaliiHubCardProps {
    * at the pricing screen instead of the real sub-screen when this is set;
    * this component only changes what it renders, not where it navigates. */
   locked?: boolean;
+  /** False hides the set/not-set StatusDot — it's an organizer checklist
+   * signal, meaningless to a guest who only ever sees sections with content. */
+  showStatusDot?: boolean;
   onPress: () => void;
 }
 
@@ -40,6 +43,7 @@ export function DetaliiHubCard({
   status,
   complete,
   locked = false,
+  showStatusDot = true,
   onPress,
 }: DetaliiHubCardProps) {
   const { tokens } = useTheme();
@@ -81,9 +85,9 @@ export function DetaliiHubCard({
       <View style={styles.trailing}>
         {locked ? (
           <Feather name="lock" size={16} color={tokens.statusPending} />
-        ) : (
+        ) : showStatusDot ? (
           <StatusDot complete={complete} />
-        )}
+        ) : null}
         <Feather name="chevron-right" size={20} color={tokens.textSecondary} />
       </View>
     </TouchableOpacity>

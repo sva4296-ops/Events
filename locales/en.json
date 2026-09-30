@@ -139,7 +139,7 @@
     "albumTitle": "Your album",
     "empty": "No photos yet. Photos added in Live show up here.",
     "downloadAll": "Download all photos",
-    "backToStart": "Back to start"
+    "notReady": "The full album will be ready to download 3 days after the event."
   },
   "rsvp": {
     "notFoundTitle": "Invitation not found",
@@ -226,7 +226,10 @@
       "vendorsTitle": "The people who made it happen",
       "vendorsUnset": "No vendors added yet",
       "vendorsCount_one": "{{count}} vendor",
-      "vendorsCount_other": "{{count}} vendors"
+      "vendorsCount_other": "{{count}} vendors",
+      "seatingGuest": "See where you're sitting",
+      "menuGuest": "See what's being served",
+      "guestEmpty": "The organizer hasn't added any details yet."
     }
   },
   "fond": {

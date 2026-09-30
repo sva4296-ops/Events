@@ -4,6 +4,67 @@
 > structure, design system, or core conventions — keep it in sync with the actual codebase, not with
 > what was merely planned.
 
+> **Current state (2026-09-29) — read this before anything else below.** This file was last fully
+> maintained on 2026-08-24; a few passes landed after that without updating it. Corrections that
+> override older wording further down:
+>
+> - **Chat has Supabase Realtime now** (`ac285c5`). `app/guest/[id]/chat.tsx` subscribes to
+>   `postgres_changes` INSERTs on `messages` (channel `messages:{eventId}`) and appends into the
+>   `['eventContent', 'social', eventId]` cache via `setQueryData`. It is the **only** subscription:
+>   moments, reactions and photos are still request/response. Every "Realtime is unused / nothing
+>   subscribes" line below is stale for Chat only.
+> - **Plan-tier feature gating exists** (`2bd5315`). `hooks/usePlanGate.tsx` (`usePlanGate(eventId)`)
+>   is the single client-side source for "does this event's plan allow X"; a null `plan_tier` behaves
+>   as Esențial (50 guests, no chat/live/fund/lodging/vendors). Locked states are wired into Chat,
+>   Live, Fond, Detalii's accommodation/vendor sections, and the guest-add flows.
+>   `20260828000001_plan_feature_gating.sql` is the server-side enforcement (guest-cap trigger on
+>   `event_guests`, insert-blocking triggers on `messages`/`fund`/`accommodations`/`vendors`). Seating
+>   and bulk WhatsApp invites are deliberately not gated. §7's "no entitlement gating" is stale; real
+>   purchasing is still not built (the "Alege" button is still a placeholder write).
+> - **Migration status:** the correction below confirmed everything through `20260826000001`.
+>   `20260827000001_user_avatars.sql` and `20260828000001_plan_feature_gating.sql` came later and are
+>   **not re-confirmed** — check with `supabase migration list` before assuming either is live.
+> - **Lint + CI exist** (`874c142`, `233dba5`). `yarn lint` (ESLint) and `yarn typecheck` (`tsc
+>   --noEmit`) run on every PR to `main`/`develop` via `.github/workflows/ci.yml`; Dependabot is
+>   configured. Use `yarn`, not `npm`.
+> - **Android test builds:** `eas.json`'s `preview` profile builds an installable APK
+>   (`distribution: internal`, `android.buildType: apk`, `environment: preview`). `.env` is gitignored,
+>   so EAS never sees it: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` and
+>   `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` must exist as EAS environment variables for `preview`
+>   (`eas env:list --environment preview`), otherwise the APK crashes at launch (`supabaseClient.ts`
+>   throws). Never push `SUPABASE_SERVICE_ROLE_KEY` to EAS. Build: `eas build -p android --profile preview`.
+> - **Guest-facing visibility (2026-09-29):** Home's "My invitations" only opens `/guest/[id]` for a
+>   `confirmed` RSVP; `pending` and `declined` both go to `/invite/[id]` (client-side only, RLS still
+>   lets any invited guest read the event). The Detalii hub now has an owner/guest split: a guest sees
+>   only cards that have content and aren't plan-locked, no `StatusDot`, guest-worded status for menu/
+>   seating, and an `EmptyState` (`detalii.hub.guestEmpty`) when nothing is set. The owner view is
+>   unchanged. Older text saying Detalii "has no owner-only rendering branch" is stale.
+> - **Album tab reads `events.album_status` now** (`AppEvent.albumStatus`). The column and its pg_cron
+>   job (`advance_album_status()`, every 6h, flips to `ready` ~72h after `event_date`) existed since
+>   `20260812000002/3` but nothing in the app read them. "Download all photos" renders only when
+>   `ready` and at least one photo exists, otherwise an `album.notReady` note; its `onPress` is still a no-op (§7). "Back to start"
+>   was removed.
+> - **Web RSVP by personal token (2026-09-29), supersedes `docs/web-invite-fallback-spec.md`'s login
+>   flow.** `20260929000001_guest_invite_tokens.sql` adds `event_guests.invite_token` (unique, 32 hex,
+>   per-row default) plus two `security definer` RPCs granted to `anon`: `get_invite_by_token` and
+>   `respond_to_invite_by_token` (only sets `rsvp_status`/`responded_at` on the one row the token
+>   names). `Guest.inviteToken` is mapped from it; `utils/whatsappInvite.ts` now sends
+>   "Bună X, te invităm la „<event>”. ... https://povesteanoastra.ro/i/<token>" (was a generic
+>   "party" message pointing at the bare domain). `addGuestByPhone` now resolves to the new `Guest`,
+>   not just its id. The page itself lives in a separate Next.js repo, `~/Desktop/povestea-web`.
+>   Accepted trade-off: a forwarded link can answer for that guest. **Not applied yet** — apply the
+>   migration before shipping an app build, or `inviteToken` is undefined and links break.
+> - **Web app (povestea-web) now mirrors the guest side of this app** (2026-09-29): phone+SMS login
+>   (same Supabase accounts), name step, invitations list, signed-in RSVP, and the 6 event tabs
+>   (Acasă reactions, Detalii + sections incl. dietary pills and table companions, Fond read-only,
+>   Chat with Realtime, Live photo upload with the same thumb/full Storage paths, Album with download).
+>   Same access rule as here: owner or confirmed guest only. Organizer editing is app-only for now.
+>   `20260929000002_invite_token_event_id.sql` makes `get_invite_by_token` also return `event_id`
+>   (drop + recreate, return type changed). If you change a data contract here (tables, RPCs, Storage
+>   paths, plan gating), check povestea-web too.
+> - **Sentry still does not exist** in this codebase; `console.warn`/`reportSupabaseError` remain the
+>   substitutes documented below.
+
 > **Correction, later session — "no DB credentials/CLI access from this environment" was wrong, and
 > every instance of that claim below (there are over 20) is now stale.** That claim was never actually
 > re-checked after the environment first didn't have it — it was copy-forward assumption, repeated
@@ -215,6 +276,9 @@ Supabase risks a duplicate write, unlike a read).
 `messages`/`photos`/`moments`/`reactions` already had `supabase.channel()` subscriptions to wire into
 the query cache via `setQueryData` — they don't; see §7, this has never been built here. Adding Realtime
 was out of scope for an infra-only pass and would have been new functionality, not a refactor.
+**Superseded for Chat only, a later pass:** `app/guest/[id]/chat.tsx` now has a real
+`supabase.channel()` subscription that patches this cache via `setQueryData` — see the "Current state"
+block at the top of this file. Moments/reactions/photos are still not subscribed.
 
 | Hook | Owns |
 | --- | --- |
@@ -643,6 +707,8 @@ now call the Supabase repository unconditionally — there's no other path to as
   to the `supabase_realtime` publication, and that's still all that happened — no `supabase.channel()`
   subscriptions exist anywhere. Every screen is request/response: write, then re-`load()` that event's
   content. Multi-device live updates (e.g. Chat) need an explicit subscription pass.
+  **Superseded for Chat, a later pass** — Chat subscribes to `messages` inserts now; everything else
+  is still request/response. See the "Current state" block at the top of this file.
 - **`contribute()` stays local-only and unused.** The `contributions` table has no client insert policy
   on purpose (`supabase/migrations/20260810000002_rls_policies.sql`: written by a Stripe webhook using
   the service role, never the client), so `remoteEventContentRepository.ts` has no `contribute`
@@ -3143,7 +3209,10 @@ gold icon on top.
 
 ## 7. Not built / deliberately deferred
 
-- **Real RevenueCat purchasing, purchase recording, webhook verification, and entitlement gating.**
+- **Real RevenueCat purchasing, purchase recording, and webhook verification.** (Entitlement
+  *gating* by `events.plan_tier` is built now — `hooks/usePlanGate.tsx` + a server-side migration, see
+  the "Current state" block at the top. What's below about gating not existing is stale; the rest
+  still holds.)
   `app/pricing/[id].tsx`'s "Alege" no longer even calls `Purchases.purchasePackage()` — a later pass
   replaced that with a hardcoded placeholder (`useEvents().setPlanTier`, a plain
   `events.plan_tier`/`plan_purchased_at` write) specifically so the plan-selection flow could be tested
@@ -3166,8 +3235,9 @@ gold icon on top.
   device still has a photo that resolves to nothing on any other device or guest's screen. Fixing
   moments the same way is a smaller version of the same work (no dual-resolution requirement was ever
   specified for moments, so a single-version upload would likely suffice) — not done, not started.
-- **Realtime.** Publication is configured (`supabase/migrations/...rls_policies.sql`) but nothing
-  subscribes; every screen is request/response (see §3).
+- **Realtime, except Chat.** Publication is configured (`supabase/migrations/...rls_policies.sql`).
+  Chat subscribes to `messages` inserts (see the "Current state" block at the top); moments,
+  reactions and photos still don't — those screens are request/response (see §3).
 - **Stripe.** The fund UI is complete but `checkout/[id].tsx` is a placeholder screen — no payment,
   no Stripe Connect onboarding, no `contributions` writes (and none should be added client-side — see
   §3's note on why `contribute()` has no real backing implementation).
@@ -3202,6 +3272,8 @@ gold icon on top.
 ## Working on this project
 
 ```bash
+yarn lint                           # ESLint (also runs in CI on every PR)
+yarn typecheck                      # tsc --noEmit (also runs in CI)
 npx tsc --noEmit --noUnusedLocals   # types + dead imports
 npx expo export --platform ios      # confirms the bundle builds
 npx pod-install && npx expo run:ios # required after any native dep change

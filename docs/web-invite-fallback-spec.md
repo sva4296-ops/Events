@@ -1,5 +1,9 @@
 # Web invite fallback — spec for a separate Next.js repo
 
+> **Superseded (2026-09-29).** The site was built as `~/Desktop/povestea-web` with a no-login,
+> per-guest token flow (`/i/<token>`) instead of the phone-OTP flow below. See that repo's README and
+> `supabase/migrations/20260929000001_guest_invite_tokens.sql`. Kept for history.
+
 > **This document specifies a page that does not exist yet, in a repo that does not exist yet.**
 > Nothing in this file is code that runs today. It exists so the Next.js project can be scaffolded
 > later without re-deriving the contract from scratch. See CLAUDE.md §7 for the standing note

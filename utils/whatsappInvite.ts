@@ -3,18 +3,32 @@ import { Linking, Share } from 'react-native';
 import { reportSupabaseError } from '@/utils/reportError';
 
 /**
- * Placeholder until the real web login page exists — every guest invite
- * message links here. One constant, swapped in one place once the site is
- * live; nothing else in this file (or its caller) hardcodes the URL.
+ * Base URL of the web RSVP site (separate Next.js repo, povestea-web). Each
+ * guest's message links to their own `/i/<inviteToken>` page there, which
+ * shows the invite and lets them confirm/decline with no login — see
+ * supabase/migrations/20260929000001_guest_invite_tokens.sql. One constant,
+ * swapped in one place if the domain changes.
  */
-export const GUEST_LOGIN_URL = 'https://povesteanoastra.ro';
+export const INVITE_SITE_URL = 'https://povesteanoastra.ro';
 
-/** "Bună Maria, vrem..." / "Bună, vrem..." when no name was given. */
-export function buildGuestInviteMessage(name: string): string {
-  const greeting = name.trim().length > 0 ? `Bună ${name.trim()},` : 'Bună,';
+export interface GuestInviteMessageInput {
+  /** Empty string when the organizer didn't type a name. */
+  guestName: string;
+  eventName: string;
+  inviteToken: string;
+}
+
+export function buildGuestInviteLink(inviteToken: string): string {
+  return `${INVITE_SITE_URL}/i/${inviteToken}`;
+}
+
+/** "Bună Maria, te invităm la „Nunta noastră”. ..." — neutral wording on
+ * purpose so it reads right for every event type (wedding through memorial). */
+export function buildGuestInviteMessage({ guestName, eventName, inviteToken }: GuestInviteMessageInput): string {
+  const greeting = guestName.trim().length > 0 ? `Bună ${guestName.trim()},` : 'Bună,';
   return (
-    `${greeting} vrem să te invităm la un party! Loghează-te cu numărul tău de telefon pe ` +
-    `povesteanoastra.ro pentru a putea accepta invitația și a urmări ce se întâmplă: ${GUEST_LOGIN_URL}`
+    `${greeting} te invităm la „${eventName.trim()}”. ` +
+    `Vezi invitația și spune-ne dacă poți ajunge: ${buildGuestInviteLink(inviteToken)}`
   );
 }
 
@@ -24,8 +38,8 @@ export function buildGuestInviteMessage(name: string): string {
  * produces, and what's already written to event_guests.guest_phone, so
  * callers reuse the same value for both rather than reformatting).
  */
-export function buildGuestInviteWhatsAppUrl(phone: string, name: string): string {
-  return `https://wa.me/${phone}?text=${encodeURIComponent(buildGuestInviteMessage(name))}`;
+export function buildGuestInviteWhatsAppUrl(phone: string, input: GuestInviteMessageInput): string {
+  return `https://wa.me/${phone}?text=${encodeURIComponent(buildGuestInviteMessage(input))}`;
 }
 
 /**
@@ -54,9 +68,12 @@ export function buildGuestInviteWhatsAppUrl(phone: string, name: string): string
  * fallback below is still real and still fires as specified, just less
  * often in practice than "WhatsApp isn't installed" alone would suggest.
  */
-export async function sendGuestWhatsAppInvite(phone: string, name: string): Promise<boolean> {
-  const message = buildGuestInviteMessage(name);
-  const url = buildGuestInviteWhatsAppUrl(phone, name);
+export async function sendGuestWhatsAppInvite(
+  phone: string,
+  input: GuestInviteMessageInput,
+): Promise<boolean> {
+  const message = buildGuestInviteMessage(input);
+  const url = buildGuestInviteWhatsAppUrl(phone, input);
 
   try {
     const canOpen = await Linking.canOpenURL(url);

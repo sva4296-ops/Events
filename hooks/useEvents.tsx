@@ -19,7 +19,7 @@ import {
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import type { AppEvent, EventDraft, RsvpStatus } from '@/types/event';
+import type { AppEvent, EventDraft, Guest, RsvpStatus } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
 
 interface EventsResult {
@@ -37,7 +37,8 @@ interface EventsResult {
    * mark it whatsapp_sent_at right after a confirmed wa.me open, matching
    * the bulk send-queue's own semantics. Null if the refetch somehow didn't
    * come back with a matching row. */
-  addGuestByPhone: (eventId: string, phone: string, name: string) => Promise<string | null>;
+  /** Resolves to the newly created guest (id + inviteToken for the WhatsApp link). */
+  addGuestByPhone: (eventId: string, phone: string, name: string) => Promise<Guest | null>;
   addGuestsBatch: (eventId: string, guests: BulkGuestEntry[]) => Promise<void>;
   /** Optimistic — patches the cached guest's whatsappSentAt immediately so
    * app/send-invites/[id].tsx's pending-queue filter drops the row right
@@ -197,9 +198,9 @@ export function useEvents(): EventsResult {
     },
   });
   const addGuestByPhone = useCallback(
-    async (eventId: string, phone: string, name: string): Promise<string | null> => {
+    async (eventId: string, phone: string, name: string): Promise<Guest | null> => {
       const { fresh } = await addGuestByPhoneMutation.mutateAsync({ eventId, phone, name });
-      return fresh?.guests.find((guest) => guest.phone === phone)?.id ?? null;
+      return fresh?.guests.find((guest) => guest.phone === phone) ?? null;
     },
     [addGuestByPhoneMutation],
   );

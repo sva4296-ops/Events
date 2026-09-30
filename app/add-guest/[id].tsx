@@ -107,7 +107,7 @@ export default function AddGuestScreen() {
         return;
       }
 
-      const guestId = await addGuestByPhone(event.id, phone, name.trim());
+      const guest = await addGuestByPhone(event.id, phone, name.trim());
       // event_guests row is already saved by this point — a WhatsApp-open
       // failure here is best-effort and reports on its own, never rolls
       // back or blocks navigating back. Marking whatsapp_sent_at only on a
@@ -115,10 +115,20 @@ export default function AddGuestScreen() {
       // app/send-invites/[id].tsx's own "sent" semantics — this is what
       // keeps a guest invited here from also showing up in that screen's
       // pending queue and getting messaged a second time.
-      const opened = await sendGuestWhatsAppInvite(phone, name.trim());
-      if (opened && guestId !== null) {
+      // The personal link needs the new row's invite_token, so without the
+      // refetched guest there's nothing correct to send.
+      if (guest === null) {
+        router.back();
+        return;
+      }
+      const opened = await sendGuestWhatsAppInvite(phone, {
+        guestName: name.trim(),
+        eventName: event.name,
+        inviteToken: guest.inviteToken,
+      });
+      if (opened) {
         try {
-          await markWhatsAppSent(event.id, guestId);
+          await markWhatsAppSent(event.id, guest.id);
         } catch {
           // markWhatsAppSent's own onError already reports and reconciles
           // the cache — swallow here so it isn't reported a second time.

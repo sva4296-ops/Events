@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -89,8 +88,16 @@ export default function AlbumScreen() {
         )}
       </View>
 
-      <GuestButton label={t('album.downloadAll')} onPress={() => {}} />
-      <GuestButton label={t('album.backToStart')} variant="outline" onPress={() => router.push('/')} />
+      {/* The full album only unlocks once the server cron marks it ready
+          (~72h after the event date, events.album_status). Before that there's
+          nothing final to download, so show when it'll be ready instead. */}
+      {event?.albumStatus !== 'ready' ? (
+        <Text style={[styles.pendingNote, { color: tokens.textSecondary }]}>
+          {t('album.notReady')}
+        </Text>
+      ) : photos.length > 0 ? (
+        <GuestButton label={t('album.downloadAll')} onPress={() => {}} />
+      ) : null}
     </GuestScreen>
   );
 }
@@ -123,6 +130,10 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
+  },
+  pendingNote: {
+    fontSize: 13,
+    textAlign: 'center',
   },
   albumBlock: {
     gap: gSpace.md,

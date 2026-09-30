@@ -2,9 +2,11 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import { EmptyState } from '@/components/EmptyState';
 import { DetaliiHubCard, DetaliiHubCardSkeleton } from '@/components/guest/DetaliiHubCard';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { useEventContent } from '@/hooks/useEventContent';
+import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { usePlanGate } from '@/hooks/usePlanGate';
 import { gSpace } from '@/utils/guestTheme';
@@ -41,8 +43,10 @@ function DetaliiSkeleton() {
 
 export default function DetaliiScreen() {
   const { t } = useTranslation();
-  const { id } = useGuestEvent();
+  const { id, event } = useGuestEvent();
   const { content } = useEventContent(id);
+  const { isOwner } = useEvents();
+  const owner = event !== undefined && isOwner(event);
   const { capabilities } = usePlanGate(id);
 
   if (content === null) return <DetaliiSkeleton />;
@@ -78,7 +82,12 @@ export default function DetaliiScreen() {
       key: 'menu',
       icon: 'coffee',
       title: t('detalii.hub.menuTitle'),
-      status: content.menu === null ? t('detalii.hub.menuUnset') : t('detalii.hub.menuSet'),
+      status:
+        content.menu === null
+          ? t('detalii.hub.menuUnset')
+          : owner
+            ? t('detalii.hub.menuSet')
+            : t('detalii.hub.menuGuest'),
       complete: content.menu !== null,
       route: `/detalii-menu/${id}`,
     },
@@ -89,7 +98,9 @@ export default function DetaliiScreen() {
       status:
         content.seatingTables.length === 0
           ? t('detalii.hub.seatingUnset')
-          : t('detalii.hub.seatingCount', { count: seatedCount }),
+          : owner
+            ? t('detalii.hub.seatingCount', { count: seatedCount })
+            : t('detalii.hub.seatingGuest'),
       complete: content.seatingTables.length > 0,
       route: `/detalii-seating/${id}`,
     },
@@ -121,9 +132,22 @@ export default function DetaliiScreen() {
     },
   ];
 
+  // A guest only sees sections that actually have something in them: no
+  // plan-locked cards (an upsell only the organizer can act on) and no empty
+  // "not set yet" cards (a to-do list for the organizer, not guest info).
+  const visibleCards = owner ? cards : cards.filter((card) => !card.locked && card.complete);
+
+  if (visibleCards.length === 0) {
+    return (
+      <GuestScreen transparent contentStyle={{ gap: gSpace.md }}>
+        <EmptyState icon="info" message={t('detalii.hub.guestEmpty')} />
+      </GuestScreen>
+    );
+  }
+
   return (
     <GuestScreen transparent contentStyle={{ gap: gSpace.md }}>
-      {cards.map((card) => (
+      {visibleCards.map((card) => (
         <DetaliiHubCard
           key={card.key}
           icon={card.icon}
@@ -131,6 +155,7 @@ export default function DetaliiScreen() {
           status={card.status}
           complete={card.complete}
           locked={card.locked}
+          showStatusDot={owner}
           onPress={() => router.push(card.route)}
         />
       ))}

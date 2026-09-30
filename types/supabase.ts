@@ -32,6 +32,9 @@ export interface EventRow {
    * CLAUDE.md's "Pricing screen". Null until the organizer picks a plan. */
   plan_tier: string | null;
   plan_purchased_at: string | null;
+  /** Flipped to 'ready' by the advance_album_status() pg_cron job ~72h after
+   * event_date — see 20260812000003_album_status_cron.sql. */
+  album_status: 'not_started' | 'generating' | 'ready';
 }
 
 export interface EventGuestRow {
@@ -52,6 +55,9 @@ export interface EventGuestRow {
   /** Which seating_tables row this guest is assigned to, if any — see
    * 20260822000002_seating_table_guest_assignment.sql. */
   table_id: string | null;
+  /** Per-guest secret for the web RSVP page (povestea-web, /i/[token]) — see
+   * 20260929000001_guest_invite_tokens.sql. */
+  invite_token: string;
 }
 
 /** Row shape returned by the get_invite_preview(uuid) RPC — see

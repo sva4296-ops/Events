@@ -139,7 +139,7 @@
     "albumTitle": "Albumul vostru",
     "empty": "Nicio poză încă. Pozele adăugate în Live apar aici.",
     "downloadAll": "Descarcă toate pozele",
-    "backToStart": "Înapoi la început"
+    "notReady": "Albumul complet va putea fi descărcat la 3 zile după eveniment."
   },
   "rsvp": {
     "notFoundTitle": "Invitația nu a fost găsită",
@@ -231,7 +231,10 @@
       "vendorsUnset": "Niciun furnizor adăugat",
       "vendorsCount_one": "{{count}} furnizor",
       "vendorsCount_few": "{{count}} furnizori",
-      "vendorsCount_other": "{{count}} de furnizori"
+      "vendorsCount_other": "{{count}} de furnizori",
+      "seatingGuest": "Vezi unde stai",
+      "menuGuest": "Vezi ce se servește",
+      "guestEmpty": "Organizatorul nu a adăugat încă detalii."
     }
   },
   "fond": {

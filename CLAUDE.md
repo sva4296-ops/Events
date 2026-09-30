@@ -92,6 +92,11 @@
 >   mark at `imageWidth: 257` (= 180px mark), and `BrandSplash` starts from that exact frame: dots
 >   pulse, mark lifts, wordmark + tagline rise, fade out. povestea-web got the same mark plus
 >   `app/icon.png`, `app/apple-icon.png`, `app/favicon.ico`.
+>   **Icons pass (same day):** emoji no longer render as UI icons. `components/EventTypeIcon.tsx`
+>   draws Lucide geometry per type (colored with `meta.bandInk`); web uses lucide-react
+>   (`components/EventTypeIcon.tsx`, landing, AppBanner, vendor icons). The `emoji` field in both
+>   `eventTypes` files is now unused (WhatsApp text has its own copy in `whatsappInvite.ts`). Kept on purpose as user content: the
+>   post-moment quick-emoji picker and example moment titles in landing mockups.
 > - **Invite links open the app when installed (2026-09-30).** `utils/whatsappInvite.ts` now builds a
 >   per-event-type Romanian message (emoji + line per `EventTypeId`, sober wording for `memorial`, date in
 >   `ro-RO`, location) and links to `INVITE_SITE_URL` = `https://events-web-henna.vercel.app` (switch to

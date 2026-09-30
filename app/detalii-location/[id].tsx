@@ -70,7 +70,7 @@ export default function DetaliiLocationScreen() {
           <View style={[styles.mapPreview, { backgroundColor: tokens.surface2 }]}>
             <Image source={{ uri: content.venue.map_image_url }} style={styles.map} />
             <View style={[styles.pin, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}>
-              <Text style={styles.pinText}>📍</Text>
+              <Feather name="map-pin" size={20} color={tokens.accentText} />
             </View>
           </View>
 
@@ -128,9 +128,6 @@ const styles = StyleSheet.create({
     borderRadius: gRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  pinText: {
-    fontSize: 20,
   },
   venueBody: {
     padding: gSpace.xl,

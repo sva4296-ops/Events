@@ -29,20 +29,20 @@ function cardStyle(tokens: ThemeTokens) {
 /** Matches the vendor's own (user-typed) category text, so this stays
  * Romanian-keyword-based regardless of UI language — see the file-level note
  * on never translating user-generated content. */
-function vendorIcon(category: string): string {
+function vendorIcon(category: string): keyof typeof Feather.glyphMap {
   const normalized = category.toLowerCase();
-  if (normalized.includes('foto') || normalized.includes('video')) return '📷';
-  if (normalized.includes('muz') || normalized.includes('dj')) return '🎵';
+  if (normalized.includes('foto') || normalized.includes('video')) return 'camera';
+  if (normalized.includes('muz') || normalized.includes('dj')) return 'music';
   if (normalized.includes('catering') || normalized.includes('mânc') || normalized.includes('manc')) {
-    return '🍽️';
+    return 'coffee';
   }
-  if (normalized.includes('flor')) return '💐';
-  if (normalized.includes('tort') || normalized.includes('cofet')) return '🎂';
+  if (normalized.includes('flor')) return 'feather';
+  if (normalized.includes('tort') || normalized.includes('cofet')) return 'gift';
   if (normalized.includes('transport') || normalized.includes('mașin') || normalized.includes('masin')) {
-    return '🚗';
+    return 'truck';
   }
-  if (normalized.includes('decor')) return '🎈';
-  return '🏷️';
+  if (normalized.includes('decor')) return 'star';
+  return 'tag';
 }
 
 export default function DetaliiVendorsScreen() {
@@ -144,8 +144,8 @@ export default function DetaliiVendorsScreen() {
                 ]}
               >
                 <View style={[styles.vendorCard, card]}>
-                  <View style={[styles.vendorIconWrap, { backgroundColor: tokens.surface }]}>
-                    <Text style={styles.vendorIcon}>{vendorIcon(vendor.category)}</Text>
+                  <View style={[styles.vendorIconWrap, { backgroundColor: tokens.accentTint }]}>
+                    <Feather name={vendorIcon(vendor.category)} size={20} color={tokens.accentText} />
                   </View>
                   <View style={styles.vendorBody}>
                     <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{vendor.name}</Text>
@@ -209,9 +209,6 @@ const styles = StyleSheet.create({
     borderRadius: gRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  vendorIcon: {
-    fontSize: 18,
   },
   vendorBody: {
     flex: 1,

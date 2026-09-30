@@ -3,8 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
+import type { EventTypeId } from '@/types/event';
 import type { Moment, ReactionType } from '@/types/guest';
 import { timeAgo } from '@/utils/relativeTime';
 import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
@@ -13,8 +15,8 @@ interface MomentCardProps {
   moment: Moment;
   /** Who posted it — moments are organizer posts, so this is the event's name. */
   authorName: string;
-  /** Shown in the gradient avatar, e.g. the event type's emoji. */
-  authorBadge: string;
+  /** Event type, drawn as a line icon in the gradient avatar. */
+  authorType: EventTypeId | null;
   loveCount: number;
   celebrateCount: number;
   lovedByMe: boolean;
@@ -26,7 +28,7 @@ interface MomentCardProps {
 export function MomentCard({
   moment,
   authorName,
-  authorBadge,
+  authorType,
   loveCount,
   celebrateCount,
   lovedByMe,
@@ -46,7 +48,7 @@ export function MomentCard({
     >
       <View style={styles.author}>
         <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.avatar}>
-          <Text style={styles.avatarText}>{authorBadge}</Text>
+          <EventTypeIcon type={authorType} size={18} color="#2B2740" />
         </LinearGradient>
         <View style={styles.authorText}>
           <Text style={[styles.authorName, { color: tokens.textPrimary }]} numberOfLines={1}>
@@ -166,9 +168,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
   },
   authorText: {
     flex: 1,

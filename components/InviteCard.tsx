@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventDraft } from '@/types/event';
 import { getEventType } from '@/utils/eventTypes';
@@ -16,7 +17,7 @@ const CHIP_TEXT = '#2B2740';
 const RADIUS = 28;
 
 /**
- * Warm Story 2.0 invitation card: the type's band on top (type chip + emoji),
+ * Warm Story 2.0 invitation card: the type's band on top (type chip + icon),
  * then the name in Playfair, the welcome message as a quote, and date/place.
  * Accepts both a wizard draft and a saved event — the shapes overlap.
  */
@@ -47,7 +48,7 @@ export function InviteCard({ event }: { event: EventDraft }) {
           <Text style={styles.chipText}>{t(`eventTypes.${type.id}.label`)}</Text>
         </View>
         <View style={styles.emojiCircle}>
-          <Text style={styles.emoji}>{type.emoji}</Text>
+          <EventTypeIcon type={type.id} size={36} color={CHIP_TEXT} strokeWidth={1.6} />
         </View>
       </LinearGradient>
 
@@ -113,9 +114,6 @@ const styles = StyleSheet.create({
     backgroundColor: CHIP_BG,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 38,
   },
   body: {
     paddingTop: 22,

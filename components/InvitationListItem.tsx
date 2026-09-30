@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { RsvpBadge } from '@/components/RsvpBadge';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
@@ -50,7 +51,7 @@ export function InvitationListItem({
         end={{ x: 1, y: 1 }}
         style={styles.badge}
       >
-        <Text style={styles.emoji}>{type.emoji}</Text>
+        <EventTypeIcon type={type.id} size={24} color={type.bandInk} />
       </LinearGradient>
 
       <View style={styles.info}>
@@ -123,9 +124,6 @@ const styles = StyleSheet.create({
     borderRadius: themeRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 23,
   },
   info: {
     flex: 1,

@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { Skeleton } from '@/components/Skeleton';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { useTheme } from '@/hooks/useTheme';
@@ -17,7 +18,7 @@ const CHIP_BG = 'rgba(255,255,255,0.9)';
 const CHIP_TEXT = '#2B2740';
 
 /**
- * Warm Story 2.0 event card for Home: type band on top (emoji, plan chip,
+ * Warm Story 2.0 event card for Home: type band on top (type icon, plan chip,
  * countdown), then name, date · place, the four-stage story timeline and the
  * RSVP counts.
  */
@@ -71,7 +72,7 @@ export function EventListItem({
         style={styles.band}
       >
         <View style={styles.emojiCircle}>
-          <Text style={styles.emoji}>{type.emoji}</Text>
+          <EventTypeIcon type={type.id} size={26} color={CHIP_TEXT} />
         </View>
 
         {planLabel !== null ? (
@@ -176,9 +177,6 @@ const styles = StyleSheet.create({
     backgroundColor: CHIP_BG,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 28,
   },
   chip: {
     flexDirection: 'row',

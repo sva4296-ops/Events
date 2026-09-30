@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeMeta } from '@/types/event';
 import { bandGradientLocations, themeRadius } from '@/utils/themeTokens';
@@ -42,7 +43,7 @@ export function TypeTile({ type, selected, onPress }: TypeTileProps) {
         end={{ x: 1, y: 1 }}
         style={styles.icon}
       >
-        <Text style={styles.emoji}>{type.emoji}</Text>
+        <EventTypeIcon type={type.id} size={24} color={type.bandInk} />
       </LinearGradient>
 
       <View style={styles.text}>
@@ -77,9 +78,6 @@ const styles = StyleSheet.create({
     borderRadius: themeRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 22,
   },
   text: {
     gap: 2,

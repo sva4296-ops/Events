@@ -18,6 +18,8 @@ export interface EventTypeMeta {
   gradient: Gradient;
   /** Warm Story 2.0 three-stop band: type tiles, event card band, invitation cover. */
   band: readonly [string, string, string];
+  /** Icon color that reads on this type's band (ink on light bands, white on dark). */
+  bandInk: string;
   accent: string;
 }
 

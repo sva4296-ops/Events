@@ -3,9 +3,10 @@ import { useEffect, useRef, type ReactNode } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { takePendingRoute } from '@/utils/pendingRoute';
 
 /** Route groups reachable without a session. Everything else requires one. */
-const PUBLIC_SEGMENTS = new Set(['auth', 'onboarding', 'invite']);
+const PUBLIC_SEGMENTS = new Set(['auth', 'onboarding', 'invite', 'i']);
 
 /**
  * Redirects to the auth screen whenever a protected route is rendered without a
@@ -49,6 +50,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     if (firstName === null) {
       router.replace('/auth/complete-profile');
+      return;
+    }
+
+    // Signed in through an invite link (app/i/[token].tsx): go straight to that
+    // invite and skip the tutorial for this session, same as the web does.
+    const pending = takePendingRoute();
+    if (pending !== null) {
+      onboardingChecked.current = user.id;
+      router.replace(pending);
       return;
     }
 

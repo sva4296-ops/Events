@@ -52,6 +52,15 @@
 >   "party" message pointing at the bare domain). `addGuestByPhone` now resolves to the new `Guest`,
 >   not just its id. The page itself lives in a separate Next.js repo, `~/Desktop/povestea-web`.
 >   Accepted trade-off: a forwarded link can answer for that guest. Applied on the remote (2026-09-30).
+> - **Invite links open the app when installed (2026-09-30).** `utils/whatsappInvite.ts` now builds a
+>   per-event-type Romanian message (emoji + line per `EventTypeId`, sober wording for `memorial`, date in
+>   `ro-RO`, location) and links to `INVITE_SITE_URL` = `https://events-web-henna.vercel.app` (switch to
+>   povesteanoastra.ro later, together with app.json). `app.json` declares that host for Android App Links
+>   (`intentFilters`, `pathPrefix: /i/`, `autoVerify`) and iOS `associatedDomains`; povestea-web serves the
+>   matching `/.well-known` files from `ANDROID_SHA256_FINGERPRINTS` / `APPLE_TEAM_ID` env vars.
+>   `app/i/[token].tsx` resolves the token via `get_invite_by_token` (anon) and replaces to `/invite/<eventId>`;
+>   without a session it stores that path (`utils/pendingRoute.ts`, in memory) and goes to `/auth`, and
+>   AuthGate takes it after sign-in + name, skipping the tutorial for that session. `i` is a public segment.
 > - **Moment photos go through Storage now (2026-09-30).** `app/post-moment/[id].tsx` passes the picked
 >   asset (`PickedPhoto`) to `addMoment`, which resizes it once (`processMomentPhoto`, longest edge 1600,
 >   JPEG 0.8) and `createMoment` uploads it to the same private `event-photos` bucket at

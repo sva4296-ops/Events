@@ -33,7 +33,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.povesteanoastra.app"
+      "bundleIdentifier": "com.povesteanoastra.app",
+      "associatedDomains": [
+        "applinks:events-web-henna.vercel.app"
+      ]
     },
     "android": {
       "package": "com.povesteanoastra.app",
@@ -43,7 +46,24 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "events-web-henna.vercel.app",
+              "pathPrefix": "/i/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

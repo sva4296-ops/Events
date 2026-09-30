@@ -295,6 +295,19 @@ export async function markGuestWhatsAppSent(guestId: string): Promise<void> {
  * session has no matching pending (or already-linked) invite for this event;
  * the RPC itself only ever matches the caller's own row, never anyone else's.
  */
+/**
+ * The event a personal invite token belongs to — get_invite_by_token() is
+ * granted to anon, so this works before sign-in (app/i/[token].tsx). Null for
+ * an unknown or revoked token.
+ */
+export async function fetchInviteEventIdByToken(token: string): Promise<string | null> {
+  const client = supabase;
+  const { data, error } = await client.rpc('get_invite_by_token', { p_token: token });
+  if (error) throw error;
+  const row = (data as { event_id: string | null }[] | null)?.[0];
+  return row?.event_id ?? null;
+}
+
 export async function fetchInvitePreview(eventId: string): Promise<InvitePreview | null> {
   const client = supabase;
   const { data, error } = await client.rpc('get_invite_preview', { p_event_id: eventId });

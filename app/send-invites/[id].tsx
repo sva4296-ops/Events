@@ -78,7 +78,7 @@ export default function SendInvitesScreen() {
     const displayName = guest.name === guest.phone ? '' : guest.name;
     const opened = await sendGuestWhatsAppInvite(guest.phone, {
       guestName: displayName,
-      eventName: event.name,
+      event,
       inviteToken: guest.inviteToken,
     });
     setSendingId(null);

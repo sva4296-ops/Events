@@ -1,20 +1,23 @@
 import { Linking, Share } from 'react-native';
 
+import type { AppEvent, EventTypeId } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
 
 /**
  * Base URL of the web RSVP site (separate Next.js repo, povestea-web). Each
  * guest's message links to their own `/i/<inviteToken>` page there, which
  * shows the invite and lets them confirm/decline with no login — see
- * supabase/migrations/20260929000001_guest_invite_tokens.sql. One constant,
- * swapped in one place if the domain changes.
+ * supabase/migrations/20260929000001_guest_invite_tokens.sql. The same host is
+ * declared in app.json (Android intentFilters + iOS associatedDomains), so
+ * with the app installed the link opens app/i/[token].tsx instead. Change
+ * both together when povesteanoastra.ro goes live.
  */
-export const INVITE_SITE_URL = 'https://povesteanoastra.ro';
+export const INVITE_SITE_URL = 'https://events-web-henna.vercel.app';
 
 export interface GuestInviteMessageInput {
   /** Empty string when the organizer didn't type a name. */
   guestName: string;
-  eventName: string;
+  event: Pick<AppEvent, 'type' | 'name' | 'date' | 'location'>;
   inviteToken: string;
 }
 
@@ -22,14 +25,62 @@ export function buildGuestInviteLink(inviteToken: string): string {
   return `${INVITE_SITE_URL}/i/${inviteToken}`;
 }
 
-/** "Bună Maria, te invităm la „Nunta noastră”. ..." — neutral wording on
- * purpose so it reads right for every event type (wedding through memorial). */
-export function buildGuestInviteMessage({ guestName, eventName, inviteToken }: GuestInviteMessageInput): string {
-  const greeting = guestName.trim().length > 0 ? `Bună ${guestName.trim()},` : 'Bună,';
-  return (
-    `${greeting} te invităm la „${eventName.trim()}”. ` +
-    `Vezi invitația și spune-ne dacă poți ajunge: ${buildGuestInviteLink(inviteToken)}`
+/** Per-type emoji and closing line. Memorial stays sober: no emoji, no "!". */
+const TYPE_COPY: Record<EventTypeId, { emoji: string; line: string }> = {
+  wedding: { emoji: '💍', line: 'Ne-ar bucura să fii alături de noi în ziua cea mare.' },
+  baptism: { emoji: '🍼', line: 'Ne-ar bucura să fii alături de noi la acest început de drum.' },
+  birthday: { emoji: '🎂', line: 'Ne-ar bucura să sărbătorim împreună.' },
+  cause: { emoji: '💚', line: 'Ne-ar bucura să fii alături de noi pentru această cauză.' },
+  corporate: { emoji: '🏢', line: 'Ne-ar bucura să fii prezent.' },
+  memorial: { emoji: '', line: 'Prezența ta ne-ar fi de mare sprijin.' },
+  other: { emoji: '✨', line: 'Ne-ar bucura să fii alături de noi.' },
+};
+
+/** The message is always Romanian, so the date is too, regardless of the
+ * organizer's app language. Unparseable input is kept as typed. */
+function formatInviteDate(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return trimmed;
+  return parsed.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/**
+ * Bună Maria! 💍
+ * Te invităm cu drag la „Nunta Ana & Mihai”. Ne-ar bucura să fii alături de noi în ziua cea mare.
+ *
+ * 📅 sâmbătă, 12 septembrie 2026
+ * 📍 Castelul Cantacuzino, Bușteni
+ *
+ * Invitația ta personală, unde poți confirma dacă ajungi:
+ * https://…/i/<token>
+ */
+export function buildGuestInviteMessage({ guestName, event, inviteToken }: GuestInviteMessageInput): string {
+  const copy = TYPE_COPY[event.type];
+  const name = guestName.trim();
+  const memorial = event.type === 'memorial';
+  const greeting = memorial
+    ? name.length > 0 ? `Bună ziua, ${name},` : 'Bună ziua,'
+    : `${name.length > 0 ? `Bună ${name}!` : 'Bună!'} ${copy.emoji}`;
+  const intro = memorial
+    ? `Te invităm la „${event.name.trim()}”. ${copy.line}`
+    : `Te invităm cu drag la „${event.name.trim()}”. ${copy.line}`;
+
+  const date = formatInviteDate(event.date);
+  const location = event.location.trim();
+  const details = [date !== null ? `📅 ${date}` : null, location.length > 0 ? `📍 ${location}` : null].filter(
+    (line): line is string => line !== null,
   );
+
+  return [
+    greeting,
+    intro,
+    ...(details.length > 0 ? ['', ...details] : []),
+    '',
+    'Invitația ta personală, unde poți confirma dacă ajungi:',
+    buildGuestInviteLink(inviteToken),
+  ].join('\n');
 }
 
 /**

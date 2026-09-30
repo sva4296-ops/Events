@@ -123,7 +123,7 @@ export default function AddGuestScreen() {
       }
       const opened = await sendGuestWhatsAppInvite(phone, {
         guestName: name.trim(),
-        eventName: event.name,
+        event,
         inviteToken: guest.inviteToken,
       });
       if (opened) {

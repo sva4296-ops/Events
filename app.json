@@ -22,6 +22,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
+          "imageWidth": 257,
           "resizeMode": "contain",
           "backgroundColor": "#FFF8F1",
           "dark": {
@@ -41,7 +42,7 @@
     "android": {
       "package": "com.povesteanoastra.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1E1A30",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

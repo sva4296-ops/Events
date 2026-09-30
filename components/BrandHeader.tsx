@@ -24,7 +24,7 @@ export function BrandHeader({ size = 'md', right }: BrandHeaderProps) {
 
   return (
     <View style={styles.row}>
-      <BrandMark width={small ? 28 : 36} strokeWidth={small ? 14 : 12} />
+      <BrandMark width={small ? 36 : 44} />
       <Text style={[styles.wordmark, small && styles.wordmarkSmall, { color: tokens.textPrimary }]}>
         Povestea<Text style={{ color: tokens.accentPrimary }}>Noastra</Text>
       </Text>

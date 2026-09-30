@@ -95,7 +95,7 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.brand}>
-            <BrandMark width={44} strokeWidth={14} />
+            <BrandMark width={52} />
             <Text style={[styles.brandName, { color: tokens.textPrimary }]}>PovesteaNoastra</Text>
           </View>
 

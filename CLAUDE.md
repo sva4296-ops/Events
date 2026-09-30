@@ -85,6 +85,13 @@
 >   Now unused and safe to delete: `PlanTierBadge`, `StatCard`, `SectionLabel`, `StatusDot`,
 >   `ScreenBackground`, `BrandHeader`. povestea-web: `components/ui/styles.ts` classes, `TabNav` (docked
 >   bar) and every `bg-accent text-white` / `text-accent` moved to accent-fill / accent-text.
+>   **Logo + splash (same day):** the brand mark is the design's "story thread"
+>   (`utils/brandMark.ts`: `M5 28C15 28 17 8 29 8S43 30 55 12`, gold + purple end dots). All
+>   `assets/` icons were Expo defaults; they're now rendered from that mark (plum `#1E1A30` icon
+>   background, adaptive fg inside the safe zone, white monochrome). The native splash shows the
+>   mark at `imageWidth: 257` (= 180px mark), and `BrandSplash` starts from that exact frame: dots
+>   pulse, mark lifts, wordmark + tagline rise, fade out. povestea-web got the same mark plus
+>   `app/icon.png`, `app/apple-icon.png`, `app/favicon.ico`.
 > - **Invite links open the app when installed (2026-09-30).** `utils/whatsappInvite.ts` now builds a
 >   per-event-type Romanian message (emoji + line per `EventTypeId`, sober wording for `memorial`, date in
 >   `ro-RO`, location) and links to `INVITE_SITE_URL` = `https://events-web-henna.vercel.app` (switch to

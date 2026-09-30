@@ -24,7 +24,7 @@ export function BrandFlourish({ width = 60, height = 26, opacity = 0.55, style }
   return (
     <Svg width={width} height={height} viewBox={MARK_VIEWBOX} style={style} opacity={opacity}>
       <Defs>
-        <LinearGradient id={gradientId} x1="0" y1="1" x2="1" y2="0">
+        <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
           {MARK_STOPS.map((stop) => (
             <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
           ))}
@@ -33,7 +33,7 @@ export function BrandFlourish({ width = 60, height = 26, opacity = 0.55, style }
       <Path
         d={MARK_PATH}
         stroke={`url(#${gradientId})`}
-        strokeWidth={14}
+        strokeWidth={4}
         strokeLinecap="round"
         fill="none"
       />

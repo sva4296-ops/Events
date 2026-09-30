@@ -92,7 +92,7 @@ export default function ShareScreen() {
             tokens.surfaceElevatedShadow ?? undefined,
           ]}
         >
-          <BrandMark width={72} strokeWidth={14} />
+          <BrandMark width={76} />
         </View>
 
         <View style={styles.copy}>

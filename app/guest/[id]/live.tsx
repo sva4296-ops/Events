@@ -18,7 +18,7 @@ import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import { guest } from '@/utils/guestTheme';
 import { typography } from '@/utils/themeTokens';
-import { buildInviteLink } from '@/utils/invite';
+import { buildLiveLink } from '@/utils/invite';
 
 /**
  * Warm Story 2.0 Live: a themed card (LIVE tag, QR + copy, upload button)
@@ -36,7 +36,7 @@ export default function LiveScreen() {
 
   const owner = isOwner(event);
 
-  const liveUrl = buildInviteLink(id);
+  const liveUrl = buildLiveLink(id);
   const loading = content === null;
   const photos = content?.photos ?? [];
 

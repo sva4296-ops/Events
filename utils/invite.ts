@@ -1,16 +1,22 @@
-import * as Linking from 'expo-linking';
 import { Share } from 'react-native';
 
 import type { AppEvent } from '@/types/event';
 
 import { formatEventDate } from './format';
+import { INVITE_SITE_URL } from './whatsappInvite';
 
 /**
- * v1 has no server, so the "shareable link" is a deep link into this app.
- * Swapping this for a real https:// URL later is a one-line change.
+ * Event-level web link (the signed-in invite page on povestea-web). Guests
+ * normally get their personal `/i/<token>` link instead — see
+ * utils/whatsappInvite.ts; this one is for the generic share sheet.
  */
 export function buildInviteLink(eventId: string): string {
-  return Linking.createURL(`/invite/${eventId}`);
+  return `${INVITE_SITE_URL}/invite/${eventId}`;
+}
+
+/** Web page of the event's Live tab — what the QR on the Live card opens. */
+export function buildLiveLink(eventId: string): string {
+  return `${INVITE_SITE_URL}/event/${eventId}/live`;
 }
 
 export function buildInviteMessage(event: AppEvent): string {

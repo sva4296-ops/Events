@@ -25,7 +25,7 @@ function InviteTopBar({ canGoBack }: { canGoBack: boolean }) {
   return (
     <View style={styles.topBar}>
       {canGoBack ? <BackButton /> : null}
-      <BrandMark width={34} strokeWidth={14} />
+      <BrandMark width={40} />
       <Text style={[styles.brand, { color: tokens.textPrimary }]}>PovesteaNoastra</Text>
     </View>
   );

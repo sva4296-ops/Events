@@ -80,8 +80,12 @@ export const gShadow = {
  * too — every guest tab's own bottom padding, and Acasă's FAB, have to clear it
  * manually now that it's no longer a normal layout sibling.
  */
+/**
+ * Warm Story 2.0 docks the event tab bar to the screen bottom (it used to
+ * float). `height` is the bar above the safe-area inset; `gap` stays in the
+ * shape so every `insets.bottom + gap + height` clearance keeps working.
+ */
 export const floatingTabBar = {
-  height: 74,
-  /** Gap between the bar's top edge and the safe-area-adjusted screen bottom. */
-  gap: 10,
+  height: 62,
+  gap: 0,
 } as const;

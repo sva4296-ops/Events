@@ -1,36 +1,53 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { Button } from "@/components/Button";
-import { Card } from "@/components/Card";
+import { Button, buttonLabelColor } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { GuestRow, GuestRowSkeleton } from "@/components/GuestRow";
 import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import { Skeleton } from "@/components/Skeleton";
-import { StatCard } from "@/components/StatCard";
 import { SwipeableRow } from "@/components/SwipeableRow";
 import { confirmDelete } from "@/utils/confirm";
 import { useEvents } from "@/hooks/useEvents";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import { useTheme } from "@/hooks/useTheme";
-import { countRsvps, eventSubtitle } from "@/utils/format";
-import { getEventType } from "@/utils/eventTypes";
+import type { RsvpStatus } from "@/types/event";
+import { countRsvps } from "@/utils/format";
 import { spacing } from "@/utils/theme";
-import { themeRadius } from "@/utils/themeTokens";
+import { themeRadius, typography } from "@/utils/themeTokens";
 
+type GuestFilter = "all" | RsvpStatus;
+
+/**
+ * Warm Story 2.0 organizer dashboard for one event's guests: RSVP totals
+ * with a stacked bar, add / WhatsApp actions, status filters, search and
+ * the guest list.
+ */
 export default function EventDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, hydrated, removeGuest, isOwner } = useEvents();
   const { tokens } = useTheme();
+  const { plans } = usePlanFeatures();
   const {
     hydrated: planHydrated,
     canAddGuests,
     capabilities,
   } = usePlanGate(id);
+  const [filter, setFilter] = useState<GuestFilter>("all");
+  const [query, setQuery] = useState("");
 
   const event = getEvent(id);
   const owner = isOwner(event);
@@ -39,38 +56,16 @@ export default function EventDetailScreen() {
   // from "no such event" — `hydrated` is what actually distinguishes them.
   if (!hydrated) {
     return (
-      <Screen>
+      <Screen contentStyle={styles.content}>
         <View style={styles.headerSkeleton}>
-          <Skeleton width={40} height={40} radius={themeRadius.pill} />
-          <Skeleton height={28} width="70%" radius={6} />
-          <Skeleton height={15} width="45%" radius={4} />
+          <Skeleton width={44} height={44} radius={themeRadius.pill} />
+          <Skeleton height={17} width="55%" radius={4} />
         </View>
-
-        <View style={styles.stats}>
-          <Skeleton
-            height={78}
-            radius={themeRadius.md}
-            style={styles.statSkeleton}
-          />
-          <Skeleton
-            height={78}
-            radius={themeRadius.md}
-            style={styles.statSkeleton}
-          />
-          <Skeleton
-            height={78}
-            radius={themeRadius.md}
-            style={styles.statSkeleton}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Skeleton height={13} width={120} radius={4} />
-          <Card>
-            <GuestRowSkeleton />
-            <GuestRowSkeleton />
-            <GuestRowSkeleton />
-          </Card>
+        <Skeleton height={170} radius={24} />
+        <View style={[styles.listCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+          <GuestRowSkeleton />
+          <GuestRowSkeleton showDivider />
+          <GuestRowSkeleton showDivider />
         </View>
       </Screen>
     );
@@ -85,216 +80,363 @@ export default function EventDetailScreen() {
   }
 
   const counts = countRsvps(event.guests);
-  const type = getEventType(event.type);
+  const planName =
+    event.planTier !== null
+      ? plans.find((plan) => plan.planKey === event.planTier)?.displayName ?? event.planTier
+      : null;
   const pendingUnsentCount = event.guests.filter(
     (guest) =>
       guest.status === "pending" &&
       guest.whatsappSentAt === null &&
       guest.phone !== null,
   ).length;
+  const locked = planHydrated && !canAddGuests;
+
+  const needle = query.trim().toLowerCase();
+  const visibleGuests = event.guests.filter(
+    (guest) =>
+      (filter === "all" || guest.status === filter) &&
+      (needle.length === 0 ||
+        guest.name.toLowerCase().includes(needle) ||
+        (guest.phone ?? "").includes(needle.replace(/\D/g, "") || "\u0000")),
+  );
+
+  const share = (value: number) => (counts.total > 0 ? (value / counts.total) * 100 : 0);
+
+  const filters: { key: GuestFilter; label: string; count: number }[] = [
+    { key: "all", label: t("event.filterAll"), count: counts.total },
+    { key: "confirmed", label: t("event.filterConfirmed"), count: counts.confirmed },
+    { key: "pending", label: t("event.filterPending"), count: counts.pending },
+    { key: "declined", label: t("event.filterDeclined"), count: counts.declined },
+  ];
+
+  const stats: { key: RsvpStatus; label: string; value: number; fg: string; bg: string }[] = [
+    { key: "confirmed", label: t("event.filterConfirmed"), value: counts.confirmed, fg: tokens.statusConfirmed, bg: tokens.statusConfirmedSoft },
+    { key: "pending", label: t("event.filterPending"), value: counts.pending, fg: tokens.statusPending, bg: tokens.statusPendingSoft },
+    { key: "declined", label: t("event.filterDeclined"), value: counts.declined, fg: tokens.statusDeclined, bg: tokens.statusDeclinedSoft },
+  ];
 
   return (
-    <Screen>
+    <Screen contentStyle={styles.content}>
       <Header
-        title={`${type.emoji} ${event.name}`}
-        subtitle={eventSubtitle(event)}
+        title=""
         showBack
+        flowTitle={event.name}
+        stepLabel={
+          planName !== null
+            ? `${t("event.dashboardSubtitle")} · ${planName}`
+            : t("event.dashboardSubtitle")
+        }
+        right={
+          owner ? (
+            <TouchableOpacity
+              style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+              onPress={() => router.push(`/bulk-add-guests/${event.id}`)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={t("event.addMultipleGuests")}
+            >
+              <Feather name={locked ? "lock" : "users"} size={20} color={tokens.textPrimary} />
+            </TouchableOpacity>
+          ) : undefined
+        }
       />
 
-      <View style={styles.stats}>
-        <StatCard
-          label={t("common.confirmed")}
-          value={counts.confirmed}
-          tint={tokens.statusConfirmed}
-          background={tokens.statusConfirmedSoft}
-        />
-        <StatCard
-          label={t("common.pending")}
-          value={counts.pending}
-          tint={tokens.statusPending}
-          background={tokens.statusPendingSoft}
-        />
-        <StatCard
-          label={t("common.declined")}
-          value={counts.declined}
-          tint={tokens.statusDeclined}
-          background={tokens.statusDeclinedSoft}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHead}>
-          <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>
-            {t("event.guestListTitle", { count: counts.total })}
+      <View
+        style={[
+          styles.summary,
+          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          tokens.surfaceElevatedShadow ?? undefined,
+        ]}
+      >
+        <View style={styles.summaryHead}>
+          <Text style={[styles.summaryTitle, { color: tokens.textPrimary }]}>
+            {t("event.confirmationsTitle")}
           </Text>
-          {owner ? (
-            <View style={styles.sectionHeadActions}>
-              <TouchableOpacity
-                style={[
-                  styles.add,
-                  {
-                    backgroundColor: `${tokens.accentPrimary}22`,
-                    opacity: planHydrated && !canAddGuests ? 0.4 : 1,
-                  },
-                ]}
-                onPress={() => router.push(`/add-guest/${event.id}`)}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="Invite a guest"
-              >
-                <Feather
-                  name={planHydrated && !canAddGuests ? "lock" : "user-plus"}
-                  size={16}
-                  color={tokens.accentPrimary}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.add,
-                  {
-                    backgroundColor: `${tokens.accentPrimary}22`,
-                    opacity: planHydrated && !canAddGuests ? 0.4 : 1,
-                  },
-                ]}
-                onPress={() => router.push(`/bulk-add-guests/${event.id}`)}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel={t("event.addMultipleGuests")}
-              >
-                <Feather
-                  name={planHydrated && !canAddGuests ? "lock" : "users"}
-                  size={16}
-                  color={tokens.accentPrimary}
-                />
-              </TouchableOpacity>
-            </View>
-          ) : null}
+          <Text style={[styles.summaryMeta, { color: tokens.textSecondary }]}>
+            {t("event.guestsTotal", { count: counts.total })}
+          </Text>
         </View>
-
-        {owner && planHydrated && !canAddGuests ? (
-          <TouchableOpacity
-            style={[styles.sendPending, { borderColor: tokens.statusPending }]}
-            onPress={() => router.push(`/pricing/${event.id}`)}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-          >
-            <Feather name="lock" size={14} color={tokens.statusPending} />
-            <Text
-              style={[styles.sendPendingText, { color: tokens.statusPending }]}
-            >
-              {t("planGate.guestLimitReachedBody", {
-                count: capabilities.maxGuests ?? 0,
-              })}
-            </Text>
-          </TouchableOpacity>
+        <View style={styles.stats}>
+          {stats.map((stat) => (
+            <View key={stat.key} style={[styles.stat, { backgroundColor: stat.bg }]}>
+              <Text style={[styles.statValue, { color: stat.fg }]}>{stat.value}</Text>
+              <Text style={[styles.statLabel, { color: stat.fg }]} numberOfLines={1}>
+                {stat.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+        {counts.total > 0 ? (
+          <View style={styles.bar} accessibilityRole="image">
+            {counts.confirmed > 0 ? (
+              <View style={{ width: `${share(counts.confirmed)}%`, backgroundColor: tokens.statusConfirmed }} />
+            ) : null}
+            {counts.pending > 0 ? (
+              <View style={{ width: `${share(counts.pending)}%`, backgroundColor: tokens.accentGold }} />
+            ) : null}
+            {counts.declined > 0 ? (
+              <View style={{ width: `${share(counts.declined)}%`, backgroundColor: tokens.accentPink }} />
+            ) : null}
+          </View>
         ) : null}
-
-        {owner && pendingUnsentCount > 0 ? (
-          <TouchableOpacity
-            style={[styles.sendPending, { borderColor: tokens.accentPrimary }]}
-            onPress={() => router.push(`/send-invites/${event.id}`)}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-          >
-            <Feather name="send" size={14} color={tokens.accentPrimary} />
-            <Text
-              style={[styles.sendPendingText, { color: tokens.accentPrimary }]}
-            >
-              {t("event.sendPendingInvites", { count: pendingUnsentCount })}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-
-        {event.guests.length === 0 ? (
-          <EmptyState
-            message={t("event.noGuestsYet")}
-            action={
-              owner ? (
-                <Button
-                  label={t("event.inviteGuest")}
-                  onPress={() => router.push(`/add-guest/${event.id}`)}
-                />
-              ) : undefined
-            }
-          />
-        ) : (
-          <Card>
-            {event.guests.map((guest) => (
-              <SwipeableRow
-                key={guest.id}
-                enabled={owner}
-                actions={[
-                  {
-                    label: t("event.removeGuestAction"),
-                    icon: "user-x",
-                    tone: "delete",
-                    onPress: () =>
-                      confirmDelete(
-                        t("event.removeGuestTitle"),
-                        t("event.removeGuestBody", { name: guest.name }),
-                        () => removeGuest(event.id, guest.id),
-                      ),
-                  },
-                ]}
-              >
-                <GuestRow guest={guest} />
-              </SwipeableRow>
-            ))}
-          </Card>
-        )}
       </View>
+
+      {owner ? (
+        <View style={styles.actions}>
+          <Button
+            label={t("event.addGuest")}
+            variant="tonal"
+            icon={<Feather name={locked ? "lock" : "plus"} size={20} color={buttonLabelColor("tonal", tokens)} />}
+            onPress={() => router.push(`/add-guest/${event.id}`)}
+            style={styles.action}
+          />
+          <Button
+            label={t("event.sendWhatsApp")}
+            variant="secondary"
+            icon={<Feather name="message-circle" size={20} color={buttonLabelColor("secondary", tokens)} />}
+            onPress={() => router.push(`/send-invites/${event.id}`)}
+            disabled={pendingUnsentCount === 0}
+            style={styles.action}
+          />
+        </View>
+      ) : null}
+
+      {owner && locked ? (
+        <TouchableOpacity
+          style={[styles.notice, { backgroundColor: tokens.statusPendingSoft }]}
+          onPress={() => router.push(`/pricing/${event.id}`)}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+        >
+          <Feather name="lock" size={16} color={tokens.statusPending} />
+          <Text style={[styles.noticeText, { color: tokens.statusPending }]}>
+            {t("planGate.guestLimitReachedBody", {
+              count: capabilities.maxGuests ?? 0,
+            })}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {event.guests.length === 0 ? (
+        <EmptyState
+          message={t("event.noGuestsYet")}
+          action={
+            owner ? (
+              <Button
+                label={t("event.inviteGuest")}
+                onPress={() => router.push(`/add-guest/${event.id}`)}
+              />
+            ) : undefined
+          }
+        />
+      ) : (
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filters}
+            accessibilityRole="tablist"
+          >
+            {filters.map((item) => {
+              const active = filter === item.key;
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  onPress={() => setFilter(item.key)}
+                  activeOpacity={0.8}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  style={[
+                    styles.chip,
+                    active
+                      ? { backgroundColor: tokens.textPrimary }
+                      : { backgroundColor: tokens.surface, borderWidth: 1.5, borderColor: tokens.border },
+                  ]}
+                >
+                  <Text style={[styles.chipText, { color: active ? tokens.surface : tokens.textPrimary }]}>
+                    {item.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.chipCount,
+                      { color: active ? tokens.surface : tokens.textPrimary },
+                    ]}
+                  >
+                    {item.count}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <View style={[styles.search, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+            <Feather name="search" size={19} color={tokens.textSecondary} />
+            <TextInput
+              style={[styles.searchInput, { color: tokens.textPrimary }]}
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t("event.searchPlaceholder")}
+              placeholderTextColor={tokens.textMuted}
+              accessibilityLabel={t("event.searchPlaceholder")}
+              autoCorrect={false}
+            />
+          </View>
+
+          {visibleGuests.length === 0 ? (
+            <EmptyState message={t("event.noMatches")} />
+          ) : (
+            <View style={[styles.listCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+              {visibleGuests.map((guest, index) => (
+                <SwipeableRow
+                  key={guest.id}
+                  enabled={owner}
+                  actions={[
+                    {
+                      label: t("event.removeGuestAction"),
+                      icon: "user-x",
+                      tone: "delete",
+                      onPress: () =>
+                        confirmDelete(
+                          t("event.removeGuestTitle"),
+                          t("event.removeGuestBody", { name: guest.name }),
+                          () => removeGuest(event.id, guest.id),
+                        ),
+                    },
+                  ]}
+                >
+                  <GuestRow guest={guest} showDivider={index > 0} />
+                </SwipeableRow>
+              ))}
+            </View>
+          )}
+        </>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  headerSkeleton: {
-    paddingTop: spacing.lg,
-    gap: spacing.sm,
+  content: {
+    paddingHorizontal: 20,
+    gap: 16,
   },
-  statSkeleton: {
-    flex: 1,
+  headerSkeleton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingTop: spacing.lg,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: themeRadius.pill,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  summary: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
+    gap: 14,
+  },
+  summaryHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  summaryTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  summaryMeta: {
+    fontSize: 13,
   },
   stats: {
     flexDirection: "row",
-    gap: spacing.md,
+    gap: 8,
   },
-  section: {
-    gap: spacing.md,
+  stat: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 12,
+    gap: 2,
   },
-  sectionHead: {
+  statValue: {
+    ...typography.title1,
+    lineHeight: 32,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  bar: {
+    flexDirection: "row",
+    gap: 3,
+    height: 10,
+    borderRadius: 99,
+    overflow: "hidden",
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  action: {
+    flex: 1,
+    minHeight: 48,
+    paddingHorizontal: 12,
+  },
+  notice: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: spacing.sm,
+    padding: 14,
+    borderRadius: 16,
   },
-  sectionTitle: {
+  noticeText: {
+    flex: 1,
     fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
+    fontWeight: "600",
+    lineHeight: 18,
   },
-  sectionHeadActions: {
-    flexDirection: "row",
-    gap: spacing.sm,
+  filters: {
+    gap: 8,
   },
-  add: {
-    width: 34,
-    height: 34,
-    borderRadius: themeRadius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sendPending: {
+  chip: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    minHeight: 40,
+    gap: 6,
+    height: 40,
+    paddingHorizontal: 14,
     borderRadius: themeRadius.pill,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  chipCount: {
+    fontSize: 14,
+    fontWeight: "600",
+    opacity: 0.7,
+  },
+  search: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+  },
+  listCard: {
+    borderRadius: 22,
     borderWidth: 1,
-  },
-  sendPendingText: {
-    fontSize: 13,
-    fontWeight: "700",
+    overflow: "hidden",
   },
 });

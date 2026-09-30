@@ -6,6 +6,7 @@ export const EVENT_TYPES: readonly EventTypeMeta[] = [
     label: 'Wedding',
     emoji: '💍',
     gradient: ['#F7C8D8', '#C9B6F2'],
+    band: ['#F5C36B', '#E8779E', '#7F77DD'],
     accent: '#B4568C',
   },
   {
@@ -13,6 +14,7 @@ export const EVENT_TYPES: readonly EventTypeMeta[] = [
     label: 'Baptism',
     emoji: '🍼',
     gradient: ['#CFE7FF', '#E4D6FF'],
+    band: ['#C4E6F6', '#A9B8F2', '#C7A8EE'],
     accent: '#3F7BC4',
   },
   {
@@ -20,6 +22,7 @@ export const EVENT_TYPES: readonly EventTypeMeta[] = [
     label: 'Birthday',
     emoji: '🎂',
     gradient: ['#FFD8B0', '#FFB9CE'],
+    band: ['#FFD98A', '#F5A36B', '#E8779E'],
     accent: '#D2703C',
   },
   {
@@ -27,6 +30,7 @@ export const EVENT_TYPES: readonly EventTypeMeta[] = [
     label: 'Cause',
     emoji: '💚',
     gradient: ['#BFEFD3', '#CFE9FF'],
+    band: ['#C4EBCF', '#6CC49A', '#2E9E6B'],
     accent: '#2E9E6B',
   },
   {
@@ -34,6 +38,7 @@ export const EVENT_TYPES: readonly EventTypeMeta[] = [
     label: 'Corporate',
     emoji: '🏢',
     gradient: ['#D3DDF0', '#C3CFE8'],
+    band: ['#9AADE0', '#5B6BB8', '#3A4180'],
     accent: '#41567F',
   },
   {
@@ -41,13 +46,16 @@ export const EVENT_TYPES: readonly EventTypeMeta[] = [
     label: 'Memorial',
     emoji: '🕊️',
     gradient: ['#E2E4EC', '#D7DDF0'],
+    band: ['#D6D2DC', '#A29DAD', '#6E6880'],
     accent: '#5B6076',
   },
   {
     id: 'other',
     label: 'Other',
-    emoji: '➕',
+    // Not ➕ — a plus inside a tile or avatar reads as an "add" button.
+    emoji: '✨',
     gradient: ['#E8DDFB', '#D6E4FF'],
+    band: ['#F5C36B', '#E8779E', '#7F77DD'],
     accent: '#6C4CE0',
   },
 ];

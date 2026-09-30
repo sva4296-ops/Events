@@ -1,26 +1,29 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router, Tabs, useLocalSearchParams, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LinearGradient } from 'expo-linear-gradient';
+
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
-import { ScreenBackground } from '@/components/ScreenBackground';
+import { currentStage } from '@/components/StoryTimeline';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useTheme } from '@/hooks/useTheme';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
 import { confirmDelete } from '@/utils/confirm';
-import { floatingTabBar, guest, gRadius, gSpace } from '@/utils/guestTheme';
+import { daysUntilEvent, formatShortDate } from '@/utils/format';
+import { floatingTabBar, guest, gRadius } from '@/utils/guestTheme';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
 const TABS: readonly { name: string; label: string; icon: FeatherName }[] = [
   { name: 'index', label: 'Acasă', icon: 'home' },
-  { name: 'detalii', label: 'Detalii', icon: 'file-text' },
-  { name: 'fond', label: 'Fond', icon: 'heart' },
+  { name: 'detalii', label: 'Detalii', icon: 'list' },
+  { name: 'fond', label: 'Fond', icon: 'gift' },
   { name: 'chat', label: 'Chat', icon: 'message-circle' },
-  { name: 'live', label: 'Live', icon: 'camera' },
+  { name: 'live', label: 'Live', icon: 'radio' },
   { name: 'album', label: 'Album', icon: 'image' },
 ];
 
@@ -53,6 +56,11 @@ export default function GuestEventLayout() {
   const event = getEvent(id);
   const owner = isOwner(event);
   const activeTab = getActiveTab(pathname);
+  const stageKeys = ['onboarding.stageLaunch', 'onboarding.stageJourney', 'onboarding.stageDayX', 'onboarding.stageRecap'] as const;
+  const headerSubtitle =
+    event !== undefined
+      ? `${formatShortDate(event.date)} · ${t(stageKeys[currentStage(daysUntilEvent(event.date))] ?? stageKeys[1])}`
+      : undefined;
 
   // Which single-row top-right action(s) show depends on the active tab —
   // guests/stats only on Acasă (the guest list's one entry point, see §4 of
@@ -104,10 +112,11 @@ export default function GuestEventLayout() {
 
   return (
     <GuestEventProvider id={id}>
-      <View style={[styles.shell, { backgroundColor: tokens.background[0] }]}>
-        <ScreenBackground />
+      <LinearGradient colors={tokens.background} style={styles.shell}>
         <EventHeaderBar
           name={event?.name ?? 'Evenimentul nostru'}
+          type={event?.type ?? null}
+          subtitle={headerSubtitle}
           showBack={activeTab === 'acasa'}
           actions={actions}
         />
@@ -118,13 +127,13 @@ export default function GuestEventLayout() {
               styles.bar,
               {
                 backgroundColor: tokens.tabBar.background,
-                bottom: insets.bottom + floatingTabBar.gap,
-                shadowOpacity: tokens.mode === 'dark' ? 0.4 : 0.18,
+                borderTopColor: tokens.border,
+                height: floatingTabBar.height + insets.bottom,
+                paddingBottom: insets.bottom,
               },
             ],
             tabBarActiveTintColor: tokens.tabBar.active,
             tabBarInactiveTintColor: tokens.tabBar.inactive,
-            tabBarLabelStyle: styles.label,
             tabBarItemStyle: styles.item,
             sceneStyle: { backgroundColor: 'transparent' },
           }}
@@ -135,23 +144,22 @@ export default function GuestEventLayout() {
               name={tab.name}
               options={{
                 title: tab.label,
-                // Solid accent pill behind the active icon (gold icon on top,
-                // per the Warm Story tab bar spec); muted outline when not.
+                tabBarLabel: ({ color, focused }) => (
+                  <Text style={[styles.label, { color, fontWeight: focused ? '700' : '500' }]}>
+                    {tab.label}
+                  </Text>
+                ),
+                // Warm Story 2.0: accentTint pill behind the active icon.
                 tabBarIcon: ({ color, focused }) => (
-                  <View
-                    style={[
-                      styles.iconWrap,
-                      focused && { backgroundColor: tokens.accentPrimary },
-                    ]}
-                  >
-                    <Feather name={tab.icon} size={focused ? 22 : 20} color={color} />
+                  <View style={[styles.iconWrap, focused && { backgroundColor: tokens.accentTint }]}>
+                    <Feather name={tab.icon} size={21} color={color} />
                   </View>
                 ),
               }}
             />
           ))}
         </Tabs>
-      </View>
+      </LinearGradient>
     </GuestEventProvider>
   );
 }
@@ -165,45 +173,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: guest.cream,
   },
-  // Floating pill, not edge-to-edge: `position: 'absolute'` so the exact
-  // recipe React Navigation's own docs use for a floating tab bar — taking it
-  // out of the default automatic-safe-area/height computation entirely,
-  // rather than fighting that computation with a margin on a normal-flow
-  // sibling (that's what produced the double-counted gap and the stray
-  // default hairline border in the previous attempt: `borderTopWidth: 0`
-  // below explicitly cancels react-navigation's own default border, which
-  // omitting the property does not — an unset key in a merged style array
-  // doesn't override a value the library's own base style already set).
-  // `bottom` is set inline (needs the device's actual safe-area inset).
+  // Docked to the bottom edge (Warm Story 2.0). Still `position: 'absolute'`
+  // so screens scroll under the translucent bar; every guest screen clears it
+  // with `insets.bottom + floatingTabBar.gap + floatingTabBar.height`.
   bar: {
     position: 'absolute',
-    // Matches GuestScreen's/EventHeaderBar's own paddingHorizontal (gSpace.xl)
-    // so the bar's edges line up with card/section edges above it, rather
-    // than an arbitrary margin unique to the tab bar.
-    left: gSpace.xl,
-    right: gSpace.xl,
-    borderRadius: 20,
-    borderTopWidth: 0,
-    height: floatingTabBar.height,
-    marginHorizontal: 20,
-    paddingTop: 12,
-    shadowColor: '#000000',
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 14,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopWidth: 1,
+    paddingTop: 8,
+    paddingHorizontal: 6,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   item: {
     paddingTop: 2,
   },
   label: {
     fontSize: 11,
-    fontWeight: '600',
-    marginTop: 5,
+    marginTop: 3,
   },
   iconWrap: {
-    minWidth: 52,
-    height: 34,
-    paddingHorizontal: 16,
+    width: 48,
+    height: 30,
     borderRadius: gRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',

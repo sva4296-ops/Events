@@ -31,8 +31,8 @@ export function EmptyState({
       style={[
         styles.card,
         {
-          backgroundColor: tokens.surfaceElevated,
-          borderColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)',
+          backgroundColor: tokens.surface,
+          borderColor: tokens.border,
         },
       ]}
     >
@@ -49,7 +49,7 @@ export function EmptyState({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: themeRadius.lg,
+    borderRadius: 24,
     paddingVertical: gSpace.xxl,
     paddingHorizontal: gSpace.xl,
     alignItems: 'center',
@@ -64,8 +64,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   message: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
   },
   action: {

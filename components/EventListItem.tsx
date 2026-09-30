@@ -3,24 +3,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { PlanTierBadge } from '@/components/PlanTierBadge';
 import { Skeleton } from '@/components/Skeleton';
+import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent } from '@/types/event';
 import { getEventType } from '@/utils/eventTypes';
-import { countRsvps, eventSubtitle } from '@/utils/format';
+import { countRsvps, daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { bandGradientLocations, themeRadius, typography } from '@/utils/themeTokens';
+
+/** On-band chips: white 90% with dark text, same in both modes (text never sits on the gradient itself). */
+const CHIP_BG = 'rgba(255,255,255,0.9)';
+const CHIP_TEXT = '#2B2740';
 
 /**
- * Warm Story accent block: the event-type emoji is kept (it reads clearly at
- * a glance and carries real information — which of the 7 event types this
- * is), but its background is now the fixed gold→pink "flourish" gradient
- * instead of each type's own gradient, per the spec's literal accent-block
- * color, layered with the emoji as the "small icon" on top. Row layout (badge
- * left, info right, chevron) is kept rather than switching to a stacked
- * block-above-name card — better list scanability at this density, and the
- * badge already served as the row's visual anchor before this pass.
+ * Warm Story 2.0 event card for Home: type band on top (emoji, plan chip,
+ * countdown), then name, date · place, the four-stage story timeline and the
+ * RSVP counts.
  */
 export function EventListItem({
   event,
@@ -40,105 +39,229 @@ export function EventListItem({
   const { tokens } = useTheme();
   const type = getEventType(event.type);
   const counts = countRsvps(event.guests);
+  const days = daysUntilEvent(event.date);
+  const stage = currentStage(days);
+
+  const countdown =
+    days === null
+      ? null
+      : days === 0
+        ? t('home.countdownToday')
+        : days < 0
+          ? t('home.countdownPast')
+          : t('home.countdown', { count: days });
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       accessibilityRole="button"
-      accessibilityLabel={`${event.name}, ${counts.confirmed} confirmed`}
+      accessibilityLabel={`${event.name}, ${counts.confirmed} ${t('home.confirmedCount')}`}
       style={[
-        styles.row,
-        {
-          backgroundColor: tokens.surfaceElevated,
-          borderColor: tokens.surfaceBorder ?? 'transparent',
-          borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
-        },
+        styles.card,
+        { backgroundColor: tokens.surface, borderColor: tokens.border },
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      <LinearGradient colors={[tokens.accentGold, tokens.accentPink]} style={styles.badge}>
-        <Text style={styles.emoji}>{type.emoji}</Text>
+      <LinearGradient
+        colors={type.band}
+        locations={bandGradientLocations}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.band}
+      >
+        <View style={styles.emojiCircle}>
+          <Text style={styles.emoji}>{type.emoji}</Text>
+        </View>
+
+        {planLabel !== null ? (
+          <View style={[styles.chip, styles.planChip]}>
+            <Text style={styles.chipText}>{planLabel}</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            onPress={onPressChoosePlan}
+            activeOpacity={0.75}
+            style={[styles.chip, styles.planChip]}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.choosePlan')}
+            hitSlop={8}
+          >
+            <Feather name="plus" size={13} color={CHIP_TEXT} />
+            <Text style={styles.chipText}>{t('common.choosePlan')}</Text>
+          </TouchableOpacity>
+        )}
+
+        {countdown !== null ? (
+          <View style={[styles.chip, styles.countdown]}>
+            <Text style={[styles.chipText, styles.countdownText]}>{countdown}</Text>
+          </View>
+        ) : null}
       </LinearGradient>
 
-      <View style={styles.info}>
-        <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
-          {event.name}
-        </Text>
-        <Text style={[styles.subtitle, { color: tokens.textSecondary }]} numberOfLines={1}>
-          {eventSubtitle(event)}
-        </Text>
-        <Text style={[styles.counts, { color: tokens.textSecondary }]}>
-          {t('common.eventRsvpSummary', { confirmed: counts.confirmed, pending: counts.pending })}
-        </Text>
+      <View style={styles.body}>
+        <View style={styles.titleBlock}>
+          <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={2}>
+            {event.name}
+          </Text>
+          <View style={styles.metaRow}>
+            <Feather name="calendar" size={15} color={tokens.textSecondary} />
+            <Text style={[styles.meta, { color: tokens.textSecondary }]} numberOfLines={1}>
+              {eventShortSubtitle(event)}
+            </Text>
+          </View>
+        </View>
+
+        <StoryTimeline stage={stage} />
+
+        <View style={[styles.divider, { backgroundColor: tokens.border }]} />
+
+        <View style={styles.footerRow}>
+          <View style={styles.count}>
+            <View style={[styles.countDot, { backgroundColor: tokens.statusConfirmed }]} />
+            <Text style={[styles.countText, { color: tokens.textPrimary }]}>
+              <Text style={styles.countNumber}>{counts.confirmed}</Text> {t('home.confirmedCount')}
+            </Text>
+          </View>
+          <View style={styles.count}>
+            <View style={[styles.countDot, { backgroundColor: tokens.accentGold }]} />
+            <Text style={[styles.countText, { color: tokens.textPrimary }]}>
+              <Text style={styles.countNumber}>{counts.pending}</Text> {t('home.pendingCount')}
+            </Text>
+          </View>
+          <View style={styles.flex} />
+          <View style={styles.open}>
+            <Text style={[styles.openText, { color: tokens.accentText }]}>{t('home.open')}</Text>
+            <Feather name="chevron-right" size={16} color={tokens.accentText} />
+          </View>
+        </View>
       </View>
-
-      <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
-
-      <PlanTierBadge planLabel={planLabel} onPressChoose={onPressChoosePlan} />
     </TouchableOpacity>
   );
 }
 
-/** Same row/badge/info dimensions as the real row above, so nothing shifts when data lands. */
+/** Same band/body proportions as the real card above, so nothing shifts when data lands. */
 export function EventListItemSkeleton() {
+  const { tokens } = useTheme();
+
   return (
-    <View style={styles.row}>
-      <Skeleton width={30} height={30} radius={9} />
-      <View style={styles.info}>
-        <Skeleton height={15} width="70%" radius={4} />
-        <Skeleton height={12} width="50%" radius={4} />
-        <Skeleton height={11} width="35%" radius={4} />
+    <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+      <Skeleton height={104} width="100%" radius={0} />
+      <View style={styles.body}>
+        <Skeleton height={22} width="65%" radius={6} />
+        <Skeleton height={13} width="50%" radius={4} />
+        <Skeleton height={36} width="100%" radius={8} />
       </View>
-      <Skeleton width={18} height={18} radius={9} />
-      <Skeleton height={20} width={72} radius={themeRadius.pill} style={styles.planBadgeSkeleton} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: themeRadius.lg,
-    // The plan-tier ribbon is absolutely positioned half outside the card's
-    // top-right corner (see PlanTierBadge) — without this, the card's own
-    // rounded-corner clipping would cut the overhanging half off.
-    overflow: 'visible',
+  card: {
+    borderRadius: themeRadius.xxl,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
-  badge: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
+  band: {
+    height: 104,
+    padding: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  emojiCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: CHIP_BG,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emoji: {
-    fontSize: 15,
+    fontSize: 28,
   },
-  info: {
-    flex: 1,
-    gap: 1,
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 24,
+    paddingHorizontal: 10,
+    borderRadius: themeRadius.pill,
+    backgroundColor: CHIP_BG,
   },
-  // Matches PlanTierBadge's own absolute top/right offsets exactly, so the
-  // skeleton occupies the same corner the real ribbon renders in once data
-  // lands.
-  planBadgeSkeleton: {
+  planChip: {
     position: 'absolute',
-    top: -10,
-    right: -10,
+    top: 14,
+    right: 14,
   },
-  name: {
-    fontSize: 15,
+  chipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: CHIP_TEXT,
+  },
+  countdown: {
+    height: 28,
+    paddingHorizontal: 12,
+  },
+  countdownText: {
+    fontSize: 13,
     fontWeight: '700',
   },
-  subtitle: {
-    fontSize: 12,
+  body: {
+    padding: 18,
+    paddingBottom: 16,
+    gap: spacing.lg,
   },
-  counts: {
-    fontSize: 11,
+  titleBlock: {
+    gap: 6,
+  },
+  name: {
+    ...typography.title2,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  meta: {
+    flex: 1,
+    fontSize: 13,
+  },
+  divider: {
+    height: 1,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  count: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  countDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  countText: {
+    fontSize: 13,
+  },
+  countNumber: {
+    fontWeight: '700',
+  },
+  flex: {
+    flex: 1,
+  },
+  open: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    minHeight: 32,
+  },
+  openText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

@@ -1,33 +1,57 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandHeader } from '@/components/BrandHeader';
+import { Button } from '@/components/Button';
 import { EventListItem, EventListItemSkeleton } from '@/components/EventListItem';
 import { HomeEmptyState } from '@/components/HomeEmptyState';
-import { InvitationListItem, InvitationListItemSkeleton } from '@/components/InvitationListItem';
-import { ScreenBackground } from '@/components/ScreenBackground';
+import {
+  InvitationGroup,
+  InvitationListItem,
+  InvitationListItemSkeleton,
+} from '@/components/InvitationListItem';
 import { Screen } from '@/components/Screen';
 import { useAgency } from '@/hooks/useAgency';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
 import { usePlanFeatures } from '@/hooks/usePlanFeatures';
 import { useTheme } from '@/hooks/useTheme';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import i18n from '@/utils/i18n';
 import { myInvitations } from '@/utils/invitations';
 import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
+
+function todayLabel(): string {
+  const label = new Date().toLocaleDateString(i18n.language, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function initials(firstName: string | null, lastName: string | null): string {
+  const letters = `${firstName?.trim().charAt(0) ?? ''}${lastName?.trim().charAt(0) ?? ''}`;
+  return letters.toUpperCase();
+}
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { events, hydrated, isOwner } = useEvents();
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
   const { isAgencyOwner } = useAgency();
   const { plans } = usePlanFeatures();
+  const { firstName, lastName, avatarUrl } = useUserProfile();
 
   const ownedEvents = events.filter((event) => isOwner(event));
   const invitations = myInvitations(events, isOwner);
+  const avatarInitials = initials(firstName, lastName);
 
   // plan_features.display_name is the single source of truth for a tier's
   // label (the exact same string the pricing screen's own card shows) —
@@ -47,36 +71,47 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenBackground />
-      <Screen contentStyle={styles.content} transparent>
-        <BrandHeader
-          right={
-            <TouchableOpacity
-              style={[styles.profile, { backgroundColor: `${tokens.accentPrimary}22` }]}
-              onPress={() => router.push('/profile')}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Account"
-            >
-              <Feather name="settings" size={18} color={tokens.accentPrimary} />
-            </TouchableOpacity>
-          }
-        />
-        <Text style={[styles.tagline, { color: tokens.textSecondary }]}>{t('home.tagline')}</Text>
+      <Screen contentStyle={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.greeting}>
+            <Text style={[styles.date, { color: tokens.textSecondary }]}>{todayLabel()}</Text>
+            <Text style={[styles.hello, { color: tokens.textPrimary }]} numberOfLines={1}>
+              {firstName !== null && firstName.trim().length > 0
+                ? t('home.greeting', { name: firstName.trim() })
+                : t('home.greetingNoName')}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => router.push('/profile')}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('home.profile')}
+          >
+            {avatarUrl !== null ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            ) : (
+              <LinearGradient
+                colors={brandGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.avatar}
+              >
+                {avatarInitials.length > 0 ? (
+                  <Text style={styles.avatarText}>{avatarInitials}</Text>
+                ) : (
+                  <Feather name="user" size={20} color="#FFFFFF" />
+                )}
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>
-            {t('home.yourEvents')}
-          </Text>
-          <Text style={[styles.sectionHint, { color: tokens.textSecondary }]}>
-            {t('home.yourEventsHint')}
-          </Text>
+          <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('home.yourEvents')}</Text>
 
           {!hydrated ? (
-            <>
-              <EventListItemSkeleton />
-              <EventListItemSkeleton />
-            </>
+            <EventListItemSkeleton />
           ) : ownedEvents.length === 0 ? (
             <HomeEmptyState
               icon="calendar"
@@ -104,18 +139,15 @@ export default function DashboardScreen() {
             legitimate agency-owner invitation to ever show here. */}
         {isAgencyOwner ? null : (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>
+            <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>
               {t('home.myInvitations')}
-            </Text>
-            <Text style={[styles.sectionHint, { color: tokens.textSecondary }]}>
-              {t('home.myInvitationsHint')}
             </Text>
 
             {!hydrated ? (
-              <>
+              <InvitationGroup>
                 <InvitationListItemSkeleton />
-                <InvitationListItemSkeleton />
-              </>
+                <InvitationListItemSkeleton showDivider />
+              </InvitationGroup>
             ) : invitations.length === 0 ? (
               <HomeEmptyState
                 icon="mail"
@@ -123,37 +155,38 @@ export default function DashboardScreen() {
                 message={t('home.emptyInvitationsMessage')}
               />
             ) : (
-              invitations.map((invitation) => (
-                <InvitationListItem
-                  key={invitation.event.id}
-                  invitation={invitation}
-                  onPress={() =>
-                    // Only a confirmed guest enters the event. Pending and
-                    // declined both land on the RSVP screen, which for a
-                    // declined guest shows no event-access button, only
-                    // "Change my answer".
-                    router.push(
-                      invitation.guest.status === 'confirmed'
-                        ? `/guest/${invitation.event.id}`
-                        : `/invite/${invitation.event.id}`,
-                    )
-                  }
-                />
-              ))
+              <InvitationGroup>
+                {invitations.map((invitation, index) => (
+                  <InvitationListItem
+                    key={invitation.event.id}
+                    invitation={invitation}
+                    showDivider={index > 0}
+                    onPress={() =>
+                      // Only a confirmed guest enters the event. Pending and
+                      // declined both land on the RSVP screen, which for a
+                      // declined guest shows no event-access button, only
+                      // "Change my answer".
+                      router.push(
+                        invitation.guest.status === 'confirmed'
+                          ? `/guest/${invitation.event.id}`
+                          : `/invite/${invitation.event.id}`,
+                      )
+                    }
+                  />
+                ))}
+              </InvitationGroup>
             )}
           </View>
         )}
       </Screen>
 
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: tokens.accentPrimary }]}
-        onPress={startCreating}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel="Create an event"
-      >
-        <Feather name="plus" size={26} color="#FFFFFF" />
-      </TouchableOpacity>
+      <View style={[styles.createBar, { bottom: insets.bottom + spacing.lg }]} pointerEvents="box-none">
+        <Button
+          label={t('home.createEvent')}
+          onPress={startCreating}
+          icon={<Feather name="plus" size={20} color={tokens.onAccent} />}
+        />
+      </View>
     </View>
   );
 }
@@ -163,49 +196,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: spacing.xxl,
+    gap: spacing.xl,
     paddingTop: spacing.lg,
-    // Clears the floating action button.
-    paddingBottom: 96,
+    paddingHorizontal: 20,
+    // Clears the floating "create" button.
+    paddingBottom: 110,
   },
-  profile: {
-    width: 38,
-    height: 38,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  greeting: {
+    flex: 1,
+    gap: 2,
+  },
+  date: {
+    fontSize: 14,
+  },
+  hello: {
+    ...typography.title1,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
     borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tagline: {
+  avatarText: {
+    color: '#FFFFFF',
     fontSize: 15,
-    lineHeight: 21,
-    marginTop: -spacing.lg,
+    fontWeight: '700',
   },
   section: {
     gap: spacing.md,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    ...typography.subtitle,
+    fontSize: 18,
   },
-  sectionHint: {
-    fontSize: 13,
-    marginTop: -spacing.sm,
-  },
-  fab: {
+  createBar: {
     position: 'absolute',
-    right: spacing.xl,
-    bottom: spacing.xxl,
-    width: 60,
-    height: 60,
-    borderRadius: themeRadius.pill,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#2B1A62',
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
   },
 });

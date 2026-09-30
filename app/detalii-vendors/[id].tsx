@@ -19,9 +19,9 @@ import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
 function cardStyle(tokens: ThemeTokens) {
   return {
-    backgroundColor: tokens.surfaceElevated,
-    borderColor: tokens.surfaceBorder ?? 'transparent',
-    borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+    backgroundColor: tokens.surface,
+    borderColor: tokens.border,
+    borderWidth: 1,
     ...(tokens.surfaceElevatedShadow ?? {}),
   };
 }
@@ -97,7 +97,7 @@ export default function DetaliiVendorsScreen() {
         right={
           owner ? (
             <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: tokens.surfaceElevated }]}
+              style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
               onPress={() => router.push(`/vendor/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
@@ -160,7 +160,7 @@ export default function DetaliiVendorsScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`Vezi ${vendor.name}`}
                     >
-                      <Text style={[styles.vendorLink, { color: tokens.accentPrimary }]}>
+                      <Text style={[styles.vendorLink, { color: tokens.accentText }]}>
                         {t('detalii.vendorLink')}
                       </Text>
                     </TouchableOpacity>
@@ -180,8 +180,8 @@ export default function DetaliiVendorsScreen() {
 
 const styles = StyleSheet.create({
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: gSpace.md,
-    borderRadius: themeRadius.lg,
+    borderRadius: themeRadius.xl,
     padding: gSpace.lg,
   },
   vendorIconWrap: {

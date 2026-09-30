@@ -1,8 +1,6 @@
-import { StyleSheet, Text, TouchableOpacity, type ViewStyle } from 'react-native';
+import type { ViewStyle } from 'react-native';
 
-import { useTheme } from '@/hooks/useTheme';
-import { gSpace } from '@/utils/guestTheme';
-import { themeRadius } from '@/utils/themeTokens';
+import { Button } from '@/components/Button';
 
 type GuestButtonVariant = 'purple' | 'gold' | 'outline';
 
@@ -13,46 +11,12 @@ interface GuestButtonProps {
   style?: ViewStyle;
 }
 
+/**
+ * Warm Story 2.0: the guest tabs' buttons are the shared `Button` now, so
+ * they follow the theme. Kept as a thin alias so existing callers don't
+ * change: purple → primary, gold → tonal, outline → secondary.
+ */
 export function GuestButton({ label, onPress, variant = 'purple', style }: GuestButtonProps) {
-  const { tokens } = useTheme();
-
-  const variantStyle: ViewStyle =
-    variant === 'purple'
-      ? { backgroundColor: tokens.accentPrimary }
-      : variant === 'gold'
-        ? { backgroundColor: tokens.accentGold }
-        : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: tokens.accentPrimary, shadowOpacity: 0, elevation: 0 };
-
-  const labelColor =
-    variant === 'purple' ? '#FFFFFF' : variant === 'gold' ? tokens.textPrimary : tokens.accentPrimary;
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.85}
-      accessibilityRole="button"
-      style={[styles.base, variantStyle, style]}
-    >
-      <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
-    </TouchableOpacity>
-  );
+  const mapped = variant === 'purple' ? 'primary' : variant === 'gold' ? 'tonal' : 'secondary';
+  return <Button label={label} onPress={onPress} variant={mapped} style={style} />;
 }
-
-const styles = StyleSheet.create({
-  base: {
-    minHeight: 52,
-    borderRadius: themeRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: gSpace.xl,
-    shadowColor: '#3B2A1F',
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-});

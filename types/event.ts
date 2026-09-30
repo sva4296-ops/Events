@@ -16,6 +16,8 @@ export interface EventTypeMeta {
   label: string;
   emoji: string;
   gradient: Gradient;
+  /** Warm Story 2.0 three-stop band: type tiles, event card band, invitation cover. */
+  band: readonly [string, string, string];
   accent: string;
 }
 

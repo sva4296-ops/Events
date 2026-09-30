@@ -1,10 +1,11 @@
+import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeMeta } from '@/types/event';
-import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { bandGradientLocations, themeRadius } from '@/utils/themeTokens';
 
 interface TypeTileProps {
   type: EventTypeMeta;
@@ -12,57 +13,93 @@ interface TypeTileProps {
   onPress: () => void;
 }
 
+/** Warm Story 2.0 type tile: two per row, type band icon, name + one-line description, check when selected. */
 export function TypeTile({ type, selected, onPress }: TypeTileProps) {
+  const { t } = useTranslation();
   const { tokens } = useTheme();
+  const label = t(`eventTypes.${type.id}.label`);
 
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.85}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={type.label}
+      accessibilityRole="radio"
+      accessibilityState={{ selected, checked: selected }}
+      accessibilityLabel={label}
       style={[
         styles.tile,
         {
-          backgroundColor: tokens.surfaceElevated,
-          borderColor: selected ? type.accent : tokens.surfaceBorder ?? 'transparent',
+          backgroundColor: tokens.surface,
+          borderColor: selected ? tokens.accentPrimary : tokens.border,
+          borderWidth: selected ? 2 : 1.5,
         },
-        tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      <LinearGradient colors={type.gradient} style={styles.gradient}>
+      <LinearGradient
+        colors={type.band}
+        locations={bandGradientLocations}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.icon}
+      >
         <Text style={styles.emoji}>{type.emoji}</Text>
       </LinearGradient>
-      <Text style={[styles.label, { color: selected ? type.accent : tokens.textPrimary }]}>
-        {type.label}
-      </Text>
+
+      <View style={styles.text}>
+        <Text style={[styles.label, { color: tokens.textPrimary }]}>{label}</Text>
+        <Text style={[styles.description, { color: tokens.textSecondary }]} numberOfLines={2}>
+          {t(`eventTypes.${type.id}.description`)}
+        </Text>
+      </View>
+
+      {selected ? (
+        <View style={[styles.check, { backgroundColor: tokens.accentFill }]}>
+          <Feather name="check" size={15} color={tokens.onAccent} />
+        </View>
+      ) : null}
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   tile: {
+    flexBasis: '47%',
     flexGrow: 1,
-    flexBasis: '30%',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.lg,
-    borderRadius: themeRadius.lg,
-    borderWidth: 2,
+    minHeight: 132,
+    padding: 16,
+    borderRadius: themeRadius.xl,
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  gradient: {
-    width: 52,
-    height: 52,
-    borderRadius: themeRadius.pill,
+  icon: {
+    width: 48,
+    height: 48,
+    borderRadius: themeRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emoji: {
-    fontSize: 26,
+    fontSize: 22,
+  },
+  text: {
+    gap: 2,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  description: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  check: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

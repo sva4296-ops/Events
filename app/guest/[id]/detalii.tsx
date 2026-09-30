@@ -1,6 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
 import { DetaliiHubCard, DetaliiHubCardSkeleton } from '@/components/guest/DetaliiHubCard';
@@ -9,7 +10,9 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { usePlanGate } from '@/hooks/usePlanGate';
+import { useTheme } from '@/hooks/useTheme';
 import { gSpace } from '@/utils/guestTheme';
+import { typography } from '@/utils/themeTokens';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -33,10 +36,12 @@ interface DetaliiHubCardEntry {
  */
 function DetaliiSkeleton() {
   return (
-    <GuestScreen transparent contentStyle={{ gap: gSpace.md }}>
-      {Array.from({ length: 6 }, (_, index) => (
-        <DetaliiHubCardSkeleton key={index} />
-      ))}
+    <GuestScreen transparent>
+      <View style={styles.grid}>
+        {Array.from({ length: 6 }, (_, index) => (
+          <DetaliiHubCardSkeleton key={index} />
+        ))}
+      </View>
     </GuestScreen>
   );
 }
@@ -48,6 +53,7 @@ export default function DetaliiScreen() {
   const { isOwner } = useEvents();
   const owner = event !== undefined && isOwner(event);
   const { capabilities } = usePlanGate(id);
+  const { tokens } = useTheme();
 
   if (content === null) return <DetaliiSkeleton />;
 
@@ -93,7 +99,7 @@ export default function DetaliiScreen() {
     },
     {
       key: 'seating',
-      icon: 'users',
+      icon: 'grid',
       title: t('detalii.hub.seatingTitle'),
       status:
         content.seatingTables.length === 0
@@ -146,7 +152,9 @@ export default function DetaliiScreen() {
   }
 
   return (
-    <GuestScreen transparent contentStyle={{ gap: gSpace.md }}>
+    <GuestScreen transparent>
+      <Text style={[styles.title, { color: tokens.textPrimary }]}>{t('detalii.hub.hubTitle')}</Text>
+      <View style={styles.grid}>
       {visibleCards.map((card) => (
         <DetaliiHubCard
           key={card.key}
@@ -159,6 +167,20 @@ export default function DetaliiScreen() {
           onPress={() => router.push(card.route)}
         />
       ))}
+      </View>
     </GuestScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  title: {
+    ...typography.title2,
+    fontSize: 24,
+    lineHeight: 29,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+});

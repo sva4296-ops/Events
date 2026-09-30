@@ -18,9 +18,9 @@ import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
 function cardStyle(tokens: ThemeTokens) {
   return {
-    backgroundColor: tokens.surfaceElevated,
-    borderColor: tokens.surfaceBorder ?? 'transparent',
-    borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+    backgroundColor: tokens.surface,
+    borderColor: tokens.border,
+    borderWidth: 1,
     ...(tokens.surfaceElevatedShadow ?? {}),
   };
 }
@@ -52,7 +52,7 @@ export default function DetaliiScheduleScreen() {
         right={
           owner ? (
             <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: tokens.surfaceElevated }]}
+              style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
               onPress={() => router.push(`/schedule/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
@@ -100,7 +100,7 @@ export default function DetaliiScheduleScreen() {
               ]}
             >
               <View style={[styles.scheduleCard, card]}>
-                <Text style={[styles.time, { color: tokens.accentPrimary }]}>{item.time}</Text>
+                <Text style={[styles.time, { color: tokens.accentText }]}>{item.time}</Text>
                 <View style={styles.scheduleBody}>
                   <Text style={[styles.scheduleTitle, { color: tokens.textPrimary }]}>{item.title}</Text>
                   <Text style={[styles.scheduleLocation, { color: tokens.textSecondary }]}>
@@ -118,8 +118,8 @@ export default function DetaliiScheduleScreen() {
 
 const styles = StyleSheet.create({
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: gSpace.lg,
-    borderRadius: themeRadius.lg,
+    borderRadius: themeRadius.xl,
     padding: gSpace.xl,
   },
   time: {

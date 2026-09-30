@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   content: {
-    paddingHorizontal: gSpace.xl,
+    paddingHorizontal: 20,
     paddingBottom: gSpace.xxl,
     gap: gSpace.lg,
   },

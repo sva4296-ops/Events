@@ -3,16 +3,18 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { Card } from '@/components/Card';
+import Feather from '@expo/vector-icons/Feather';
+
+import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import type { Guest } from '@/types/event';
-import { sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
-import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { formatPhoneDisplay } from '@/utils/countryCodes';
+import { buildGuestInviteMessage, sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
+import { themeRadius, whatsappFill } from '@/utils/themeTokens';
 
 /**
  * "Send invites" queue — reached after a bulk save (app/bulk-add-guests/[id].tsx)
@@ -92,87 +94,188 @@ export default function SendInvitesScreen() {
     setSkippedIds((current) => new Set(current).add(guestId));
   };
 
-  return (
-    <Screen>
-      <Header title={t('sendInvitesQueue.title')} subtitle={t('sendInvitesQueue.subtitle')} showBack />
+  const sample = queue[0];
+  const sampleMessage =
+    sample !== undefined
+      ? buildGuestInviteMessage({
+          guestName: sample.name === sample.phone ? '' : sample.name,
+          event,
+          inviteToken: sample.inviteToken,
+        })
+      : null;
 
-      {totalAtStart > 0 ? (
-        <Text style={[styles.progress, { color: tokens.textSecondary }]}>
-          {t('sendInvitesQueue.progress', { sent: sentCount, total: totalAtStart })}
-        </Text>
+  return (
+    <Screen contentStyle={styles.content}>
+      <Header
+        title=""
+        showBack
+        flowTitle={t('sendInvitesQueue.title')}
+        stepLabel={t('sendInvitesQueue.flowSubtitle')}
+      />
+
+      {sampleMessage !== null ? (
+        <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+          <Text style={[styles.label, { color: tokens.textSecondary }]}>{t('sendInvitesQueue.messageLabel')}</Text>
+          <View style={[styles.bubble, { backgroundColor: tokens.statusConfirmedSoft }]}>
+            <Text style={[styles.bubbleText, { color: tokens.textPrimary }]}>{sampleMessage}</Text>
+          </View>
+          <Text style={[styles.hint, { color: tokens.textSecondary }]}>{t('sendInvitesQueue.messageHint')}</Text>
+        </View>
       ) : null}
+
+      <View style={styles.sectionHead}>
+        <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('sendInvitesQueue.recipients')}</Text>
+        {totalAtStart > 0 ? (
+          <Text style={[styles.progress, { color: tokens.textSecondary }]}>
+            {t('sendInvitesQueue.progress', { sent: sentCount, total: totalAtStart })}
+          </Text>
+        ) : null}
+      </View>
 
       {queue.length === 0 ? (
         <EmptyState
           message={t('sendInvitesQueue.empty')}
-          action={
-            <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} accessibilityRole="button">
-              <Text style={[styles.doneLink, { color: tokens.accentPrimary }]}>{t('common.done')}</Text>
-            </TouchableOpacity>
-          }
+          action={<Button label={t('common.done')} variant="tonal" onPress={() => router.back()} />}
         />
       ) : (
-        <Card>
-          {queue.map((guest) => (
+        <View style={[styles.list, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+          {queue.map((guest, index) => (
             <View
               key={guest.id}
-              style={[styles.row, { borderBottomColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}
+              style={[styles.row, index > 0 && { borderTopWidth: 1, borderTopColor: tokens.border }]}
             >
+              <View style={[styles.avatar, { backgroundColor: tokens.statusPendingSoft }]}>
+                <Text style={[styles.avatarText, { color: tokens.statusPending }]}>
+                  {guest.name === guest.phone ? '#' : initialsOf(guest.name)}
+                </Text>
+              </View>
               <View style={styles.rowText}>
                 <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
                   {guest.name}
                 </Text>
                 {guest.phone !== null && guest.name !== guest.phone ? (
                   <Text style={[styles.phone, { color: tokens.textSecondary }]} numberOfLines={1}>
-                    {guest.phone}
+                    {formatPhoneDisplay(guest.phone)}
                   </Text>
                 ) : null}
               </View>
-
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={[styles.sendButton, { backgroundColor: tokens.accentPrimary }]}
-                  onPress={() => void sendToGuest(guest)}
-                  disabled={sendingId === guest.id}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.sendButtonText}>
-                    {sendingId === guest.id
-                      ? t('sendInvitesQueue.sending')
-                      : t('sendInvitesQueue.sendButton')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => skipGuest(guest.id)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  style={styles.skipButton}
-                >
-                  <Text style={[styles.skipButtonText, { color: tokens.textSecondary }]}>
-                    {t('sendInvitesQueue.skipButton')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => skipGuest(guest.id)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                style={styles.skipButton}
+              >
+                <Text style={[styles.skipButtonText, { color: tokens.textSecondary }]}>
+                  {t('sendInvitesQueue.skipButton')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sendButton, { backgroundColor: whatsappFill }]}
+                onPress={() => void sendToGuest(guest)}
+                disabled={sendingId === guest.id}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={t('sendInvitesQueue.sendButton')}
+              >
+                <Feather name="message-circle" size={16} color="#FFFFFF" />
+                <Text style={styles.sendButtonText}>
+                  {sendingId === guest.id ? t('sendInvitesQueue.sending') : t('sendInvitesQueue.sendButton')}
+                </Text>
+              </TouchableOpacity>
             </View>
           ))}
-        </Card>
+        </View>
       )}
+
+      <View style={[styles.note, { backgroundColor: tokens.accentTint }]}>
+        <Feather name="info" size={18} color={tokens.accentText} />
+        <Text style={[styles.noteText, { color: tokens.accentText }]}>{t('sendInvitesQueue.howItWorks')}</Text>
+      </View>
     </Screen>
   );
 }
 
+function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((part) => part.length > 0)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join('')
+    .toUpperCase();
+}
+
 const styles = StyleSheet.create({
+  content: {
+    paddingHorizontal: 20,
+    gap: 18,
+  },
+  card: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bubble: {
+    alignSelf: 'flex-start',
+    maxWidth: '92%',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 18,
+    borderBottomLeftRadius: 6,
+  },
+  bubbleText: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  hint: {
+    fontSize: 12,
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
   progress: {
     fontSize: 13,
     fontWeight: '600',
   },
+  list: {
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
   row: {
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    gap: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 68,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   rowText: {
+    flex: 1,
+    minWidth: 0,
     gap: 2,
   },
   name: {
@@ -182,17 +285,13 @@ const styles = StyleSheet.create({
   phone: {
     fontSize: 13,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
   sendButton: {
-    flex: 1,
-    minHeight: 40,
-    borderRadius: themeRadius.pill,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    gap: 6,
+    height: 40,
+    borderRadius: themeRadius.pill,
+    paddingHorizontal: 14,
   },
   sendButtonText: {
     fontSize: 13,
@@ -201,16 +300,22 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     minHeight: 40,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
+    paddingHorizontal: 4,
     justifyContent: 'center',
   },
   skipButtonText: {
     fontSize: 13,
     fontWeight: '600',
   },
-  doneLink: {
-    fontSize: 15,
-    fontWeight: '700',
+  note: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 14,
+    borderRadius: 16,
+  },
+  noteText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
   },
 });

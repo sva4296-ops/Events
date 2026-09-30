@@ -123,7 +123,7 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity
-          style={[styles.sheet, { backgroundColor: tokens.surfaceElevated }]}
+          style={[styles.sheet, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
           activeOpacity={1}
           onPress={() => undefined}
         >
@@ -132,7 +132,7 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
           </Text>
 
           {state === 'loading' ? (
-            <ActivityIndicator style={styles.centerBlock} color={tokens.accentPrimary} />
+            <ActivityIndicator style={styles.centerBlock} color={tokens.accentText} />
           ) : null}
 
           {state === 'denied' ? (
@@ -172,12 +172,12 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
                       style={[
                         styles.checkbox,
                         {
-                          borderColor: isSelected ? tokens.accentPrimary : tokens.surfaceBorder ?? 'rgba(0,0,0,0.2)',
-                          backgroundColor: isSelected ? tokens.accentPrimary : 'transparent',
+                          borderColor: isSelected ? tokens.accentFill : tokens.border,
+                          backgroundColor: isSelected ? tokens.accentFill : tokens.surface,
                         },
                       ]}
                     >
-                      {isSelected ? <Feather name="check" size={14} color="#FFFFFF" /> : null}
+                      {isSelected ? <Feather name="check" size={14} color={tokens.onAccent} /> : null}
                     </View>
                     <View style={styles.rowText}>
                       <Text style={[styles.rowName, { color: tokens.textPrimary }]} numberOfLines={1}>
@@ -212,8 +212,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    borderTopLeftRadius: themeRadius.lg,
-    borderTopRightRadius: themeRadius.lg,
+    borderTopLeftRadius: themeRadius.sheet,
+    borderTopRightRadius: themeRadius.sheet,
     paddingTop: spacing.lg,
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxl,

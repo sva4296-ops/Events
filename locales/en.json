@@ -18,30 +18,48 @@
   },
   "home": {
     "tagline": "More than an invitation — the whole story.",
-    "yourEvents": "Your events",
+    "yourEvents": "My events",
     "yourEventsHint": "Events you host.",
     "myInvitations": "My invitations",
     "myInvitationsHint": "Events you were invited to.",
     "emptyEventsHeadline": "Start your first story",
     "emptyEventsMessage": "Create a page for your event and invite the people who matter.",
-    "createEvent": "Create event",
+    "createEvent": "Create an event",
     "emptyInvitationsHeadline": "No invitations yet",
-    "emptyInvitationsMessage": "When someone invites you, it shows up here."
+    "emptyInvitationsMessage": "When someone invites you, it shows up here.",
+    "greeting": "Hi, {{name}}",
+    "greetingNoName": "Hi",
+    "open": "Open",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "countdown_one": "tomorrow",
+    "countdown_other": "in {{count}} days",
+    "countdownToday": "today",
+    "countdownPast": "has taken place",
+    "confirmedCount": "confirmed",
+    "pendingCount": "pending",
+    "respond": "Respond"
   },
   "auth": {
-    "headline": "Welcome to PovesteaNoastra",
-    "subtitle": "Plan weddings, birthdays, and every celebration in between — all in one beautiful place.",
+    "headline": "Step into the story",
+    "subtitle": "More than an invitation. The whole story.",
     "emailLabel": "Email",
     "emailPlaceholder": "maria@example.com",
     "sendCode": "Send code",
     "sendingCode": "Sending code…",
     "errors": {
       "invalidEmail": "Enter a valid email address."
-    }
+    },
+    "smsHint": "We'll text you a verification code.",
+    "legalPrefix": "By continuing, you agree to the ",
+    "legalTerms": "Terms",
+    "legalAnd": " and ",
+    "legalPrivacy": "Privacy Policy",
+    "legalSuffix": "."
   },
   "nameStep": {
     "title": "What's your name?",
-    "subtitle": "This is how you'll appear to others on PovesteaNoastra.",
+    "subtitle": "This is how organizers and other guests will see you.",
     "firstNameLabel": "First name",
     "firstNamePlaceholder": "Maria",
     "lastNameLabel": "Last name",
@@ -94,18 +112,21 @@
     }
   },
   "verify": {
-    "headline": "Enter the code",
+    "headline": "Check your phone",
     "subtitle": "We sent a code to {{identifier}}.",
     "codeLabel": "Verification code",
     "codePlaceholder": "123456",
-    "verifyButton": "Verify",
+    "verifyButton": "Verify code",
     "verifyingButton": "Verifying…",
     "resendCode": "Resend code",
     "resendCooldown": "Resend code ({{seconds}}s)",
     "errors": {
       "emptyCode": "Enter the code we sent you.",
       "invalidCode": "That code is incorrect or has expired."
-    }
+    },
+    "sentTo": "We sent a 6-digit code to ",
+    "changeNumber": "Change number",
+    "resendIn": "You can resend the code in "
   },
   "acasa": {
     "sectionLabel": "OUR STORY",
@@ -116,20 +137,37 @@
     "fundPromoBody": "We'd love for you to be part of the next chapter of our story.",
     "viewFund": "View the fund",
     "comments": "Comments",
-    "noPhoto": "No photo"
+    "noPhoto": "No photo",
+    "countdown_one": "One day left",
+    "countdown_other": "{{count}} days left",
+    "untilDayX": "until Day X",
+    "countdownToday": "Today is Day X",
+    "countdownPast": "The story continues in the album",
+    "momentChip": "Moment",
+    "reactions_one": "{{count}} reaction",
+    "reactions_other": "{{count}} reactions",
+    "postMoment": "Post a moment"
   },
   "chat": {
     "sectionLabel": "WEDDING GROUP",
     "subtitle": "Guests talk to each other and with the organizer",
     "empty": "No messages yet. Write the first one!",
     "placeholder": "Write a message…",
-    "send": "Send"
+    "send": "Send",
+    "organizerBadge": "Organizer"
   },
   "live": {
     "liveTag": "LIVE",
     "qrTitle": "Scan and add your photos",
     "helper": "The screen in the room — every guest adds photos in real time",
-    "addPhoto": "Add a photo (demo)"
+    "addPhoto": "Add a photo (demo)",
+    "cardTitle": "Your photos, on the screen in the hall",
+    "cardBody": "Scan the code on the screen or upload right from here.",
+    "upload": "Upload photos",
+    "photosCount_one": "{{count}} photo",
+    "photosCount_other": "{{count}} photos",
+    "gridTitle": "Right now",
+    "empty": "No one has uploaded photos yet. Be the first!"
   },
   "album": {
     "sectionLabel": "THE STORY HAPPENED",
@@ -139,7 +177,13 @@
     "albumTitle": "Your album",
     "empty": "No photos yet. Photos added in Live show up here.",
     "downloadAll": "Download all photos",
-    "notReady": "The full album will be ready to download 3 days after the event."
+    "notReady": "The full album will be ready to download 3 days after the event.",
+    "title": "Our album",
+    "summary_one": "{{count}} photo · from {{people}} guests",
+    "summary_other": "{{count}} photos · from {{people}} guests",
+    "filterAll": "All",
+    "filterMine": "Mine",
+    "emptyMine": "You haven't uploaded any photos yet."
   },
   "rsvp": {
     "notFoundTitle": "Invitation not found",
@@ -153,7 +197,9 @@
     "confirmedTitle": "You're on the list!",
     "declinedTitle": "Thanks for letting us know",
     "confirmedBody": "We can't wait to see you at {{eventName}}.",
-    "declinedBody": "We'll miss you at {{eventName}}."
+    "declinedBody": "We'll miss you at {{eventName}}.",
+    "question": "Can you make it?",
+    "ownerPreview": "This is how guests see your invitation."
   },
   "detalii": {
     "schedule": "TODAY'S SCHEDULE",
@@ -229,7 +275,10 @@
       "vendorsCount_other": "{{count}} vendors",
       "seatingGuest": "See where you're sitting",
       "menuGuest": "See what's being served",
-      "guestEmpty": "The organizer hasn't added any details yet."
+      "guestEmpty": "The organizer hasn't added any details yet.",
+      "hubTitle": "Everything you need to know",
+      "toComplete": "To complete",
+      "locked": "Locked"
     }
   },
   "fond": {
@@ -244,10 +293,13 @@
     "deleteFundTitle": "Delete this fund?",
     "deleteFundWithContributions_one": "\"{{title}}\" has {{count}} contribution. Deleting it doesn't automatically refund contributors through the app.",
     "deleteFundWithContributions_other": "\"{{title}}\" has {{count}} contributions. Deleting it doesn't automatically refund contributors through the app.",
-    "deleteFundNoContributions": "\"{{title}}\" will be deleted. This action can't be undone."
+    "deleteFundNoContributions": "\"{{title}}\" will be deleted. This action can't be undone.",
+    "overline": "The story fund",
+    "ofGoal": "of the goal",
+    "contribute": "Contribute"
   },
   "profile": {
-    "title": "Account",
+    "title": "Profile",
     "subtitle": "Your session and app details.",
     "signOut": "Sign out",
     "signedInWithSupabase": "Signed in with Supabase",
@@ -261,7 +313,15 @@
     "languageRomanian": "Română",
     "theme": "Appearance",
     "themeLight": "Light",
-    "themeDark": "Dark"
+    "themeDark": "Dark",
+    "personalData": "Personal details",
+    "groupAccount": "Account",
+    "groupEvents": "Events and plans",
+    "groupHelp": "Help",
+    "agencyAccount": "Agency account",
+    "agencyBadge": "Agency",
+    "terms": "Terms and privacy",
+    "version": "Version {{version}}"
   },
   "pricing": {
     "title": "Plans & pricing",
@@ -286,7 +346,9 @@
     "featureMultipleEvents": "Manage multiple events",
     "featureBranding": "Your own branding",
     "featureCentralizedPanel": "Centralized dashboard",
-    "featureVolumeBilling": "Per-event billing"
+    "featureVolumeBilling": "Per-event billing",
+    "headline": "Pick the right plan for your story",
+    "flowTitle": "Plans"
   },
   "planGate": {
     "chatLocked": "Group chat isn't included in this event's current plan.",
@@ -297,7 +359,32 @@
     "hubLockedStatus": "Requires a higher plan",
     "guestLimitReachedTitle": "Guest limit reached",
     "guestLimitReachedBody_one": "This event's current plan allows up to {{count}} guest. Upgrade the plan to add more.",
-    "guestLimitReachedBody_other": "This event's current plan allows up to {{count}} guests. Upgrade the plan to add more."
+    "guestLimitReachedBody_other": "This event's current plan allows up to {{count}} guests. Upgrade the plan to add more.",
+    "lockedIn": "Available in the {{plan}} plan",
+    "upgradeTo": "Upgrade to {{plan}}",
+    "seeAllPlans": "See all plans",
+    "askOrganizer": "The organizer can turn this on from the event's plan.",
+    "fondTitle": "The story fund is in the {{plan}} plan",
+    "fondBody": "Guests contribute right from the app to something that matters to you.",
+    "fondBullets": [
+      "Goal and progress bar",
+      "Contributions with guests' messages",
+      "Secure payment"
+    ],
+    "chatTitle": "Chat is in the {{plan}} plan",
+    "chatBody": "A group just for this event, where guests talk to each other and to you.",
+    "chatBullets": [
+      "Real-time messages",
+      "Every confirmed guest in one place",
+      "The organizer marked in the conversation"
+    ],
+    "liveTitle": "Live Day X is in the {{plan}} plan",
+    "liveBody": "Put a screen in the hall. Guests scan the QR code and their photos appear live, instantly.",
+    "liveBullets": [
+      "Live screen for a projector or TV",
+      "QR code for uploading photos",
+      "Every photo lands in the album"
+    ]
   },
   "event": {
     "notFound": "Event not found",
@@ -313,7 +400,22 @@
     "notSentBadge": "Not sent",
     "removeGuestAction": "Remove",
     "removeGuestTitle": "Remove this guest?",
-    "removeGuestBody": "{{name}} will no longer appear in the guest list."
+    "removeGuestBody": "{{name}} will no longer appear in the guest list.",
+    "dashboardSubtitle": "Organizer",
+    "confirmationsTitle": "RSVPs",
+    "guestsTotal_one": "{{count}} guest",
+    "guestsTotal_other": "{{count}} guests",
+    "addGuest": "Add guest",
+    "sendWhatsApp": "Send on WhatsApp",
+    "filterAll": "All",
+    "filterConfirmed": "Confirmed",
+    "filterPending": "Pending",
+    "filterDeclined": "Declined",
+    "searchPlaceholder": "Search by name or phone",
+    "noMatches": "No guest matches.",
+    "inviteSent": "Invite sent on WhatsApp",
+    "inviteNotSent": "Invite not sent yet",
+    "noPhone": "No phone"
   },
   "bulkInviteForm": {
     "title": "Add multiple guests",
@@ -335,9 +437,14 @@
     "subtitle": "Open WhatsApp for each guest to send their personal invite.",
     "progress": "{{sent}} of {{total}} sent",
     "empty": "Everyone's been messaged.",
-    "sendButton": "Send via WhatsApp",
+    "sendButton": "Send",
     "sending": "Opening…",
-    "skipButton": "Skip"
+    "skipButton": "Skip",
+    "flowSubtitle": "Via WhatsApp",
+    "messageLabel": "The message",
+    "messageHint": "Every guest gets their own name and a personal link.",
+    "recipients": "Recipients",
+    "howItWorks": "WhatsApp opens one guest at a time. You tap Send, and we tick off who got it."
   },
   "scheduleForm": {
     "notAvailableSubtitle": "Only the organizer can edit the schedule.",
@@ -449,48 +556,104 @@
     "sending": "Sending…",
     "sendInvite": "Send invite",
     "nameLabel": "Name (optional)",
-    "namePlaceholder": "Maria Popescu"
+    "namePlaceholder": "Maria Popescu",
+    "title": "Add guest",
+    "tabManual": "Manual",
+    "tabContacts": "From contacts",
+    "sendNow": "Send the invitation on WhatsApp now",
+    "add": "Add guest",
+    "adding": "Adding…"
   },
   "postMomentForm": {
     "notAvailableSubtitle": "Only the organizer can post moments.",
-    "postButton": "Post",
+    "postButton": "Publish the moment",
     "title": "Post a moment",
     "subtitle": "It appears at the top of the story feed.",
     "titleLabel": "Title",
     "titlePlaceholder": "We found the perfect venue",
-    "choosePhoto": "Choose a photo"
+    "choosePhoto": "Choose a photo",
+    "flowTitle": "New moment",
+    "changePhoto": "Change photo",
+    "quickEmoji": "Quick emoji"
   },
   "onboarding": {
-    "step1Title": "Create your event page",
-    "step1Body": "Choose the type, add the details, and your story takes shape in minutes.",
-    "step2Title": "Invite via link or QR code",
-    "step2Body": "Send the invitation anywhere — on WhatsApp, by message, or printed with a QR code.",
-    "step3Title": "Guests confirm and contribute",
-    "step3Body": "See in real time who's coming, and receive contributions for your fund.",
-    "step4Title": "Everything in one place",
-    "step4Body": "Schedule, live photos, chat, and album — the whole story, within everyone's reach.",
+    "step1Title": "It all starts with an invitation",
+    "step1Body": "Send the invitation on WhatsApp and see who confirms, right away.",
+    "step2Title": "The story continues until the big day",
+    "step2Body": "Post moments from the preparations. Guests react and stay close.",
+    "step3Title": "Day X, on the screen in the hall",
+    "step3Body": "Guests scan the QR code and upload photos that appear live, on screen.",
+    "step4Title": "Every memory, in one album",
+    "step4Body": "After the event, every guest finds the full album, ready to download.",
     "skip": "Skip",
     "getStarted": "Get started",
-    "next": "Next"
+    "next": "Next",
+    "stageLaunch": "Launch",
+    "stageJourney": "Journey",
+    "stageDayX": "Day X",
+    "stageRecap": "Recap",
+    "stageOverline": "Stage {{step}} of {{total}} · {{name}}"
   },
   "createWizard": {
     "continue": "Continue",
     "typeTitle": "What are we celebrating?",
-    "typeSubtitle": "Pick the type of event — it sets the look of your invitation.",
+    "typeSubtitle": "Pick the type of event. Each one has its own colors.",
     "detailsButton": "Preview invitation",
-    "detailsTitle": "The details",
+    "detailsTitle": "The story's details",
     "detailsSubtitle": "Everything your guests need to know.",
     "namePlaceholder": "Ana & Mihai",
     "pastDateError": "Choose today or a later date.",
     "locationPlaceholder": "The Royal House, Brașov",
     "welcomeMessagePlaceholder": "We'd love to have you with us on our special day.",
-    "previewButton": "Generate invite",
-    "previewTitle": "How it will look",
-    "previewSubtitle": "This is what your guests will see when they open the invitation.",
+    "previewButton": "Looks good",
+    "previewTitle": "This is how guests will get it",
+    "previewSubtitle": "The link also opens in the browser, no app install needed.",
     "previewNote": "Need a change? Go back and edit the details.",
-    "shareTitle": "Your invitation is ready 🎉",
-    "shareSubtitle": "Share the link with your guests — they can RSVP straight from it.",
+    "shareTitle": "The story has begun!",
+    "shareSubtitle": "Send the invitation to your loved ones. Every guest gets a personal link.",
     "inviteLinkLabel": "Invite link",
-    "linkHint": "v1 uses a local deep link — no server yet, so it opens the invite on this device."
+    "linkHint": "v1 uses a local deep link — no server yet, so it opens the invite on this device.",
+    "flowTitle": "New event",
+    "stepLabel": "Step {{step}} of {{total}} · {{name}}",
+    "stepType": "Type",
+    "stepDetails": "Details",
+    "stepPreview": "Preview",
+    "stepPlan": "Plan",
+    "stepShare": "Share",
+    "timeLabel": "Time",
+    "previewEdit": "Edit",
+    "shareWhatsApp": "Send on WhatsApp",
+    "shareAddGuests": "Add guests",
+    "shareGoToEvent": "Go to the event"
+  },
+  "eventTypes": {
+    "wedding": {
+      "label": "Wedding",
+      "description": "Ceremony and party"
+    },
+    "baptism": {
+      "label": "Baptism",
+      "description": "The first chapter"
+    },
+    "birthday": {
+      "label": "Birthday",
+      "description": "Years worth celebrating"
+    },
+    "cause": {
+      "label": "Charity cause",
+      "description": "Raising funds together"
+    },
+    "corporate": {
+      "label": "Corporate",
+      "description": "Team and partners"
+    },
+    "memorial": {
+      "label": "Memorial",
+      "description": "A place for remembering"
+    },
+    "other": {
+      "label": "Something else",
+      "description": "Any other celebration"
+    }
   }
 }

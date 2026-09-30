@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +8,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { PurchasesPackage } from 'react-native-purchases';
 
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
@@ -17,7 +17,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import type { PlanFeature, PlanPriceState, ResolvedPlan } from '@/types/pricing';
 import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
 import { reportSupabaseError } from '@/utils/reportError';
 import { fetchOfferingPackages } from '@/utils/revenueCat';
 
@@ -190,11 +190,23 @@ export default function PricingScreen() {
         ) : undefined
       }
     >
-      <Header
-        title={t('pricing.title')}
-        subtitle={t('pricing.subtitle', { eventName: event.name })}
-        showBack={context !== 'create'}
-      />
+      {context === 'create' ? (
+        <Header
+          title={t('pricing.title')}
+          subtitle={t('pricing.subtitle', { eventName: event.name })}
+          flowTitle={t('createWizard.flowTitle')}
+          stepLabel={t('createWizard.stepLabel', { step: 4, total: 5, name: t('createWizard.stepPlan') })}
+          step={4}
+          totalSteps={5}
+        />
+      ) : (
+        <Header
+          title={t('pricing.headline')}
+          subtitle={t('pricing.subtitle', { eventName: event.name })}
+          flowTitle={t('pricing.flowTitle')}
+          showBack
+        />
+      )}
 
       {!plansHydrated ? (
         <View style={styles.list}>
@@ -239,30 +251,39 @@ function PlanCard({
   const { t } = useTranslation();
   const { tokens } = useTheme();
 
-  return (
-    <Card
-      style={{
-        ...styles.card,
-        ...(plan.isHighlighted
-          ? { borderColor: tokens.accentPrimary, borderWidth: 2 }
-          : { borderColor: tokens.surfaceBorder ?? 'transparent', borderWidth: 1 }),
-      }}
+  const card = (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: tokens.surface, borderColor: plan.isHighlighted ? tokens.accentPrimary : tokens.border },
+        plan.isHighlighted ? styles.cardHighlighted : null,
+        tokens.surfaceElevatedShadow ?? undefined,
+      ]}
     >
-      {plan.badgeText !== null ? (
-        <View style={[styles.badge, { backgroundColor: tokens.accentPrimary }]}>
-          <Text style={styles.badgeText}>{plan.badgeText}</Text>
-        </View>
-      ) : null}
-
-      <Text style={[styles.planTitle, { color: tokens.textPrimary }]}>{plan.displayName}</Text>
+      <View style={styles.cardHead}>
+        <Text style={[styles.planTitle, { color: tokens.textPrimary }]}>{plan.displayName}</Text>
+        {plan.badgeText !== null ? (
+          plan.isHighlighted ? (
+            <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.badge}>
+              <Text style={[styles.badgeText, { color: '#2B2740' }]}>{plan.badgeText}</Text>
+            </LinearGradient>
+          ) : (
+            <View style={[styles.badge, { backgroundColor: tokens.surface2 }]}>
+              <Text style={[styles.badgeText, { color: tokens.textSecondary }]}>{plan.badgeText}</Text>
+            </View>
+          )
+        ) : null}
+      </View>
 
       <PriceLine plan={plan} price={price} />
 
       <View style={styles.features}>
         {buildFeatureBullets(plan, t).map((feature, index) => (
           <View key={index} style={styles.featureRow}>
-            <Feather name="check" size={16} color={tokens.accentPrimary} />
-            <Text style={[styles.featureText, { color: tokens.textSecondary }]}>{feature}</Text>
+            <View style={[styles.check, { backgroundColor: tokens.statusConfirmedSoft }]}>
+              <Feather name="check" size={13} color={tokens.statusConfirmed} />
+            </View>
+            <Text style={[styles.featureText, { color: tokens.textPrimary }]}>{feature}</Text>
           </View>
         ))}
       </View>
@@ -273,7 +294,14 @@ function PlanCard({
         disabled={busy}
         onPress={onPress}
       />
-    </Card>
+    </View>
+  );
+
+  // Highlighted plan: 5px accentTint halo around the 2px accent border.
+  return plan.isHighlighted ? (
+    <View style={[styles.halo, { backgroundColor: tokens.accentTint }]}>{card}</View>
+  ) : (
+    card
   );
 }
 
@@ -300,8 +328,9 @@ function PriceLine({ plan, price }: { plan: PlanFeature; price: PlanPriceState }
 }
 
 function PlanCardSkeleton() {
+  const { tokens } = useTheme();
   return (
-    <Card style={styles.card}>
+    <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
       <Skeleton width={90} height={20} radius={6} />
       <Skeleton width={120} height={28} radius={6} style={styles.priceSkeleton} />
       <View style={styles.features}>
@@ -310,7 +339,7 @@ function PlanCardSkeleton() {
         <Skeleton width="70%" height={14} radius={4} />
       </View>
       <Skeleton width="100%" height={54} radius={themeRadius.pill} />
-    </Card>
+    </View>
   );
 }
 
@@ -319,28 +348,51 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   card: {
-    gap: spacing.md,
+    borderRadius: 26,
+    borderWidth: 1,
+    padding: 20,
+    gap: 14,
+  },
+  cardHighlighted: {
+    borderWidth: 2,
+  },
+  halo: {
+    borderRadius: 31,
+    padding: 5,
+    margin: -5,
+  },
+  cardHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   badge: {
-    alignSelf: 'flex-start',
+    height: 26,
     borderRadius: themeRadius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
+    paddingHorizontal: 11,
+    justifyContent: 'center',
   },
   badgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   planTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
+    flexShrink: 1,
   },
   price: {
-    fontSize: 26,
-    fontWeight: '700',
+    ...typography.display,
+    fontSize: 32,
+    lineHeight: 38,
+  },
+  check: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   priceUnavailable: {
     fontSize: 14,
@@ -354,11 +406,12 @@ const styles = StyleSheet.create({
   },
   featureRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    alignItems: 'flex-start',
+    gap: 10,
   },
   featureText: {
     fontSize: 14,
+    lineHeight: 20,
     flex: 1,
   },
   disclaimer: {

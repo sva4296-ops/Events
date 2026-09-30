@@ -16,9 +16,9 @@ import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
 function cardStyle(tokens: ThemeTokens) {
   return {
-    backgroundColor: tokens.surfaceElevated,
-    borderColor: tokens.surfaceBorder ?? 'transparent',
-    borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+    backgroundColor: tokens.surface,
+    borderColor: tokens.border,
+    borderWidth: 1,
     ...(tokens.surfaceElevatedShadow ?? {}),
   };
 }
@@ -58,18 +58,18 @@ export default function DetaliiLocationScreen() {
         <View style={[styles.mapCard, card]}>
           {owner ? (
             <TouchableOpacity
-              style={[styles.venueEdit, { backgroundColor: tokens.surfaceElevated }]}
+              style={[styles.venueEdit, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
               onPress={() => router.push(`/venue/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Editează locația"
             >
-              <Feather name="edit-2" size={16} color={tokens.accentPrimary} />
+              <Feather name="edit-2" size={16} color={tokens.accentText} />
             </TouchableOpacity>
           ) : null}
-          <View style={[styles.mapPreview, { backgroundColor: tokens.surface }]}>
+          <View style={[styles.mapPreview, { backgroundColor: tokens.surface2 }]}>
             <Image source={{ uri: content.venue.map_image_url }} style={styles.map} />
-            <View style={[styles.pin, { backgroundColor: tokens.surfaceElevated }]}>
+            <View style={[styles.pin, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}>
               <Text style={styles.pinText}>📍</Text>
             </View>
           </View>
@@ -96,7 +96,7 @@ export default function DetaliiLocationScreen() {
 
 const styles = StyleSheet.create({
   mapCard: {
-    borderRadius: themeRadius.lg,
+    borderRadius: themeRadius.xl,
     overflow: 'hidden',
   },
   venueEdit: {
@@ -104,8 +104,8 @@ const styles = StyleSheet.create({
     top: gSpace.md,
     right: gSpace.md,
     zIndex: 2,
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 44,
     borderRadius: gRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',

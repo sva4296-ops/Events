@@ -1,24 +1,29 @@
+import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 import type { EventDraft } from '@/types/event';
-import { getEventType, getEventTypeGradient } from '@/utils/eventTypes';
+import { getEventType } from '@/utils/eventTypes';
 import { formatEventDate } from '@/utils/format';
 import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { bandGradientLocations, themeRadius, typography } from '@/utils/themeTokens';
 
-/** Accepts both a wizard draft and a saved event — the shapes overlap. */
+/** On-band chips: white 90% with dark text in both modes — text never sits on the gradient itself. */
+const CHIP_BG = 'rgba(255,255,255,0.9)';
+const CHIP_TEXT = '#2B2740';
+const RADIUS = 28;
+
+/**
+ * Warm Story 2.0 invitation card: the type's band on top (type chip + emoji),
+ * then the name in Playfair, the welcome message as a quote, and date/place.
+ * Accepts both a wizard draft and a saved event — the shapes overlap.
+ */
 export function InviteCard({ event }: { event: EventDraft }) {
-  const { tokens, mode } = useTheme();
+  const { t } = useTranslation();
+  const { tokens } = useTheme();
   const type = getEventType(event.type);
-  const coverGradient = getEventTypeGradient(event.type, mode);
-  // type.accent is tuned for contrast against the light-mode pastel
-  // gradients only — against the dark-mode gradients it reads too close in
-  // luminance to be legible (worst on corporate/memorial, whose accents are
-  // themselves muted blue-grays). Dark mode uses textPrimary instead, same
-  // as every other themed piece of text on this card.
-  const kickerColor = mode === 'dark' ? tokens.textPrimary : type.accent;
   const name = event.name.trim();
   const location = event.location.trim();
   const message = event.welcomeMessage.trim();
@@ -27,45 +32,44 @@ export function InviteCard({ event }: { event: EventDraft }) {
     <View
       style={[
         styles.card,
-        {
-          backgroundColor: tokens.surfaceElevated,
-          // Light mode: unchanged — tokens.surfaceBorder is already null
-          // there, so this has always evaluated to no border. Dark mode:
-          // the app-wide 1px surfaceBorder (light-shadow/dark-border card
-          // treatment used everywhere else) traces this card's *whole*
-          // rounded rectangle, so it runs directly along the saturated
-          // `cover` gradient at the top — instead of reading as a subtle
-          // edge (as it does on a plain-fill card, where border and fill
-          // are close in tone), it shows up as a visible, doubled outline
-          // against the gradient. This card already gets a strong edge from
-          // the gradient meeting the page background, so dropping the
-          // border in dark mode is a deliberate, scoped exception for this
-          // one component — not a change to the shared surfaceBorder token
-          // or the dark-card pattern everywhere else.
-          borderColor: mode === 'dark' ? 'transparent' : tokens.surfaceBorder ?? 'transparent',
-          borderWidth: mode === 'dark' ? 0 : tokens.surfaceBorder !== null ? 1 : 0,
-        },
+        { backgroundColor: tokens.surface, borderColor: tokens.border },
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      <LinearGradient colors={coverGradient} style={styles.cover}>
-        <Text style={styles.emoji}>{type.emoji}</Text>
-        <Text style={[styles.kicker, { color: kickerColor }]}>{type.label.toUpperCase()}</Text>
+      <LinearGradient
+        colors={type.band}
+        locations={bandGradientLocations}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cover}
+      >
+        <View style={styles.chip}>
+          <Text style={styles.chipText}>{t(`eventTypes.${type.id}.label`)}</Text>
+        </View>
+        <View style={styles.emojiCircle}>
+          <Text style={styles.emoji}>{type.emoji}</Text>
+        </View>
       </LinearGradient>
 
       <View style={styles.body}>
         <Text style={[styles.name, { color: tokens.textPrimary }]}>
           {name.length > 0 ? name : 'Your event name'}
         </Text>
-        <Text style={[styles.meta, { color: tokens.textSecondary }]}>{formatEventDate(event.date)}</Text>
-        {location.length > 0 ? (
-          <Text style={[styles.meta, { color: tokens.textSecondary }]}>{location}</Text>
-        ) : null}
         {message.length > 0 ? (
-          <>
-            <View style={[styles.divider, { backgroundColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.08)' }]} />
-            <Text style={[styles.message, { color: tokens.textPrimary }]}>{message}</Text>
-          </>
+          <Text style={[styles.quote, { color: tokens.textPrimary }]}>„{message}”</Text>
+        ) : null}
+
+        <View style={[styles.divider, { backgroundColor: tokens.border }]} />
+
+        <View style={styles.metaRow}>
+          <Feather name="calendar" size={16} color={tokens.textSecondary} />
+          <Text style={[styles.meta, { color: tokens.textSecondary }]}>{formatEventDate(event.date)}</Text>
+        </View>
+        {location.length > 0 ? (
+          <View style={styles.metaRow}>
+            <Feather name="map-pin" size={16} color={tokens.textSecondary} />
+            <Text style={[styles.meta, { color: tokens.textSecondary }]}>{location}</Text>
+          </View>
         ) : null}
       </View>
     </View>
@@ -74,66 +78,77 @@ export function InviteCard({ event }: { event: EventDraft }) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: themeRadius.lg,
+    borderRadius: RADIUS,
+    borderWidth: 1,
     overflow: 'hidden',
   },
   cover: {
-    // A fixed height let a two-line kicker (the longer labels, e.g.
-    // "CORPORATE") overflow past the box's own bottom edge and into the
-    // body section below — since `body` starts wherever `cover`'s box ends,
-    // not wherever its content actually stops. minHeight + vertical padding
-    // lets the box grow with the content instead, so every label length
-    // stacks cleanly regardless of how many lines it wraps to.
-    minHeight: 150,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
+    height: 130,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    // `card`'s own overflow:'hidden' + borderRadius is supposed to clip this
-    // gradient's corners to match, but in dark mode `card` also carries a
-    // 1px borderColor (surfaceBorder) — combining overflow-clipping with a
-    // sibling border is a known RN rendering gap where the child's square
-    // corner can peek out past the rounded border, reading as a doubled
-    // outline. Rounding the cover's own top corners to the same radius
-    // means it's already shaped correctly before clipping is even needed,
-    // so there's no seam for the border to show through.
-    borderTopLeftRadius: themeRadius.lg,
-    borderTopRightRadius: themeRadius.lg,
+    // Rounded to match the card so the border never shows a square corner
+    // peeking out past the clip (a known RN overflow/border rendering gap).
+    borderTopLeftRadius: RADIUS - 1,
+    borderTopRightRadius: RADIUS - 1,
+  },
+  chip: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    height: 24,
+    paddingHorizontal: 10,
+    borderRadius: themeRadius.pill,
+    backgroundColor: CHIP_BG,
+    justifyContent: 'center',
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: CHIP_TEXT,
+  },
+  emojiCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: CHIP_BG,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emoji: {
-    fontSize: 48,
-  },
-  kicker: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.6,
-    textAlign: 'center',
+    fontSize: 38,
   },
   body: {
-    padding: spacing.xl,
-    gap: spacing.xs,
+    paddingTop: 22,
+    paddingHorizontal: 22,
+    paddingBottom: spacing.xl,
     alignItems: 'center',
+    gap: spacing.sm,
   },
   name: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...typography.display,
+    fontSize: 32,
+    lineHeight: 38,
     textAlign: 'center',
-    letterSpacing: -0.4,
   },
-  meta: {
-    fontSize: 15,
+  quote: {
+    ...typography.quote,
     textAlign: 'center',
+    marginTop: 6,
   },
   divider: {
     height: 1,
     alignSelf: 'stretch',
-    marginVertical: spacing.md,
+    marginTop: 10,
+    marginBottom: 6,
   },
-  message: {
-    fontSize: 15,
-    lineHeight: 23,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  meta: {
+    fontSize: 14,
     textAlign: 'center',
-    fontStyle: 'italic',
+    flexShrink: 1,
   },
 });

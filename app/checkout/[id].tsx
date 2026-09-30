@@ -6,7 +6,6 @@ import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { useTheme } from '@/hooks/useTheme';
 import { fonts, gSpace } from '@/utils/guestTheme';
-import { themeRadius } from '@/utils/themeTokens';
 
 /**
  * Placeholder for the Stripe flow. Next iteration: Stripe Connect onboarding for
@@ -22,14 +21,16 @@ export default function CheckoutScreen() {
         style={[
           styles.card,
           {
-            backgroundColor: tokens.surfaceElevated,
-            borderColor: tokens.surfaceBorder ?? 'transparent',
-            borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+            backgroundColor: tokens.surface,
+            borderColor: tokens.border,
+            borderWidth: 1,
           },
           tokens.surfaceElevatedShadow ?? undefined,
         ]}
       >
-        <Feather name="credit-card" size={30} color={tokens.accentPrimary} />
+        <View style={[styles.iconCircle, { backgroundColor: tokens.accentTint }]}>
+          <Feather name="credit-card" size={28} color={tokens.accentText} />
+        </View>
         <Text style={[styles.title, { color: tokens.textPrimary }]}>Plata vine în curând</Text>
         <Text style={[styles.body, { color: tokens.textSecondary }]}>
           Aici se va deschide Stripe Checkout. Momentan este doar un pas simulat — nu se face
@@ -48,8 +49,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexGrow: 1,
   },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: {
-    borderRadius: themeRadius.lg,
+    borderRadius: 24,
     padding: gSpace.xxl,
     alignItems: 'center',
     gap: gSpace.md,

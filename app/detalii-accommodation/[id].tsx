@@ -19,9 +19,9 @@ import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
 function cardStyle(tokens: ThemeTokens) {
   return {
-    backgroundColor: tokens.surfaceElevated,
-    borderColor: tokens.surfaceBorder ?? 'transparent',
-    borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+    backgroundColor: tokens.surface,
+    borderColor: tokens.border,
+    borderWidth: 1,
     ...(tokens.surfaceElevatedShadow ?? {}),
   };
 }
@@ -80,7 +80,7 @@ export default function DetaliiAccommodationScreen() {
         right={
           owner ? (
             <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: tokens.surfaceElevated }]}
+              style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
               onPress={() => router.push(`/accommodation/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
@@ -151,8 +151,8 @@ export default function DetaliiAccommodationScreen() {
 
 const styles = StyleSheet.create({
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     gap: gSpace.md,
   },
   rowCard: {
-    borderRadius: themeRadius.lg,
+    borderRadius: themeRadius.xl,
     padding: gSpace.xl,
     gap: 2,
   },

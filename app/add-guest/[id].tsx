@@ -1,13 +1,15 @@
+import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
 import { PhoneField } from '@/components/PhoneField';
 import { Screen } from '@/components/Screen';
+import { Toggle } from '@/components/Toggle';
 import { checkGuestPhoneInvited } from '@/data/eventsRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
@@ -48,6 +50,7 @@ export default function AddGuestScreen() {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sendNow, setSendNow] = useState(true);
 
   if (event === undefined || !isOwner(event)) {
     return (
@@ -117,7 +120,7 @@ export default function AddGuestScreen() {
       // pending queue and getting messaged a second time.
       // The personal link needs the new row's invite_token, so without the
       // refetched guest there's nothing correct to send.
-      if (guest === null) {
+      if (guest === null || !sendNow) {
         router.back();
         return;
       }
@@ -148,18 +151,44 @@ export default function AddGuestScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
+        contentStyle={styles.content}
         footer={
           <Button
-            label={busy ? t('addGuestForm.sending') : t('addGuestForm.sendInvite')}
+            label={busy ? t('addGuestForm.adding') : t('addGuestForm.add')}
             disabled={localNumber.trim().length === 0 || busy}
             onPress={() => void submit()}
           />
         }
       >
-        <Header
-          title={t('event.inviteGuest')}
-          subtitle={t('addGuestForm.subtitlePhone')}
-          showBack
+        <Header title={t('addGuestForm.title')} subtitle={t('addGuestForm.subtitlePhone')} showBack />
+
+        <View style={[styles.segment, { backgroundColor: tokens.surface2 }]} accessibilityRole="tablist">
+          <View
+            style={[styles.segmentItem, styles.segmentActive, { backgroundColor: tokens.surface }]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: true }}
+          >
+            <Text style={[styles.segmentText, { color: tokens.textPrimary }]}>{t('addGuestForm.tabManual')}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.segmentItem}
+            onPress={() => router.replace(`/bulk-add-guests/${event.id}`)}
+            activeOpacity={0.7}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: false }}
+          >
+            <Feather name="book-open" size={16} color={tokens.textSecondary} />
+            <Text style={[styles.segmentText, { color: tokens.textSecondary }]}>
+              {t('addGuestForm.tabContacts')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Field
+          label={t('addGuestForm.nameLabel')}
+          value={name}
+          onChangeText={setName}
+          placeholder={t('addGuestForm.namePlaceholder')}
         />
 
         <PhoneField
@@ -172,18 +201,10 @@ export default function AddGuestScreen() {
             setError(null);
           }}
           placeholder={t('phoneAuth.phonePlaceholder')}
+          error={error}
         />
 
-        <Field
-          label={t('addGuestForm.nameLabel')}
-          value={name}
-          onChangeText={setName}
-          placeholder={t('addGuestForm.namePlaceholder')}
-        />
-
-        {error !== null ? (
-          <Text style={[styles.error, { color: tokens.destructive }]}>{error}</Text>
-        ) : null}
+        <Toggle label={t('addGuestForm.sendNow')} value={sendNow} onChange={setSendNow} />
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -193,8 +214,33 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
   },
-  error: {
-    fontSize: 13,
-    paddingHorizontal: 4,
+  content: {
+    paddingHorizontal: 20,
+    gap: 18,
+  },
+  segment: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: 999,
+  },
+  segmentItem: {
+    flex: 1,
+    height: 40,
+    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  segmentActive: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

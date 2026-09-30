@@ -3,11 +3,13 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Constants from 'expo-constants';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
-import { Header } from '@/components/Header';
+import { BackButton } from '@/components/BackButton';
+import { ListGroup, ListRow } from '@/components/ListGroup';
 import { Screen } from '@/components/Screen';
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,7 +19,8 @@ import { formatPhoneDisplay } from '@/utils/countryCodes';
 import { processAvatarPhoto } from '@/utils/imageProcessing';
 import { reportSupabaseError } from '@/utils/reportError';
 import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
+import { INVITE_SITE_URL } from '@/utils/whatsappInvite';
 import { setLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/utils/i18n';
 
 const LANGUAGE_LABEL_KEY: Record<SupportedLanguage, string> = {
@@ -87,253 +90,220 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const initials = (displayName ?? '')
+    .split(' ')
+    .map((part) => part.trim().charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const chooseLanguage = () => {
+    Alert.alert(t('profile.language'), undefined, [
+      ...SUPPORTED_LANGUAGES.map((language) => ({
+        text: t(LANGUAGE_LABEL_KEY[language]),
+        onPress: () => void setLanguage(language),
+      })),
+      { text: t('common.cancel'), style: 'cancel' as const },
+    ]);
+  };
+
+  const chooseTheme = () => {
+    Alert.alert(t('profile.theme'), undefined, [
+      ...THEME_MODES.map((themeMode) => ({
+        text: t(THEME_LABEL_KEY[themeMode]),
+        onPress: () => setThemeMode(themeMode),
+      })),
+      { text: t('common.cancel'), style: 'cancel' as const },
+    ]);
+  };
+
+  const languageLabel = SUPPORTED_LANGUAGES.includes(activeLanguage as SupportedLanguage)
+    ? t(LANGUAGE_LABEL_KEY[activeLanguage as SupportedLanguage])
+    : activeLanguage;
+
   return (
-    <Screen
-      footer={
-        user !== null ? (
-          <Button label={t('profile.signOut')} variant="secondary" onPress={() => void signOut()} />
-        ) : undefined
-      }
-    >
-      <Header title={t('profile.title')} subtitle={t('profile.subtitle')} showBack />
-
-      <Card>
-        <View style={styles.row}>
-          <TouchableOpacity
-            style={styles.avatar}
-            onPress={chooseAvatarSource}
-            disabled={uploadingAvatar}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel={t('profile.changePhoto')}
-          >
-            <View style={[styles.avatarInner, { backgroundColor: `${tokens.accentPrimary}22` }]}>
-              {avatarUrl !== null ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-              ) : (
-                <Feather name="user" size={20} color={tokens.accentPrimary} />
-              )}
-              {uploadingAvatar ? (
-                <View style={styles.avatarOverlay}>
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                </View>
-              ) : null}
-            </View>
-            {uploadingAvatar ? null : (
-              <View
-                style={[
-                  styles.avatarBadge,
-                  { backgroundColor: tokens.accentPrimary, borderColor: tokens.surfaceElevated },
-                ]}
-              >
-                <Feather name="camera" size={10} color="#FFFFFF" />
-              </View>
-            )}
-          </TouchableOpacity>
-          <View style={styles.info}>
-            <Text style={[styles.email, { color: tokens.textPrimary }]}>
-              {displayName ?? contact ?? t('profile.title')}
-            </Text>
-            <Text style={[styles.meta, { color: tokens.textSecondary }]}>
-              {phoneDisplay ?? t('profile.signedInWithSupabase')}
-            </Text>
-          </View>
-        </View>
-
+    <Screen contentStyle={styles.content}>
+      <View style={styles.header}>
+        <BackButton />
+        <Text style={[styles.title, { color: tokens.textPrimary }]}>{t('profile.title')}</Text>
         <TouchableOpacity
-          style={[styles.profileActionRow, { borderTopColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}
+          style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
           onPress={() => router.push('/edit-profile')}
           activeOpacity={0.7}
           accessibilityRole="button"
+          accessibilityLabel={t('profile.editProfile')}
         >
-          <Feather name="edit-2" size={18} color={tokens.textSecondary} />
-          <Text style={[styles.profileActionLabel, { color: tokens.textPrimary }]}>
-            {t('profile.editProfile')}
-          </Text>
-          <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
+          <Feather name="edit-2" size={20} color={tokens.textPrimary} />
         </TouchableOpacity>
+      </View>
 
-        {agencyHydrated && !isAgencyOwner ? (
-          <TouchableOpacity
-            style={[styles.profileActionRow, { borderTopColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.06)' }]}
-            onPress={() => router.push('/agency-signup')}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-          >
-            <Feather name="briefcase" size={18} color={tokens.textSecondary} />
-            <Text style={[styles.profileActionLabel, { color: tokens.textPrimary }]}>
-              {t('profile.addBusinessAccount')}
-            </Text>
-            <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
-          </TouchableOpacity>
-        ) : null}
-      </Card>
-
-      <Card style={styles.languageCard}>
-        <Text style={[styles.languageLabel, { color: tokens.textSecondary }]}>
-          {t('profile.language')}
-        </Text>
-        <View style={styles.languageOptions}>
-          {SUPPORTED_LANGUAGES.map((language) => {
-            const active = activeLanguage === language;
-            return (
-              <TouchableOpacity
-                key={language}
-                style={[
-                  styles.languageOption,
-                  {
-                    borderColor: active ? tokens.accentPrimary : tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
-                    backgroundColor: active ? tokens.accentPrimary : tokens.surface,
-                  },
-                ]}
-                onPress={() => void setLanguage(language)}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text
-                  style={[
-                    styles.languageOptionText,
-                    { color: active ? '#FFFFFF' : tokens.textPrimary },
-                  ]}
-                >
-                  {t(LANGUAGE_LABEL_KEY[language])}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+      <View style={styles.identity}>
+        <TouchableOpacity
+          onPress={chooseAvatarSource}
+          disabled={uploadingAvatar}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.changePhoto')}
+        >
+          {avatarUrl !== null ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          ) : (
+            <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.avatar}>
+              {initials.length > 0 ? (
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              ) : (
+                <Feather name="user" size={28} color="#FFFFFF" />
+              )}
+            </LinearGradient>
+          )}
+          {uploadingAvatar ? (
+            <View style={[styles.avatar, styles.avatarOverlay]}>
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            </View>
+          ) : (
+            <View style={[styles.avatarBadge, { backgroundColor: tokens.accentFill, borderColor: tokens.surface }]}>
+              <Feather name="camera" size={12} color={tokens.onAccent} />
+            </View>
+          )}
+        </TouchableOpacity>
+        <View style={styles.info}>
+          <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
+            {displayName ?? contact ?? t('profile.title')}
+          </Text>
+          {phoneDisplay !== null ? (
+            <Text style={[styles.meta, { color: tokens.textSecondary }]}>{phoneDisplay}</Text>
+          ) : null}
         </View>
-      </Card>
+      </View>
 
-      <Card style={styles.languageCard}>
-        <Text style={[styles.languageLabel, { color: tokens.textSecondary }]}>
-          {t('profile.theme')}
-        </Text>
-        <View style={styles.languageOptions}>
-          {THEME_MODES.map((themeMode) => {
-            const active = mode === themeMode;
-            return (
-              <TouchableOpacity
-                key={themeMode}
-                style={[
-                  styles.languageOption,
-                  {
-                    borderColor: active ? tokens.accentPrimary : tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
-                    backgroundColor: active ? tokens.accentPrimary : tokens.surface,
-                  },
-                ]}
-                onPress={() => setThemeMode(themeMode)}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text
-                  style={[
-                    styles.languageOptionText,
-                    { color: active ? '#FFFFFF' : tokens.textPrimary },
-                  ]}
-                >
-                  {t(THEME_LABEL_KEY[themeMode])}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </Card>
+      <ListGroup title={t('profile.groupAccount')}>
+        <ListRow icon="user" label={t('profile.personalData')} onPress={() => router.push('/edit-profile')} />
+        <ListRow icon="globe" label={t('profile.language')} value={languageLabel} onPress={chooseLanguage} />
+        <ListRow icon="moon" label={t('profile.theme')} value={t(THEME_LABEL_KEY[mode])} onPress={chooseTheme} />
+      </ListGroup>
+
+      {agencyHydrated ? (
+        <ListGroup title={t('profile.groupEvents')}>
+          <ListRow
+            icon="briefcase"
+            label={t('profile.agencyAccount')}
+            trailing={
+              isAgencyOwner ? (
+                <View style={[styles.badge, { backgroundColor: tokens.textPrimary }]}>
+                  <Text style={[styles.badgeText, { color: tokens.surface }]}>{t('profile.agencyBadge')}</Text>
+                </View>
+              ) : undefined
+            }
+            onPress={isAgencyOwner ? undefined : () => router.push('/agency-signup')}
+          />
+        </ListGroup>
+      ) : null}
+
+      <ListGroup title={t('profile.groupHelp')}>
+        <ListRow
+          icon="file-text"
+          label={t('profile.terms')}
+          onPress={() => void Linking.openURL(`${INVITE_SITE_URL}/termeni`)}
+        />
+      </ListGroup>
+
+      {user !== null ? (
+        <Button
+          label={t('profile.signOut')}
+          variant="danger"
+          icon={<Feather name="log-out" size={20} color={tokens.destructive} />}
+          onPress={() => void signOut()}
+        />
+      ) : null}
+
+      <Text style={[styles.version, { color: tokens.textSecondary }]}>
+        {t('profile.version', { version: Constants.expoConfig?.version ?? '' })}
+      </Text>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
+  content: {
+    gap: 22,
+    paddingHorizontal: 20,
+  },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
+    gap: 12,
+    paddingTop: spacing.lg,
   },
-  avatar: {
-    width: 46,
-    height: 46,
+  title: {
+    ...typography.title1,
+    fontSize: 30,
+    lineHeight: 36,
+    flex: 1,
   },
-  avatarInner: {
-    width: 46,
-    height: 46,
+  headerButton: {
+    width: 44,
+    height: 44,
     borderRadius: themeRadius.pill,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
+  identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    color: '#FFFFFF',
+    fontSize: 26,
+    fontWeight: '600',
   },
   avatarOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   avatarBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: themeRadius.pill,
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   info: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
-  email: {
-    fontSize: 15,
-    fontWeight: '700',
+  name: {
+    ...typography.title2,
   },
   meta: {
-    fontSize: 12,
-  },
-  profileActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.lg,
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-  },
-  profileActionLabel: {
-    flex: 1,
     fontSize: 14,
-    fontWeight: '600',
   },
-  languageCard: {
-    gap: spacing.md,
-  },
-  languageLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  languageOptions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  languageOption: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: themeRadius.md,
-    borderWidth: 1,
-    alignItems: 'center',
+  badge: {
+    height: 24,
+    paddingHorizontal: 10,
+    borderRadius: themeRadius.pill,
     justifyContent: 'center',
   },
-  languageOptionText: {
-    fontSize: 14,
+  badgeText: {
+    fontSize: 12,
     fontWeight: '600',
+  },
+  version: {
+    fontSize: 12,
+    textAlign: 'center',
   },
 });

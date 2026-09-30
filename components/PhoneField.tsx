@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { FocusRing } from '@/components/FocusRing';
 import { useTheme } from '@/hooks/useTheme';
 import { COUNTRY_CODES, stripLeadingZero, type CountryCode } from '@/utils/countryCodes';
 import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { themeRadius, typography } from '@/utils/themeTokens';
 
 interface PhoneFieldProps {
   label: string;
@@ -15,6 +16,8 @@ interface PhoneFieldProps {
   onChangeLocalNumber: (value: string) => void;
   placeholder?: string;
   hint?: string;
+  /** Shown under the field in the declined/error tone; also tints the border. */
+  error?: string | null;
 }
 
 /**
@@ -30,43 +33,52 @@ export function PhoneField({
   onChangeLocalNumber,
   placeholder,
   hint,
+  error,
 }: PhoneFieldProps) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const hasError = error !== undefined && error !== null && error.length > 0;
+  const borderColor = hasError ? tokens.statusDeclined : focused ? tokens.accentPrimary : tokens.border;
   const selected = COUNTRY_CODES.find((c) => c.dialCode === dialCode) ?? COUNTRY_CODES[0];
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: tokens.textPrimary }]}>{label}</Text>
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={[
-            styles.dialCode,
-            { backgroundColor: tokens.surface, borderColor: tokens.surfaceBorder ?? '#EAE4F0' },
-          ]}
-          onPress={() => setPickerOpen(true)}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.dialCodeText, { color: tokens.textPrimary }]}>
-            {selected?.dialCode ?? dialCode}
-          </Text>
-        </TouchableOpacity>
-        <TextInput
-          style={[
-            styles.input,
-            { backgroundColor: tokens.surface, borderColor: tokens.surfaceBorder ?? '#EAE4F0', color: tokens.textPrimary },
-          ]}
-          value={localNumber}
-          onChangeText={(value) => onChangeLocalNumber(stripLeadingZero(value))}
-          placeholder={placeholder}
-          placeholderTextColor={tokens.textSecondary}
-          keyboardType="phone-pad"
-          accessibilityLabel={label}
-        />
-      </View>
-      {hint !== undefined ? <Text style={[styles.hint, { color: tokens.textSecondary }]}>{hint}</Text> : null}
+      <Text style={[styles.label, { color: tokens.textSecondary }]}>{label}</Text>
+      <FocusRing active={focused && !hasError}>
+        <View style={[styles.box, { backgroundColor: tokens.surface, borderColor }]}>
+          <TouchableOpacity
+            style={[styles.dialCode, { borderRightColor: tokens.border }]}
+            onPress={() => setPickerOpen(true)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('phoneAuth.selectCountry')}
+          >
+            <Text style={[styles.dialCodeText, { color: tokens.textPrimary }]}>
+              {selected !== undefined && sharedDialCodes(dialCode) === 1
+                ? `${selected.iso} ${selected.dialCode}`
+                : dialCode}
+            </Text>
+          </TouchableOpacity>
+          <TextInput
+            style={[styles.input, { color: tokens.textPrimary }]}
+            value={localNumber}
+            onChangeText={(value) => onChangeLocalNumber(stripLeadingZero(value))}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            placeholder={placeholder}
+            placeholderTextColor={tokens.textMuted}
+            keyboardType="phone-pad"
+            accessibilityLabel={label}
+          />
+        </View>
+      </FocusRing>
+      {hasError ? (
+        <Text style={[styles.hint, { color: tokens.statusDeclined }]}>{error}</Text>
+      ) : hint !== undefined ? (
+        <Text style={[styles.hint, { color: tokens.textSecondary }]}>{hint}</Text>
+      ) : null}
 
       <Modal visible={pickerOpen} animationType="slide" transparent onRequestClose={() => setPickerOpen(false)}>
         <TouchableOpacity
@@ -103,24 +115,31 @@ export function PhoneField({
   );
 }
 
+/** +1 (and a few others) belong to several countries — show the ISO code only when it's unambiguous. */
+function sharedDialCodes(dialCode: string): number {
+  return COUNTRY_CODES.filter((c) => c.dialCode === dialCode).length;
+}
+
 const styles = StyleSheet.create({
   container: {
     gap: spacing.sm,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.label,
   },
-  row: {
+  box: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 54,
+    paddingHorizontal: spacing.lg,
+    borderRadius: themeRadius.md,
+    borderWidth: 1.5,
   },
   dialCode: {
-    borderRadius: themeRadius.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    minHeight: 50,
-    alignItems: 'center',
+    minHeight: 44,
+    paddingRight: 10,
+    borderRightWidth: 1,
     justifyContent: 'center',
   },
   dialCodeText: {
@@ -129,14 +148,12 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    borderRadius: themeRadius.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.lg,
-    minHeight: 50,
     fontSize: 16,
+    paddingVertical: spacing.md,
   },
   hint: {
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 18,
   },
   backdrop: {
     flex: 1,
@@ -144,8 +161,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    borderTopLeftRadius: themeRadius.lg,
-    borderTopRightRadius: themeRadius.lg,
+    borderTopLeftRadius: themeRadius.sheet,
+    borderTopRightRadius: themeRadius.sheet,
     paddingTop: spacing.lg,
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxl,

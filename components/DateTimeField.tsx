@@ -6,7 +6,7 @@ import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 
 import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { themeRadius, typography } from '@/utils/themeTokens';
 
 interface DateTimeFieldProps {
   label: string;
@@ -40,13 +40,13 @@ export function DateTimeField({
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: tokens.textPrimary }]}>{label}</Text>
+      <Text style={[styles.label, { color: tokens.textSecondary }]}>{label}</Text>
       <TouchableOpacity
         style={[
           styles.input,
           {
             backgroundColor: tokens.surface,
-            borderColor: tokens.surfaceBorder ?? '#EAE4F0',
+            borderColor: show ? tokens.accentPrimary : tokens.border,
           },
         ]}
         onPress={() => setShow(true)}
@@ -54,8 +54,10 @@ export function DateTimeField({
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        <Text style={[styles.value, { color: tokens.textPrimary }]}>{displayValue}</Text>
         <Feather name={mode === 'date' ? 'calendar' : 'clock'} size={18} color={tokens.textSecondary} />
+        <Text style={[styles.value, { color: tokens.textPrimary }]} numberOfLines={1}>
+          {displayValue}
+        </Text>
       </TouchableOpacity>
       {hint !== undefined ? (
         <Text style={[styles.hint, { color: tokens.textSecondary }]}>{hint}</Text>
@@ -86,7 +88,7 @@ export function DateTimeField({
           activeOpacity={0.75}
           accessibilityRole="button"
         >
-          <Text style={[styles.doneLabel, { color: tokens.accentPrimary }]}>{t('common.done')}</Text>
+          <Text style={[styles.doneLabel, { color: tokens.accentText }]}>{t('common.done')}</Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -98,24 +100,23 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.label,
   },
   input: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 10,
     borderRadius: themeRadius.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    minHeight: 50,
+    minHeight: 54,
   },
   value: {
+    flex: 1,
     fontSize: 16,
   },
   hint: {
-    fontSize: 12,
+    fontSize: 13,
   },
   done: {
     alignSelf: 'flex-end',

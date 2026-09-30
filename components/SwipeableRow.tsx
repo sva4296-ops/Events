@@ -6,7 +6,7 @@ import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
-import { guest, gRadius } from '@/utils/guestTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -43,6 +43,10 @@ export function SwipeableRow({
   containerStyle,
 }: SwipeableRowProps) {
   const ref = useRef<SwipeableMethods>(null);
+  const { tokens } = useTheme();
+  // statusDeclined is a light rose in dark mode, so it takes dark text there.
+  const labelColor = (tone: SwipeAction['tone']) =>
+    tone === 'delete' ? (tokens.mode === 'dark' ? '#1E1A30' : '#FFFFFF') : tokens.onAccent;
 
   const handleWillOpen = useCallback(() => {
     if (openRow !== null && openRow !== ref.current) openRow.close();
@@ -80,15 +84,15 @@ export function SwipeableRow({
               key={action.label}
               style={[
                 styles.action,
-                action.tone === 'delete' ? styles.delete : styles.edit,
+                { backgroundColor: action.tone === 'delete' ? tokens.statusDeclined : tokens.accentFill },
               ]}
               onPress={() => runAction(action)}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel={action.label}
             >
-              <Feather name={action.icon} size={18} color={guest.white} />
-              <Text style={styles.label}>{action.label}</Text>
+              <Feather name={action.icon} size={18} color={labelColor(action.tone)} />
+              <Text style={[styles.label, { color: labelColor(action.tone) }]}>{action.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -101,7 +105,7 @@ export function SwipeableRow({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: gRadius.lg,
+    borderRadius: 22,
   },
   actions: {
     flexDirection: 'row',
@@ -113,15 +117,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
   },
-  edit: {
-    backgroundColor: guest.purple,
-  },
-  delete: {
-    backgroundColor: guest.live,
-  },
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: guest.white,
   },
 });

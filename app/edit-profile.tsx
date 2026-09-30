@@ -243,7 +243,7 @@ export default function EditProfileScreen() {
           <Text style={[styles.error, { color: tokens.destructive }]}>{error}</Text>
         ) : null}
         {notice !== null ? (
-          <Text style={[styles.notice, { color: tokens.accentPrimary }]}>{notice}</Text>
+          <Text style={[styles.notice, { color: tokens.accentText }]}>{notice}</Text>
         ) : null}
 
         {pendingPhone !== null ? (

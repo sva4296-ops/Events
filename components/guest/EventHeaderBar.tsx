@@ -4,7 +4,8 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/useTheme';
-import { fonts, gRadius, gSpace } from '@/utils/guestTheme';
+import type { EventTypeId } from '@/types/event';
+import { themeRadius, typography } from '@/utils/themeTokens';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -19,6 +20,10 @@ export interface HeaderAction {
 
 interface EventHeaderBarProps {
   name: string;
+  /** Kept for callers; the type tile was dropped next to the back arrow (read as a second button). */
+  type?: EventTypeId | null;
+  /** Second line under the name, e.g. "12 iunie 2027 · Parcursul". */
+  subtitle?: string;
   /** Only Acasă is the exit point back to the main events list — the other
    * five tabs are already reachable via the bottom tab bar within this same
    * event, so a back arrow there would (incorrectly) suggest leaving the
@@ -31,54 +36,56 @@ interface EventHeaderBarProps {
 }
 
 /**
- * Persistent header for the guest event tabs. Lives in the tabs layout so every
- * tab gets it. The back arrow (when shown) always lands on Home rather than the
- * previous tab — tab-to-tab navigation is the bottom tab bar's job, not this bar's.
+ * Persistent header for the event tabs (Warm Story 2.0): back, the
+ * name in Playfair with date · stage under it, then per-tab actions. The back
+ * arrow (when shown) always lands on Home rather than the previous tab.
  */
-export function EventHeaderBar({ name, showBack = false, actions = [] }: EventHeaderBarProps) {
+export function EventHeaderBar({ name, subtitle, showBack = false, actions = [] }: EventHeaderBarProps) {
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
+  const buttonStyle = [styles.iconButton, { backgroundColor: tokens.surface, borderColor: tokens.border }];
 
   return (
-    <View style={[styles.bar, { paddingTop: insets.top + gSpace.md }]}>
+    <View style={[styles.bar, { paddingTop: insets.top + 12 }]}>
       {showBack ? (
         <TouchableOpacity
-          style={[styles.iconButton, { backgroundColor: tokens.surfaceElevated }]}
+          style={buttonStyle}
           onPress={() => router.navigate('/')}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Înapoi la ecranul principal"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Feather name="chevron-left" size={22} color={tokens.textPrimary} />
+          <Feather name="chevron-left" size={20} color={tokens.textPrimary} />
         </TouchableOpacity>
       ) : null}
 
-      <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
-        {name}
-      </Text>
+      <View style={styles.titleBlock}>
+        <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
+          {name}
+        </Text>
+        {subtitle !== undefined ? (
+          <Text style={[styles.subtitle, { color: tokens.textSecondary }]} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
 
-      {actions.length > 0 ? (
-        <View style={styles.actions}>
-          {actions.map((action) => (
-            <TouchableOpacity
-              key={action.key}
-              style={[styles.iconButton, { backgroundColor: tokens.surfaceElevated }]}
-              onPress={action.onPress}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel={action.accessibilityLabel}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Feather
-                name={action.icon}
-                size={20}
-                color={action.tone === 'destructive' ? tokens.destructive : tokens.textPrimary}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
+      {actions.map((action) => (
+        <TouchableOpacity
+          key={action.key}
+          style={buttonStyle}
+          onPress={action.onPress}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={action.accessibilityLabel}
+        >
+          <Feather
+            name={action.icon}
+            size={20}
+            color={action.tone === 'destructive' ? tokens.destructive : tokens.textPrimary}
+          />
+        </TouchableOpacity>
+      ))}
     </View>
   );
 }
@@ -87,25 +94,28 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: gSpace.md,
-    paddingHorizontal: gSpace.xl,
-    paddingBottom: gSpace.md,
-    backgroundColor: 'transparent',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 4,
   },
   iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: gRadius.pill,
+    width: 44,
+    height: 44,
+    borderWidth: 1,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  name: {
+  titleBlock: {
     flex: 1,
-    fontFamily: fonts.displayBold,
-    fontSize: 20,
+    minWidth: 0,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: gSpace.sm,
+  name: {
+    fontFamily: typography.title2.fontFamily,
+    fontSize: 20,
+    lineHeight: 25,
+  },
+  subtitle: {
+    fontSize: 13,
   },
 });

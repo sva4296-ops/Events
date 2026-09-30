@@ -15,21 +15,22 @@ export function BackButton({ style }: { style?: ViewStyle }) {
 
   return (
     <TouchableOpacity
-      style={[styles.control, { backgroundColor: tokens.surfaceElevated }, style]}
+      style={[styles.control, { backgroundColor: tokens.surface, borderColor: tokens.border }, style]}
       onPress={() => router.back()}
       accessibilityRole="button"
       accessibilityLabel="Go back"
       activeOpacity={0.7}
     >
-      <Feather name="chevron-left" size={22} color={tokens.textPrimary} />
+      <Feather name="chevron-left" size={20} color={tokens.textPrimary} />
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   control: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderWidth: 1,
     borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',

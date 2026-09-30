@@ -21,9 +21,9 @@ import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
 function cardStyle(tokens: ThemeTokens) {
   return {
-    backgroundColor: tokens.surfaceElevated,
-    borderColor: tokens.surfaceBorder ?? 'transparent',
-    borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+    backgroundColor: tokens.surface,
+    borderColor: tokens.border,
+    borderWidth: 1,
     ...(tokens.surfaceElevatedShadow ?? {}),
   };
 }
@@ -73,7 +73,7 @@ export default function DetaliiSeatingScreen() {
         right={
           owner ? (
             <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: tokens.surfaceElevated }]}
+              style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
               onPress={() => router.push(`/table/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
@@ -129,7 +129,7 @@ export default function DetaliiSeatingScreen() {
                       ? {
                           borderColor: tokens.accentPrimary,
                           borderWidth: 2,
-                          backgroundColor: `${tokens.accentPrimary}14`,
+                          backgroundColor: tokens.accentTint,
                         }
                       : null,
                   ]}
@@ -142,9 +142,9 @@ export default function DetaliiSeatingScreen() {
                       {table.name}
                     </Text>
                     {isMine ? (
-                      <View style={[styles.hereBadge, { backgroundColor: tokens.accentPrimary }]}>
-                        <Feather name="check" size={11} color="#FFFFFF" />
-                        <Text style={styles.hereBadgeText}>{t('detalii.seatingYoureHere')}</Text>
+                      <View style={[styles.hereBadge, { backgroundColor: tokens.accentFill }]}>
+                        <Feather name="check" size={11} color={tokens.onAccent} />
+                        <Text style={[styles.hereBadgeText, { color: tokens.onAccent }]}>{t('detalii.seatingYoureHere')}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -159,7 +159,7 @@ export default function DetaliiSeatingScreen() {
                       a misleading 0/1 on every table that isn't theirs. Their own
                       table shows real co-assigned names below instead. */}
                   {owner && assignedCount > 0 ? (
-                    <Text style={[styles.rowMeta, { color: tokens.accentPrimary }]}>
+                    <Text style={[styles.rowMeta, { color: tokens.accentText }]}>
                       {t('tableForm.seatsAssignedCount', { assigned: assignedCount, total: table.seat_count })}
                     </Text>
                   ) : null}
@@ -180,8 +180,8 @@ export default function DetaliiSeatingScreen() {
 
 const styles = StyleSheet.create({
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     gap: gSpace.md,
   },
   rowCard: {
-    borderRadius: themeRadius.lg,
+    borderRadius: themeRadius.xl,
     padding: gSpace.xl,
     gap: 2,
   },

@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +15,9 @@ import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/utils/theme';
 import { parseIsoDate, toIsoDate } from '@/utils/dateInput';
 import { formatEventDate } from '@/utils/format';
+
+/** Soft cap for the invitation quote — keeps it readable on the invitation card. */
+const WELCOME_MAX = 280;
 
 /** Local midnight, not `new Date()` as-is — a same-day event must still count as valid regardless of the current time of day. */
 function todayAtLocalMidnight(): Date {
@@ -57,11 +61,12 @@ export default function EventDetailsScreen() {
       >
         <Header
           title={t('createWizard.detailsTitle')}
-          subtitle={t('createWizard.detailsSubtitle')}
           showBack
           onClose={cancel}
+          flowTitle={t('createWizard.flowTitle')}
+          stepLabel={t('createWizard.stepLabel', { step: 2, total: 5, name: t('createWizard.stepDetails') })}
           step={2}
-          totalSteps={4}
+          totalSteps={5}
         />
 
         <Field
@@ -91,6 +96,7 @@ export default function EventDetailsScreen() {
           value={draft.location}
           onChangeText={(location) => updateDraft({ location })}
           placeholder={t('createWizard.locationPlaceholder')}
+          icon={<Feather name="map-pin" size={18} color={tokens.textSecondary} />}
         />
         <Field
           label={t('editEventForm.welcomeMessageLabel')}
@@ -98,6 +104,8 @@ export default function EventDetailsScreen() {
           onChangeText={(welcomeMessage) => updateDraft({ welcomeMessage })}
           placeholder={t('createWizard.welcomeMessagePlaceholder')}
           multiline
+          maxLength={WELCOME_MAX}
+          hint={`${draft.welcomeMessage.length} / ${WELCOME_MAX}`}
         />
       </Screen>
     </KeyboardAvoidingView>

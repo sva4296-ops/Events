@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 import type { RsvpStatus } from '@/types/event';
-import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
 import type { ThemeTokens } from '@/utils/themeTokens';
 
@@ -11,29 +10,39 @@ function tones(tokens: ThemeTokens): Record<RsvpStatus, { text: string; backgrou
   return {
     confirmed: { text: tokens.statusConfirmed, background: tokens.statusConfirmedSoft },
     pending: { text: tokens.statusPending, background: tokens.statusPendingSoft },
-    // A recorded, neutral outcome — not a warning or a destructive action, so
-    // this deliberately doesn't use tokens.destructive. Red is reserved for delete.
+    // Warm Story 2.0 gives declined its own rose tone (tokens.statusDeclined),
+    // still separate from tokens.destructive, which stays reserved for delete.
     declined: { text: tokens.statusDeclined, background: tokens.statusDeclinedSoft },
   };
 }
 
-export function RsvpBadge({ status }: { status: RsvpStatus }) {
+/** `label` overrides the status word (e.g. "Răspunde" for a guest's own pending invite). */
+export function RsvpBadge({ status, label }: { status: RsvpStatus; label?: string }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const tone = tones(tokens)[status];
 
   return (
     <View style={[styles.badge, { backgroundColor: tone.background }]}>
-      <Text style={[styles.text, { color: tone.text }]}>{t(`common.${status}`)}</Text>
+      <View style={[styles.dot, { backgroundColor: tone.text }]} />
+      <Text style={[styles.text, { color: tone.text }]}>{label ?? t(`common.${status}`)}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 24,
+    paddingHorizontal: 10,
     borderRadius: themeRadius.pill,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   text: {
     fontSize: 12,

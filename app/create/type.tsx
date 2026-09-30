@@ -31,8 +31,10 @@ export default function PickTypeScreen() {
         subtitle={t('createWizard.typeSubtitle')}
         showBack
         onClose={cancel}
+        flowTitle={t('createWizard.flowTitle')}
+        stepLabel={t('createWizard.stepLabel', { step: 1, total: 5, name: t('createWizard.stepType') })}
         step={1}
-        totalSteps={4}
+        totalSteps={5}
       />
 
       <View style={styles.grid}>

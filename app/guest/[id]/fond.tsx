@@ -1,9 +1,12 @@
+import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
+import { Button, buttonLabelColor } from '@/components/Button';
 import { GuestButton } from '@/components/guest/GuestButton';
+import { LockedFeature } from '@/components/guest/LockedFeature';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { ProgressBar } from '@/components/guest/ProgressBar';
 import { Skeleton } from '@/components/Skeleton';
@@ -12,8 +15,8 @@ import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
-import { fonts, gRadius, gSpace } from '@/utils/guestTheme';
-import { themeRadius } from '@/utils/themeTokens';
+import { gRadius } from '@/utils/guestTheme';
+import { typography } from '@/utils/themeTokens';
 import { formatMoney } from '@/utils/money';
 
 export default function FondScreen() {
@@ -26,11 +29,7 @@ export default function FondScreen() {
 
   const card = [
     styles.card,
-    {
-      backgroundColor: tokens.surfaceElevated,
-      borderColor: tokens.surfaceBorder ?? 'transparent',
-      borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
-    },
+    { backgroundColor: tokens.surface, borderColor: tokens.border },
     tokens.surfaceElevatedShadow ?? undefined,
   ];
 
@@ -57,19 +56,8 @@ export default function FondScreen() {
   // migration) would then reject anyway.
   if (planHydrated && !capabilities.contributionsEnabled) {
     return (
-      <GuestScreen contentStyle={styles.page} transparent>
-        <EmptyState
-          icon="lock"
-          message={t('planGate.fondLocked')}
-          action={
-            owner ? (
-              <GuestButton
-                label={t('common.viewPlans')}
-                onPress={() => router.push(`/pricing/${id}`)}
-              />
-            ) : undefined
-          }
-        />
+      <GuestScreen transparent>
+        <LockedFeature kind="fond" eventId={id} owner={owner} />
       </GuestScreen>
     );
   }
@@ -95,14 +83,22 @@ export default function FondScreen() {
   // until checkout actually records a contribution.
   const contributorCount = content.contributions.length;
 
+  const percent =
+    fund.target_amount > 0 ? Math.min(100, Math.round((fund.current_amount / fund.target_amount) * 100)) : 0;
+
   return (
-    <GuestScreen contentStyle={styles.page} transparent>
+    <GuestScreen transparent>
       <View style={card}>
-        <Text style={[styles.eyebrow, { color: tokens.textSecondary }]}>{fund.title.toUpperCase()}</Text>
-        <Text style={[styles.message, { color: tokens.textSecondary }]}>{fund.description}</Text>
+        <View style={styles.headBlock}>
+          <Text style={[styles.overline, { color: tokens.accentText }]}>{t('fond.overline')}</Text>
+          <Text style={[styles.title, { color: tokens.textPrimary }]}>{fund.title}</Text>
+          {fund.description.trim().length > 0 ? (
+            <Text style={[styles.message, { color: tokens.textSecondary }]}>{fund.description}</Text>
+          ) : null}
+        </View>
 
         <View style={styles.amounts}>
-          <Text style={[styles.current, { color: tokens.accentPrimary }]}>
+          <Text style={[styles.current, { color: tokens.textPrimary }]}>
             {formatMoney(fund.current_amount, fund.currency)}
           </Text>
           <Text style={[styles.target, { color: tokens.textSecondary }]}>
@@ -112,21 +108,28 @@ export default function FondScreen() {
 
         <ProgressBar current={fund.current_amount} target={fund.target_amount} />
 
-        <Text style={[styles.contributors, { color: tokens.textSecondary }]}>
-          {t('fond.contributorsCount', { count: contributorCount })}
-        </Text>
-
-        {!owner ? (
-          <GuestButton
-            label={t('fond.contributeNow')}
-            style={styles.cta}
-            onPress={() => router.push(`/checkout/${id}`)}
-          />
-        ) : null}
+        <View style={styles.statsRow}>
+          <Text style={[styles.stat, { color: tokens.textSecondary }]}>
+            {t('fond.contributorsCount', { count: contributorCount })}
+          </Text>
+          <Text style={[styles.stat, { color: tokens.textSecondary }]}>
+            <Text style={[styles.statStrong, { color: tokens.textPrimary }]}>{percent}%</Text> {t('fond.ofGoal')}
+          </Text>
+        </View>
       </View>
 
       {!owner ? (
-        <Text style={[styles.disclaimer, { color: tokens.textSecondary }]}>{t('fond.disclaimer')}</Text>
+        <>
+          <Button
+            label={t('fond.contribute')}
+            icon={<Feather name="gift" size={20} color={buttonLabelColor('primary', tokens)} />}
+            onPress={() => router.push(`/checkout/${id}`)}
+          />
+          <View style={styles.disclaimerRow}>
+            <Feather name="shield" size={15} color={tokens.textSecondary} />
+            <Text style={[styles.disclaimer, { color: tokens.textSecondary }]}>{t('fond.disclaimer')}</Text>
+          </View>
+        </>
       ) : null}
     </GuestScreen>
   );
@@ -141,44 +144,57 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   card: {
-    borderRadius: themeRadius.lg,
-    padding: gSpace.xxl,
-    alignItems: 'center',
-    gap: gSpace.md,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    gap: 14,
   },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textAlign: 'center',
+  headBlock: {
+    gap: 6,
+  },
+  overline: {
+    ...typography.overline,
+  },
+  title: {
+    ...typography.title2,
+    fontSize: 24,
+    lineHeight: 29,
   },
   message: {
     fontSize: 14,
-    lineHeight: 22,
-    textAlign: 'center',
+    lineHeight: 21,
   },
   amounts: {
-    alignItems: 'center',
-    gap: gSpace.xs,
-    marginTop: gSpace.sm,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   current: {
-    fontFamily: fonts.displayBold,
-    fontSize: 40,
-    lineHeight: 48,
+    ...typography.display,
   },
   target: {
-    fontSize: 13,
+    fontSize: 14,
   },
-  contributors: {
-    fontSize: 13,
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  cta: {
-    alignSelf: 'stretch',
-    marginTop: gSpace.sm,
+  stat: {
+    fontSize: 13,
+    flexShrink: 1,
+  },
+  statStrong: {
+    fontWeight: '700',
+  },
+  disclaimerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   disclaimer: {
-    fontSize: 11,
-    textAlign: 'center',
+    fontSize: 12,
   },
 });

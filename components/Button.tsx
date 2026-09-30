@@ -1,9 +1,19 @@
-import { StyleSheet, Text, TouchableOpacity, type ViewStyle } from 'react-native';
+import type { ReactNode } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, type TextStyle, type ViewStyle } from 'react-native';
 
-import { colors, shadow, spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { useTheme } from '@/hooks/useTheme';
+import { spacing } from '@/utils/theme';
+import { accentButtonShadow, themeRadius, whatsappFill, type ThemeTokens } from '@/utils/themeTokens';
 
-type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'neutral' | 'ghost';
+type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'tonal'
+  | 'whatsapp'
+  | 'success'
+  | 'danger'
+  | 'neutral'
+  | 'ghost';
 
 interface ButtonProps {
   label: string;
@@ -11,15 +21,27 @@ interface ButtonProps {
   variant?: ButtonVariant;
   disabled?: boolean;
   style?: ViewStyle;
+  /** Optional leading icon (20px, drawn by the caller in `iconColor`). */
+  icon?: ReactNode;
 }
 
+/**
+ * Warm Story 2.0 buttons: pill, 54px (48px for ghost/danger). Colors come
+ * from the theme so every variant works in light and dark.
+ */
 export function Button({
   label,
   onPress,
   variant = 'primary',
   disabled = false,
   style,
+  icon,
 }: ButtonProps) {
+  const { tokens } = useTheme();
+  const look = disabled ? disabledLook(tokens) : variantLook(variant, tokens);
+  const glow = !disabled && tokens.mode === 'light' && look.glow ? accentButtonShadow : undefined;
+  const compact = variant === 'ghost' || variant === 'danger';
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -27,54 +49,98 @@ export function Button({
       activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
-      style={[styles.base, variantStyles[variant], disabled && styles.disabled, style]}
+      style={[styles.base, compact && styles.compact, look.container, glow, style]}
     >
-      <Text style={[styles.label, labelStyles[variant]]}>{label}</Text>
+      {icon !== undefined ? <View style={styles.icon}>{icon}</View> : null}
+      <Text style={[styles.label, variant === 'danger' && styles.labelCompact, look.label]}>{label}</Text>
     </TouchableOpacity>
   );
+}
+
+/** Label color for a variant, so callers can tint an `icon` to match. */
+export function buttonLabelColor(variant: ButtonVariant, tokens: ThemeTokens): string {
+  return (variantLook(variant, tokens).label.color as string | undefined) ?? tokens.textPrimary;
+}
+
+interface Look {
+  container: ViewStyle;
+  label: TextStyle;
+  glow?: boolean;
+}
+
+function variantLook(variant: ButtonVariant, tokens: ThemeTokens): Look {
+  switch (variant) {
+    // `success` is only the RSVP "Confirm" — Warm Story keeps it on the accent, not green.
+    case 'primary':
+    case 'success':
+      return {
+        container: { backgroundColor: tokens.accentFill },
+        label: { color: tokens.onAccent },
+        glow: true,
+      };
+    case 'secondary':
+      return {
+        container: { backgroundColor: tokens.surface, borderWidth: 1.5, borderColor: tokens.border },
+        label: { color: tokens.textPrimary },
+      };
+    case 'tonal':
+      return {
+        container: { backgroundColor: tokens.accentTint },
+        label: { color: tokens.accentText },
+      };
+    case 'whatsapp':
+      return {
+        container: { backgroundColor: whatsappFill },
+        label: { color: '#FFFFFF' },
+      };
+    case 'danger':
+      return {
+        container: { backgroundColor: tokens.destructiveSoft },
+        label: { color: tokens.destructive },
+      };
+    // A recorded-but-neutral outcome (e.g. "Decline" on the RSVP screen) — not red.
+    case 'neutral':
+      return {
+        container: { backgroundColor: tokens.surface2 },
+        label: { color: tokens.textSecondary },
+      };
+    case 'ghost':
+      return {
+        container: { backgroundColor: 'transparent' },
+        label: { color: tokens.accentText },
+      };
+  }
+}
+
+function disabledLook(tokens: ThemeTokens): Look {
+  return {
+    container: { backgroundColor: tokens.surface2, borderWidth: 0 },
+    label: { color: tokens.textMuted },
+  };
 }
 
 const styles = StyleSheet.create({
   base: {
     minHeight: 54,
-    // Warm Story pass: every variant is fully pill-shaped now, not just the
-    // ones that opted in individually before.
     borderRadius: themeRadius.pill,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    ...shadow,
+    gap: spacing.sm,
+    paddingHorizontal: 22,
   },
-  disabled: {
-    opacity: 0.45,
+  compact: {
+    minHeight: 48,
+  },
+  icon: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
   },
+  labelCompact: {
+    fontSize: 15,
+  },
 });
-
-const variantStyles: Record<ButtonVariant, ViewStyle> = StyleSheet.create({
-  // `success` is only ever used for the RSVP screen's "Confirm attendance" —
-  // Warm Story spec calls for accentPrimary purple there, not green, so this
-  // is a deliberate repurposing of the variant's color, not a bug.
-  primary: { backgroundColor: colors.primary },
-  secondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-  success: { backgroundColor: colors.primary },
-  danger: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
-  // Same outline shape as `danger`, recolored — for a recorded-but-neutral
-  // outcome (e.g. a declined RSVP) that isn't a destructive action. Red stays
-  // reserved for `danger`/delete. Also the RSVP screen's "Decline" per the
-  // Warm Story spec: soft muted background, textSecondary-toned text, no red.
-  neutral: { backgroundColor: colors.declinedSoft, borderWidth: 0 },
-  ghost: { backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0 },
-});
-
-const labelStyles: Record<ButtonVariant, { color: string }> = {
-  primary: { color: colors.onPrimary },
-  secondary: { color: colors.text },
-  success: { color: colors.onPrimary },
-  danger: { color: colors.danger },
-  neutral: { color: colors.declined },
-  ghost: { color: colors.muted },
-};

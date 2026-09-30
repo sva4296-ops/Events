@@ -30,26 +30,26 @@ export function HomeEmptyState({ icon, headline, message, ctaLabel, onPressCta }
       style={[
         styles.card,
         {
-          backgroundColor: tokens.surfaceElevated,
-          borderColor: tokens.surfaceBorder ?? 'transparent',
-          borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+          backgroundColor: tokens.surface,
+          borderColor: tokens.border,
+          borderWidth: 1,
         },
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      <View style={[styles.iconWrap, { backgroundColor: `${tokens.accentPrimary}22` }]}>
-        <Feather name={icon} size={22} color={tokens.accentPrimary} />
+      <View style={[styles.iconWrap, { backgroundColor: tokens.accentTint }]}>
+        <Feather name={icon} size={22} color={tokens.accentText} />
       </View>
       <Text style={[styles.headline, { color: tokens.textPrimary }]}>{headline}</Text>
       <Text style={[styles.message, { color: tokens.textSecondary }]}>{message}</Text>
       {ctaLabel !== undefined && onPressCta !== undefined ? (
         <TouchableOpacity
-          style={[styles.cta, { backgroundColor: tokens.accentPrimary }]}
+          style={[styles.cta, { backgroundColor: tokens.accentFill }]}
           onPress={onPressCta}
           activeOpacity={0.85}
           accessibilityRole="button"
         >
-          <Text style={styles.ctaLabel}>{ctaLabel}</Text>
+          <Text style={[styles.ctaLabel, { color: tokens.onAccent }]}>{ctaLabel}</Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -58,7 +58,7 @@ export function HomeEmptyState({ icon, headline, message, ctaLabel, onPressCta }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: themeRadius.lg,
+    borderRadius: themeRadius.xxl,
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',

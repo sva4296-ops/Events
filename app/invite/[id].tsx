@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '@/components/BackButton';
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
+import { BrandMark } from '@/components/BrandMark';
+import { Button, buttonLabelColor } from '@/components/Button';
 import { Header } from '@/components/Header';
 import { InviteCard } from '@/components/InviteCard';
 import { Screen } from '@/components/Screen';
@@ -15,15 +16,62 @@ import type { RsvpStatus } from '@/types/event';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
-import { getEventTypeGradient } from '@/utils/eventTypes';
 import { spacing } from '@/utils/theme';
+import { typography } from '@/utils/themeTokens';
+
+/** Top row: back (when there is somewhere to go) + the wordmark. */
+function InviteTopBar({ canGoBack }: { canGoBack: boolean }) {
+  const { tokens } = useTheme();
+  return (
+    <View style={styles.topBar}>
+      {canGoBack ? <BackButton /> : null}
+      <BrandMark width={34} strokeWidth={14} />
+      <Text style={[styles.brand, { color: tokens.textPrimary }]}>PovesteaNoastra</Text>
+    </View>
+  );
+}
+
+/** Warm Story 2.0 "Poți ajunge?" card with Confirm / Can't make it. */
+function RsvpChoices({ onRespond }: { onRespond: (status: Exclude<RsvpStatus, 'pending'>) => void }) {
+  const { t } = useTranslation();
+  const { tokens } = useTheme();
+  return (
+    <View style={[styles.panel, { backgroundColor: tokens.surface, borderColor: tokens.border }, tokens.surfaceElevatedShadow ?? undefined]}>
+      <Text style={[styles.panelTitle, { color: tokens.textPrimary }]}>{t('rsvp.question')}</Text>
+      <Button
+        label={t('rsvp.confirmAttendance')}
+        icon={<Feather name="check" size={20} color={buttonLabelColor('primary', tokens)} />}
+        onPress={() => onRespond('confirmed')}
+      />
+      <Button label={t('rsvp.cantMakeIt')} variant="secondary" onPress={() => onRespond('declined')} />
+    </View>
+  );
+}
+
+/** Tinted result card once the guest has answered. */
+function RsvpResult({ status, eventName }: { status: Exclude<RsvpStatus, 'pending'>; eventName: string }) {
+  const { t } = useTranslation();
+  const { tokens } = useTheme();
+  const confirmed = status === 'confirmed';
+  const fg = confirmed ? tokens.statusConfirmed : tokens.statusDeclined;
+  return (
+    <View style={[styles.result, { backgroundColor: confirmed ? tokens.statusConfirmedSoft : tokens.statusDeclinedSoft }]}>
+      <Text style={[styles.resultTitle, { color: fg }]}>
+        {confirmed ? t('rsvp.confirmedTitle') : t('rsvp.declinedTitle')}
+      </Text>
+      <Text style={[styles.resultBody, { color: tokens.textPrimary }]}>
+        {confirmed ? t('rsvp.confirmedBody', { eventName }) : t('rsvp.declinedBody', { eventName })}
+      </Text>
+    </View>
+  );
+}
 
 export default function InviteScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const { getEvent, respondToInvite, hydrated, isOwner } = useEvents();
-  const { tokens, mode } = useTheme();
+  const { tokens } = useTheme();
   const [editing, setEditing] = useState(false);
   const event = getEvent(id);
   // A cold-open deep link (opened straight into this route, no session and no
@@ -66,54 +114,20 @@ export default function InviteScreen() {
       };
 
       return (
-        <Screen
-          gradient={getEventTypeGradient(preview.type, mode)}
-          footer={
-            showChoices ? (
-              <>
-                <Button
-                  label={t('rsvp.confirmAttendance')}
-                  variant="success"
-                  onPress={() => respond('confirmed')}
-                />
-                <Button label={t('rsvp.cantMakeIt')} variant="neutral" onPress={() => respond('declined')} />
-              </>
-            ) : (
-              <>
-                {preview.rsvpStatus === 'confirmed' ? (
-                  <Button
-                    label={t('rsvp.openEventPage')}
-                    onPress={() => router.push(`/guest/${preview.eventId}`)}
-                  />
-                ) : null}
-                <Button label={t('rsvp.changeMyAnswer')} variant="ghost" onPress={() => setEditing(true)} />
-              </>
-            )
-          }
-          contentStyle={styles.content}
-        >
-          {canGoBack ? <BackButton style={styles.back} /> : null}
-
-          <View style={styles.centerGroup}>
-            <View style={styles.spacer} />
-            <InviteCard event={preview} />
-
-            {responded && !editing ? (
-              <Card style={styles.confirmation}>
-                <Text style={styles.confirmationEmoji}>
-                  {preview.rsvpStatus === 'confirmed' ? '🎉' : '💌'}
-                </Text>
-                <Text style={[styles.confirmationTitle, { color: tokens.textPrimary }]}>
-                  {preview.rsvpStatus === 'confirmed' ? t('rsvp.confirmedTitle') : t('rsvp.declinedTitle')}
-                </Text>
-                <Text style={[styles.confirmationBody, { color: tokens.textSecondary }]}>
-                  {preview.rsvpStatus === 'confirmed'
-                    ? t('rsvp.confirmedBody', { eventName: preview.name })
-                    : t('rsvp.declinedBody', { eventName: preview.name })}
-                </Text>
-              </Card>
-            ) : null}
-          </View>
+        <Screen contentStyle={styles.content}>
+          <InviteTopBar canGoBack={canGoBack} />
+          <InviteCard event={preview} />
+          {showChoices ? (
+            <RsvpChoices onRespond={respond} />
+          ) : preview.rsvpStatus !== 'pending' ? (
+            <>
+              <RsvpResult status={preview.rsvpStatus} eventName={preview.name} />
+              {preview.rsvpStatus === 'confirmed' ? (
+                <Button label={t('rsvp.openEventPage')} onPress={() => router.push(`/guest/${preview.eventId}`)} />
+              ) : null}
+              <Button label={t('rsvp.changeMyAnswer')} variant="ghost" onPress={() => setEditing(true)} />
+            </>
+          ) : null}
         </Screen>
       );
     }
@@ -131,21 +145,15 @@ export default function InviteScreen() {
     );
   }
 
-  // The organizer reaches this same screen via "Preview as guest" (dashboard and
-  // the create-event flow's share step) — never a real RSVP, and an event_guests
-  // insert for the organizer's own id is rejected by RLS ("guest claims own
-  // invite" requires not is_event_organizer). Keep the buttons visible so they can
-  // see what guests see, but never let a tap reach respondToInvite.
+  // The organizer reaches this same screen via "Preview as guest" — never a
+  // real RSVP (RLS rejects an event_guests insert for the organizer's own id),
+  // so the owner gets a note and a way back to their event instead of choices.
   const owner = isOwner(event);
 
   // RLS already limits a non-organizer's event.guests to just their own row,
-  // so [0] is "my" row.
+  // so [0] is "my" row. A 'pending' row exists before any answer, so a row
+  // alone doesn't mean "responded".
   const myRsvp = owner ? undefined : event.guests[0];
-  // A guest invited by email already has an `event_guests` row *before* they
-  // ever respond — its rsvp_status is 'pending'. `myRsvp !== undefined` alone
-  // only means "a row exists," not "they answered," so it can't gate the
-  // confirmed/declined UI on its own — that previously showed the decline
-  // copy (and an "Open event page" button) for a genuinely unanswered invite.
   const responded = myRsvp !== undefined && myRsvp.status !== 'pending';
   const showChoices = !responded || editing;
 
@@ -156,127 +164,74 @@ export default function InviteScreen() {
   };
 
   return (
-    <Screen
-      // Per-event-type gradient, light/dark aware — see
-      // utils/eventTypes.ts's getEventTypeGradient/EVENT_TYPE_GRADIENTS,
-      // the single centralized lookup both this background and InviteCard's
-      // own header strip read from, so the two can't drift out of sync.
-      gradient={getEventTypeGradient(event.type, mode)}
-      footer={
-        showChoices ? (
-          owner ? (
-            <Button label={t('rsvp.goToYourEvent')} onPress={() => router.push(`/guest/${event.id}`)} />
-          ) : (
-            <>
-              <Button
-                label={t('rsvp.confirmAttendance')}
-                variant="success"
-                onPress={() => respond('confirmed')}
-              />
-              <Button label={t('rsvp.cantMakeIt')} variant="neutral" onPress={() => respond('declined')} />
-            </>
-          )
-        ) : (
-          <>
-            {myRsvp?.status === 'confirmed' ? (
-              <Button
-                label={t('rsvp.openEventPage')}
-                onPress={() => router.push(`/guest/${event.id}`)}
-              />
-            ) : null}
-            <Button label={t('rsvp.changeMyAnswer')} variant="ghost" onPress={() => setEditing(true)} />
-          </>
-        )
-      }
-      contentStyle={styles.content}
-    >
-      {/* A direct child of the content container, not of centerGroup below
-          — see the styles.content comment for why: it has to stay pinned to
-          the screen's actual top-left corner regardless of how short
-          content (the owner branch, no confirmation card) gets vertically
-          centered. */}
-      {canGoBack ? <BackButton style={styles.back} /> : null}
+    <Screen contentStyle={styles.content}>
+      <InviteTopBar canGoBack={canGoBack} />
+      <InviteCard event={event} />
 
-      <View style={styles.centerGroup}>
-        <View style={styles.spacer} />
-        <InviteCard event={event} />
-
-        {responded && !editing ? (
-          <Card style={styles.confirmation}>
-            <Text style={styles.confirmationEmoji}>
-              {myRsvp.status === 'confirmed' ? '🎉' : '💌'}
-            </Text>
-            <Text style={[styles.confirmationTitle, { color: tokens.textPrimary }]}>
-              {myRsvp.status === 'confirmed' ? t('rsvp.confirmedTitle') : t('rsvp.declinedTitle')}
-            </Text>
-            <Text style={[styles.confirmationBody, { color: tokens.textSecondary }]}>
-              {myRsvp.status === 'confirmed'
-                ? t('rsvp.confirmedBody', { eventName: event.name })
-                : t('rsvp.declinedBody', { eventName: event.name })}
-            </Text>
-          </Card>
-        ) : null}
-      </View>
+      {owner ? (
+        <>
+          <Text style={[styles.note, styles.center, { color: tokens.textSecondary }]}>{t('rsvp.ownerPreview')}</Text>
+          <Button label={t('rsvp.goToYourEvent')} onPress={() => router.push(`/guest/${event.id}`)} />
+        </>
+      ) : showChoices ? (
+        <RsvpChoices onRespond={respond} />
+      ) : myRsvp !== undefined && myRsvp.status !== 'pending' ? (
+        <>
+          <RsvpResult status={myRsvp.status} eventName={event.name} />
+          {myRsvp.status === 'confirmed' ? (
+            <Button label={t('rsvp.openEventPage')} onPress={() => router.push(`/guest/${event.id}`)} />
+          ) : null}
+          <Button label={t('rsvp.changeMyAnswer')} variant="ghost" onPress={() => setEditing(true)} />
+        </>
+      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  // React Native's ScrollView always gives its own outer box flexGrow: 1
-  // (a hardcoded RN default — see ScrollView.js's baseVertical style —
-  // applied regardless of what Screen.tsx passes), so it fills all
-  // available space between the top safe area and the footer on every
-  // screen that uses one, not just this one. Screen's contentContainerStyle
-  // (this object) doesn't inherit that stretch itself by default — it
-  // hugs its own children's height and top-aligns within that larger box —
-  // which is invisible on screens whose content is long enough to fill the
-  // screen anyway, but reads as a stranded card floating near the top with
-  // a dead gap above the footer on this screen's shortest branch (the
-  // owner's "Go to your event" view: just one card, no confirmation panel).
-  // The standard fix, and what these two lines do: opt this content
-  // container itself into the same flexGrow: 1, then justifyContent:
-  // 'center' places the actual content in the middle of that filled space
-  // instead of stuck at its top edge. A no-op once content is tall enough
-  // to fill the screen on its own (nothing left to center into).
   content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingBottom: spacing.xl,
+    paddingHorizontal: 20,
+    gap: 16,
   },
-  back: {
-    position: 'absolute',
-    top: spacing.md,
-    left: spacing.md,
-    zIndex: 2,
-  },
-  centerGroup: {
-    gap: spacing.lg,
-  },
-  // BackButton is absolutely positioned (floats over the hero, doesn't push
-  // InviteCard down — deliberate, see components/BackButton.tsx), so nothing
-  // else in this View's normal flow reserves space for it. It's a 40px
-  // control starting at `spacing.md` from the top, so it extends to
-  // spacing.md + 40; this spacer has to clear that or the card underneath
-  // renders right under/behind it. spacing.xxl * 2 (64) clears it with room
-  // to spare, reusing the existing scale rather than a one-off constant.
-  spacer: {
-    height: spacing.xxl * 2,
-  },
-  confirmation: {
+  topBar: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    paddingTop: spacing.lg,
   },
-  confirmationEmoji: {
-    fontSize: 32,
+  brand: {
+    fontFamily: typography.title2.fontFamily,
+    fontSize: 17,
   },
-  confirmationTitle: {
-    fontSize: 18,
+  panel: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
+    gap: 12,
+  },
+  panelTitle: {
+    fontSize: 16,
     fontWeight: '700',
   },
-  confirmationBody: {
+  result: {
+    borderRadius: 20,
+    padding: 18,
+    gap: 4,
+    alignItems: 'center',
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  resultBody: {
     fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
   },
   note: {
     fontSize: 14,
+  },
+  center: {
+    textAlign: 'center',
   },
 });

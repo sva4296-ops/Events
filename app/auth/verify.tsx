@@ -1,19 +1,27 @@
+import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
-import { Field } from '@/components/Field';
-import { ScreenBackground } from '@/components/ScreenBackground';
+import { OtpInput } from '@/components/OtpInput';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import { fonts } from '@/utils/guestTheme';
 import { spacing } from '@/utils/theme';
+import { typography } from '@/utils/themeTokens';
 
 const RESEND_COOLDOWN_SECONDS = 30;
+const CODE_LENGTH = 6;
+
+function formatCooldown(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${minutes}:${rest.toString().padStart(2, '0')}`;
+}
 
 /**
  * Second (and last) step of the phone-auth path — `identifier` is the phone
@@ -23,10 +31,7 @@ const RESEND_COOLDOWN_SECONDS = 30;
  * session; AuthGate takes it from there — routing a brand-new account to
  * app/auth/complete-profile.tsx for its name, then onboarding, exactly like
  * every other account. This screen doesn't need to know or care which case
- * it is. Previously shared between an email and a phone channel (a `channel`
- * param picked which pair of useAuth functions to call) — email auth is
- * gone now, so that branching is gone too, but the screen itself stayed
- * rather than being duplicated back apart.
+ * it is.
  */
 export default function VerifyScreen() {
   const { t } = useTranslation();
@@ -46,17 +51,17 @@ export default function VerifyScreen() {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  const submit = async () => {
-    if (identifier === undefined) return;
+  const submit = async (value: string = code) => {
+    if (identifier === undefined || busy) return;
     setError(null);
 
-    if (code.trim().length === 0) {
+    if (value.trim().length === 0) {
       setError(t('verify.errors.emptyCode'));
       return;
     }
 
     setBusy(true);
-    const err = await verifyPhoneOtp(identifier, code.trim());
+    const err = await verifyPhoneOtp(identifier, value.trim());
     setBusy(false);
 
     if (err !== null) {
@@ -75,58 +80,75 @@ export default function VerifyScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScreenBackground />
-      <ScrollView
-        style={styles.page}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <BackButton />
-
-        <Text style={[styles.headline, { color: tokens.textPrimary }]}>{t('verify.headline')}</Text>
-        <Text style={[styles.sub, { color: tokens.textSecondary }]}>
-          {t('verify.subtitle', { identifier: identifier ?? '' })}
-        </Text>
-
-        <Field
-          label={t('verify.codeLabel')}
-          value={code}
-          onChangeText={(value) => {
-            setCode(value);
-            setError(null);
-          }}
-          placeholder={t('verify.codePlaceholder')}
-          keyboardType="numeric"
-        />
-        {error !== null ? <Text style={[styles.error, { color: tokens.destructive }]}>{error}</Text> : null}
-
-        <Button
-          label={busy ? t('verify.verifyingButton') : t('verify.verifyButton')}
-          onPress={() => void submit()}
-          disabled={busy || code.trim().length === 0}
-          style={styles.submit}
-        />
-
-        <TouchableOpacity
-          onPress={() => void resend()}
-          disabled={cooldown > 0}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          style={styles.resend}
+    <LinearGradient colors={tokens.background} style={styles.fill}>
+      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text
-            style={[
-              styles.resendText,
-              { color: cooldown > 0 ? tokens.textSecondary : tokens.accentPrimary },
-            ]}
-          >
-            {cooldown > 0 ? t('verify.resendCooldown', { seconds: cooldown }) : t('verify.resendCode')}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <BackButton />
+
+          <View style={styles.intro}>
+            <Text style={[styles.headline, { color: tokens.textPrimary }]}>{t('verify.headline')}</Text>
+            <Text style={[styles.sub, { color: tokens.textSecondary }]}>
+              {t('verify.sentTo')}
+              <Text style={[styles.strong, { color: tokens.textPrimary }]}>{identifier ?? ''}</Text>
+              {'. '}
+              <Text
+                style={[styles.link, { color: tokens.accentText }]}
+                onPress={() => router.back()}
+                accessibilityRole="link"
+              >
+                {t('verify.changeNumber')}
+              </Text>
+            </Text>
+          </View>
+
+          <OtpInput
+            value={code}
+            onChange={(value) => {
+              setCode(value);
+              setError(null);
+              if (value.length === CODE_LENGTH) void submit(value);
+            }}
+            length={CODE_LENGTH}
+            accessibilityLabel={t('verify.codeLabel')}
+            invalid={error !== null}
+          />
+          {error !== null ? (
+            <Text style={[styles.error, { color: tokens.statusDeclined }]}>{error}</Text>
+          ) : null}
+
+          {cooldown > 0 ? (
+            <View style={styles.resendRow}>
+              <Feather name="clock" size={18} color={tokens.textSecondary} />
+              <Text style={[styles.resendText, { color: tokens.textSecondary }]}>
+                {t('verify.resendIn')}
+                <Text style={[styles.strong, { color: tokens.textPrimary }]}>{formatCooldown(cooldown)}</Text>
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={() => void resend()}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              style={styles.resendButton}
+            >
+              <Text style={[styles.link, { color: tokens.accentText }]}>{t('verify.resendCode')}</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+
+        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
+          <Button
+            label={busy ? t('verify.verifyingButton') : t('verify.verifyButton')}
+            onPress={() => void submit()}
+            disabled={busy || code.length < CODE_LENGTH}
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
@@ -134,40 +156,50 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
   },
-  page: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
   content: {
-    paddingHorizontal: 28,
-    paddingBottom: 40,
-    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl,
+    gap: 28,
+  },
+  intro: {
+    gap: 10,
   },
   headline: {
-    fontFamily: fonts.displayBold,
-    fontSize: 26,
-    lineHeight: 34,
-    marginTop: spacing.lg,
+    ...typography.title1,
+    fontSize: 30,
+    lineHeight: 36,
   },
   sub: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: spacing.sm,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  strong: {
+    fontWeight: '700',
+  },
+  link: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   error: {
-    fontSize: 12,
-    lineHeight: 17,
-    paddingHorizontal: 4,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: -spacing.md,
   },
-  submit: {
-    marginTop: spacing.md,
-  },
-  resend: {
-    alignSelf: 'center',
-    paddingVertical: spacing.sm,
+  resendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   resendText: {
     fontSize: 14,
-    fontWeight: '600',
+  },
+  resendButton: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: spacing.lg,
   },
 });

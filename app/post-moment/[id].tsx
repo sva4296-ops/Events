@@ -22,7 +22,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import type { PickedPhoto } from '@/utils/imageProcessing';
 import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { themeRadius, typography } from '@/utils/themeTokens';
 
 const PRESET_EMOJI = ['💍', '👰', '🎂', '📸', '💐', '🥂', '✨', '💜'];
 
@@ -74,15 +74,47 @@ export default function PostMomentScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
+        contentStyle={styles.content}
         footer={
-          <Button label={t('postMomentForm.postButton')} disabled={title.trim().length === 0} onPress={post} />
+          <Button
+            label={t('postMomentForm.postButton')}
+            disabled={title.trim().length === 0}
+            icon={<Feather name="send" size={20} color={title.trim().length === 0 ? tokens.textMuted : tokens.onAccent} />}
+            onPress={post}
+          />
         }
       >
         <Header
-          title={t('postMomentForm.title')}
-          subtitle={t('postMomentForm.subtitle')}
-          showBack
+          title=""
+          flowTitle={t('postMomentForm.flowTitle')}
+          stepLabel={event?.name}
+          onClose={() => router.back()}
         />
+
+        <TouchableOpacity
+          style={[styles.picker, { backgroundColor: tokens.accentTint }]}
+          onPress={() => void pickPhoto()}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={photo === null ? t('postMomentForm.choosePhoto') : t('postMomentForm.changePhoto')}
+        >
+          {photo === null ? (
+            <View style={styles.pickerEmpty}>
+              <Feather name="image" size={28} color={tokens.accentText} />
+              <Text style={[styles.pickerLabel, { color: tokens.accentText }]}>
+                {t('postMomentForm.choosePhoto')}
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Image source={{ uri: photo.uri }} style={styles.preview} />
+              <View style={styles.changeChip}>
+                <Feather name="camera" size={16} color="#FFFFFF" />
+                <Text style={styles.changeChipText}>{t('postMomentForm.changePhoto')}</Text>
+              </View>
+            </>
+          )}
+        </TouchableOpacity>
 
         <Field
           label={t('postMomentForm.titleLabel')}
@@ -91,50 +123,23 @@ export default function PostMomentScreen() {
           placeholder={t('postMomentForm.titlePlaceholder')}
         />
 
-        <View style={styles.emojiRow}>
-          {PRESET_EMOJI.map((emoji) => (
-            <TouchableOpacity
-              key={emoji}
-              style={[
-                styles.emojiChip,
-                {
-                  backgroundColor: tokens.surface,
-                  borderColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
-                },
-              ]}
-              onPress={() => setTitle((current) => `${current.trimEnd()} ${emoji}`.trim())}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel={`Add ${emoji}`}
-            >
-              <Text style={styles.emoji}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.emojiBlock}>
+          <Text style={[styles.label, { color: tokens.textSecondary }]}>{t('postMomentForm.quickEmoji')}</Text>
+          <View style={styles.emojiRow}>
+            {PRESET_EMOJI.map((emoji) => (
+              <TouchableOpacity
+                key={emoji}
+                style={[styles.emojiChip, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+                onPress={() => setTitle((current) => `${current.trimEnd()} ${emoji}`.trim())}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${emoji}`}
+              >
+                <Text style={styles.emoji}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-
-        <TouchableOpacity
-          style={[
-            styles.picker,
-            {
-              backgroundColor: tokens.surface,
-              borderColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
-            },
-          ]}
-          onPress={() => void pickPhoto()}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-        >
-          {photo === null ? (
-            <View style={styles.pickerEmpty}>
-              <Feather name="image" size={22} color={tokens.accentPrimary} />
-              <Text style={[styles.pickerLabel, { color: tokens.accentPrimary }]}>
-                {t('postMomentForm.choosePhoto')}
-              </Text>
-            </View>
-          ) : (
-            <Image source={{ uri: photo.uri }} style={styles.preview} />
-          )}
-        </TouchableOpacity>
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -144,39 +149,66 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
   },
-  emojiRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  emojiChip: {
-    width: 44,
-    height: 44,
-    borderRadius: themeRadius.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 20,
+  content: {
+    paddingHorizontal: 20,
+    gap: 20,
   },
   picker: {
-    borderRadius: themeRadius.md,
+    height: 200,
+    borderRadius: 24,
     overflow: 'hidden',
-    borderWidth: 1,
   },
   pickerEmpty: {
-    height: 130,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
   },
   pickerLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
   },
   preview: {
     width: '100%',
-    height: 200,
+    height: '100%',
+  },
+  changeChip: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: themeRadius.pill,
+    backgroundColor: 'rgba(30,26,48,0.72)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  changeChipText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  emojiBlock: {
+    gap: 8,
+  },
+  label: {
+    ...typography.label,
+  },
+  emojiRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  emojiChip: {
+    width: 50,
+    height: 50,
+    borderRadius: themeRadius.pill,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emoji: {
+    fontSize: 24,
   },
 });

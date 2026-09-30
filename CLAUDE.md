@@ -52,6 +52,39 @@
 >   "party" message pointing at the bare domain). `addGuestByPhone` now resolves to the new `Guest`,
 >   not just its id. The page itself lives in a separate Next.js repo, `~/Desktop/povestea-web`.
 >   Accepted trade-off: a forwarded link can answer for that guest. Applied on the remote (2026-09-30).
+> - **Warm Story 2.0 redesign, pass 1 (2026-09-30): foundations + auth/onboarding + Home/create.**
+>   Source: the "PovesteaNoastra · Redesign" design canvas. `utils/themeTokens.ts` gained `textMuted`,
+>   `border`, `surface2`, `accentFill`, `onAccent`, `accentTint`, `accentText`, radii `xl`/`xxl`/`sheet`,
+>   `brandGradient`, `typography`, `accentButtonShadow`, `whatsappFill`; `textSecondary` and status
+>   tones were darkened for AA, **`statusDeclined` is now rose (`#B5335F`), and light mode's
+>   `surfaceBorder` is `#EEE2D7` (cards carry border + shadow in both modes)**. `EventTypeMeta.band`
+>   is the three-stop type gradient; type names/descriptions are i18n (`eventTypes.<id>`). `Button`
+>   is theme-driven (new `tonal`/`whatsapp` variants, `icon` prop; disabled = `surface2`/`textMuted`),
+>   `Field`/`PhoneField` have a focus ring (`FocusRing`) and `error`; new `OtpInput`, `StoryStages`.
+>   `Header` takes `flowTitle`/`stepLabel`; the create wizard is 5 steps (type, details, preview,
+>   pricing, share). Home's `EventListItem` is now the big band card with the 4-stage timeline;
+>   `PlanTierBadge` is no longer used. **Pass 2 (same day): event tabs shell + Acasă.** The tab bar
+>   is docked to the bottom now (`floatingTabBar` = height 62, gap 0; accentTint pill on the active
+>   icon), the tabs layout dropped `ScreenBackground` for the plain theme gradient, `EventHeaderBar`
+>   shows name plus "date · stage" (no type tile: next to the back arrow it read as a button;
+>   the `other` type's emoji is ✨ now, not ➕), Acasă opens with a countdown card (`StoryTimeline`,
+>   shared with Home's card) and `MomentCard` is the new post layout (the "Comentarii" shortcut is
+>   gone). **Pass 3: Profile, the five other tabs, guest dashboard, add guest.** Profile is grouped
+>   lists (`ListGroup`/`ListRow`); language/theme pick via an Alert. Detalii is a 2-column tile grid
+>   ("De completat" / lock badges instead of `StatusDot`). Fond/Chat/Live locked states use
+>   `components/guest/LockedFeature.tsx` (names the cheapest plan with that flag). `GuestButton` now
+>   delegates to `Button`. Chat bubbles have initials avatars + "Organizator" chip; composer is a pill
+>   input + send icon. Live is a themed card (QR, upload) over a 3-column grid; Album has All/Mine
+>   filters. `app/event/[id].tsx` has stat tiles, stacked bar, status filters and search; `GuestRow` has
+>   a status-tinted avatar. Add guest has a Manual / Din contacte switch (contacts → bulk add) and a
+>   "send on WhatsApp now" `Toggle`. **Pass 4 (same day): everything else.** RSVP screen (wordmark top bar,
+>   "Poți ajunge?" card, tinted result card; no more per-type background), pricing cards (26px,
+>   serif price, gradient badge + halo on the highlighted plan), post-moment, send-invites (message
+>   preview bubble, avatar rows, WhatsApp-green per-row send), bulk add, Detalii sub-screens, modals
+>   (sheet radius 30, accentFill checkboxes), `SwipeableRow` (theme colors), checkout, `Card`.
+>   Now unused and safe to delete: `PlanTierBadge`, `StatCard`, `SectionLabel`, `StatusDot`,
+>   `ScreenBackground`, `BrandHeader`. povestea-web: `components/ui/styles.ts` classes, `TabNav` (docked
+>   bar) and every `bg-accent text-white` / `text-accent` moved to accent-fill / accent-text.
 > - **Invite links open the app when installed (2026-09-30).** `utils/whatsappInvite.ts` now builds a
 >   per-event-type Romanian message (emoji + line per `EventTypeId`, sober wording for `memorial`, date in
 >   `ro-RO`, location) and links to `INVITE_SITE_URL` = `https://events-web-henna.vercel.app` (switch to

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { Button } from '@/components/Button';
+import { Button, buttonLabelColor } from '@/components/Button';
 import { ContactPickerModal, type PickedContact } from '@/components/ContactPickerModal';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
@@ -15,8 +15,7 @@ import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import { DEFAULT_COUNTRY_CODE, splitStoredPhone, toStoredPhone } from '@/utils/countryCodes';
 import { reportSupabaseError } from '@/utils/reportError';
-import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { themeRadius, typography } from '@/utils/themeTokens';
 import { generateId } from '@/utils/uuid';
 
 interface GuestFormRow {
@@ -143,22 +142,17 @@ export default function BulkAddGuestsScreen() {
       >
         <Header title={t('bulkInviteForm.title')} subtitle={t('bulkInviteForm.subtitle')} showBack />
 
-        <TouchableOpacity
-          style={[styles.importButton, { borderColor: tokens.accentPrimary }]}
+        <Button
+          label={t('bulkInviteForm.importFromContacts')}
+          variant="tonal"
+          icon={<Feather name="book-open" size={20} color={buttonLabelColor('tonal', tokens)} />}
           onPress={() => setPickerVisible(true)}
-          activeOpacity={0.75}
-          accessibilityRole="button"
-        >
-          <Feather name="users" size={16} color={tokens.accentPrimary} />
-          <Text style={[styles.importButtonText, { color: tokens.accentPrimary }]}>
-            {t('bulkInviteForm.importFromContacts')}
-          </Text>
-        </TouchableOpacity>
+        />
 
         {rows.map((row, index) => (
           <View
             key={row.id}
-            style={[styles.rowCard, { borderColor: tokens.surfaceBorder ?? 'rgba(0,0,0,0.08)' }]}
+            style={[styles.rowCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
           >
             <View style={styles.rowHead}>
               <Text style={[styles.rowLabel, { color: tokens.textSecondary }]}>
@@ -170,8 +164,9 @@ export default function BulkAddGuestsScreen() {
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel={t('bulkInviteForm.removeRow')}
+                  style={[styles.removeButton, { backgroundColor: tokens.surface2 }]}
                 >
-                  <Feather name="x" size={18} color={tokens.textSecondary} />
+                  <Feather name="x" size={18} color={tokens.textPrimary} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -193,7 +188,12 @@ export default function BulkAddGuestsScreen() {
           </View>
         ))}
 
-        <Button label={t('bulkInviteForm.addAnother')} variant="secondary" onPress={addRow} />
+        <Button
+          label={t('bulkInviteForm.addAnother')}
+          variant="secondary"
+          icon={<Feather name="plus" size={20} color={buttonLabelColor('secondary', tokens)} />}
+          onPress={addRow}
+        />
       </Screen>
 
       <ContactPickerModal
@@ -209,24 +209,18 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
   },
-  importButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    minHeight: 46,
-    borderRadius: themeRadius.pill,
-    borderWidth: 1,
-  },
-  importButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
   rowCard: {
     borderWidth: 1,
-    borderRadius: themeRadius.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
+    borderRadius: 22,
+    padding: 16,
+    gap: 14,
+  },
+  removeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: themeRadius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rowHead: {
     flexDirection: 'row',
@@ -234,9 +228,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   rowLabel: {
+    ...typography.overline,
     fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
   },
 });

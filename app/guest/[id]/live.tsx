@@ -1,11 +1,12 @@
-import { router } from 'expo-router';
+import Feather from '@expo/vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { EmptyState } from '@/components/EmptyState';
-import { GuestButton } from '@/components/guest/GuestButton';
+import { Button, buttonLabelColor } from '@/components/Button';
+import { LockedFeature } from '@/components/guest/LockedFeature';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { PhotoTile } from '@/components/guest/PhotoTile';
 import { Skeleton } from '@/components/Skeleton';
@@ -15,16 +16,14 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
-import { fonts, guest, gRadius, gSpace } from '@/utils/guestTheme';
+import { guest } from '@/utils/guestTheme';
+import { typography } from '@/utils/themeTokens';
 import { buildInviteLink } from '@/utils/invite';
 
 /**
- * Live's hero card now follows the app theme like every other guest-tab
- * surface. Dark mode keeps the original fixed "night broadcast" values
- * (guest.navy/guest.white/guest.navySoft) unchanged; light mode reads the
- * same Warm Story tokens used elsewhere (surfaceElevated/textPrimary/
- * surfaceMuted). The QR code box itself stays guest.white/guest.navy in
- * both modes — already legible against either card color.
+ * Warm Story 2.0 Live: a themed card (LIVE tag, QR + copy, upload button)
+ * over a three-column grid of every photo. The QR box stays white/navy in
+ * both modes so it always scans.
  */
 export default function LiveScreen() {
   const { t } = useTranslation();
@@ -34,19 +33,12 @@ export default function LiveScreen() {
   const { tokens } = useTheme();
   const { content, addPhoto, deletePhoto } = useEventContent(id);
   const { hydrated: planHydrated, capabilities } = usePlanGate(id);
-  const dark = tokens.mode === 'dark';
-
-  const cardBg = dark ? guest.navy : tokens.surfaceElevated;
-  const primaryText = dark ? guest.white : tokens.textPrimary;
-  const panelBg = dark ? guest.navySoft : tokens.surfaceMuted;
-  const mutedText = dark ? guest.faint : tokens.textSecondary;
 
   const owner = isOwner(event);
 
   const liveUrl = buildInviteLink(id);
   const loading = content === null;
   const photos = content?.photos ?? [];
-  const [hero, ...rest] = photos;
 
   const pickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -68,185 +60,149 @@ export default function LiveScreen() {
   // shares the `photos` table with Album, which is baseline-always-on).
   if (planHydrated && !capabilities.liveScreenEnabled) {
     return (
-      <GuestScreen transparent contentStyle={styles.lockedContent}>
-        <EmptyState
-          icon="lock"
-          message={t('planGate.liveLocked')}
-          action={
-            owner ? (
-              <GuestButton
-                label={t('common.viewPlans')}
-                onPress={() => router.push(`/pricing/${id}`)}
-              />
-            ) : undefined
-          }
-        />
+      <GuestScreen transparent>
+        <LockedFeature kind="live" eventId={id} owner={owner} />
       </GuestScreen>
     );
   }
 
   return (
     <GuestScreen transparent>
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          tokens.surfaceElevatedShadow ?? undefined,
+        ]}
+      >
         <View style={styles.cardHead}>
           <View style={styles.liveTag}>
             <View style={styles.recordDot} />
-            <Text style={[styles.liveText, { color: primaryText }]}>{t('live.liveTag')}</Text>
+            <Text style={styles.liveText}>{t('live.liveTag')}</Text>
           </View>
-          <Text style={[styles.eventName, { color: primaryText }]} numberOfLines={1}>
-            {name}
+          <Text style={[styles.count, { color: tokens.textSecondary }]} numberOfLines={1}>
+            {loading ? name : t('live.photosCount', { count: photos.length })}
           </Text>
         </View>
 
-        <View style={styles.grid}>
-          {loading ? (
-            <Skeleton height={140} radius={gRadius.md} />
-          ) : hero !== undefined ? (
-            <PhotoTile
-              photo={hero}
-              style={[styles.hero, { backgroundColor: panelBg }]}
-              canDelete={owner || hero.uploaded_by === user?.id}
-              onDelete={deletePhoto}
-            />
-          ) : (
-            <View style={[styles.hero, { backgroundColor: panelBg }]} />
-          )}
-
-          {loading ? (
-            <View style={styles.small}>
-              <Skeleton width={56} height={56} radius={gRadius.sm} />
-              <Skeleton width={56} height={56} radius={gRadius.sm} />
-              <Skeleton width={56} height={56} radius={gRadius.sm} />
-            </View>
-          ) : null}
-
-          {!loading && rest.length > 0 ? (
-            <ScrollView
-              style={styles.thumbScroll}
-              contentContainerStyle={styles.small}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator={false}
-            >
-              {rest.map((photo) => (
-                <PhotoTile
-                  key={photo.id}
-                  photo={photo}
-                  style={[styles.thumb, { backgroundColor: panelBg }]}
-                  canDelete={owner || photo.uploaded_by === user?.id}
-                  onDelete={deletePhoto}
-                  labelFontSize={11}
-                />
-              ))}
-            </ScrollView>
-          ) : null}
-        </View>
-
-        <View style={[styles.qrBlock, { backgroundColor: panelBg }]}>
+        <View style={styles.qrRow}>
           <View style={styles.qr}>
-            <QRCode value={liveUrl} size={78} backgroundColor={guest.white} color={guest.navy} />
+            <QRCode value={liveUrl} size={84} backgroundColor={guest.white} color={guest.navy} />
           </View>
           <View style={styles.qrCopy}>
-            <Text style={[styles.qrTitle, { color: primaryText }]}>{t('live.qrTitle')}</Text>
-            <Text style={[styles.qrUrl, { color: mutedText }]} numberOfLines={2}>
-              {liveUrl}
-            </Text>
+            <Text style={[styles.cardTitle, { color: tokens.textPrimary }]}>{t('live.cardTitle')}</Text>
+            <Text style={[styles.cardBody, { color: tokens.textSecondary }]}>{t('live.cardBody')}</Text>
           </View>
         </View>
+
+        <Button
+          label={t('live.upload')}
+          icon={<Feather name="upload" size={20} color={buttonLabelColor('primary', tokens)} />}
+          onPress={() => void pickPhoto()}
+        />
       </View>
 
-      <Text style={[styles.helper, { color: tokens.textSecondary }]}>{t('live.helper')}</Text>
+      <Text style={[styles.gridTitle, { color: tokens.textPrimary }]}>{t('live.gridTitle')}</Text>
 
-      <GuestButton label={t('live.addPhoto')} onPress={() => void pickPhoto()} />
+      {loading ? (
+        <View style={styles.grid}>
+          {Array.from({ length: 6 }, (_, index) => (
+            <Skeleton key={index} width="32%" height={108} radius={12} />
+          ))}
+        </View>
+      ) : photos.length === 0 ? (
+        <EmptyState message={t('live.empty')} />
+      ) : (
+        <View style={styles.grid}>
+          {photos.map((photo) => (
+            <PhotoTile
+              key={photo.id}
+              photo={photo}
+              style={[styles.tile, { backgroundColor: tokens.surface2 }]}
+              canDelete={owner || photo.uploaded_by === user?.id}
+              onDelete={deletePhoto}
+              labelFontSize={10}
+            />
+          ))}
+        </View>
+      )}
     </GuestScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  lockedContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
   card: {
-    borderRadius: gRadius.xl,
-    padding: gSpace.xl,
-    gap: gSpace.lg,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
+    gap: 14,
   },
   cardHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: gSpace.md,
+    gap: 8,
   },
   liveTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: gSpace.sm,
+    gap: 6,
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: '#B5335F',
   },
   recordDot: {
-    width: 9,
-    height: 9,
-    borderRadius: gRadius.pill,
-    backgroundColor: guest.live,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
   },
   liveText: {
     fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.6,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    color: '#FFFFFF',
   },
-  eventName: {
-    flexShrink: 1,
-    fontFamily: fonts.displayItalic,
-    fontSize: 16,
-    textAlign: 'right',
+  count: {
+    flex: 1,
+    fontSize: 13,
   },
-  grid: {
-    gap: gSpace.sm,
-  },
-  hero: {
-    width: '100%',
-    height: 140,
-    borderRadius: gRadius.md,
-  },
-  // Bounded so the dark card can't grow unbounded — browse the rest by
-  // scrolling this strip instead of the old hard 4-photo cap.
-  thumbScroll: {
-    maxHeight: 190,
-  },
-  small: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: gSpace.sm,
-  },
-  thumb: {
-    width: 56,
-    height: 56,
-    borderRadius: gRadius.sm,
-  },
-  qrBlock: {
+  qrRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: gSpace.lg,
-    borderRadius: gRadius.md,
-    padding: gSpace.lg,
+    gap: 14,
   },
   qr: {
-    padding: gSpace.sm,
-    borderRadius: gRadius.sm,
+    padding: 6,
+    borderRadius: 12,
     backgroundColor: guest.white,
   },
   qrCopy: {
     flex: 1,
-    gap: gSpace.xs,
+    gap: 6,
   },
-  qrTitle: {
-    fontSize: 14,
+  cardTitle: {
+    ...typography.title2,
+    fontSize: 20,
+    lineHeight: 25,
+  },
+  cardBody: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  gridTitle: {
+    fontSize: 17,
     fontWeight: '700',
   },
-  qrUrl: {
-    fontSize: 11,
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
-  helper: {
-    fontSize: 13,
-    textAlign: 'center',
+  tile: {
+    width: '32%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });

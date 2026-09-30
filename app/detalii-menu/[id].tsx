@@ -33,9 +33,9 @@ const DIETARY_LABEL_KEY: Record<(typeof DIETARY_OPTIONS)[number], string> = {
 
 function cardStyle(tokens: ThemeTokens) {
   return {
-    backgroundColor: tokens.surfaceElevated,
-    borderColor: tokens.surfaceBorder ?? 'transparent',
-    borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
+    backgroundColor: tokens.surface,
+    borderColor: tokens.border,
+    borderWidth: 1,
     ...(tokens.surfaceElevatedShadow ?? {}),
   };
 }
@@ -81,7 +81,7 @@ export default function DetaliiMenuScreen() {
         right={
           owner && content.menu !== null ? (
             <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: tokens.surfaceElevated }]}
+              style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
               onPress={() => router.push(`/menu/${id}`)}
               activeOpacity={0.75}
               accessibilityRole="button"
@@ -137,8 +137,8 @@ export default function DetaliiMenuScreen() {
                     style={[
                       styles.pill,
                       {
-                        backgroundColor: active ? tokens.accentPrimary : tokens.surface,
-                        borderColor: active ? tokens.accentPrimary : tokens.surfaceBorder ?? 'rgba(0,0,0,0.1)',
+                        backgroundColor: active ? tokens.accentTint : tokens.surface,
+                        borderColor: active ? tokens.accentPrimary : tokens.border,
                       },
                     ]}
                     onPress={() => toggleDietary(option)}
@@ -146,7 +146,7 @@ export default function DetaliiMenuScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ selected: active }}
                   >
-                    <Text style={[styles.pillText, { color: active ? '#FFFFFF' : tokens.textSecondary }]}>
+                    <Text style={[styles.pillText, { color: active ? tokens.accentText : tokens.textPrimary }]}>
                       {t(DIETARY_LABEL_KEY[option])}
                     </Text>
                   </TouchableOpacity>
@@ -162,14 +162,14 @@ export default function DetaliiMenuScreen() {
 
 const styles = StyleSheet.create({
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuCard: {
-    borderRadius: themeRadius.lg,
+    borderRadius: themeRadius.xl,
     padding: gSpace.xl,
     gap: gSpace.md,
   },
@@ -197,13 +197,14 @@ const styles = StyleSheet.create({
     marginTop: gSpace.xs,
   },
   pill: {
-    paddingHorizontal: gSpace.lg,
-    paddingVertical: gSpace.sm,
+    height: 40,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
     borderRadius: gRadius.pill,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   pillText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

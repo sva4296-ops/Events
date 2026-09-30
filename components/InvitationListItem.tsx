@@ -1,4 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { RsvpBadge } from '@/components/RsvpBadge';
@@ -6,18 +8,27 @@ import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
 import type { Invitation } from '@/utils/invitations';
 import { getEventType } from '@/utils/eventTypes';
-import { formatEventDate } from '@/utils/format';
+import { eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
-import { themeRadius } from '@/utils/themeTokens';
+import { bandGradientLocations, themeRadius } from '@/utils/themeTokens';
 
+/**
+ * One invitation row. Warm Story 2.0 stacks these inside a single card on
+ * Home (see InvitationGroup), separated by hairlines rather than as
+ * individual cards.
+ */
 export function InvitationListItem({
   invitation,
   onPress,
+  showDivider = false,
 }: {
   invitation: Invitation;
   onPress: () => void;
+  /** Hairline above the row — every row after the first in a group. */
+  showDivider?: boolean;
 }) {
   const { event, guest } = invitation;
+  const { t } = useTranslation();
   const { tokens } = useTheme();
   const type = getEventType(event.type);
 
@@ -29,15 +40,16 @@ export function InvitationListItem({
       accessibilityLabel={`${event.name}, ${guest.status}`}
       style={[
         styles.row,
-        {
-          backgroundColor: tokens.surfaceElevated,
-          borderColor: tokens.surfaceBorder ?? 'transparent',
-          borderWidth: tokens.surfaceBorder !== null ? 1 : 0,
-        },
-        tokens.surfaceElevatedShadow ?? undefined,
+        showDivider && { borderTopWidth: 1, borderTopColor: tokens.border },
       ]}
     >
-      <LinearGradient colors={type.gradient} style={styles.badge}>
+      <LinearGradient
+        colors={type.band}
+        locations={bandGradientLocations}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.badge}
+      >
         <Text style={styles.emoji}>{type.emoji}</Text>
       </LinearGradient>
 
@@ -46,56 +58,85 @@ export function InvitationListItem({
           {event.name}
         </Text>
         <Text style={[styles.date, { color: tokens.textSecondary }]} numberOfLines={1}>
-          {formatEventDate(event.date)}
+          {eventShortSubtitle(event)}
         </Text>
       </View>
 
-      <RsvpBadge status={guest.status} />
+      <RsvpBadge
+        status={guest.status}
+        label={guest.status === 'pending' ? t('home.respond') : undefined}
+      />
     </TouchableOpacity>
   );
 }
 
-/** Same row/badge/info dimensions as the real row above, so nothing shifts when data lands. */
-export function InvitationListItemSkeleton() {
+/** The single card that holds Home's invitation rows. */
+export function InvitationGroup({ children }: { children: ReactNode }) {
+  const { tokens } = useTheme();
+
   return (
-    <View style={styles.row}>
-      <Skeleton width={44} height={44} radius={themeRadius.md} />
+    <View
+      style={[
+        styles.group,
+        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        tokens.surfaceElevatedShadow ?? undefined,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** Same row/badge/info dimensions as the real row above, so nothing shifts when data lands. */
+export function InvitationListItemSkeleton({ showDivider = false }: { showDivider?: boolean }) {
+  const { tokens } = useTheme();
+
+  return (
+    <View style={[styles.row, showDivider && { borderTopWidth: 1, borderTopColor: tokens.border }]}>
+      <Skeleton width={50} height={50} radius={themeRadius.md} />
       <View style={styles.info}>
         <Skeleton height={15} width="65%" radius={4} />
         <Skeleton height={12} width="40%" radius={4} />
       </View>
-      <Skeleton width={64} height={22} radius={themeRadius.pill} />
+      <Skeleton width={72} height={24} radius={themeRadius.pill} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  group: {
+    borderRadius: themeRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: themeRadius.lg,
+    gap: 14,
+    minHeight: 76,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
   },
   badge: {
-    width: 44,
-    height: 44,
+    width: 50,
+    height: 50,
     borderRadius: themeRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emoji: {
-    fontSize: 20,
+    fontSize: 23,
   },
   info: {
     flex: 1,
-    gap: 2,
+    minWidth: 0,
+    gap: 3,
   },
   name: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
   },
   date: {
-    fontSize: 12,
+    fontSize: 13,
   },
 });

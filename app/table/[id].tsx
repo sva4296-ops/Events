@@ -159,7 +159,7 @@ export default function SeatingTableScreen() {
               styles.assignRow,
               {
                 backgroundColor: tokens.surface,
-                borderColor: tokens.surfaceBorder ?? '#EAE4F0',
+                borderColor: tokens.border,
                 opacity: hasSeatCap ? 1 : 0.6,
               },
             ]}

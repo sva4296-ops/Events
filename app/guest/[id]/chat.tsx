@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,19 +7,15 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 
-import { router } from 'expo-router';
-
 import { EmptyState } from '@/components/EmptyState';
-import { GuestButton } from '@/components/guest/GuestButton';
+import { LockedFeature } from '@/components/guest/LockedFeature';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { MessageBubble, MessageBubbleSkeleton } from '@/components/guest/MessageBubble';
-import { SectionLabel } from '@/components/guest/SectionLabel';
 import { closeOpenSwipeRow, SwipeableRow } from '@/components/SwipeableRow';
 import { remoteRepository } from '@/data/remoteEventContentRepository';
 import { supabase } from '@/data/supabaseClient';
@@ -30,7 +27,7 @@ import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import type { SocialContent } from '@/types/guest';
 import type { MessageRow } from '@/types/supabase';
-import { gRadius, gSpace } from '@/utils/guestTheme';
+import { gSpace } from '@/utils/guestTheme';
 
 export default function ChatScreen() {
   const { t } = useTranslation();
@@ -97,19 +94,8 @@ export default function ChatScreen() {
   // to owner and guest alike rather than just hiding the tab's contents.
   if (planHydrated && !capabilities.chatEnabled) {
     return (
-      <GuestScreen transparent contentStyle={styles.lockedContent}>
-        <EmptyState
-          icon="lock"
-          message={t('planGate.chatLocked')}
-          action={
-            isOwner(event) ? (
-              <GuestButton
-                label={t('common.viewPlans')}
-                onPress={() => router.push(`/pricing/${id}`)}
-              />
-            ) : undefined
-          }
-        />
+      <GuestScreen transparent>
+        <LockedFeature kind="chat" eventId={id} owner={isOwner(event)} />
       </GuestScreen>
     );
   }
@@ -128,11 +114,6 @@ export default function ChatScreen() {
         position stable while the list scrolls behind it.
       */}
       <GuestScreen scroll={false} contentStyle={styles.content} transparent>
-        <View style={styles.headerBlock}>
-          <SectionLabel>{t('chat.sectionLabel')}</SectionLabel>
-          <Text style={[styles.subtitle, { color: tokens.textSecondary }]}>{t('chat.subtitle')}</Text>
-        </View>
-
         <ScrollView
           ref={scrollRef}
           style={styles.messagesScroll}
@@ -192,29 +173,32 @@ export default function ChatScreen() {
           ))}
         </ScrollView>
 
-        <View style={styles.composer}>
+        <View style={[styles.composer, { borderTopColor: tokens.border }]}>
           <TextInput
             style={[
               styles.input,
               {
-                backgroundColor: tokens.surfaceElevated,
+                backgroundColor: tokens.surface,
+                borderColor: tokens.border,
                 color: tokens.textPrimary,
               },
             ]}
             value={draft}
             onChangeText={setDraft}
             placeholder={t('chat.placeholder')}
-            placeholderTextColor={tokens.textSecondary}
+            placeholderTextColor={tokens.textMuted}
             multiline
             accessibilityLabel="Mesaj"
           />
           <TouchableOpacity
-            style={[styles.send, { backgroundColor: tokens.accentPrimary }]}
+            style={[styles.send, { backgroundColor: draft.trim().length > 0 ? tokens.accentFill : tokens.surface2 }]}
             onPress={submit}
+            disabled={draft.trim().length === 0}
             activeOpacity={0.85}
             accessibilityRole="button"
+            accessibilityLabel={t('chat.send')}
           >
-            <Text style={styles.sendText}>{t('chat.send')}</Text>
+            <Feather name="send" size={19} color={draft.trim().length > 0 ? tokens.onAccent : tokens.textMuted} />
           </TouchableOpacity>
         </View>
       </GuestScreen>
@@ -239,7 +223,7 @@ const styles = StyleSheet.create({
   // every child render edge-to-edge, misaligned with EventHeaderBar and the
   // floating tab bar above/below it (both use the same gSpace.xl margin).
   content: {
-    paddingHorizontal: gSpace.xl,
+    paddingHorizontal: 20,
     gap: gSpace.lg,
   },
   headerBlock: {
@@ -252,34 +236,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    gap: gSpace.lg,
+    gap: 14,
     paddingBottom: gSpace.sm,
   },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: gSpace.sm,
-    marginTop: gSpace.md,
+    gap: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
   },
   input: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 44,
     maxHeight: 120,
-    borderRadius: gRadius.md,
-    paddingHorizontal: gSpace.lg,
-    paddingVertical: gSpace.md,
-    fontSize: 14,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    paddingHorizontal: 16,
+    paddingTop: 11,
+    paddingBottom: 11,
+    fontSize: 15,
   },
   send: {
-    height: 48,
-    paddingHorizontal: gSpace.xl,
-    borderRadius: gRadius.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  sendText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
 });

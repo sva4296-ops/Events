@@ -696,5 +696,13 @@
     "noAddress": "Nu am găsit adresa. O poți scrie manual.",
     "permissionDenied": "Fără acces la locație. Poți muta harta manual.",
     "close": "Închide"
+  },
+  "guestTabs": {
+    "home": "Acasă",
+    "details": "Detalii",
+    "fund": "Fond",
+    "chat": "Chat",
+    "live": "Live",
+    "album": "Album"
   }
 }

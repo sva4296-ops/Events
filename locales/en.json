@@ -681,5 +681,13 @@
     "noAddress": "Couldn't find the address. You can type it in.",
     "permissionDenied": "No location access. You can move the map by hand.",
     "close": "Close"
+  },
+  "guestTabs": {
+    "home": "Home",
+    "details": "Details",
+    "fund": "Fund",
+    "chat": "Chat",
+    "live": "Live",
+    "album": "Album"
   }
 }

@@ -18,7 +18,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import { daysUntilEvent } from '@/utils/format';
-import { floatingTabBar, gSpace } from '@/utils/guestTheme';
+import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { staggerIn } from '@/utils/motion';
 import { accentButtonShadow, themeRadius, typography } from '@/utils/themeTokens';
 
@@ -63,7 +63,7 @@ export default function AcasaScreen() {
   const owner = isOwner(event);
   // Distance from the true screen bottom up to the tab bar's top edge — the
   // FAB and this screen's own extra bottom padding both build on it.
-  const tabBarClearance = insets.bottom + floatingTabBar.gap + floatingTabBar.height;
+  const tabBarClearance = tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height;
 
   if (content === null) {
     return (

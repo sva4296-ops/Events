@@ -16,17 +16,17 @@ import { useEvents } from '@/hooks/useEvents';
 import { confirmDelete } from '@/utils/confirm';
 import { daysUntilEvent, formatShortDate } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
-import { floatingTabBar, guest } from '@/utils/guestTheme';
+import { floatingTabBar, guest, tabBarBottomInset } from '@/utils/guestTheme';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
-const TABS: readonly { name: string; label: string; icon: FeatherName }[] = [
-  { name: 'index', label: 'Acasă', icon: 'home' },
-  { name: 'detalii', label: 'Detalii', icon: 'list' },
-  { name: 'fond', label: 'Fond', icon: 'gift' },
-  { name: 'chat', label: 'Chat', icon: 'message-circle' },
-  { name: 'live', label: 'Live', icon: 'radio' },
-  { name: 'album', label: 'Album', icon: 'image' },
+const TABS: readonly { name: string; labelKey: string; icon: FeatherName }[] = [
+  { name: 'index', labelKey: 'guestTabs.home', icon: 'home' },
+  { name: 'detalii', labelKey: 'guestTabs.details', icon: 'list' },
+  { name: 'fond', labelKey: 'guestTabs.fund', icon: 'gift' },
+  { name: 'chat', labelKey: 'guestTabs.chat', icon: 'message-circle' },
+  { name: 'live', labelKey: 'guestTabs.live', icon: 'radio' },
+  { name: 'album', labelKey: 'guestTabs.album', icon: 'image' },
 ];
 
 /** Derived from the pathname rather than the tab bar's own state, since this
@@ -130,8 +130,8 @@ export default function GuestEventLayout() {
               {
                 backgroundColor: tokens.tabBar.background,
                 borderTopColor: tokens.border,
-                height: floatingTabBar.height + insets.bottom,
-                paddingBottom: insets.bottom,
+                height: floatingTabBar.height + tabBarBottomInset(insets.bottom),
+                paddingBottom: tabBarBottomInset(insets.bottom),
               },
             ],
             tabBarActiveTintColor: tokens.tabBar.active,
@@ -146,10 +146,10 @@ export default function GuestEventLayout() {
               key={tab.name}
               name={tab.name}
               options={{
-                title: tab.label,
+                title: t(tab.labelKey),
                 tabBarLabel: ({ color, focused }) => (
                   <Text style={[styles.label, { color, fontWeight: focused ? '700' : '500' }]}>
-                    {tab.label}
+                    {t(tab.labelKey)}
                   </Text>
                 ),
                 // Warm Story 2.0: accentTint pill behind the active icon.
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
   // Docked to the bottom edge (Warm Story 2.0). Still `position: 'absolute'`
   // so screens scroll under the translucent bar; every guest screen clears it
-  // with `insets.bottom + floatingTabBar.gap + floatingTabBar.height`.
+  // with `tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height`.
   bar: {
     position: 'absolute',
     left: 0,

@@ -89,3 +89,12 @@ export const floatingTabBar = {
   height: 62,
   gap: 0,
 } as const;
+
+/**
+ * Space under the tab bar's labels. Some Android phones (gesture bar hidden,
+ * some OEM skins) report a 0 bottom inset, which put the labels right on the
+ * screen edge, so there's always at least 12px.
+ */
+export function tabBarBottomInset(safeAreaBottom: number): number {
+  return Math.max(safeAreaBottom, 12);
+}

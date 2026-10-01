@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { closeOpenSwipeRow } from '@/components/SwipeableRow';
 import { useTheme } from '@/hooks/useTheme';
-import { floatingTabBar, gSpace } from '@/utils/guestTheme';
+import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 
 interface GuestScreenProps {
   children?: ReactNode;
@@ -31,7 +31,7 @@ export function GuestScreen({
   // consumer outside the tabs (checkout/[id].tsx, a stub with no floating bar above it).
   const padding = {
     paddingTop: (topInset ? insets.top : 0) + gSpace.lg,
-    paddingBottom: insets.bottom + floatingTabBar.gap + floatingTabBar.height + gSpace.lg,
+    paddingBottom: tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height + gSpace.lg,
   };
   const pageStyle = transparent
     ? styles.pageTransparent

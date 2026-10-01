@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "575936800386",
+    "firebase_url": "https://cosmin-3bf89.firebaseio.com",
+    "project_id": "cosmin-3bf89",
+    "storage_bucket": "cosmin-3bf89.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:575936800386:android:e8950327630756f4b4369b",
+        "android_client_info": {
+          "package_name": "com.povesteanoastra.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaD5v0QIuWzlXxKxkIydXh9M1Odx0V73I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

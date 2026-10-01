@@ -340,7 +340,11 @@
     "deleteAccountTitle": "Ștergi contul definitiv?",
     "deleteAccountMessage": "Se șterg contul tău, toate evenimentele pe care le-ai organizat (invitați, momente, poze, fond, chat) și răspunsurile, mesajele și pozele tale din evenimentele altora. Acțiunea nu poate fi anulată.",
     "deleteAccountConfirm": "Șterge definitiv",
-    "deleteAccountFailed": "Contul nu a putut fi șters"
+    "deleteAccountFailed": "Contul nu a putut fi șters",
+    "notifications": "Notificări",
+    "notificationsBlockedTitle": "Notificările sunt blocate",
+    "notificationsBlockedMessage": "Le poți activa din setările telefonului, la PovesteaNoastra → Notificări.",
+    "openSettings": "Deschide setările"
   },
   "pricing": {
     "title": "Planuri și prețuri",

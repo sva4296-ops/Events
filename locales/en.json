@@ -328,7 +328,11 @@
     "deleteAccountTitle": "Permanently delete your account?",
     "deleteAccountMessage": "This deletes your account, every event you organized (guests, moments, photos, fund, chat) and your replies, messages and photos in other people's events. This can't be undone.",
     "deleteAccountConfirm": "Delete permanently",
-    "deleteAccountFailed": "Couldn't delete your account"
+    "deleteAccountFailed": "Couldn't delete your account",
+    "notifications": "Notifications",
+    "notificationsBlockedTitle": "Notifications are blocked",
+    "notificationsBlockedMessage": "You can turn them on in your phone's settings, under PovesteaNoastra → Notifications.",
+    "openSettings": "Open settings"
   },
   "pricing": {
     "title": "Plans & pricing",

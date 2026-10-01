@@ -20,10 +20,18 @@ export function Toggle({ label, value, onChange }: { label: string; value: boole
       accessibilityLabel={label}
     >
       <Text style={[styles.label, { color: tokens.textPrimary }]}>{label}</Text>
-      <View style={[styles.track, { backgroundColor: value ? tokens.accentFill : tokens.border }]}>
-        <View style={[styles.knob, value ? styles.knobOn : styles.knobOff]} />
-      </View>
+      <ToggleSwitch value={value} />
     </TouchableOpacity>
+  );
+}
+
+/** The bare 50×30 switch, for rows that draw their own label (e.g. a ListRow `trailing`). */
+export function ToggleSwitch({ value }: { value: boolean }) {
+  const { tokens } = useTheme();
+  return (
+    <View style={[styles.track, { backgroundColor: value ? tokens.accentFill : tokens.border }]}>
+      <View style={[styles.knob, value ? styles.knobOn : styles.knobOff]} />
+    </View>
   );
 }
 

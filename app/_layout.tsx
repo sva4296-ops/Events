@@ -21,6 +21,7 @@ import { BrandSplash } from '@/components/BrandSplash';
 import { AuthProvider } from '@/hooks/useAuth';
 import { EventDraftProvider } from '@/hooks/useEventDraft';
 import { ThemeProvider, useTheme } from '@/hooks/useTheme';
+import { markAppReady } from '@/utils/appReady';
 
 /**
  * Keeps the native splash (app.json's `expo-splash-screen` plugin config, with
@@ -71,7 +72,10 @@ export default function RootLayout() {
   // letting the default route (Home) through, once mounted underneath.
   const handleReveal = useCallback(() => {}, []);
 
-  const handleFinished = useCallback(() => setSplashVisible(false), []);
+  const handleFinished = useCallback(() => {
+    setSplashVisible(false);
+    markAppReady();
+  }, []);
 
   // Fires once, right as this component is about to render BrandSplash for
   // the first time — hides the native splash at exactly the moment the

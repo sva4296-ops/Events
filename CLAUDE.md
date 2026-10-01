@@ -137,6 +137,23 @@
 >   sign-out with a destructive Alert. Web: `/account` has `DeleteAccountForm` (checkbox confirm, same
 >   function via the server client). `supabase/functions/**` is excluded from `tsconfig.json` and ESLint
 >   (Deno runtime). **Must be deployed:** `supabase functions deploy delete-account`.
+> - **Push notifications (2026-10-01), Android first.** `20261001000002_push_notifications.sql`:
+>   `push_tokens` (token PK, user_id, platform; RLS on, no policies) written only via
+>   `register_push_token`/`unregister_push_token` RPCs; `send_expo_push(user_ids, title, body, data)`
+>   posts straight to Expo's push API with `pg_net` (no Edge Function, no secrets; Romanian copy).
+>   Two senders: trigger `on_event_guest_rsvp_notify` (guest confirms/declines, from app or web ->
+>   organizer, opens `/event/<id>`) and pg_cron `send-event-reminders` daily 07:00 UTC (day before
+>   `event_date` in Europe/Bucharest -> confirmed guests, opens `/guest/<id>`). App:
+>   `utils/pushNotifications.ts` (handler, Android channel `default`, token -> RPC; sign-out
+>   unregisters first), `hooks/usePushNotifications.ts` mounted on Home (registers once per user,
+>   routes taps incl. cold start). `app.config.ts` sets `android.googleServicesFile` from the
+>   `GOOGLE_SERVICES_JSON` EAS file var or `./google-services.json` if present. FCM V1 key goes in
+>   EAS credentials. iOS needs the Apple account (token fetch fails silently until then).
+>   Profile → Cont has a "Notificări" row with `ToggleSwitch` (bare switch exported from `Toggle.tsx`;
+>   `ListRow` hides its chevron when `trailing` is set). The switch = device-wide AsyncStorage
+>   preference (`povesteanoastra:push-enabled:v1`, absent = on) AND OS permission. Off unregisters this
+>   device's token; on registers (or, if the OS won't ask again, offers `Linking.openSettings()`).
+>   Re-read when the app returns to foreground.
 > - **Invite links open the app when installed (2026-09-30).** `utils/whatsappInvite.ts` now builds a
 >   per-event-type Romanian message (emoji + line per `EventTypeId`, sober wording for `memorial`, date in
 >   `ro-RO`, location) and links to `INVITE_SITE_URL` = `https://events-web-henna.vercel.app` (switch to

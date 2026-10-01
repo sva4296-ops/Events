@@ -10,6 +10,7 @@ import {
 
 import { supabase } from '@/data/supabaseClient';
 import { getOnboardingCache, setOnboardingCache } from '@/utils/onboarding';
+import { unregisterPushToken } from '@/utils/pushNotifications';
 
 export interface AppUser {
   id: string;
@@ -101,6 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // While the session still exists, so the RPC can match auth.uid().
+    await unregisterPushToken().catch(() => undefined);
     await supabase.auth.signOut();
   }, []);
 

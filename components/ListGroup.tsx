@@ -60,7 +60,10 @@ export function ListRow({ icon, label, value, trailing, onPress, showDivider = f
         (value !== undefined ? (
           <Text style={[styles.value, { color: tokens.textSecondary }]}>{value}</Text>
         ) : null)}
-      {onPress !== undefined ? <Feather name="chevron-right" size={18} color={tokens.textMuted} /> : null}
+      {/* A row with its own trailing control (badge, switch) doesn't navigate anywhere. */}
+      {onPress !== undefined && trailing === undefined ? (
+        <Feather name="chevron-right" size={18} color={tokens.textMuted} />
+      ) : null}
     </TouchableOpacity>
   );
 }

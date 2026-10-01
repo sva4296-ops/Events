@@ -15,6 +15,7 @@ import {
   InvitationListItemSkeleton,
 } from '@/components/InvitationListItem';
 import { Screen } from '@/components/Screen';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAgency } from '@/hooks/useAgency';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
@@ -43,6 +44,7 @@ function initials(firstName: string | null, lastName: string | null): string {
 }
 
 export default function DashboardScreen() {
+  usePushNotifications();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { events, hydrated, isOwner } = useEvents();

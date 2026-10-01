@@ -21,6 +21,8 @@ module.exports = [
       'web-build/**',
       'expo-env.d.ts',
       'supabase/.temp/**',
+      // Deno Edge Functions: own runtime/imports, not part of the app bundle.
+      'supabase/functions/**',
       '*.log',
     ],
   },

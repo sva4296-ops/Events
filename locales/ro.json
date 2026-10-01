@@ -335,7 +335,12 @@
     "agencyAccount": "Cont de agenție",
     "agencyBadge": "Agenție",
     "terms": "Termeni și confidențialitate",
-    "version": "Versiunea {{version}}"
+    "version": "Versiunea {{version}}",
+    "deleteAccount": "Șterge contul",
+    "deleteAccountTitle": "Ștergi contul definitiv?",
+    "deleteAccountMessage": "Se șterg contul tău, toate evenimentele pe care le-ai organizat (invitați, momente, poze, fond, chat) și răspunsurile, mesajele și pozele tale din evenimentele altora. Acțiunea nu poate fi anulată.",
+    "deleteAccountConfirm": "Șterge definitiv",
+    "deleteAccountFailed": "Contul nu a putut fi șters"
   },
   "pricing": {
     "title": "Planuri și prețuri",

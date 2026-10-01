@@ -323,7 +323,12 @@
     "agencyAccount": "Agency account",
     "agencyBadge": "Agency",
     "terms": "Terms and privacy",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "deleteAccount": "Delete account",
+    "deleteAccountTitle": "Permanently delete your account?",
+    "deleteAccountMessage": "This deletes your account, every event you organized (guests, moments, photos, fund, chat) and your replies, messages and photos in other people's events. This can't be undone.",
+    "deleteAccountConfirm": "Delete permanently",
+    "deleteAccountFailed": "Couldn't delete your account"
   },
   "pricing": {
     "title": "Plans & pricing",

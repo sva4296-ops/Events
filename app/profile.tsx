@@ -37,7 +37,7 @@ const THEME_LABEL_KEY: Record<ThemeMode, string> = {
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, deleteAccount } = useAuth();
   const { displayName, avatarUrl, uploadAvatar } = useUserProfile();
   const { isAgencyOwner, hydrated: agencyHydrated } = useAgency();
   const { tokens, mode, setThemeMode } = useTheme();
@@ -46,6 +46,28 @@ export default function ProfileScreen() {
   const phoneDisplay = user?.phone != null ? formatPhoneDisplay(user.phone) : null;
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const runDeleteAccount = async () => {
+    setDeletingAccount(true);
+    const error = await deleteAccount();
+    if (error !== null) {
+      setDeletingAccount(false);
+      Alert.alert(t('profile.deleteAccountFailed'), error);
+    }
+    // On success AuthGate sees the session drop and routes to /auth.
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(t('profile.deleteAccountTitle'), t('profile.deleteAccountMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('profile.deleteAccountConfirm'),
+        style: 'destructive',
+        onPress: () => void runDeleteAccount(),
+      },
+    ]);
+  };
 
   const pickAndUploadAvatar = async (source: 'camera' | 'library') => {
     const permission =
@@ -216,6 +238,23 @@ export default function ProfileScreen() {
         />
       ) : null}
 
+      {user !== null ? (
+        <TouchableOpacity
+          style={styles.deleteAccount}
+          onPress={confirmDeleteAccount}
+          disabled={deletingAccount}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.deleteAccount')}
+        >
+          {deletingAccount ? (
+            <ActivityIndicator color={tokens.destructive} size="small" />
+          ) : (
+            <Text style={[styles.deleteAccountText, { color: tokens.destructive }]}>{t('profile.deleteAccount')}</Text>
+          )}
+        </TouchableOpacity>
+      ) : null}
+
       <Text style={[styles.version, { color: tokens.textSecondary }]}>
         {t('profile.version', { version: Constants.expoConfig?.version ?? '' })}
       </Text>
@@ -300,6 +339,15 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
+    fontWeight: '600',
+  },
+  deleteAccount: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteAccountText: {
+    fontSize: 15,
     fontWeight: '600',
   },
   version: {

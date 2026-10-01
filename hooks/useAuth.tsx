@@ -50,6 +50,10 @@ interface AuthContextValue {
   /** Local cache first, public.users.has_completed_onboarding as source of truth. */
   hasCompletedOnboarding: () => Promise<boolean>;
   markOnboardingComplete: () => Promise<void>;
+  /** Permanently deletes the account via the delete-account Edge Function
+   * (service role: Storage cleanup + auth.admin.deleteUser, everything else
+   * cascades), then clears the local session. Returns an error message or null. */
+  deleteAccount: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -146,6 +150,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.from('users').update({ has_completed_onboarding: true }).eq('id', user.id);
   }, [user]);
 
+  const deleteAccount = useCallback(async (): Promise<string | null> => {
+    const { error } = await supabase.functions.invoke('delete-account', { method: 'POST' });
+    if (error) {
+      // FunctionsHttpError carries the Response: surface the status and the
+      // function's own { error } body instead of the generic "non-2xx" text.
+      const response: unknown = (error as { context?: unknown }).context;
+      if (response instanceof Response) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        return `${response.status}: ${body?.error ?? error.message}`;
+      }
+      return error.message;
+    }
+    // The user no longer exists server-side, so a global sign-out would fail;
+    // local scope just drops the stored session and fires onAuthStateChange.
+    await supabase.auth.signOut({ scope: 'local' });
+    return null;
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -157,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyPhoneChange,
       hasCompletedOnboarding,
       markOnboardingComplete,
+      deleteAccount,
     }),
     [
       user,
@@ -168,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyPhoneChange,
       hasCompletedOnboarding,
       markOnboardingComplete,
+      deleteAccount,
     ],
   );
 

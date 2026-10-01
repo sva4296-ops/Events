@@ -119,6 +119,16 @@
 >   static map. Guest Locație page: `utils/maps.ts` `openInMaps` (Android `geo:` chooser, iOS Apple
 >   Maps) + `openInWaze`, falling back to name+address text when there are no coordinates.
 >   Android needs `GOOGLE_MAPS_ANDROID_API_KEY` (read in `app.config.ts`); iOS uses Apple Maps.
+> - **Account deletion (2026-10-01), required by Google Play.** `supabase/functions/delete-account`
+>   (Deno Edge Function, service role, JWT-verified; user id comes only from the token). Order: collect
+>   `event-photos` paths (photos the user uploaded anywhere + all photos/moment files in events they
+>   organize) and remove them plus `avatars/{uid}/avatar.jpg`; delete the user's own `event_guests` rows
+>   (otherwise `on delete set null` on `guest_user_id` can violate `event_guests_contact_check` and abort
+>   the delete); then `auth.admin.deleteUser`, which cascades everything else. App: `useAuth().deleteAccount()`
+>   invokes it and signs out with `scope: 'local'`; Profile has a "Șterge contul" text button under
+>   sign-out with a destructive Alert. Web: `/account` has `DeleteAccountForm` (checkbox confirm, same
+>   function via the server client). `supabase/functions/**` is excluded from `tsconfig.json` and ESLint
+>   (Deno runtime). **Must be deployed:** `supabase functions deploy delete-account`.
 > - **Invite links open the app when installed (2026-09-30).** `utils/whatsappInvite.ts` now builds a
 >   per-event-type Romanian message (emoji + line per `EventTypeId`, sober wording for `memorial`, date in
 >   `ro-RO`, location) and links to `INVITE_SITE_URL` = `https://events-web-henna.vercel.app` (switch to

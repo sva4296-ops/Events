@@ -22,6 +22,7 @@ import { usePlanFeatures } from '@/hooks/usePlanFeatures';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import i18n from '@/utils/i18n';
+import { compareEventsByDate } from '@/utils/eventOrder';
 import { myInvitations } from '@/utils/invitations';
 import { staggerIn } from '@/utils/motion';
 import { spacing } from '@/utils/theme';
@@ -51,8 +52,8 @@ export default function DashboardScreen() {
   const { plans } = usePlanFeatures();
   const { firstName, lastName, avatarUrl } = useUserProfile();
 
-  const ownedEvents = events.filter((event) => isOwner(event));
-  const invitations = myInvitations(events, isOwner);
+  const ownedEvents = events.filter((event) => isOwner(event)).sort(compareEventsByDate);
+  const invitations = myInvitations(events, isOwner).sort((a, b) => compareEventsByDate(a.event, b.event));
   const avatarInitials = initials(firstName, lastName);
 
   // plan_features.display_name is the single source of truth for a tier's

@@ -108,6 +108,14 @@
 >   + icon pop. `utils/haptics.ts` (expo-haptics): tap on tabs/Toggle/TypeTile, light bump on
 >   primary/success/whatsapp Buttons, success on RSVP confirmed and WhatsApp invite sent. Rule:
 >   animate transform/opacity only, use `.get()/.set()` on shared values (React Compiler lint).
+>   **Motion pass 2 (2026-10-01):** `components/AnimatedNumber.tsx` counts a number up (JS rAF,
+>   ease-out, from 0 on mount / previous value on change; text only, a11y label = final value) on the
+>   organizer dashboard stat tiles and Fond's amount + percent. `components/GrowFromLeft.tsx` reveals a
+>   bar by translating it in from the left inside an `overflow: hidden` track (measured width, hidden
+>   until laid out); used by Fond's `ProgressBar` and the dashboard's stacked RSVP bar. RSVP result
+>   card shows a green check circle that springs in (`ZoomIn`) when confirmed. `Skeleton` is now a
+>   static block (opacity 0.6) with a gradient sheen sweeping across (`tokens.surface` at ~60% alpha).
+>   All of these skip animation when the system "reduce motion" setting is on (`useReducedMotion`).
 >   **Android edge-to-edge (2026-10-01):** `edgeToEdgeEnabled=true`, so RN forces Modals translucent
 >   (drawn under the nav bar). Bottom sheets (ContactPickerModal, TableGuestPickerModal, PhoneField
 >   picker) pad `insets.bottom + spacing.lg`; `Screen` footer has `paddingBottom: spacing.md`. Any

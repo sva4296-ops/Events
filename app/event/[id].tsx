@@ -12,8 +12,10 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { Button, buttonLabelColor } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { GrowFromLeft } from "@/components/GrowFromLeft";
 import { GuestRow, GuestRowSkeleton } from "@/components/GuestRow";
 import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
@@ -162,7 +164,7 @@ export default function EventDetailScreen() {
         <View style={styles.stats}>
           {stats.map((stat) => (
             <View key={stat.key} style={[styles.stat, { backgroundColor: stat.bg }]}>
-              <Text style={[styles.statValue, { color: stat.fg }]}>{stat.value}</Text>
+              <AnimatedNumber value={stat.value} style={[styles.statValue, { color: stat.fg }]} />
               <Text style={[styles.statLabel, { color: stat.fg }]} numberOfLines={1}>
                 {stat.label}
               </Text>
@@ -171,15 +173,17 @@ export default function EventDetailScreen() {
         </View>
         {counts.total > 0 ? (
           <View style={styles.bar} accessibilityRole="image">
-            {counts.confirmed > 0 ? (
-              <View style={{ width: `${share(counts.confirmed)}%`, backgroundColor: tokens.statusConfirmed }} />
-            ) : null}
-            {counts.pending > 0 ? (
-              <View style={{ width: `${share(counts.pending)}%`, backgroundColor: tokens.accentGold }} />
-            ) : null}
-            {counts.declined > 0 ? (
-              <View style={{ width: `${share(counts.declined)}%`, backgroundColor: tokens.accentPink }} />
-            ) : null}
+            <GrowFromLeft style={styles.barFill}>
+              {counts.confirmed > 0 ? (
+                <View style={{ width: `${share(counts.confirmed)}%`, backgroundColor: tokens.statusConfirmed }} />
+              ) : null}
+              {counts.pending > 0 ? (
+                <View style={{ width: `${share(counts.pending)}%`, backgroundColor: tokens.accentGold }} />
+              ) : null}
+              {counts.declined > 0 ? (
+                <View style={{ width: `${share(counts.declined)}%`, backgroundColor: tokens.accentPink }} />
+              ) : null}
+            </GrowFromLeft>
           </View>
         ) : null}
       </View>
@@ -196,7 +200,13 @@ export default function EventDetailScreen() {
           <Button
             label={t("event.sendWhatsApp")}
             variant="secondary"
-            icon={<Feather name="message-circle" size={20} color={buttonLabelColor("secondary", tokens)} />}
+            icon={
+              <Feather
+                name="message-circle"
+                size={20}
+                color={pendingUnsentCount === 0 ? tokens.textMuted : buttonLabelColor("secondary", tokens)}
+              />
+            }
             onPress={() => router.push(`/send-invites/${event.id}`)}
             disabled={pendingUnsentCount === 0}
             style={styles.action}
@@ -382,14 +392,18 @@ const styles = StyleSheet.create({
     borderRadius: 99,
     overflow: "hidden",
   },
-  actions: {
+  barFill: {
+    flex: 1,
     flexDirection: "row",
+    gap: 3,
+  },
+  // Stacked, full width: "Trimite pe WhatsApp" doesn't fit on one line in a
+  // half-width pill next to "Adaugă invitat".
+  actions: {
     gap: 10,
   },
   action: {
-    flex: 1,
     minHeight: 48,
-    paddingHorizontal: 12,
   },
   notice: {
     flexDirection: "row",

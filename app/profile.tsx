@@ -232,8 +232,8 @@ export default function ProfileScreen() {
       {user !== null ? (
         <Button
           label={t('profile.signOut')}
-          variant="danger"
-          icon={<Feather name="log-out" size={20} color={tokens.destructive} />}
+          variant="secondary"
+          icon={<Feather name="log-out" size={20} color={tokens.textPrimary} />}
           onPress={() => void signOut()}
         />
       ) : null}

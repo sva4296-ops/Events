@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { EmptyState } from '@/components/EmptyState';
 import { Button, buttonLabelColor } from '@/components/Button';
 import { GuestButton } from '@/components/guest/GuestButton';
@@ -98,9 +99,11 @@ export default function FondScreen() {
         </View>
 
         <View style={styles.amounts}>
-          <Text style={[styles.current, { color: tokens.textPrimary }]}>
-            {formatMoney(fund.current_amount, fund.currency)}
-          </Text>
+          <AnimatedNumber
+            value={fund.current_amount}
+            format={(amount) => formatMoney(amount, fund.currency)}
+            style={[styles.current, { color: tokens.textPrimary }]}
+          />
           <Text style={[styles.target, { color: tokens.textSecondary }]}>
             {t('fond.targetAmount', { amount: formatMoney(fund.target_amount, fund.currency) })}
           </Text>
@@ -113,7 +116,11 @@ export default function FondScreen() {
             {t('fond.contributorsCount', { count: contributorCount })}
           </Text>
           <Text style={[styles.stat, { color: tokens.textSecondary }]}>
-            <Text style={[styles.statStrong, { color: tokens.textPrimary }]}>{percent}%</Text> {t('fond.ofGoal')}
+            <AnimatedNumber
+              value={percent}
+              format={(value) => `${value}%`}
+              style={[styles.statStrong, { color: tokens.textPrimary }]}
+            /> {t('fond.ofGoal')}
           </Text>
         </View>
       </View>

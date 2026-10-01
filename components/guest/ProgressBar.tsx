@@ -1,6 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, View } from 'react-native';
 
+import { GrowFromLeft } from '@/components/GrowFromLeft';
+
 import { useTheme } from '@/hooks/useTheme';
 import { gRadius } from '@/utils/guestTheme';
 import { brandGradient } from '@/utils/themeTokens';
@@ -16,12 +18,14 @@ export function ProgressBar({ current, target }: { current: number; target: numb
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: target, now: current }}
     >
-      <LinearGradient
-        colors={brandGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[styles.fill, { width: `${ratio * 100}%` }]}
-      />
+      <GrowFromLeft style={[styles.fill, { width: `${ratio * 100}%` }]}>
+        <LinearGradient
+          colors={brandGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[StyleSheet.absoluteFill, styles.fill]}
+        />
+      </GrowFromLeft>
     </View>
   );
 }

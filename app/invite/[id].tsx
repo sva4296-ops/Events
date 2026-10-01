@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 
 import { BackButton } from '@/components/BackButton';
 import { BrandMark } from '@/components/BrandMark';
@@ -57,6 +58,16 @@ function RsvpResult({ status, eventName }: { status: Exclude<RsvpStatus, 'pendin
   const fg = confirmed ? tokens.statusConfirmed : tokens.statusDeclined;
   return (
     <View style={[styles.result, { backgroundColor: confirmed ? tokens.statusConfirmedSoft : tokens.statusDeclinedSoft }]}>
+      {confirmed ? (
+        <Animated.View
+          entering={ZoomIn.springify().damping(12)}
+          style={[styles.resultIcon, { backgroundColor: tokens.statusConfirmed }]}
+        >
+          <Animated.View entering={ZoomIn.delay(140).springify().damping(10)}>
+            <Feather name="check" size={26} color={tokens.onAccent} />
+          </Animated.View>
+        </Animated.View>
+      ) : null}
       <Text style={[styles.resultTitle, { color: fg }]}>
         {confirmed ? t('rsvp.confirmedTitle') : t('rsvp.declinedTitle')}
       </Text>
@@ -221,6 +232,14 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 4,
     alignItems: 'center',
+  },
+  resultIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
   resultTitle: {
     fontSize: 18,

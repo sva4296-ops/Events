@@ -89,6 +89,9 @@ export interface Venue {
   address: string;
   notes: string[];
   map_image_url: string;
+  /** Picked on the in-app map; null for venues entered as text only. */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 /** One record per event, addressed by event_id — same shape as Venue. */

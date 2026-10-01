@@ -279,7 +279,9 @@
       "hubTitle": "Everything you need to know",
       "toComplete": "To complete",
       "locked": "Locked"
-    }
+    },
+    "openInMaps": "Open in Maps",
+    "openInWaze": "Waze"
   },
   "fond": {
     "emptyOwner": "No fund yet. Open one so guests can contribute to something that matters to you.",
@@ -466,7 +468,12 @@
     "nameLabel": "Venue name",
     "addressLabel": "Address",
     "notesLabel": "Practical notes",
-    "notesHint": "One note per line."
+    "notesHint": "One note per line.",
+    "mapLabel": "Map pin",
+    "pickOnMap": "Pick on map",
+    "changeOnMap": "Change",
+    "removeFromMap": "Remove",
+    "mapHint": "Guests get a navigation button straight to this spot."
   },
   "menuForm": {
     "notAvailableSubtitle": "Only the organizer can edit the menu.",
@@ -655,5 +662,15 @@
       "label": "Something else",
       "description": "Any other celebration"
     }
+  },
+  "mapPicker": {
+    "title": "Pick the location",
+    "hint": "Move the map until the pin is on the spot.",
+    "myLocation": "My location",
+    "confirm": "Confirm location",
+    "lookingUp": "Looking up the address…",
+    "noAddress": "Couldn't find the address. You can type it in.",
+    "permissionDenied": "No location access. You can move the map by hand.",
+    "close": "Close"
   }
 }

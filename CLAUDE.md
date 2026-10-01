@@ -112,6 +112,13 @@
 >   (drawn under the nav bar). Bottom sheets (ContactPickerModal, TableGuestPickerModal, PhoneField
 >   picker) pad `insets.bottom + spacing.lg`; `Screen` footer has `paddingBottom: spacing.md`. Any
 >   new bottom-anchored UI must add `useSafeAreaInsets().bottom` (3-button nav ~48dp, gesture ~24dp).
+>   **Venue map (2026-10-01):** `venue_info.latitude/longitude` (migration
+>   `20261001000001_venue_coordinates.sql`, nullable pair). `app/venue/[id].tsx` opens
+>   `components/MapPickerModal.tsx` (mounted only while open; fixed center pin, pan the map,
+>   "Locația mea" via expo-location, reverse geocode fills Adresă). `VenueMapPreview` = liteMode
+>   static map. Guest Locație page: `utils/maps.ts` `openInMaps` (Android `geo:` chooser, iOS Apple
+>   Maps) + `openInWaze`, falling back to name+address text when there are no coordinates.
+>   Android needs `GOOGLE_MAPS_ANDROID_API_KEY` (read in `app.config.ts`); iOS uses Apple Maps.
 > - **Invite links open the app when installed (2026-09-30).** `utils/whatsappInvite.ts` now builds a
 >   per-event-type Romanian message (emoji + line per `EventTypeId`, sober wording for `memorial`, date in
 >   `ro-RO`, location) and links to `INVITE_SITE_URL` = `https://events-web-henna.vercel.app` (switch to

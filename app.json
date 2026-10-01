@@ -30,6 +30,12 @@
             "backgroundColor": "#1E1A30"
           }
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PovesteaNoastra folosește locația ta doar ca să alegi pe hartă locul evenimentului."
+        }
       ]
     ],
     "ios": {

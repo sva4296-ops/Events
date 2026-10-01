@@ -103,6 +103,8 @@ export interface VenueInfoRow {
   name: string | null;
   address: string | null;
   notes: string[];
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface MomentRow {

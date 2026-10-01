@@ -86,8 +86,18 @@ function mapSchedule(row: ScheduleItemRow): ScheduleItem {
 }
 
 function mapVenue(eventId: string, row: VenueInfoRow | null): Venue {
-  if (row === null) return { event_id: eventId, name: '', address: '', notes: [], map_image_url: '' };
-  return { event_id: eventId, name: row.name ?? '', address: row.address ?? '', notes: row.notes, map_image_url: '' };
+  if (row === null) {
+    return { event_id: eventId, name: '', address: '', notes: [], map_image_url: '', latitude: null, longitude: null };
+  }
+  return {
+    event_id: eventId,
+    name: row.name ?? '',
+    address: row.address ?? '',
+    notes: row.notes,
+    map_image_url: '',
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
+  };
 }
 
 function mapMoment(row: MomentRow): Moment {
@@ -534,7 +544,17 @@ async function updateVenue(venue: Venue): Promise<void> {
   const client = supabase;
   const { error } = await client
     .from('venue_info')
-    .upsert({ event_id: venue.event_id, name: venue.name, address: venue.address, notes: venue.notes }, { onConflict: 'event_id' });
+    .upsert(
+      {
+        event_id: venue.event_id,
+        name: venue.name,
+        address: venue.address,
+        notes: venue.notes,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+      },
+      { onConflict: 'event_id' },
+    );
   if (error) throw error;
 }
 

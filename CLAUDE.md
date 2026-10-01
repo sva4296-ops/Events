@@ -154,6 +154,12 @@
 >   preference (`povesteanoastra:push-enabled:v1`, absent = on) AND OS permission. Off unregisters this
 >   device's token; on registers (or, if the OS won't ask again, offers `Linking.openSettings()`).
 >   Re-read when the app returns to foreground.
+>   `20261001000003_more_push_notifications.sql` adds three low-frequency pushes to **confirmed guests**
+>   (via `confirmed_guest_ids(event_id)`): `events.event_date`/`location` changed and `venue_info`
+>   name/address set or changed (-> `/guest/<id>/detalii`), `album_status` -> `ready` (also the
+>   organizer, -> `/guest/<id>/album`), new `moments` row (-> `/guest/<id>`). Chat and schedule pushes
+>   deliberately not built yet: they need grouping + per-type preferences (a `notifications` outbox
+>   table + `notification_preferences`) to not become spam.
 > - **Invite links open the app when installed (2026-09-30).** `utils/whatsappInvite.ts` now builds a
 >   per-event-type Romanian message (emoji + line per `EventTypeId`, sober wording for `memorial`, date in
 >   `ro-RO`, location) and links to `INVITE_SITE_URL` = `https://events-web-henna.vercel.app` (switch to

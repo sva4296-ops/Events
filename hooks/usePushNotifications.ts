@@ -1,10 +1,12 @@
 import * as Notifications from 'expo-notifications';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
 import { whenAppReady } from '@/utils/appReady';
 import {
+  eventIdFromRoute,
   isPushPreferenceEnabled,
   registerForPushNotifications,
   routeFromNotification,
@@ -18,11 +20,29 @@ import {
  */
 const PROMPT_DELAY_MS = 1200;
 
+// Module-level, not a ref: Home can remount (e.g. on back from the screen the
+// notification opened), and a fresh ref would treat the same tap as new.
+const handledResponses = new Set<string>();
+
+/**
+ * A push means that event just changed server-side (new RSVP, new date or
+ * venue, new moment...). Refetch its cached data instead of waiting out
+ * staleTime (3 min for details), so the screen it opens isn't stale.
+ */
+function refreshEventData(queryClient: QueryClient, route: string | null): void {
+  const eventId = eventIdFromRoute(route);
+  if (eventId === null) return;
+  void queryClient.invalidateQueries({ queryKey: ['events'] });
+  void queryClient.invalidateQueries({
+    predicate: (query) => query.queryKey[0] === 'eventContent' && query.queryKey[2] === eventId,
+  });
+}
+
 export function usePushNotifications(): void {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const registeredFor = useRef<string | null>(null);
   const lastResponse = Notifications.useLastNotificationResponse();
-  const handledResponse = useRef<string | null>(null);
 
   useEffect(() => {
     if (user === null || registeredFor.current === user.id) return;
@@ -50,9 +70,22 @@ export function usePushNotifications(): void {
   useEffect(() => {
     if (lastResponse === null || lastResponse === undefined) return;
     const id = lastResponse.notification.request.identifier;
-    if (handledResponse.current === id) return;
-    handledResponse.current = id;
+    if (handledResponses.has(id)) return;
+    handledResponses.add(id);
+    // Consume it, so the hook stops returning this tap once we've navigated.
+    Notifications.clearLastNotificationResponse();
     const route = routeFromNotification(lastResponse);
+    refreshEventData(queryClient, route);
     if (route !== null) router.push(route as never);
-  }, [lastResponse]);
+  }, [lastResponse, queryClient]);
+
+  // Arriving while the app is open (no tap): refresh too, so whatever screen
+  // is showing that event updates on its own.
+  useEffect(() => {
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      const url: unknown = notification.request.content.data?.url;
+      refreshEventData(queryClient, typeof url === 'string' ? url : null);
+    });
+    return () => subscription.remove();
+  }, [queryClient]);
 }

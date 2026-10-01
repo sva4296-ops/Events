@@ -3,6 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { ScaleTouchable } from '@/components/ScaleTouchable';
+
 import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { Skeleton } from '@/components/Skeleton';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
@@ -53,7 +55,8 @@ export function EventListItem({
           : t('home.countdown', { count: days });
 
   return (
-    <TouchableOpacity
+    <ScaleTouchable
+      scaleTo={0.98}
       onPress={onPress}
       activeOpacity={0.9}
       accessibilityRole="button"
@@ -137,7 +140,7 @@ export function EventListItem({
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </ScaleTouchable>
   );
 }
 

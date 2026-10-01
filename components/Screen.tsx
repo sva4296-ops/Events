@@ -75,9 +75,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.lg,
   },
+  // SafeAreaView already stops above the Android nav bar / iOS home
+  // indicator; this keeps the buttons from touching it (3-button nav).
   footer: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
+    paddingBottom: spacing.md,
     gap: spacing.md,
   },
 });

@@ -105,7 +105,7 @@
   },
   "phoneAuth": {
     "phoneLabel": "Phone number",
-    "phonePlaceholder": "712 345 678",
+    "phonePlaceholder": "0712 345 678",
     "selectCountry": "Select a country",
     "errors": {
       "invalidPhone": "Enter a valid phone number."

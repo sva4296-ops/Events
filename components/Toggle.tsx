@@ -1,6 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
+import { haptics } from '@/utils/haptics';
 
 /** Warm Story 2.0 switch row: label left, 50×30 pill switch right. */
 export function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (next: boolean) => void }) {
@@ -9,7 +10,10 @@ export function Toggle({ label, value, onChange }: { label: string; value: boole
   return (
     <TouchableOpacity
       style={styles.row}
-      onPress={() => onChange(!value)}
+      onPress={() => {
+        haptics.tap();
+        onChange(!value);
+      }}
       activeOpacity={0.8}
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}

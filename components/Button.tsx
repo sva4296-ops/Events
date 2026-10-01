@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, type TextStyle, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 
+import { ScaleTouchable } from '@/components/ScaleTouchable';
 import { useTheme } from '@/hooks/useTheme';
+import { haptics } from '@/utils/haptics';
 import { spacing } from '@/utils/theme';
 import { accentButtonShadow, themeRadius, whatsappFill, type ThemeTokens } from '@/utils/themeTokens';
 
@@ -41,10 +43,16 @@ export function Button({
   const look = disabled ? disabledLook(tokens) : variantLook(variant, tokens);
   const glow = !disabled && tokens.mode === 'light' && look.glow ? accentButtonShadow : undefined;
   const compact = variant === 'ghost' || variant === 'danger';
+  // Main calls to action get a light bump; secondary buttons stay silent.
+  const bumps = variant === 'primary' || variant === 'success' || variant === 'whatsapp';
+  const handlePress = () => {
+    if (bumps) haptics.press();
+    onPress();
+  };
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
+    <ScaleTouchable
+      onPress={handlePress}
       disabled={disabled}
       activeOpacity={0.85}
       accessibilityRole="button"
@@ -53,7 +61,7 @@ export function Button({
     >
       {icon !== undefined ? <View style={styles.icon}>{icon}</View> : null}
       <Text style={[styles.label, variant === 'danger' && styles.labelCompact, look.label]}>{label}</Text>
-    </TouchableOpacity>
+    </ScaleTouchable>
   );
 }
 

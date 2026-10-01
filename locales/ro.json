@@ -106,7 +106,7 @@
   },
   "phoneAuth": {
     "phoneLabel": "Număr de telefon",
-    "phonePlaceholder": "712 345 678",
+    "phonePlaceholder": "0712 345 678",
     "selectCountry": "Alege o țară",
     "errors": {
       "invalidPhone": "Introdu un număr de telefon valid."

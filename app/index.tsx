@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -22,6 +23,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import i18n from '@/utils/i18n';
 import { myInvitations } from '@/utils/invitations';
+import { staggerIn } from '@/utils/motion';
 import { spacing } from '@/utils/theme';
 import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
 
@@ -121,14 +123,15 @@ export default function DashboardScreen() {
               onPressCta={startCreating}
             />
           ) : (
-            ownedEvents.map((event) => (
-              <EventListItem
-                key={event.id}
-                event={event}
-                onPress={() => router.push(`/guest/${event.id}`)}
-                planLabel={planLabelFor(event.planTier)}
-                onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
-              />
+            ownedEvents.map((event, index) => (
+              <Animated.View key={event.id} entering={staggerIn(index)}>
+                <EventListItem
+                  event={event}
+                  onPress={() => router.push(`/guest/${event.id}`)}
+                  planLabel={planLabelFor(event.planTier)}
+                  onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
+                />
+              </Animated.View>
             ))
           )}
         </View>
@@ -157,22 +160,23 @@ export default function DashboardScreen() {
             ) : (
               <InvitationGroup>
                 {invitations.map((invitation, index) => (
-                  <InvitationListItem
-                    key={invitation.event.id}
-                    invitation={invitation}
-                    showDivider={index > 0}
-                    onPress={() =>
-                      // Only a confirmed guest enters the event. Pending and
-                      // declined both land on the RSVP screen, which for a
-                      // declined guest shows no event-access button, only
-                      // "Change my answer".
-                      router.push(
-                        invitation.guest.status === 'confirmed'
-                          ? `/guest/${invitation.event.id}`
-                          : `/invite/${invitation.event.id}`,
-                      )
-                    }
-                  />
+                  <Animated.View key={invitation.event.id} entering={staggerIn(index)}>
+                    <InvitationListItem
+                      invitation={invitation}
+                      showDivider={index > 0}
+                      onPress={() =>
+                        // Only a confirmed guest enters the event. Pending and
+                        // declined both land on the RSVP screen, which for a
+                        // declined guest shows no event-access button, only
+                        // "Change my answer".
+                        router.push(
+                          invitation.guest.status === 'confirmed'
+                            ? `/guest/${invitation.event.id}`
+                            : `/invite/${invitation.event.id}`,
+                        )
+                      }
+                    />
+                  </Animated.View>
                 ))}
               </InvitationGroup>
             )}

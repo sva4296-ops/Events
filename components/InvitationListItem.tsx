@@ -1,7 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { ScaleTouchable } from '@/components/ScaleTouchable';
 
 import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { RsvpBadge } from '@/components/RsvpBadge';
@@ -34,7 +36,8 @@ export function InvitationListItem({
   const type = getEventType(event.type);
 
   return (
-    <TouchableOpacity
+    <ScaleTouchable
+      scaleTo={0.98}
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
@@ -67,7 +70,7 @@ export function InvitationListItem({
         status={guest.status}
         label={guest.status === 'pending' ? t('home.respond') : undefined}
       />
-    </TouchableOpacity>
+    </ScaleTouchable>
   );
 }
 

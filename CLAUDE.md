@@ -97,6 +97,21 @@
 >   (`components/EventTypeIcon.tsx`, landing, AppBanner, vendor icons). The `emoji` field in both
 >   `eventTypes` files is now unused (WhatsApp text has its own copy in `whatsappInvite.ts`). Kept on purpose as user content: the
 >   post-moment quick-emoji picker and example moment titles in landing mockups.
+>   **Local iOS builds (2026-10-01):** `app.config.ts` wraps app.json and drops
+>   `ios.associatedDomains` when `SKIP_ASSOCIATED_DOMAINS=1`. That entitlement makes Expo CLI demand
+>   code signing even for simulators. `yarn ios:sim` = prebuild + run:ios with the flag. Plain
+>   `yarn ios` / EAS keep universal links.
+>   **Motion pass (2026-10-01):** `components/ScaleTouchable.tsx` (TouchableOpacity + Reanimated
+>   press scale) is used by Button, EventListItem, InvitationListItem, TypeTile, DetaliiHubCard.
+>   `utils/motion.ts` `staggerIn(index)` = cascading `entering` for the first 8 rows (Home events and
+>   invitations, Acasă moments, guest list). `components/guest/TabBarIcon.tsx` animates the tab pill
+>   + icon pop. `utils/haptics.ts` (expo-haptics): tap on tabs/Toggle/TypeTile, light bump on
+>   primary/success/whatsapp Buttons, success on RSVP confirmed and WhatsApp invite sent. Rule:
+>   animate transform/opacity only, use `.get()/.set()` on shared values (React Compiler lint).
+>   **Android edge-to-edge (2026-10-01):** `edgeToEdgeEnabled=true`, so RN forces Modals translucent
+>   (drawn under the nav bar). Bottom sheets (ContactPickerModal, TableGuestPickerModal, PhoneField
+>   picker) pad `insets.bottom + spacing.lg`; `Screen` footer has `paddingBottom: spacing.md`. Any
+>   new bottom-anchored UI must add `useSafeAreaInsets().bottom` (3-button nav ~48dp, gesture ~24dp).
 > - **Invite links open the app when installed (2026-09-30).** `utils/whatsappInvite.ts` now builds a
 >   per-event-type Romanian message (emoji + line per `EventTypeId`, sober wording for `memorial`, date in
 >   `ro-RO`, location) and links to `INVITE_SITE_URL` = `https://events-web-henna.vercel.app` (switch to

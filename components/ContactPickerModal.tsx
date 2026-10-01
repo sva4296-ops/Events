@@ -3,6 +3,7 @@ import * as Contacts from 'expo-contacts';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { useTheme } from '@/hooks/useTheme';
@@ -42,6 +43,9 @@ interface ContactPickerModalProps {
 export function ContactPickerModal({ visible, onClose, onImport }: ContactPickerModalProps) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
+  // Edge-to-edge: Android draws modals under the nav bar, so the sheet
+  // clears it (3-button nav ~48dp, gesture pill ~24dp, iOS home indicator).
+  const insets = useSafeAreaInsets();
 
   const [state, setState] = useState<LoadState>('loading');
   const [contacts, setContacts] = useState<ContactRow[]>([]);
@@ -123,7 +127,7 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity
-          style={[styles.sheet, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
+          style={[styles.sheet, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1, paddingBottom: insets.bottom + spacing.lg }]}
           activeOpacity={1}
           onPress={() => undefined}
         >
@@ -216,7 +220,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: themeRadius.sheet,
     paddingTop: spacing.lg,
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
     maxHeight: '80%',
   },
   title: {

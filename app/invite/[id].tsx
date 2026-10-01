@@ -16,6 +16,7 @@ import type { RsvpStatus } from '@/types/event';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
+import { haptics } from '@/utils/haptics';
 import { spacing } from '@/utils/theme';
 import { typography } from '@/utils/themeTokens';
 
@@ -110,6 +111,7 @@ export default function InviteScreen() {
 
       const respond = (status: Exclude<RsvpStatus, 'pending'>) => {
         respondToInvite(preview.eventId, status);
+        if (status === 'confirmed') haptics.success();
         setEditing(false);
       };
 
@@ -160,6 +162,7 @@ export default function InviteScreen() {
   const respond = (status: Exclude<RsvpStatus, 'pending'>) => {
     if (owner) return;
     respondToInvite(event.id, status);
+    if (status === 'confirmed') haptics.success();
     setEditing(false);
   };
 

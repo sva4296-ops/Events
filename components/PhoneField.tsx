@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { FocusRing } from '@/components/FocusRing';
 import { useTheme } from '@/hooks/useTheme';
-import { COUNTRY_CODES, stripLeadingZero, type CountryCode } from '@/utils/countryCodes';
+import { COUNTRY_CODES, type CountryCode } from '@/utils/countryCodes';
 import { spacing } from '@/utils/theme';
 import { themeRadius, typography } from '@/utils/themeTokens';
 
@@ -37,6 +38,9 @@ export function PhoneField({
 }: PhoneFieldProps) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
+  // Edge-to-edge: Android draws modals under the nav bar, so the sheet
+  // clears it (3-button nav ~48dp, gesture pill ~24dp, iOS home indicator).
+  const insets = useSafeAreaInsets();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const hasError = error !== undefined && error !== null && error.length > 0;
@@ -64,7 +68,8 @@ export function PhoneField({
           <TextInput
             style={[styles.input, { color: tokens.textPrimary }]}
             value={localNumber}
-            onChangeText={(value) => onChangeLocalNumber(stripLeadingZero(value))}
+            // The leading 0 stays visible as typed (0753...); toE164/toStoredPhone drop it on save.
+            onChangeText={onChangeLocalNumber}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder={placeholder}
@@ -86,7 +91,7 @@ export function PhoneField({
           activeOpacity={1}
           onPress={() => setPickerOpen(false)}
         >
-          <View style={[styles.sheet, { backgroundColor: tokens.surfaceElevated }]}>
+          <View style={[styles.sheet, { backgroundColor: tokens.surfaceElevated, paddingBottom: insets.bottom + spacing.lg }]}>
             <Text style={[styles.sheetTitle, { color: tokens.textPrimary }]}>
               {t('phoneAuth.selectCountry')}
             </Text>
@@ -165,7 +170,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: themeRadius.sheet,
     paddingTop: spacing.lg,
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
     maxHeight: '70%',
   },
   sheetTitle: {

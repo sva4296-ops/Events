@@ -13,6 +13,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import type { Guest } from '@/types/event';
 import { formatPhoneDisplay } from '@/utils/countryCodes';
+import { haptics } from '@/utils/haptics';
 import { buildGuestInviteMessage, sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
 import { themeRadius, whatsappFill } from '@/utils/themeTokens';
 
@@ -86,6 +87,7 @@ export default function SendInvitesScreen() {
     setSendingId(null);
     if (opened) {
       await markWhatsAppSent(event.id, guest.id);
+      haptics.success();
       setSentCount((count) => count + 1);
     }
   };

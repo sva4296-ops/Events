@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated from "react-native-reanimated";
 
 import { Button, buttonLabelColor } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -25,6 +26,7 @@ import { usePlanGate } from "@/hooks/usePlanGate";
 import { useTheme } from "@/hooks/useTheme";
 import type { RsvpStatus } from "@/types/event";
 import { countRsvps } from "@/utils/format";
+import { staggerIn } from "@/utils/motion";
 import { spacing } from "@/utils/theme";
 import { themeRadius, typography } from "@/utils/themeTokens";
 
@@ -288,25 +290,26 @@ export default function EventDetailScreen() {
           ) : (
             <View style={[styles.listCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
               {visibleGuests.map((guest, index) => (
-                <SwipeableRow
-                  key={guest.id}
-                  enabled={owner}
-                  actions={[
-                    {
-                      label: t("event.removeGuestAction"),
-                      icon: "user-x",
-                      tone: "delete",
-                      onPress: () =>
-                        confirmDelete(
-                          t("event.removeGuestTitle"),
-                          t("event.removeGuestBody", { name: guest.name }),
-                          () => removeGuest(event.id, guest.id),
-                        ),
-                    },
-                  ]}
-                >
-                  <GuestRow guest={guest} showDivider={index > 0} />
-                </SwipeableRow>
+                <Animated.View key={guest.id} entering={staggerIn(index)}>
+                  <SwipeableRow
+                    enabled={owner}
+                    actions={[
+                      {
+                        label: t("event.removeGuestAction"),
+                        icon: "user-x",
+                        tone: "delete",
+                        onPress: () =>
+                          confirmDelete(
+                            t("event.removeGuestTitle"),
+                            t("event.removeGuestBody", { name: guest.name }),
+                            () => removeGuest(event.id, guest.id),
+                          ),
+                      },
+                    ]}
+                  >
+                    <GuestRow guest={guest} showDivider={index > 0} />
+                  </SwipeableRow>
+                </Animated.View>
               ))}
             </View>
           )}

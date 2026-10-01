@@ -1,6 +1,8 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { ScaleTouchable } from '@/components/ScaleTouchable';
 
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
@@ -41,7 +43,8 @@ export function DetaliiHubCard({
   const { tokens } = useTheme();
 
   return (
-    <TouchableOpacity
+    <ScaleTouchable
+      scaleTo={0.97}
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
@@ -72,7 +75,7 @@ export function DetaliiHubCard({
           {status}
         </Text>
       </View>
-    </TouchableOpacity>
+    </ScaleTouchable>
   );
 }
 

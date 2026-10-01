@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
+import { TabBarIcon } from '@/components/guest/TabBarIcon';
 import { currentStage } from '@/components/StoryTimeline';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useTheme } from '@/hooks/useTheme';
@@ -14,7 +15,8 @@ import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
 import { confirmDelete } from '@/utils/confirm';
 import { daysUntilEvent, formatShortDate } from '@/utils/format';
-import { floatingTabBar, guest, gRadius } from '@/utils/guestTheme';
+import { haptics } from '@/utils/haptics';
+import { floatingTabBar, guest } from '@/utils/guestTheme';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -137,6 +139,7 @@ export default function GuestEventLayout() {
             tabBarItemStyle: styles.item,
             sceneStyle: { backgroundColor: 'transparent' },
           }}
+          screenListeners={{ tabPress: () => haptics.tap() }}
         >
           {TABS.map((tab) => (
             <Tabs.Screen
@@ -150,11 +153,7 @@ export default function GuestEventLayout() {
                   </Text>
                 ),
                 // Warm Story 2.0: accentTint pill behind the active icon.
-                tabBarIcon: ({ color, focused }) => (
-                  <View style={[styles.iconWrap, focused && { backgroundColor: tokens.accentTint }]}>
-                    <Feather name={tab.icon} size={21} color={color} />
-                  </View>
-                ),
+                tabBarIcon: ({ color, focused }) => <TabBarIcon name={tab.icon} color={color} focused={focused} />,
               }}
             />
           ))}
@@ -193,12 +192,5 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     marginTop: 3,
-  },
-  iconWrap: {
-    width: 48,
-    height: 30,
-    borderRadius: gRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

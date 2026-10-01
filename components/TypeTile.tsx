@@ -1,11 +1,13 @@
 import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { EventTypeIcon } from '@/components/EventTypeIcon';
+import { ScaleTouchable } from '@/components/ScaleTouchable';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeMeta } from '@/types/event';
+import { haptics } from '@/utils/haptics';
 import { bandGradientLocations, themeRadius } from '@/utils/themeTokens';
 
 interface TypeTileProps {
@@ -21,8 +23,12 @@ export function TypeTile({ type, selected, onPress }: TypeTileProps) {
   const label = t(`eventTypes.${type.id}.label`);
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
+    <ScaleTouchable
+      scaleTo={0.97}
+      onPress={() => {
+        haptics.tap();
+        onPress();
+      }}
       activeOpacity={0.85}
       accessibilityRole="radio"
       accessibilityState={{ selected, checked: selected }}
@@ -58,7 +64,7 @@ export function TypeTile({ type, selected, onPress }: TypeTileProps) {
           <Feather name="check" size={15} color={tokens.onAccent} />
         </View>
       ) : null}
-    </TouchableOpacity>
+    </ScaleTouchable>
   );
 }
 

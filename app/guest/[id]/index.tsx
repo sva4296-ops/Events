@@ -2,6 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandFlourish } from '@/components/BrandFlourish';
@@ -18,6 +19,7 @@ import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import { daysUntilEvent } from '@/utils/format';
 import { floatingTabBar, gSpace } from '@/utils/guestTheme';
+import { staggerIn } from '@/utils/motion';
 import { accentButtonShadow, themeRadius, typography } from '@/utils/themeTokens';
 
 /** "Mai sunt 255 de zile · până la Ziua X" card with the four-stage timeline. */
@@ -85,35 +87,36 @@ export default function AcasaScreen() {
           <EmptyState message={owner ? t('acasa.emptyOwner') : t('acasa.emptyGuest')} />
         ) : null}
 
-        {content.moments.map((moment) => (
-          <SwipeableRow
-            key={moment.id}
-            enabled={owner}
-            actions={[
-              {
-                label: t('common.delete'),
-                icon: 'trash-2',
-                tone: 'delete',
-                onPress: () =>
-                  confirmDelete(
-                    t('acasa.deleteMomentTitle'),
-                    t('acasa.deleteMomentBody', { title: moment.title }),
-                    () => deleteMoment(moment.id),
-                  ),
-              },
-            ]}
-          >
-            <MomentCard
-              moment={moment}
-              authorName={event?.name ?? ''}
-              authorType={event?.type ?? null}
-              loveCount={reactionCount(moment.id, 'love')}
-              celebrateCount={reactionCount(moment.id, 'celebrate')}
-              lovedByMe={hasReacted(moment.id, 'love')}
-              celebratedByMe={hasReacted(moment.id, 'celebrate')}
-              onReact={(reaction) => toggleReaction(moment.id, reaction)}
-            />
-          </SwipeableRow>
+        {content.moments.map((moment, index) => (
+          <Animated.View key={moment.id} entering={staggerIn(index)}>
+            <SwipeableRow
+              enabled={owner}
+              actions={[
+                {
+                  label: t('common.delete'),
+                  icon: 'trash-2',
+                  tone: 'delete',
+                  onPress: () =>
+                    confirmDelete(
+                      t('acasa.deleteMomentTitle'),
+                      t('acasa.deleteMomentBody', { title: moment.title }),
+                      () => deleteMoment(moment.id),
+                    ),
+                },
+              ]}
+            >
+              <MomentCard
+                moment={moment}
+                authorName={event?.name ?? ''}
+                authorType={event?.type ?? null}
+                loveCount={reactionCount(moment.id, 'love')}
+                celebrateCount={reactionCount(moment.id, 'celebrate')}
+                lovedByMe={hasReacted(moment.id, 'love')}
+                celebratedByMe={hasReacted(moment.id, 'celebrate')}
+                onReact={(reaction) => toggleReaction(moment.id, reaction)}
+              />
+            </SwipeableRow>
+          </Animated.View>
         ))}
 
         {content.fund !== null ? (

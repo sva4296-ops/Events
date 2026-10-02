@@ -23,6 +23,7 @@ function mapGuestRow(row: EventGuestRow): Guest {
     phone: row.guest_phone,
     whatsappSentAt: row.whatsapp_sent_at,
     tableId: row.table_id,
+    menuOptionId: row.menu_option_id ?? null,
     inviteToken: row.invite_token,
   };
 }
@@ -329,6 +330,22 @@ export async function fetchTableCompanions(eventId: string): Promise<string[]> {
   const { data, error } = await client.rpc('get_table_companions', { p_event_id: eventId });
   if (error) throw error;
   return ((data as TableCompanionRow[] | null) ?? []).map((row) => row.name);
+}
+
+/** A guest's own menu pick. The deadline is enforced server-side by
+ * guard_menu_choice() (20261001000005_menu_options.sql). */
+export async function updateMenuChoiceRow(
+  eventId: string,
+  guestUserId: string,
+  menuOptionId: string | null,
+): Promise<void> {
+  const client = supabase;
+  const { error } = await client
+    .from('event_guests')
+    .update({ menu_option_id: menuOptionId })
+    .eq('event_id', eventId)
+    .eq('guest_user_id', guestUserId);
+  if (error) throw error;
 }
 
 /** A guest's own preference on their own row — covered by the existing "update

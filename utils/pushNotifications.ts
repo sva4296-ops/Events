@@ -119,7 +119,7 @@ async function currentDeviceToken(): Promise<string | null> {
 
 /** Event id out of a notification route: `/event/<id>` or `/guest/<id>[/tab]`. */
 export function eventIdFromRoute(route: string | null): string | null {
-  const match = route?.match(/^\/(?:event|guest)\/([^/?#]+)/);
+  const match = route?.match(/^\/(?:event|guest|detalii-menu)\/([^/?#]+)/);
   return match?.[1] ?? null;
 }
 

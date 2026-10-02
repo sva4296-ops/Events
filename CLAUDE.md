@@ -127,6 +127,47 @@
 >   static map. Guest Locație page: `utils/maps.ts` `openInMaps` (Android `geo:` chooser, iOS Apple
 >   Maps) + `openInWaze`, falling back to name+address text when there are no coordinates.
 >   Android needs `GOOGLE_MAPS_ANDROID_API_KEY` (read in `app.config.ts`); iOS uses Apple Maps.
+> - **Menu options + guest choice with deadline (2026-10-01).** `20261001000005_menu_options.sql`:
+>   `menu_options` (whole menus: name + starter/main/dessert, organizer writes, `can_view_event` reads),
+>   `menu.choice_deadline_days` (0-30, default 2; app offers 1/2/3/7), `event_guests.menu_option_id`
+>   (`on delete set null`) + `menu_chosen_at`. Existing single menus were copied into one option named
+>   "Meniu"; `menu.starter/main/dessert` are legacy and no longer read (the app's `saveMenu` is unused).
+>   **Deadline:** last day to change = `event_date - choice_deadline_days` in Europe/Bucharest
+>   (`menu_choice_closed()`); no date = never closes. Enforced server-side by trigger
+>   `guard_menu_choice` (raises `menu_choice_closed`; organizer and service role bypass it), mirrored in
+>   `utils/menuDeadline.ts` for the UI. Reminder: pg_cron `send-menu-reminders` 07:05 UTC, the day
+>   before the last day, to confirmed guests with no pick, opens `/detalii-menu/<id>`
+>   (`eventIdFromRoute` now matches that prefix). App: `app/menu/[id].tsx` is now the add/edit-one-option
+>   editor (`?itemId=`); `app/detalii-menu/[id].tsx` owner view = "X din Y au ales" + who hasn't,
+>   deadline pills, swipe edit/delete options with who picked each; guest view = deadline notice and
+>   radio cards (`useEvents().updateMyMenuChoice`, optimistic; only `confirmed` guests can pick),
+>   dietary pills in their own card below. Hub card counts options / shows the guest's pick.
+>   povestea-web shows the options read-only (marks the guest's pick); choosing is app-only.
+>   **Courses are dynamic** (`20261001000006_menu_option_courses.sql`): `menu_options.courses` jsonb
+>   `[{ name, dish }]` in serving order replaces the fixed starter/main/dessert columns (moved, then
+>   dropped). `app/menu/[id].tsx` starts a new menu with Antreu / Fel principal / Desert, each course
+>   name is editable, "+ Adaugă un fel" adds up to 8, X removes; empty dishes are dropped on save.
+>   **Course photos:** optional per course, `photo_path` inside the courses jsonb, file at
+>   `event-photos/{eventId}/menu/{uuid}.jpg` (existing bucket RLS, first segment = eventId; no migration).
+>   `saveMenuOption` uploads new picks (resized like moment photos), saves, then removes replaced
+>   photos; `deleteMenuOption` removes its photos; `loadDetails` signs them into `photo_url`; the
+>   delete-account function also collects them. Deadline picker is an inline dropdown (1/2/3/5/7/14 days).
+>   **Known app-wide i18n gap:** Hermes' Intl.PluralRules doesn't resolve Romanian `_few`, so iOS shows
+>   `_other` ("în 5 de zile"). Fix = `@formatjs/intl-pluralrules` polyfill (not installed yet).
+> - **Seating floor plan (2026-10-01).** `20261001000004_seating_floor_plan.sql` adds
+>   `seating_tables.pos_x/pos_y` (nullable ints, the table's CENTER in plan units = dp at 1x) and
+>   `shape` (`'round'` default | `'rect'`, check constraint), and backfills existing tables into a
+>   3-column grid (170 apart, origin 110) that must match `gridSlot()` in `utils/floorPlan.ts`. A
+>   null position renders in that same grid slot; new tables are inserted with their slot.
+>   `components/FloorPlan.tsx`: pinch-zoom 0.5x-3x around the fingers + pan (gesture-handler +
+>   Reanimated, `.get()/.set()`), camera fits all tables, or centers on the guest's own table. Owner:
+>   long-press (280ms) + drag moves a table (`blocksExternalGesture` so the canvas waits), saved on
+>   release via `useEventContent().moveSeatingTable` (optimistic cache patch, then
+>   `remoteRepository.moveSeatingTable`); tap opens `/table/[id]?itemId=`. Chair dots fill per assigned
+>   guest. Guest: own table filled accent with an "Ești aici" pin; tapping a table shows a card under
+>   the plan, companions (via `get_table_companions`) only for their own table. `app/detalii-seating/[id].tsx`
+>   has a Listă / Plan segment (hidden with no tables; a seated guest opens on Plan); the list is
+>   unchanged. The table editor has a round/rect shape picker. **Must be applied:** `supabase db push`.
 > - **Account deletion (2026-10-01), required by Google Play.** `supabase/functions/delete-account`
 >   (Deno Edge Function, service role, JWT-verified; user id comes only from the token). Order: collect
 >   `event-photos` paths (photos the user uploaded anywhere + all photos/moment files in events they

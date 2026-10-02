@@ -55,6 +55,8 @@ export interface EventGuestRow {
   /** Which seating_tables row this guest is assigned to, if any — see
    * 20260822000002_seating_table_guest_assignment.sql. */
   table_id: string | null;
+  /** Picked menu_options row — see 20261001000005_menu_options.sql. */
+  menu_option_id: string | null;
   /** Per-guest secret for the web RSVP page (povestea-web, /i/[token]) — see
    * 20260929000001_guest_invite_tokens.sql. */
   invite_token: string;
@@ -170,6 +172,16 @@ export interface MenuRow {
   starter: string | null;
   main: string | null;
   dessert: string | null;
+  choice_deadline_days: number | null;
+}
+
+export interface MenuOptionRow {
+  id: string;
+  event_id: string;
+  name: string;
+  /** jsonb array of { name, dish } — see 20261001000006_menu_option_courses.sql. */
+  courses: unknown;
+  sort_order: number;
 }
 
 export interface SeatingTableRow {
@@ -179,6 +191,9 @@ export interface SeatingTableRow {
   label: string | null;
   seat_count: number;
   sort_order: number;
+  pos_x: number | null;
+  pos_y: number | null;
+  shape: string | null;
 }
 
 export interface AccommodationRow {

@@ -1,4 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
+import { useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,7 +14,7 @@ import {
 import Animated from "react-native-reanimated";
 
 import { AnimatedNumber } from "@/components/AnimatedNumber";
-import { Button, buttonLabelColor } from "@/components/Button";
+import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { GrowFromLeft } from "@/components/GrowFromLeft";
 import { GuestRow, GuestRowSkeleton } from "@/components/GuestRow";
@@ -21,6 +22,7 @@ import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import { Skeleton } from "@/components/Skeleton";
 import { SwipeableRow } from "@/components/SwipeableRow";
+import { remoteRepository } from "@/data/remoteEventContentRepository";
 import { confirmDelete } from "@/utils/confirm";
 import { useEvents } from "@/hooks/useEvents";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
@@ -28,7 +30,9 @@ import { usePlanGate } from "@/hooks/usePlanGate";
 import { useTheme } from "@/hooks/useTheme";
 import type { RsvpStatus } from "@/types/event";
 import { countRsvps } from "@/utils/format";
+import { shareGuestWorkbook } from "@/utils/guestExport";
 import { staggerIn } from "@/utils/motion";
+import { reportSupabaseError } from "@/utils/reportError";
 import { spacing } from "@/utils/theme";
 import { themeRadius, typography } from "@/utils/themeTokens";
 
@@ -52,6 +56,8 @@ export default function EventDetailScreen() {
   } = usePlanGate(id);
   const [filter, setFilter] = useState<GuestFilter>("all");
   const [query, setQuery] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const queryClient = useQueryClient();
 
   const event = getEvent(id);
   const owner = isOwner(event);
@@ -105,6 +111,24 @@ export default function EventDetailScreen() {
         (guest.phone ?? "").includes(needle.replace(/\D/g, "") || "\u0000")),
   );
 
+  // Tables and menus come from the same cached details query the Detalii
+  // screens use (fetched here on demand so the dashboard stays light).
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const details = await queryClient.fetchQuery({
+        queryKey: ["eventContent", "details", event.id],
+        queryFn: () => remoteRepository.loadDetails(event.id),
+        staleTime: 3 * 60_000,
+      });
+      await shareGuestWorkbook(event, details, t);
+    } catch (error) {
+      reportSupabaseError(error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const share = (value: number) => (counts.total > 0 ? (value / counts.total) * 100 : 0);
 
   const filters: { key: GuestFilter; label: string; count: number }[] = [
@@ -135,12 +159,12 @@ export default function EventDetailScreen() {
           owner ? (
             <TouchableOpacity
               style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
-              onPress={() => router.push(`/bulk-add-guests/${event.id}`)}
+              onPress={() => router.push(`/add-guest/${event.id}`)}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel={t("event.addMultipleGuests")}
+              accessibilityLabel={t("event.addGuest")}
             >
-              <Feather name={locked ? "lock" : "users"} size={20} color={tokens.textPrimary} />
+              <Feather name={locked ? "lock" : "user-plus"} size={20} color={tokens.textPrimary} />
             </TouchableOpacity>
           ) : undefined
         }
@@ -188,29 +212,45 @@ export default function EventDetailScreen() {
         ) : null}
       </View>
 
-      {owner ? (
+      {owner && event.guests.length > 0 ? (
         <View style={styles.actions}>
-          <Button
-            label={t("event.addGuest")}
-            variant="tonal"
-            icon={<Feather name={locked ? "lock" : "plus"} size={20} color={buttonLabelColor("tonal", tokens)} />}
-            onPress={() => router.push(`/add-guest/${event.id}`)}
-            style={styles.action}
-          />
-          <Button
-            label={t("event.sendWhatsApp")}
-            variant="secondary"
-            icon={
-              <Feather
-                name="message-circle"
-                size={20}
-                color={pendingUnsentCount === 0 ? tokens.textMuted : buttonLabelColor("secondary", tokens)}
-              />
-            }
-            onPress={() => router.push(`/send-invites/${event.id}`)}
-            disabled={pendingUnsentCount === 0}
-            style={styles.action}
-          />
+          {[
+            {
+              key: "whatsapp",
+              icon: "message-circle" as const,
+              label: t("event.sendWhatsApp"),
+              onPress: () => router.push(`/send-invites/${event.id}`),
+              disabled: pendingUnsentCount === 0,
+            },
+            {
+              key: "export",
+              icon: "download" as const,
+              label: exporting ? t("export.exporting") : t("export.button"),
+              onPress: () => void handleExport(),
+              disabled: exporting,
+            },
+          ].map((action) => (
+            <TouchableOpacity
+              key={action.key}
+              style={[
+                styles.action,
+                { backgroundColor: tokens.surface, borderColor: tokens.border },
+                action.disabled && styles.actionDisabled,
+              ]}
+              onPress={action.onPress}
+              disabled={action.disabled}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: action.disabled }}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: tokens.accentTint }]}>
+                <Feather name={action.icon} size={20} color={tokens.accentText} />
+              </View>
+              <Text style={[styles.actionLabel, { color: tokens.textPrimary }]} numberOfLines={2}>
+                {action.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       ) : null}
 
@@ -397,13 +437,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 3,
   },
-  // Stacked, full width: "Trimite pe WhatsApp" doesn't fit on one line in a
-  // half-width pill next to "Adaugă invitat".
+  // Adding guests lives in the header; these two share one row as tiles
+  // (labels wrap to two lines, which a half-width pill couldn't do).
   actions: {
+    flexDirection: "row",
     gap: 10,
   },
   action: {
-    minHeight: 48,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minHeight: 64,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  actionDisabled: {
+    opacity: 0.5,
+  },
+  actionIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: themeRadius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 18,
   },
   notice: {
     flexDirection: "row",

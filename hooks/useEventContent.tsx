@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import type { DetailsContent, EventContent, ReactionType, Venue } from '@/types/guest';
+import type { DetailsContent, EventContent, ReactionType, TableShape, Venue } from '@/types/guest';
 import { processMomentPhoto, processPhotoVersions, type PickedPhoto } from '@/utils/imageProcessing';
 import { reportSupabaseError } from '@/utils/reportError';
 import { generateId } from '@/utils/uuid';
@@ -29,11 +29,21 @@ export interface MenuInput {
   dessert: string;
 }
 
+/** A course photo in the editor: keep the saved one, upload a new pick, or none. */
+export type MenuCoursePhotoInput = { kind: 'keep'; path: string } | { kind: 'new'; picked: PickedPhoto } | null;
+
+export interface MenuOptionInput {
+  id: string | null;
+  name: string;
+  courses: { name: string; dish: string; photo: MenuCoursePhotoInput }[];
+}
+
 export interface SeatingTableInput {
   id: string | null;
   name: string;
   label: string;
   seat_count: number;
+  shape: TableShape;
   /** Confirmed guests assigned to this table — see app/table/[id].tsx. */
   guestIds: string[];
 }
@@ -285,6 +295,66 @@ export function useEventContent(eventId: string) {
         runRemote(() => remoteRepository.saveMenu(eventId, input), 'details');
       },
 
+      // Uploads new course photos first, saves, then removes photos that were
+      // replaced or dropped (best-effort).
+      saveMenuOption: (item: MenuOptionInput) => {
+        const previousPaths =
+          content?.menuOptions
+            .find((option) => option.id === item.id)
+            ?.courses.flatMap((course) => (course.photo_path !== null ? [course.photo_path] : [])) ?? [];
+        runRemote(async () => {
+          const courses = await Promise.all(
+            item.courses.map(async (course) => {
+              let photoPath: string | null = null;
+              if (course.photo?.kind === 'keep') photoPath = course.photo.path;
+              if (course.photo?.kind === 'new') {
+                const resized = await processMomentPhoto(course.photo.picked);
+                photoPath = await remoteRepository.uploadMenuPhoto(eventId, generateId(), resized);
+              }
+              return { name: course.name, dish: course.dish, photo_path: photoPath };
+            }),
+          );
+          await remoteRepository.saveMenuOption(
+            eventId,
+            { id: item.id, name: item.name, courses },
+            content?.menuOptions.length ?? 0,
+          );
+          const kept = new Set(courses.map((course) => course.photo_path));
+          await remoteRepository.removeMenuPhotos(previousPaths.filter((path) => !kept.has(path)));
+        }, 'details');
+      },
+
+      // Deleting frees guests' picks (on delete set null) -> the events cache too.
+      deleteMenuOption: (optionId: string) => {
+        const paths =
+          content?.menuOptions
+            .find((option) => option.id === optionId)
+            ?.courses.flatMap((course) => (course.photo_path !== null ? [course.photo_path] : [])) ?? [];
+        runRemote(
+          async () => {
+            await remoteRepository.deleteMenuOption(optionId);
+            await remoteRepository.removeMenuPhotos(paths);
+          },
+          'details',
+          [['events', user?.id ?? null]],
+        );
+      },
+
+      saveMenuDeadline: (days: number) => {
+        queryClient.setQueryData<DetailsContent>(detailsKey, (current) =>
+          current === undefined
+            ? current
+            : {
+                ...current,
+                menu:
+                  current.menu === null
+                    ? { event_id: eventId, starter: '', main: '', dessert: '', choice_deadline_days: days }
+                    : { ...current.menu, choice_deadline_days: days },
+              },
+        );
+        runRemote(() => remoteRepository.saveMenuDeadline(eventId, days), 'details');
+      },
+
       // Both of these touch event_guests.table_id (a save reassigns it, a
       // delete frees it via `on delete set null`) — that column lives in two
       // caches this hook's own 'details' key doesn't cover: the `events`
@@ -299,6 +369,22 @@ export function useEventContent(eventId: string) {
           'details',
           [['events', user?.id ?? null], ['tableCompanions', eventId]],
         );
+      },
+
+      // Floor-plan drag. Patches the cache first so the table doesn't jump
+      // back to its old spot while the write + refetch are in flight.
+      moveSeatingTable: (tableId: string, x: number, y: number) => {
+        queryClient.setQueryData<DetailsContent>(detailsKey, (current) =>
+          current === undefined
+            ? current
+            : {
+                ...current,
+                seatingTables: current.seatingTables.map((table) =>
+                  table.id === tableId ? { ...table, pos_x: x, pos_y: y } : table,
+                ),
+              },
+        );
+        runRemote(() => remoteRepository.moveSeatingTable(tableId, x, y), 'details');
       },
 
       deleteSeatingTable: (tableId: string) => {

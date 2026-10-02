@@ -12,6 +12,7 @@ import {
   respondToInviteRow,
   setEventPlanTierRow,
   updateDietaryPreferencesRow,
+  updateMenuChoiceRow,
   updateEventRow,
   upsertGuestInvitesBatch,
   type BulkGuestEntry,
@@ -46,6 +47,8 @@ interface EventsResult {
   markWhatsAppSent: (eventId: string, guestId: string) => Promise<void>;
   /** A signed-in non-organizer's own preference — no-op for an owner (no guest row to write to). */
   updateMyDietaryPreferences: (eventId: string, preferences: string[]) => void;
+  /** A guest's own menu pick; rejected server-side after the deadline. */
+  updateMyMenuChoice: (eventId: string, menuOptionId: string | null) => void;
   /** Placeholder "purchase" — sets plan_tier + plan_purchased_at directly, no
    * RevenueCat call. See data/eventsRepository.ts's setEventPlanTierRow. */
   setPlanTier: (eventId: string, planTier: string) => Promise<void>;
@@ -315,6 +318,39 @@ export function useEvents(): EventsResult {
     [updateDietaryMutation],
   );
 
+  const updateMenuChoiceMutation = useMutation({
+    mutationFn: (vars: { eventId: string; menuOptionId: string | null }) => {
+      if (user === null) throw new Error('Not signed in.');
+      return updateMenuChoiceRow(vars.eventId, user.id, vars.menuOptionId);
+    },
+    // Optimistic, same index-0-is-my-row convention as updateDietaryMutation.
+    onMutate: ({ eventId, menuOptionId }) => {
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+        current.map((event) =>
+          event.id === eventId
+            ? {
+                ...event,
+                guests: event.guests.map((guest, index) => (index === 0 ? { ...guest, menuOptionId } : guest)),
+              }
+            : event,
+        ),
+      );
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
+    onError: (error) => {
+      // menu_choice_closed is an expected rejection (deadline passed while the
+      // screen was open), not a bug; the refetch below restores the real pick.
+      if (!(error instanceof Object && 'message' in error && error.message === 'menu_choice_closed')) {
+        reportSupabaseError(error);
+      }
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const updateMyMenuChoice = useCallback(
+    (eventId: string, menuOptionId: string | null) => updateMenuChoiceMutation.mutate({ eventId, menuOptionId }),
+    [updateMenuChoiceMutation],
+  );
+
   const setPlanTierMutation = useMutation({
     mutationFn: (vars: { eventId: string; planTier: string }) =>
       setEventPlanTierRow(vars.eventId, vars.planTier),
@@ -348,6 +384,7 @@ export function useEvents(): EventsResult {
     addGuestsBatch,
     markWhatsAppSent,
     updateMyDietaryPreferences,
+    updateMyMenuChoice,
     setPlanTier,
     isOwner,
   };

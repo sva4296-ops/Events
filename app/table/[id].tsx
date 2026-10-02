@@ -11,6 +11,8 @@ import { TableGuestPickerModal, type AssignableGuestRow } from '@/components/Tab
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
+import type { TableShape } from '@/types/guest';
+import { haptics } from '@/utils/haptics';
 import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
 
@@ -27,6 +29,7 @@ export default function SeatingTableScreen() {
   const [name, setName] = useState(existing?.name ?? '');
   const [label, setLabel] = useState(existing?.label ?? '');
   const [seatCount, setSeatCount] = useState(existing === null ? '' : String(existing.seat_count));
+  const [shape, setShape] = useState<TableShape>(existing?.shape ?? 'round');
   // Pre-check whoever's already assigned to this table (edit mode); empty for a new one.
   const [selectedGuestIds, setSelectedGuestIds] = useState<Set<string>>(
     () =>
@@ -105,6 +108,7 @@ export default function SeatingTableScreen() {
       name: name.trim(),
       label,
       seat_count: Number.isFinite(parsed) ? parsed : 0,
+      shape,
       guestIds: Array.from(selectedGuestIds),
     });
     router.back();
@@ -149,6 +153,38 @@ export default function SeatingTableScreen() {
           placeholder={t('tableForm.seatsPlaceholder')}
           keyboardType="numeric"
         />
+
+        <View style={styles.assignSection}>
+          <Text style={[styles.assignLabel, { color: tokens.textPrimary }]}>{t('tableForm.shapeLabel')}</Text>
+          <View style={[styles.segment, { backgroundColor: tokens.surface2 }]} accessibilityRole="tablist">
+            {(['round', 'rect'] as const).map((option) => {
+              const active = option === shape;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.segmentItem, active ? [styles.segmentActive, { backgroundColor: tokens.surface }] : null]}
+                  onPress={() => {
+                    haptics.tap();
+                    setShape(option);
+                  }}
+                  activeOpacity={0.7}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <View
+                    style={[
+                      option === 'round' ? styles.shapeIconRound : styles.shapeIconRect,
+                      { borderColor: active ? tokens.textPrimary : tokens.textSecondary },
+                    ]}
+                  />
+                  <Text style={[styles.segmentText, { color: active ? tokens.textPrimary : tokens.textSecondary }]}>
+                    {option === 'round' ? t('tableForm.shapeRound') : t('tableForm.shapeRect')}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
 
         <View style={styles.assignSection}>
           <Text style={[styles.assignLabel, { color: tokens.textPrimary }]}>
@@ -223,5 +259,42 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
+  },
+  segment: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: 999,
+  },
+  segmentItem: {
+    flex: 1,
+    height: 40,
+    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  segmentActive: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  shapeIconRound: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1.5,
+  },
+  shapeIconRect: {
+    width: 20,
+    height: 11,
+    borderRadius: 3,
+    borderWidth: 1.5,
   },
 });

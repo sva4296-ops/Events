@@ -59,6 +59,9 @@ export default function DetaliiScreen() {
 
   const hasVenue = content.venue.name.trim().length > 0 || content.venue.address.trim().length > 0;
   const seatedCount = content.seatingTables.reduce((sum, table) => sum + table.seat_count, 0);
+  // A guest's event.guests is RLS-scoped to their own row, so [0] is theirs.
+  const myMenuOptionId = owner ? null : (event?.guests[0]?.menuOptionId ?? null);
+  const myMenuOptionName = content.menuOptions.find((option) => option.id === myMenuOptionId)?.name ?? null;
 
   const cards: DetaliiHubCardEntry[] = [
     {
@@ -89,12 +92,14 @@ export default function DetaliiScreen() {
       icon: 'coffee',
       title: t('detalii.hub.menuTitle'),
       status:
-        content.menu === null
+        content.menuOptions.length === 0
           ? t('detalii.hub.menuUnset')
           : owner
-            ? t('detalii.hub.menuSet')
-            : t('detalii.hub.menuGuest'),
-      complete: content.menu !== null,
+            ? t('detalii.hub.menuOptionsCount', { count: content.menuOptions.length })
+            : myMenuOptionName !== null
+              ? t('detalii.hub.menuGuestChosen', { name: myMenuOptionName })
+              : t('detalii.hub.menuGuest'),
+      complete: content.menuOptions.length > 0,
       route: `/detalii-menu/${id}`,
     },
     {

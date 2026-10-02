@@ -97,10 +97,34 @@ export interface Venue {
 /** One record per event, addressed by event_id — same shape as Venue. */
 export interface Menu {
   event_id: string;
+  /** Legacy single-menu courses; the app reads menuOptions instead. */
   starter: string;
   main: string;
   dessert: string;
+  /** Last day a guest can pick = event date minus this many days. */
+  choice_deadline_days: number;
 }
+
+export interface MenuCourse {
+  /** Organizer-typed course name, e.g. "Antreu", "Ciorbă". */
+  name: string;
+  dish: string;
+  /** Storage path in event-photos (`{eventId}/menu/{id}.jpg`), stored in the jsonb. */
+  photo_path: string | null;
+  /** Signed URL for photo_path, filled by loadDetails; never saved. */
+  photo_url: string | null;
+}
+
+/** One whole menu a guest can pick (e.g. "Clasic", "Vegetarian"). */
+export interface MenuOption {
+  id: string;
+  event_id: string;
+  name: string;
+  /** In serving order. */
+  courses: MenuCourse[];
+}
+
+export type TableShape = 'round' | 'rect';
 
 export interface SeatingTable {
   id: string;
@@ -108,6 +132,10 @@ export interface SeatingTable {
   name: string;
   label: string;
   seat_count: number;
+  /** Floor-plan center; null until placed (see utils/floorPlan.ts tablePosition). */
+  pos_x: number | null;
+  pos_y: number | null;
+  shape: TableShape;
 }
 
 export interface Accommodation {
@@ -151,6 +179,7 @@ export interface DetailsContent {
   schedule: ScheduleItem[];
   venue: Venue;
   menu: Menu | null;
+  menuOptions: MenuOption[];
   seatingTables: SeatingTable[];
   accommodations: Accommodation[];
   vendors: Vendor[];

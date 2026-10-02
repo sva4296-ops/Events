@@ -90,6 +90,20 @@ Deno.serve(async (req) => {
       // Legacy rows hold a device-local URI, not a Storage path.
       if (path !== null && path.startsWith(`${moment.event_id}/moments/`)) photoPaths.push(path);
     }
+
+    // Menu course photos live inside menu_options.courses (jsonb).
+    const { data: menuOptions, error: menuError } = await admin
+      .from('menu_options')
+      .select('event_id, courses')
+      .in('event_id', ownedEventIds);
+    if (menuError) return json({ error: menuError.message }, 500);
+    for (const option of menuOptions ?? []) {
+      const courses = Array.isArray(option.courses) ? (option.courses as { photo_path?: unknown }[]) : [];
+      for (const course of courses) {
+        const path = course?.photo_path;
+        if (typeof path === 'string' && path.startsWith(`${option.event_id}/menu/`)) photoPaths.push(path);
+      }
+    }
   }
 
   // 2. Remove files (best-effort; .remove() reports per-path errors, never throws).

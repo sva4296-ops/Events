@@ -40,6 +40,8 @@ export interface Guest {
    * "Assign guests" section on app/table/[id].tsx. A guest belongs to at
    * most one table for a given event. */
   tableId: string | null;
+  /** Picked menu option, if any (app/detalii-menu/[id].tsx). */
+  menuOptionId: string | null;
   /** Personal link token for the web RSVP page (https://events-web-henna.vercel.app/i/<token>, see INVITE_SITE_URL). */
   inviteToken: string;
 }

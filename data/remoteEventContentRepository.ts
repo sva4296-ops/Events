@@ -1,4 +1,5 @@
 import { supabase } from '@/data/supabaseClient';
+import { gridSlot } from '@/utils/floorPlan';
 import type {
   Accommodation,
   Contribution,
@@ -6,6 +7,8 @@ import type {
   DetailsContent,
   Fund,
   Menu,
+  MenuCourse,
+  MenuOption,
   Message,
   Moment,
   MomentReaction,
@@ -14,6 +17,7 @@ import type {
   ScheduleItem,
   SeatingTable,
   SocialContent,
+  TableShape,
   Vendor,
   Venue,
 } from '@/types/guest';
@@ -21,6 +25,7 @@ import type {
   AccommodationRow,
   ContributionRow,
   FundRow,
+  MenuOptionRow,
   MenuRow,
   MessageRow,
   MomentReactionRow,
@@ -61,6 +66,10 @@ const PHOTO_SIGNED_URL_TTL_SECONDS = 60 * 60;
  */
 function momentStoragePath(eventId: string, momentId: string): string {
   return `${eventId}/moments/${momentId}.jpg`;
+}
+
+function menuPhotoStoragePath(eventId: string, photoId: string): string {
+  return `${eventId}/menu/${photoId}.jpg`;
 }
 
 function isMomentStoragePath(eventId: string, value: string | null): value is string {
@@ -212,11 +221,54 @@ async function signMomentPhotos(eventId: string, rows: MomentRow[]): Promise<Map
 
 function mapMenu(eventId: string, row: MenuRow | null): Menu | null {
   if (row === null) return null;
-  return { event_id: eventId, starter: row.starter ?? '', main: row.main ?? '', dessert: row.dessert ?? '' };
+  return {
+    event_id: eventId,
+    starter: row.starter ?? '',
+    main: row.main ?? '',
+    dessert: row.dessert ?? '',
+    choice_deadline_days: row.choice_deadline_days ?? 2,
+  };
+}
+
+/** jsonb from the server: keep only well-formed { name, dish } entries. */
+function mapCourses(value: unknown): MenuCourse[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry: unknown) => {
+    if (typeof entry !== 'object' || entry === null) return [];
+    const { name, dish, photo_path: photoPath } = entry as { name?: unknown; dish?: unknown; photo_path?: unknown };
+    return typeof dish === 'string'
+      ? [
+          {
+            name: typeof name === 'string' ? name : '',
+            dish,
+            photo_path: typeof photoPath === 'string' ? photoPath : null,
+            photo_url: null,
+          },
+        ]
+      : [];
+  });
+}
+
+function mapMenuOption(row: MenuOptionRow): MenuOption {
+  return {
+    id: row.id,
+    event_id: row.event_id,
+    name: row.name,
+    courses: mapCourses(row.courses),
+  };
 }
 
 function mapSeatingTable(row: SeatingTableRow): SeatingTable {
-  return { id: row.id, event_id: row.event_id, name: row.name, label: row.label ?? '', seat_count: row.seat_count };
+  return {
+    id: row.id,
+    event_id: row.event_id,
+    name: row.name,
+    label: row.label ?? '',
+    seat_count: row.seat_count,
+    pos_x: row.pos_x ?? null,
+    pos_y: row.pos_y ?? null,
+    shape: row.shape === 'rect' ? 'rect' : 'round',
+  };
 }
 
 function mapAccommodation(row: AccommodationRow): Accommodation {
@@ -294,7 +346,7 @@ async function loadSocial(eventId: string): Promise<SocialContent> {
 async function loadDetails(eventId: string): Promise<DetailsContent> {
   const client = supabase;
 
-  const [scheduleRes, venueRes, fundRes, menuRes, seatingRes, accommodationsRes, vendorsRes] =
+  const [scheduleRes, venueRes, fundRes, menuRes, menuOptionsRes, seatingRes, accommodationsRes, vendorsRes] =
     await Promise.all([
       client
         .from('schedule_items')
@@ -304,22 +356,50 @@ async function loadDetails(eventId: string): Promise<DetailsContent> {
       client.from('venue_info').select('*').eq('event_id', eventId).maybeSingle(),
       client.from('fund').select('*').eq('event_id', eventId).maybeSingle(),
       client.from('menu').select('*').eq('event_id', eventId).maybeSingle(),
+      client.from('menu_options').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
       client.from('seating_tables').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
       client.from('accommodations').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
       client.from('vendors').select('*').eq('event_id', eventId).order('sort_order', { ascending: true }),
     ]);
 
-  for (const res of [scheduleRes, venueRes, fundRes, menuRes, seatingRes, accommodationsRes, vendorsRes]) {
+  for (const res of [
+    scheduleRes,
+    venueRes,
+    fundRes,
+    menuRes,
+    menuOptionsRes,
+    seatingRes,
+    accommodationsRes,
+    vendorsRes,
+  ]) {
     if (res.error) throw res.error;
   }
 
   const fundRow = fundRes.data as FundRow | null;
+
+  // One batched signing call for every course photo; a failure just leaves it photo-less.
+  const menuOptions = (menuOptionsRes.data as MenuOptionRow[]).map(mapMenuOption);
+  const coursePhotoPaths = menuOptions.flatMap((option) =>
+    option.courses.flatMap((course) => (course.photo_path !== null ? [course.photo_path] : [])),
+  );
+  if (coursePhotoPaths.length > 0) {
+    const { data: signed } = await client.storage
+      .from(PHOTO_BUCKET)
+      .createSignedUrls(coursePhotoPaths, PHOTO_SIGNED_URL_TTL_SECONDS);
+    const urlByPath = new Map((signed ?? []).map((entry) => [entry.path, entry.signedUrl]));
+    for (const option of menuOptions) {
+      option.courses = option.courses.map((course) =>
+        course.photo_path === null ? course : { ...course, photo_url: urlByPath.get(course.photo_path) ?? null },
+      );
+    }
+  }
 
   return {
     fund: fundRow === null ? null : mapFund(fundRow),
     schedule: (scheduleRes.data as ScheduleItemRow[]).map(mapSchedule),
     venue: mapVenue(eventId, venueRes.data as VenueInfoRow | null),
     menu: mapMenu(eventId, menuRes.data as MenuRow | null),
+    menuOptions,
     seatingTables: (seatingRes.data as SeatingTableRow[]).map(mapSeatingTable),
     accommodations: (accommodationsRes.data as AccommodationRow[]).map(mapAccommodation),
     vendors: (vendorsRes.data as VendorRow[]).map(mapVendor),
@@ -574,11 +654,60 @@ async function saveMenu(eventId: string, input: MenuDraft): Promise<void> {
   if (error) throw error;
 }
 
+interface MenuOptionDraft {
+  id: string | null;
+  name: string;
+  courses: { name: string; dish: string; photo_path: string | null }[];
+}
+
+/** Uploads an already-resized local JPEG; returns its Storage path. */
+async function uploadMenuPhoto(eventId: string, photoId: string, localUri: string): Promise<string> {
+  const client = supabase;
+  const path = menuPhotoStoragePath(eventId, photoId);
+  const buffer = await fetch(localUri).then((res) => res.arrayBuffer());
+  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, buffer, { contentType: 'image/jpeg' });
+  if (error) throw error;
+  return path;
+}
+
+/** Best-effort, like deleteMoment's photo removal. */
+async function removeMenuPhotos(paths: string[]): Promise<void> {
+  if (paths.length === 0) return;
+  await supabase.storage.from(PHOTO_BUCKET).remove(paths);
+}
+
+async function saveMenuOption(eventId: string, item: MenuOptionDraft, sortOrder: number): Promise<void> {
+  const client = supabase;
+  const fields = { name: item.name, courses: item.courses };
+  const { error } =
+    item.id === null
+      ? await client.from('menu_options').insert({ event_id: eventId, sort_order: sortOrder, ...fields })
+      : await client.from('menu_options').update(fields).eq('id', item.id);
+  if (error) throw error;
+}
+
+/** Guests who picked it fall back to "not chosen" (on delete set null). */
+async function deleteMenuOption(optionId: string): Promise<void> {
+  const client = supabase;
+  const { error } = await client.from('menu_options').delete().eq('id', optionId);
+  if (error) throw error;
+}
+
+/** Upserts only the deadline; the legacy course columns are left alone. */
+async function saveMenuDeadline(eventId: string, days: number): Promise<void> {
+  const client = supabase;
+  const { error } = await client
+    .from('menu')
+    .upsert({ event_id: eventId, choice_deadline_days: days }, { onConflict: 'event_id' });
+  if (error) throw error;
+}
+
 interface SeatingTableDraft {
   id: string | null;
   name: string;
   label: string;
   seat_count: number;
+  shape: TableShape;
   /** Confirmed guests' ids to assign to this table — see
    * app/table/[id].tsx's "Assign guests" section. Replaces whatever this
    * table's assignment set was before the save, in one call. */
@@ -602,6 +731,8 @@ async function saveSeatingTable(
   let tableId = item.id;
 
   if (tableId === null) {
+    // New tables land in the next free grid slot of the floor plan.
+    const slot = gridSlot(sortOrder);
     const { data, error } = await client
       .from('seating_tables')
       .insert({
@@ -610,6 +741,9 @@ async function saveSeatingTable(
         label: item.label,
         seat_count: item.seat_count,
         sort_order: sortOrder,
+        shape: item.shape,
+        pos_x: slot.x,
+        pos_y: slot.y,
       })
       .select('id')
       .single();
@@ -618,7 +752,7 @@ async function saveSeatingTable(
   } else {
     const { error } = await client
       .from('seating_tables')
-      .update({ name: item.name, label: item.label, seat_count: item.seat_count })
+      .update({ name: item.name, label: item.label, seat_count: item.seat_count, shape: item.shape })
       .eq('id', tableId);
     if (error) throw error;
   }
@@ -636,6 +770,13 @@ async function saveSeatingTable(
       .in('id', item.guestIds);
     if (assignError) throw assignError;
   }
+}
+
+/** Floor-plan drag: saves only the new center, on release. */
+async function moveSeatingTable(tableId: string, x: number, y: number): Promise<void> {
+  const client = supabase;
+  const { error } = await client.from('seating_tables').update({ pos_x: x, pos_y: y }).eq('id', tableId);
+  if (error) throw error;
 }
 
 async function deleteSeatingTable(tableId: string): Promise<void> {
@@ -743,7 +884,13 @@ export const remoteRepository = {
   deleteScheduleItem,
   updateVenue,
   saveMenu,
+  saveMenuOption,
+  deleteMenuOption,
+  uploadMenuPhoto,
+  removeMenuPhotos,
+  saveMenuDeadline,
   saveSeatingTable,
+  moveSeatingTable,
   deleteSeatingTable,
   saveAccommodation,
   deleteAccommodation,

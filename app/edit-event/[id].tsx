@@ -8,6 +8,7 @@ import { Button } from '@/components/Button';
 import { DateTimeField } from '@/components/DateTimeField';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
+import { ListGroup, ListRow } from '@/components/ListGroup';
 import { Screen } from '@/components/Screen';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
@@ -20,7 +21,7 @@ import { themeRadius } from '@/utils/themeTokens';
 export default function EditEventScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, updateEvent, deleteEvent, isOwner } = useEvents();
+  const { getEvent, updateEvent, deleteEvent, isOwner, isPrimaryOwner } = useEvents();
   const { tokens } = useTheme();
   const event = getEvent(id);
 
@@ -85,6 +86,8 @@ export default function EditEventScreen() {
           subtitle={t('editEventForm.subtitle')}
           showBack
           right={
+            // Co-organizers edit details too; deleting stays with the owner.
+            isPrimaryOwner(event) ? (
             <TouchableOpacity
               style={[styles.deleteButton, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
               onPress={remove}
@@ -99,6 +102,7 @@ export default function EditEventScreen() {
                 <Feather name="trash-2" size={20} color={tokens.statusDeclined} />
               )}
             </TouchableOpacity>
+            ) : undefined
           }
         />
 
@@ -117,6 +121,17 @@ export default function EditEventScreen() {
           onChangeText={setWelcomeMessage}
           multiline
         />
+
+        {isPrimaryOwner(event) ? (
+          <ListGroup>
+            <ListRow
+              icon="users"
+              label={t('editEventForm.coOrganizers')}
+              value={event.coOrganizers.length > 0 ? String(event.coOrganizers.length) : undefined}
+              onPress={() => router.push(`/co-organizers/${event.id}`)}
+            />
+          </ListGroup>
+        ) : null}
       </Screen>
     </KeyboardAvoidingView>
   );

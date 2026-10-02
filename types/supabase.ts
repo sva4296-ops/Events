@@ -86,8 +86,23 @@ export interface TableCompanionRow {
   name: string;
 }
 
+/** event_members — co-organizers (20261002000002_event_co_organizers.sql).
+ * The owner is implicit (events.organizer_id) and has no row here. */
+export interface EventMemberRow {
+  id: string;
+  event_id: string;
+  user_id: string | null;
+  role: 'co_organizer';
+  invited_phone: string | null;
+  invited_name: string | null;
+  relation: 'groom' | 'bride' | 'godfather' | 'godmother' | null;
+  created_at: string;
+}
+
 export interface EventWithGuestsRow extends EventRow {
   event_guests: EventGuestRow[];
+  /** RLS returns rows only to organizers (and a member's own row), so guests get []. */
+  event_members: EventMemberRow[];
 }
 
 export interface ScheduleItemRow {

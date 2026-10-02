@@ -1,7 +1,8 @@
 import { supabase } from '@/data/supabaseClient';
-import type { AppEvent, EventDraft, Guest, InvitePreview, RsvpStatus } from '@/types/event';
+import type { AppEvent, CoOrganizer, CoOrganizerRelation, EventDraft, Guest, InvitePreview, RsvpStatus } from '@/types/event';
 import type {
   EventGuestRow,
+  EventMemberRow,
   EventWithGuestsRow,
   InvitePreviewRow,
   TableCompanionRow,
@@ -11,7 +12,7 @@ import type {
  * Supabase-backed events + guests. hooks/useEvents.tsx is the only caller.
  */
 
-const SELECT_WITH_GUESTS = '*, event_guests(*)';
+const SELECT_WITH_GUESTS = '*, event_guests(*), event_members(*)';
 
 function mapGuestRow(row: EventGuestRow): Guest {
   return {
@@ -25,6 +26,16 @@ function mapGuestRow(row: EventGuestRow): Guest {
     tableId: row.table_id,
     menuOptionId: row.menu_option_id ?? null,
     inviteToken: row.invite_token,
+  };
+}
+
+function mapMemberRow(row: EventMemberRow): CoOrganizer {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.invited_name,
+    phone: row.invited_phone,
+    relation: row.relation ?? null,
   };
 }
 
@@ -53,6 +64,7 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     welcomeMessage: row.welcome_message ?? '',
     createdAt: row.created_at,
     guests: row.event_guests.map(mapGuestRow),
+    coOrganizers: (row.event_members ?? []).map(mapMemberRow),
     planTier: row.plan_tier,
     planPurchasedAt: row.plan_purchased_at,
     albumStatus: row.album_status,
@@ -224,6 +236,35 @@ export async function deleteEventRow(eventId: string): Promise<void> {
 export async function removeGuestRow(guestId: string): Promise<void> {
   const client = supabase;
   const { error } = await client.from('event_guests').delete().eq('id', guestId);
+  if (error) throw error;
+}
+
+/**
+ * Co-organizer invite by phone (owner only, RLS). user_id is filled by the
+ * on_event_member_insert trigger if the phone already has an account, or by
+ * on_user_created_link_members when it signs up.
+ * `phone` is digits only (toStoredPhone), same as event_guests.guest_phone.
+ */
+export async function insertCoOrganizer(
+  eventId: string,
+  phone: string,
+  name: string,
+  relation: CoOrganizerRelation,
+): Promise<void> {
+  const client = supabase;
+  const { error } = await client.from('event_members').insert({
+    event_id: eventId,
+    role: 'co_organizer',
+    invited_phone: phone,
+    invited_name: name.length > 0 ? name : null,
+    relation,
+  });
+  if (error) throw error;
+}
+
+export async function removeCoOrganizerRow(memberId: string): Promise<void> {
+  const client = supabase;
+  const { error } = await client.from('event_members').delete().eq('id', memberId);
   if (error) throw error;
 }
 

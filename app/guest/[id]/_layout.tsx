@@ -44,7 +44,7 @@ function getActiveTab(pathname: string): ActiveTab {
 
 export default function GuestEventLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, hydrated, isOwner } = useEvents();
+  const { getEvent, hydrated, isOwner, isPrimaryOwner } = useEvents();
   const { tokens } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -88,7 +88,7 @@ export default function GuestEventLayout() {
         accessibilityLabel: t('event.editEvent'),
         onPress: () => router.push(`/edit-event/${id}`),
       });
-    } else if (activeTab === 'fond' && content !== null && content.fund !== null) {
+    } else if (activeTab === 'fond' && isPrimaryOwner(event) && content !== null && content.fund !== null) {
       const fund = content.fund;
       const contributorCount = content.contributions.length;
       actions.push(

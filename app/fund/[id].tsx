@@ -13,7 +13,7 @@ import { useEvents } from '@/hooks/useEvents';
 export default function FundFormScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, isOwner } = useEvents();
+  const { getEvent, isPrimaryOwner } = useEvents();
   const event = getEvent(id);
   const { content, saveFund } = useEventContent(id ?? '');
 
@@ -23,7 +23,7 @@ export default function FundFormScreen() {
   const [target, setTarget] = useState(existing === null ? '' : String(existing.target_amount));
   const [currency, setCurrency] = useState(existing?.currency ?? 'RON');
 
-  if (!isOwner(event)) {
+  if (!isPrimaryOwner(event)) {
     return (
       <Screen>
         <Header

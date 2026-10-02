@@ -39,7 +39,8 @@
     "countdownPast": "a avut loc",
     "confirmedCount": "confirmați",
     "pendingCount": "în așteptare",
-    "respond": "Răspunde"
+    "respond": "Răspunde",
+    "coOrganizer": "Co-organizator"
   },
   "auth": {
     "headline": "Intră în poveste",
@@ -410,7 +411,8 @@
     "featureCentralizedPanel": "Panou centralizat",
     "featureVolumeBilling": "Facturare pe volum",
     "headline": "Alege planul potrivit poveștii tale",
-    "flowTitle": "Planuri"
+    "flowTitle": "Planuri",
+    "ownerOnly": "Doar organizatorul principal poate alege pachetul."
   },
   "planGate": {
     "chatLocked": "Chatul de grup nu este inclus în planul curent al acestui eveniment.",
@@ -668,7 +670,8 @@
     "welcomeMessageLabel": "Mesaj de bun venit",
     "deleteButton": "Șterge evenimentul",
     "deleteTitle": "Ștergi evenimentul?",
-    "deleteBody": "„{{name}}” va fi șters definitiv, împreună cu invitații, mesele, meniurile, mesajele, momentele și toate pozele. Invitații primesc o notificare că evenimentul a fost anulat. Ștergerea e definitivă."
+    "deleteBody": "„{{name}}” va fi șters definitiv, împreună cu invitații, mesele, meniurile, mesajele, momentele și toate pozele. Invitații primesc o notificare că evenimentul a fost anulat. Ștergerea e definitivă.",
+    "coOrganizers": "Co-organizatori"
   },
   "addGuestForm": {
     "notAvailableSubtitle": "Doar organizatorul poate invita invitați.",
@@ -816,5 +819,31 @@
     "chat": "Chat",
     "live": "Live",
     "album": "Album"
+  },
+  "coOrganizers": {
+    "title": "Co-organizatori",
+    "subtitle": "Partenerul sau nașii gestionează evenimentul din telefonul lor. Doar tu poți șterge evenimentul, alege pachetul și vedea fondul.",
+    "notAvailableSubtitle": "Doar organizatorul principal poate gestiona co-organizatorii.",
+    "listTitle": "Adăugați",
+    "statusActive": "Activ",
+    "statusPending": "Nu a intrat încă",
+    "resendHint": "Atinge o persoană care nu a intrat încă pentru a retrimite invitația.",
+    "nameLabel": "Nume (opțional)",
+    "namePlaceholder": "Maria Popescu",
+    "addWhatsApp": "Adaugă și trimite pe WhatsApp",
+    "addSms": "Adaugă și trimite prin SMS",
+    "adding": "Se adaugă…",
+    "selfError": "Ești deja organizatorul principal.",
+    "alreadyAddedError": "Această persoană este deja co-organizator.",
+    "removeTitle": "Scoți co-organizatorul?",
+    "removeBody": "{{name}} nu va mai vedea și nu va mai gestiona evenimentul.",
+    "removeLabel": "Scoate",
+    "relation": {
+      "groom": "Mire",
+      "bride": "Mireasă",
+      "godfather": "Naș",
+      "godmother": "Nașă"
+    },
+    "relationLabel": "Rol"
   }
 }

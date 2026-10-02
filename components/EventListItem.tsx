@@ -29,6 +29,7 @@ export function EventListItem({
   onPress,
   planLabel,
   onPressChoosePlan,
+  coOrganizerLabel = null,
 }: {
   event: AppEvent;
   onPress: () => void;
@@ -37,6 +38,8 @@ export function EventListItem({
    * only caller, for how this is looked up. */
   planLabel: string | null;
   onPressChoosePlan: () => void;
+  /** "Naș", "Mireasă"…: shown instead of the plan chip (the plan is the owner's call). */
+  coOrganizerLabel?: string | null;
 }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
@@ -75,10 +78,15 @@ export function EventListItem({
         style={styles.band}
       >
         <View style={styles.emojiCircle}>
-          <EventTypeIcon type={type.id} size={26} color={CHIP_TEXT} />
+          <EventTypeIcon type={type.id} size={22} color={CHIP_TEXT} />
         </View>
 
-        {planLabel !== null ? (
+        {coOrganizerLabel !== null ? (
+          <View style={[styles.chip, styles.planChip]}>
+            <Feather name="users" size={13} color={CHIP_TEXT} />
+            <Text style={styles.chipText}>{coOrganizerLabel}</Text>
+          </View>
+        ) : planLabel !== null ? (
           <View style={[styles.chip, styles.planChip]}>
             <Text style={styles.chipText}>{planLabel}</Text>
           </View>
@@ -150,7 +158,7 @@ export function EventListItemSkeleton() {
 
   return (
     <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-      <Skeleton height={104} width="100%" radius={0} />
+      <Skeleton height={80} width="100%" radius={0} />
       <View style={styles.body}>
         <Skeleton height={22} width="65%" radius={6} />
         <Skeleton height={13} width="50%" radius={4} />
@@ -167,16 +175,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   band: {
-    height: 104,
-    padding: spacing.lg,
+    height: 80,
+    padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
   emojiCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: CHIP_BG,
     alignItems: 'center',
     justifyContent: 'center',
@@ -192,8 +200,8 @@ const styles = StyleSheet.create({
   },
   planChip: {
     position: 'absolute',
-    top: 14,
-    right: 14,
+    top: 10,
+    right: 12,
   },
   chipText: {
     fontSize: 12,
@@ -201,20 +209,21 @@ const styles = StyleSheet.create({
     color: CHIP_TEXT,
   },
   countdown: {
-    height: 28,
-    paddingHorizontal: 12,
+    height: 26,
+    paddingHorizontal: 11,
   },
   countdownText: {
     fontSize: 13,
     fontWeight: '700',
   },
   body: {
-    padding: 18,
-    paddingBottom: 16,
-    gap: spacing.lg,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: spacing.md,
   },
   titleBlock: {
-    gap: 6,
+    gap: 4,
   },
   name: {
     ...typography.title2,
@@ -259,7 +268,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    minHeight: 32,
+    minHeight: 28,
   },
   openText: {
     fontSize: 13,

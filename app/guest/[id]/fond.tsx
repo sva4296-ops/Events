@@ -23,7 +23,7 @@ import { formatMoney } from '@/utils/money';
 export default function FondScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
-  const { isOwner } = useEvents();
+  const { isPrimaryOwner } = useEvents();
   const { tokens } = useTheme();
   const { content } = useEventContent(id);
   const { hydrated: planHydrated, capabilities } = usePlanGate(id);
@@ -48,7 +48,8 @@ export default function FondScreen() {
     );
   }
 
-  const owner = isOwner(event);
+  // The fund is the owner's: co-organizers see it like any guest (and can contribute).
+  const owner = isPrimaryOwner(event);
 
   // The contribution fund isn't included in this event's current plan
   // (Esențial). Checked before the "no fund yet" empty state below, since

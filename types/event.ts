@@ -46,6 +46,20 @@ export interface Guest {
   inviteToken: string;
 }
 
+/** Label only (no extra rights). Add values here and in event_members_relation_check. */
+export const CO_ORGANIZER_RELATIONS = ['groom', 'bride', 'godfather', 'godmother'] as const;
+export type CoOrganizerRelation = (typeof CO_ORGANIZER_RELATIONS)[number];
+
+/** A co-organizer (event_members row). `userId` is null until that phone signs in. */
+export interface CoOrganizer {
+  id: string;
+  userId: string | null;
+  name: string | null;
+  phone: string | null;
+  /** Null on rows added before labels existed: shown as "Co-organizator". */
+  relation: CoOrganizerRelation | null;
+}
+
 export interface AppEvent {
   id: string;
   /** Auth user id of the organizer. Absent on events created before auth landed. */
@@ -65,6 +79,8 @@ export interface AppEvent {
   welcomeMessage: string;
   createdAt: string;
   guests: Guest[];
+  /** Empty for guests (RLS). See hooks/useEvents.tsx's isOwner / isPrimaryOwner. */
+  coOrganizers: CoOrganizer[];
   /** plan_features.plan_key this event has picked ('esential'/'complet'/
    * 'premium'/'agentie'), or null before the organizer has chosen one — see
    * app/pricing/[id].tsx and hooks/useEvents.tsx's setPlanTier. */

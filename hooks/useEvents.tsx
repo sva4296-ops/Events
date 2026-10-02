@@ -6,9 +6,11 @@ import {
   fetchEventById,
   fetchEvents,
   insertEvent,
+  insertCoOrganizer,
   insertGuestInvite,
   insertGuestInvitePhone,
   markGuestWhatsAppSent,
+  removeCoOrganizerRow,
   removeGuestRow,
   respondToInviteRow,
   setEventPlanTierRow,
@@ -21,7 +23,7 @@ import {
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import type { AppEvent, EventDraft, Guest, RsvpStatus } from '@/types/event';
+import type { AppEvent, CoOrganizerRelation, EventDraft, Guest, RsvpStatus } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
 
 interface EventsResult {
@@ -55,7 +57,15 @@ interface EventsResult {
   /** Placeholder "purchase" — sets plan_tier + plan_purchased_at directly, no
    * RevenueCat call. See data/eventsRepository.ts's setEventPlanTierRow. */
   setPlanTier: (eventId: string, planTier: string) => Promise<void>;
+  /** Organizer access: the owner or a linked co-organizer. */
   isOwner: (event: AppEvent | undefined) => boolean;
+  /** Owner only (events.organizer_id): delete event, plan, fund, co-organizers. */
+  isPrimaryOwner: (event: AppEvent | undefined) => boolean;
+  /** Owner only. `phone` digits only (toStoredPhone). */
+  addCoOrganizer: (eventId: string, phone: string, name: string, relation: CoOrganizerRelation) => Promise<void>;
+  /** The signed-in user's co-organizer row on this event, if any. */
+  myCoOrganizerRole: (event: AppEvent | undefined) => CoOrganizerRelation | 'co_organizer' | null;
+  removeCoOrganizer: (eventId: string, memberId: string) => Promise<void>;
 }
 
 /**
@@ -283,9 +293,68 @@ export function useEvents(): EventsResult {
     [markWhatsAppSentMutation],
   );
 
-  const isOwner = useCallback(
+  const isPrimaryOwner = useCallback(
     (event: AppEvent | undefined) => event !== undefined && user !== null && event.owner_id === user.id,
     [user],
+  );
+
+  const isOwner = useCallback(
+    (event: AppEvent | undefined) =>
+      isPrimaryOwner(event) ||
+      (event !== undefined && user !== null && event.coOrganizers.some((member) => member.userId === user.id)),
+    [isPrimaryOwner, user],
+  );
+
+  // Refetch rather than patch: the insert trigger may link user_id server-side.
+  const addCoOrganizerMutation = useMutation({
+    mutationFn: async (vars: { eventId: string; phone: string; name: string; relation: CoOrganizerRelation }) => {
+      await insertCoOrganizer(vars.eventId, vars.phone, vars.name, vars.relation);
+      return fetchEventById(vars.eventId);
+    },
+    onSuccess: (fresh) => {
+      if (fresh !== null) {
+        queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+          current.map((event) => (event.id === fresh.id ? fresh : event)),
+        );
+      }
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const addCoOrganizer = useCallback(
+    async (eventId: string, phone: string, name: string, relation: CoOrganizerRelation): Promise<void> => {
+      await addCoOrganizerMutation.mutateAsync({ eventId, phone, name, relation });
+    },
+    [addCoOrganizerMutation],
+  );
+
+  const myCoOrganizerRole = useCallback(
+    (event: AppEvent | undefined) => {
+      if (event === undefined || user === null) return null;
+      const member = event.coOrganizers.find((m) => m.userId === user.id);
+      if (member === undefined) return null;
+      return member.relation ?? 'co_organizer';
+    },
+    [user],
+  );
+
+  const removeCoOrganizerMutation = useMutation({
+    mutationFn: ({ memberId }: { eventId: string; memberId: string }) => removeCoOrganizerRow(memberId),
+    onSuccess: (_data, { eventId, memberId }) => {
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+        current.map((event) =>
+          event.id === eventId
+            ? { ...event, coOrganizers: event.coOrganizers.filter((member) => member.id !== memberId) }
+            : event,
+        ),
+      );
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const removeCoOrganizer = useCallback(
+    async (eventId: string, memberId: string): Promise<void> => {
+      await removeCoOrganizerMutation.mutateAsync({ eventId, memberId });
+    },
+    [removeCoOrganizerMutation],
   );
 
   const respondToInviteMutation = useMutation({
@@ -410,5 +479,9 @@ export function useEvents(): EventsResult {
     updateMyMenuChoice,
     setPlanTier,
     isOwner,
+    isPrimaryOwner,
+    addCoOrganizer,
+    removeCoOrganizer,
+    myCoOrganizerRole,
   };
 }

@@ -100,7 +100,7 @@ export default function PricingScreen() {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const { id, context } = useLocalSearchParams<{ id: string; context?: string }>();
-  const { getEvent, setPlanTier } = useEvents();
+  const { getEvent, setPlanTier, isPrimaryOwner } = useEvents();
   const { plans, hydrated: plansHydrated } = usePlanFeatures();
   const [purchasingPlanId, setPurchasingPlanId] = useState<string | null>(null);
 
@@ -178,6 +178,16 @@ export default function PricingScreen() {
     return (
       <Screen>
         <Header title={t('rsvp.notFoundTitle')} showBack />
+      </Screen>
+    );
+  }
+
+  // Co-organizers reach this from locked features too; the plan is the
+  // owner's call (guard_event_owner_columns enforces it server-side).
+  if (!isPrimaryOwner(event)) {
+    return (
+      <Screen>
+        <Header title={t('pricing.title')} subtitle={t('pricing.ownerOnly')} showBack />
       </Screen>
     );
   }

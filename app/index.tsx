@@ -47,7 +47,7 @@ export default function DashboardScreen() {
   usePushNotifications();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { events, hydrated, isOwner } = useEvents();
+  const { events, hydrated, isOwner, myCoOrganizerRole } = useEvents();
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
   const { isAgencyOwner } = useAgency();
@@ -55,6 +55,9 @@ export default function DashboardScreen() {
   const { firstName, lastName, avatarUrl } = useUserProfile();
 
   const ownedEvents = events.filter((event) => isOwner(event)).sort(compareEventsByDate);
+  // Null for events you own; your label ("Naș", "Mireasă"…) where you're a co-organizer.
+  const coOrganizerLabel = (role: ReturnType<typeof myCoOrganizerRole>) =>
+    role === null ? null : role === 'co_organizer' ? t('home.coOrganizer') : t(`coOrganizers.relation.${role}`);
   const invitations = myInvitations(events, isOwner).sort((a, b) => compareEventsByDate(a.event, b.event));
   const avatarInitials = initials(firstName, lastName);
 
@@ -133,6 +136,7 @@ export default function DashboardScreen() {
                   onPress={() => router.push(`/guest/${event.id}`)}
                   planLabel={planLabelFor(event.planTier)}
                   onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
+                  coOrganizerLabel={coOrganizerLabel(myCoOrganizerRole(event))}
                 />
               </Animated.View>
             ))

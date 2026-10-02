@@ -38,7 +38,8 @@
     "countdownPast": "has taken place",
     "confirmedCount": "confirmed",
     "pendingCount": "pending",
-    "respond": "Respond"
+    "respond": "Respond",
+    "coOrganizer": "Co-organizer"
   },
   "auth": {
     "headline": "Step into the story",
@@ -392,7 +393,8 @@
     "featureCentralizedPanel": "Centralized dashboard",
     "featureVolumeBilling": "Per-event billing",
     "headline": "Pick the right plan for your story",
-    "flowTitle": "Plans"
+    "flowTitle": "Plans",
+    "ownerOnly": "Only the main organizer can choose the plan."
   },
   "planGate": {
     "chatLocked": "Group chat isn't included in this event's current plan.",
@@ -648,7 +650,8 @@
     "welcomeMessageLabel": "Welcome message",
     "deleteButton": "Delete event",
     "deleteTitle": "Delete this event?",
-    "deleteBody": "\"{{name}}\" will be permanently deleted, along with its guests, tables, menus, messages, moments and all photos. Guests get a notification that the event was cancelled. This can't be undone."
+    "deleteBody": "\"{{name}}\" will be permanently deleted, along with its guests, tables, menus, messages, moments and all photos. Guests get a notification that the event was cancelled. This can't be undone.",
+    "coOrganizers": "Co-organizers"
   },
   "addGuestForm": {
     "notAvailableSubtitle": "Only the organizer can invite guests.",
@@ -796,5 +799,31 @@
     "chat": "Chat",
     "live": "Live",
     "album": "Album"
+  },
+  "coOrganizers": {
+    "title": "Co-organizers",
+    "subtitle": "Your partner or godparents manage the event from their own phone. Only you can delete the event, choose the plan and see the fund.",
+    "notAvailableSubtitle": "Only the main organizer can manage co-organizers.",
+    "listTitle": "Added",
+    "statusActive": "Active",
+    "statusPending": "Not signed in yet",
+    "resendHint": "Tap a pending person to send the invite again.",
+    "nameLabel": "Name (optional)",
+    "namePlaceholder": "Maria Popescu",
+    "addWhatsApp": "Add and send on WhatsApp",
+    "addSms": "Add and send by SMS",
+    "adding": "Adding…",
+    "selfError": "You're already the main organizer.",
+    "alreadyAddedError": "This person is already a co-organizer.",
+    "removeTitle": "Remove co-organizer?",
+    "removeBody": "{{name}} will no longer see or manage this event.",
+    "removeLabel": "Remove",
+    "relation": {
+      "groom": "Groom",
+      "bride": "Bride",
+      "godfather": "Godfather",
+      "godmother": "Godmother"
+    },
+    "relationLabel": "Role"
   }
 }

@@ -15,7 +15,9 @@
 //      claimed in-app with no email/phone, violate event_guests_contact_check,
 //      aborting the whole delete.
 //   4. auth.admin.deleteUser(): cascades auth.users -> public.users -> events,
-//      moments, messages, photos, reactions, agencies (all on delete cascade).
+//      moments, messages, photos, reactions, agencies, event_members (all on
+//      delete cascade). Events where the user is only a co-organizer stay:
+//      just their event_members row goes, plus moments they posted there.
 //
 // Deploy: supabase functions deploy delete-account
 
@@ -79,18 +81,24 @@ Deno.serve(async (req) => {
     photoPaths.push(`${photo.event_id}/${photo.id}/thumb.jpg`, `${photo.event_id}/${photo.id}/full.jpg`);
   }
 
-  if (ownedEventIds.length > 0) {
-    const { data: moments, error: momentsError } = await admin
-      .from('moments')
-      .select('event_id, photo_url')
-      .in('event_id', ownedEventIds);
-    if (momentsError) return json({ error: momentsError.message }, 500);
-    for (const moment of moments ?? []) {
-      const path = moment.photo_url as string | null;
-      // Legacy rows hold a device-local URI, not a Storage path.
-      if (path !== null && path.startsWith(`${moment.event_id}/moments/`)) photoPaths.push(path);
-    }
+  // Moments on owned events, plus ones this user posted as a co-organizer
+  // elsewhere (those rows cascade with the user, so their files go too).
+  const momentFilter =
+    ownedEventIds.length > 0
+      ? `organizer_id.eq.${userId},event_id.in.(${ownedEventIds.join(',')})`
+      : `organizer_id.eq.${userId}`;
+  const { data: moments, error: momentsError } = await admin
+    .from('moments')
+    .select('event_id, photo_url')
+    .or(momentFilter);
+  if (momentsError) return json({ error: momentsError.message }, 500);
+  for (const moment of moments ?? []) {
+    const path = moment.photo_url as string | null;
+    // Legacy rows hold a device-local URI, not a Storage path.
+    if (path !== null && path.startsWith(`${moment.event_id}/moments/`)) photoPaths.push(path);
+  }
 
+  if (ownedEventIds.length > 0) {
     // Menu course photos live inside menu_options.courses (jsonb).
     const { data: menuOptions, error: menuError } = await admin
       .from('menu_options')

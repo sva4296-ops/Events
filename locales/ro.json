@@ -142,8 +142,6 @@
     "countdown_one": "Mai e o zi",
     "countdown_few": "Mai sunt {{count}} zile",
     "countdown_other": "Mai sunt {{count}} de zile",
-    "untilDayX": "până la Ziua X",
-    "countdownToday": "Azi e Ziua X",
     "countdownPast": "Povestea continuă în album",
     "momentChip": "Moment",
     "reactions_one": "{{count}} reacție",
@@ -431,7 +429,7 @@
       "Toți invitații confirmați, într-un loc",
       "Organizatorul marcat în conversație"
     ],
-    "liveTitle": "Ziua X live e în planul {{plan}}",
+    "liveTitle": "Live-ul e în planul {{plan}}",
     "liveBody": "Pune un ecran în sală. Invitații scanează codul QR, iar pozele lor apar live, pe loc.",
     "liveBullets": [
       "Ecran live pentru proiector sau TV",
@@ -514,7 +512,9 @@
     "contactsPermissionDenied": "Accesul la contacte este dezactivat — poți adăuga invitați manual mai sus, sau permite accesul din Setări pentru a-i importa.",
     "contactsLoadError": "A apărut o problemă la încărcarea contactelor. Te rugăm să încerci din nou.",
     "contactsEmpty": "Nu s-a găsit niciun contact cu număr de telefon.",
-    "contactsImportButton": "Importă ({{count}})"
+    "contactsImportButton": "Importă ({{count}})",
+    "contactsSearch": "Caută după nume sau număr",
+    "contactsNoMatches": "Niciun contact nu se potrivește."
   },
   "sendInvitesQueue": {
     "title": "Trimite invitații",
@@ -524,11 +524,12 @@
     "sendButton": "Trimite",
     "sending": "Se deschide…",
     "skipButton": "Sari peste",
+    "smsButton": "Trimite prin SMS",
     "flowSubtitle": "Prin WhatsApp",
     "messageLabel": "Mesajul",
     "messageHint": "Fiecare invitat primește numele lui și un link personal.",
     "recipients": "Destinatari",
-    "howItWorks": "WhatsApp se deschide pe rând, pentru fiecare invitat. Tu apeși Trimite, iar noi bifăm cine a primit."
+    "howItWorks": "WhatsApp se deschide pe rând, pentru fiecare invitat. Tu apeși Trimite, iar noi bifăm cine a primit. Pentru cine nu are WhatsApp, butonul cu telefonul deschide SMS-ul cu același mesaj."
   },
   "scheduleForm": {
     "notAvailableSubtitle": "Doar organizatorul poate edita programul.",
@@ -654,7 +655,6 @@
     "locationLabel": "Locație",
     "welcomeMessageLabel": "Mesaj de bun venit",
     "deleteButton": "Șterge evenimentul",
-    "deleting": "Se șterge…",
     "deleteTitle": "Ștergi evenimentul?",
     "deleteBody": "„{{name}}” va fi șters definitiv, împreună cu invitații, mesele, meniurile, mesajele, momentele și toate pozele. Invitații primesc o notificare că evenimentul a fost anulat. Ștergerea e definitivă."
   },
@@ -691,7 +691,7 @@
     "step1Body": "Trimite invitația pe WhatsApp și vezi, pe loc, cine confirmă.",
     "step2Title": "Povestea continuă până la ziua cea mare",
     "step2Body": "Postează momente din pregătiri. Invitații reacționează și rămân aproape.",
-    "step3Title": "Ziua X, pe ecranul din sală",
+    "step3Title": "Ziua cea mare, pe ecranul din sală",
     "step3Body": "Invitații scanează codul QR și urcă poze care apar live, pe ecran.",
     "step4Title": "Toate amintirile, într-un singur album",
     "step4Body": "După eveniment, fiecare invitat găsește albumul complet, gata de descărcat.",
@@ -700,7 +700,7 @@
     "next": "Mai departe",
     "stageLaunch": "Lansarea",
     "stageJourney": "Parcursul",
-    "stageDayX": "Ziua X",
+    "stageDayX": "Ziua cea mare",
     "stageRecap": "Recap",
     "stageOverline": "Etapa {{step}} din {{total}} · {{name}}"
   },
@@ -739,31 +739,52 @@
   "eventTypes": {
     "wedding": {
       "label": "Nuntă",
-      "description": "Cununie și petrecere"
+      "description": "Cununie și petrecere",
+      "countdownUntil": "până la nuntă",
+      "countdownToday": "Azi e nunta!",
+      "stageDay": "Nunta"
     },
     "baptism": {
       "label": "Botez",
-      "description": "Primul capitol"
+      "description": "Primul capitol",
+      "countdownUntil": "până la botez",
+      "countdownToday": "Azi e botezul!",
+      "stageDay": "Botezul"
     },
     "birthday": {
       "label": "Aniversare",
-      "description": "Ani de sărbătorit"
+      "description": "Ani de sărbătorit",
+      "countdownUntil": "până la aniversare",
+      "countdownToday": "Azi e aniversarea!",
+      "stageDay": "Aniversarea"
     },
     "cause": {
       "label": "Cauză caritabilă",
-      "description": "Strângem fonduri împreună"
+      "description": "Strângem fonduri împreună",
+      "countdownUntil": "până la eveniment",
+      "countdownToday": "Azi e ziua evenimentului!",
+      "stageDay": "Evenimentul"
     },
     "corporate": {
       "label": "Corporate",
-      "description": "Echipă și parteneri"
+      "description": "Echipă și parteneri",
+      "countdownUntil": "până la eveniment",
+      "countdownToday": "Azi e ziua evenimentului!",
+      "stageDay": "Evenimentul"
     },
     "memorial": {
       "label": "Comemorare",
-      "description": "Un loc al amintirii"
+      "description": "Un loc al amintirii",
+      "countdownUntil": "până la comemorare",
+      "countdownToday": "Azi e comemorarea",
+      "stageDay": "Comemorarea"
     },
     "other": {
       "label": "Altceva",
-      "description": "Orice altă sărbătoare"
+      "description": "Orice altă sărbătoare",
+      "countdownUntil": "până la eveniment",
+      "countdownToday": "Azi e ziua cea mare!",
+      "stageDay": "Evenimentul"
     }
   },
   "mapPicker": {

@@ -1,4 +1,4 @@
-import { Linking, Share } from 'react-native';
+import { Linking, Platform, Share } from 'react-native';
 
 import type { AppEvent, EventTypeId } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
@@ -136,6 +136,30 @@ export async function sendGuestWhatsAppInvite(
     return false;
   } catch (err) {
     reportSupabaseError(err);
+    return false;
+  }
+}
+
+/**
+ * SMS alternative for guests without WhatsApp: opens the Messages app with the
+ * same message and personal link. iOS separates the body with `&`, Android
+ * with `?`. No canOpenURL check (iOS would need `sms` in
+ * LSApplicationQueriesSchemes); a failed open falls back to the share sheet.
+ * Same return contract as sendGuestWhatsAppInvite: true only when the SMS
+ * composer actually opened.
+ */
+export async function sendGuestSmsInvite(phone: string, input: GuestInviteMessageInput): Promise<boolean> {
+  const message = buildGuestInviteMessage(input);
+  const url = `sms:+${phone}${Platform.OS === 'ios' ? '&' : '?'}body=${encodeURIComponent(message)}`;
+  try {
+    await Linking.openURL(url);
+    return true;
+  } catch {
+    try {
+      await Share.share({ message });
+    } catch (err) {
+      reportSupabaseError(err);
+    }
     return false;
   }
 }

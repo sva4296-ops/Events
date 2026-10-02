@@ -1,7 +1,8 @@
+import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { DateTimeField } from '@/components/DateTimeField';
@@ -9,15 +10,18 @@ import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { useEvents } from '@/hooks/useEvents';
+import { useTheme } from '@/hooks/useTheme';
 import { confirmDelete } from '@/utils/confirm';
 import { formatEventDate } from '@/utils/format';
 import { parseIsoDate, toIsoDate } from '@/utils/dateInput';
 import { reportSupabaseError } from '@/utils/reportError';
+import { themeRadius } from '@/utils/themeTokens';
 
 export default function EditEventScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getEvent, updateEvent, deleteEvent, isOwner } = useEvents();
+  const { tokens } = useTheme();
   const event = getEvent(id);
 
   const [name, setName] = useState(event?.name ?? '');
@@ -76,7 +80,27 @@ export default function EditEventScreen() {
           />
         }
       >
-        <Header title={t('editEventForm.title')} subtitle={t('editEventForm.subtitle')} showBack />
+        <Header
+          title={t('editEventForm.title')}
+          subtitle={t('editEventForm.subtitle')}
+          showBack
+          right={
+            <TouchableOpacity
+              style={[styles.deleteButton, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+              onPress={remove}
+              disabled={deleting}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={t('editEventForm.deleteButton')}
+            >
+              {deleting ? (
+                <ActivityIndicator size="small" color={tokens.statusDeclined} />
+              ) : (
+                <Feather name="trash-2" size={20} color={tokens.statusDeclined} />
+              )}
+            </TouchableOpacity>
+          }
+        />
 
         <Field label={t('editEventForm.nameLabel')} value={name} onChangeText={setName} />
         <DateTimeField
@@ -93,15 +117,6 @@ export default function EditEventScreen() {
           onChangeText={setWelcomeMessage}
           multiline
         />
-
-        <View style={styles.danger}>
-          <Button
-            label={deleting ? t('editEventForm.deleting') : t('editEventForm.deleteButton')}
-            variant="danger"
-            disabled={deleting}
-            onPress={remove}
-          />
-        </View>
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -111,7 +126,12 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
   },
-  danger: {
-    marginTop: 24,
+  deleteButton: {
+    width: 44,
+    height: 44,
+    borderRadius: themeRadius.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

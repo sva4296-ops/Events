@@ -37,13 +37,15 @@ export default function ShareScreen() {
     (guest) => guest.status === 'pending' && guest.whatsappSentAt === null && guest.phone !== null,
   );
 
+  // Drop the whole wizard (type/details stay mounted under this screen), then
+  // open the target on top of the event, so "back" from add-guest or
+  // send-invites lands on the event and never on an empty create form.
   const leave = (path: '/' | `/guest/${string}` | `/add-guest/${string}` | `/send-invites/${string}`) => {
     resetDraft();
-    if (path === '/') {
-      router.navigate('/');
-    } else {
-      router.replace(path);
-    }
+    router.dismissTo('/');
+    if (path === '/') return;
+    router.push(`/guest/${event.id}`);
+    if (path !== `/guest/${event.id}`) router.push(path);
   };
 
   return (

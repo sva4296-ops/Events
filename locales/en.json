@@ -140,8 +140,6 @@
     "noPhoto": "No photo",
     "countdown_one": "One day left",
     "countdown_other": "{{count}} days left",
-    "untilDayX": "until Day X",
-    "countdownToday": "Today is Day X",
     "countdownPast": "The story continues in the album",
     "momentChip": "Moment",
     "reactions_one": "{{count}} reaction",
@@ -414,7 +412,7 @@
       "Every confirmed guest in one place",
       "The organizer marked in the conversation"
     ],
-    "liveTitle": "Live Day X is in the {{plan}} plan",
+    "liveTitle": "Live is in the {{plan}} plan",
     "liveBody": "Put a screen in the hall. Guests scan the QR code and their photos appear live, instantly.",
     "liveBullets": [
       "Live screen for a projector or TV",
@@ -496,7 +494,9 @@
     "contactsPermissionDenied": "Contacts access is off — you can still add guests manually above, or allow access in Settings to import them.",
     "contactsLoadError": "Something went wrong loading your contacts. Please try again.",
     "contactsEmpty": "No contacts with a phone number were found.",
-    "contactsImportButton": "Import ({{count}})"
+    "contactsImportButton": "Import ({{count}})",
+    "contactsSearch": "Search by name or number",
+    "contactsNoMatches": "No contacts match."
   },
   "sendInvitesQueue": {
     "title": "Send invites",
@@ -506,11 +506,12 @@
     "sendButton": "Send",
     "sending": "Opening…",
     "skipButton": "Skip",
+    "smsButton": "Send by SMS",
     "flowSubtitle": "Via WhatsApp",
     "messageLabel": "The message",
     "messageHint": "Every guest gets their own name and a personal link.",
     "recipients": "Recipients",
-    "howItWorks": "WhatsApp opens one guest at a time. You tap Send, and we tick off who got it."
+    "howItWorks": "WhatsApp opens one guest at a time. You tap Send, and we tick off who got it. For guests without WhatsApp, the phone button opens an SMS with the same message."
   },
   "scheduleForm": {
     "notAvailableSubtitle": "Only the organizer can edit the schedule.",
@@ -636,7 +637,6 @@
     "locationLabel": "Location",
     "welcomeMessageLabel": "Welcome message",
     "deleteButton": "Delete event",
-    "deleting": "Deleting…",
     "deleteTitle": "Delete this event?",
     "deleteBody": "\"{{name}}\" will be permanently deleted, along with its guests, tables, menus, messages, moments and all photos. Guests get a notification that the event was cancelled. This can't be undone."
   },
@@ -673,7 +673,7 @@
     "step1Body": "Send the invitation on WhatsApp and see who confirms, right away.",
     "step2Title": "The story continues until the big day",
     "step2Body": "Post moments from the preparations. Guests react and stay close.",
-    "step3Title": "Day X, on the screen in the hall",
+    "step3Title": "The big day, on the screen in the hall",
     "step3Body": "Guests scan the QR code and upload photos that appear live, on screen.",
     "step4Title": "Every memory, in one album",
     "step4Body": "After the event, every guest finds the full album, ready to download.",
@@ -682,7 +682,7 @@
     "next": "Next",
     "stageLaunch": "Launch",
     "stageJourney": "Journey",
-    "stageDayX": "Day X",
+    "stageDayX": "The big day",
     "stageRecap": "Recap",
     "stageOverline": "Stage {{step}} of {{total}} · {{name}}"
   },
@@ -721,31 +721,52 @@
   "eventTypes": {
     "wedding": {
       "label": "Wedding",
-      "description": "Ceremony and party"
+      "description": "Ceremony and party",
+      "countdownUntil": "until the wedding",
+      "countdownToday": "Today's the wedding!",
+      "stageDay": "The wedding"
     },
     "baptism": {
       "label": "Baptism",
-      "description": "The first chapter"
+      "description": "The first chapter",
+      "countdownUntil": "until the baptism",
+      "countdownToday": "Today's the baptism!",
+      "stageDay": "The baptism"
     },
     "birthday": {
       "label": "Birthday",
-      "description": "Years worth celebrating"
+      "description": "Years worth celebrating",
+      "countdownUntil": "until the birthday",
+      "countdownToday": "Today's the birthday!",
+      "stageDay": "The birthday"
     },
     "cause": {
       "label": "Charity cause",
-      "description": "Raising funds together"
+      "description": "Raising funds together",
+      "countdownUntil": "until the event",
+      "countdownToday": "Today's the day!",
+      "stageDay": "The event"
     },
     "corporate": {
       "label": "Corporate",
-      "description": "Team and partners"
+      "description": "Team and partners",
+      "countdownUntil": "until the event",
+      "countdownToday": "Today's the day!",
+      "stageDay": "The event"
     },
     "memorial": {
       "label": "Memorial",
-      "description": "A place for remembering"
+      "description": "A place for remembering",
+      "countdownUntil": "until the memorial",
+      "countdownToday": "Today is the memorial",
+      "stageDay": "The memorial"
     },
     "other": {
       "label": "Something else",
-      "description": "Any other celebration"
+      "description": "Any other celebration",
+      "countdownUntil": "until the event",
+      "countdownToday": "Today's the big day!",
+      "stageDay": "The event"
     }
   },
   "mapPicker": {

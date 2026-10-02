@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
+import type { EventTypeId } from '@/types/event';
 import { brandGradient } from '@/utils/themeTokens';
 
 /**
@@ -17,14 +18,20 @@ export function currentStage(days: number | null): number {
   return 3;
 }
 
+/** Label of the event-day stage: the type's own word ("Nunta", "Botezul"),
+ * or the generic "Ziua cea mare" when there's no event (onboarding). */
+export function stageDayKey(type?: EventTypeId): string {
+  return type !== undefined ? `eventTypes.${type}.stageDay` : 'onboarding.stageDayX';
+}
+
 /** Warm Story 2.0 four-stage story timeline: done stages checked, the current one haloed. */
-export function StoryTimeline({ stage }: { stage: number }) {
+export function StoryTimeline({ stage, type }: { stage: number; type?: EventTypeId }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const stages = [
     t('onboarding.stageLaunch'),
     t('onboarding.stageJourney'),
-    t('onboarding.stageDayX'),
+    t(stageDayKey(type)),
     t('onboarding.stageRecap'),
   ];
 

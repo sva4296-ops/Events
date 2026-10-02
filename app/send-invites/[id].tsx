@@ -14,7 +14,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { Guest } from '@/types/event';
 import { formatPhoneDisplay } from '@/utils/countryCodes';
 import { haptics } from '@/utils/haptics';
-import { buildGuestInviteMessage, sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
+import { buildGuestInviteMessage, sendGuestSmsInvite, sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
 import { themeRadius, whatsappFill } from '@/utils/themeTokens';
 
 /**
@@ -71,7 +71,9 @@ export default function SendInvitesScreen() {
       !skippedIds.has(guest.id),
   );
 
-  const sendToGuest = async (guest: Guest) => {
+  // SMS counts as sent too (whatsapp_sent_at is the queue's "invite sent"
+  // flag), so a guest invited by SMS leaves the queue like a WhatsApp one.
+  const sendToGuest = async (guest: Guest, channel: 'whatsapp' | 'sms') => {
     if (guest.phone === null) return;
     setSendingId(guest.id);
     // A guest with no real name falls back to their own phone number as
@@ -79,11 +81,11 @@ export default function SendInvitesScreen() {
     // list display, but "Bună 40790586600," is an awkward greeting, so treat
     // that specific fallback as "no name" for the message itself.
     const displayName = guest.name === guest.phone ? '' : guest.name;
-    const opened = await sendGuestWhatsAppInvite(guest.phone, {
-      guestName: displayName,
-      event,
-      inviteToken: guest.inviteToken,
-    });
+    const input = { guestName: displayName, event, inviteToken: guest.inviteToken };
+    const opened =
+      channel === 'sms'
+        ? await sendGuestSmsInvite(guest.phone, input)
+        : await sendGuestWhatsAppInvite(guest.phone, input);
     setSendingId(null);
     if (opened) {
       await markWhatsAppSent(event.id, guest.id);
@@ -172,8 +174,18 @@ export default function SendInvitesScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={[styles.smsButton, { borderColor: tokens.border }]}
+                onPress={() => void sendToGuest(guest, 'sms')}
+                disabled={sendingId === guest.id}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={t('sendInvitesQueue.smsButton')}
+              >
+                <Feather name="smartphone" size={17} color={tokens.textPrimary} />
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[styles.sendButton, { backgroundColor: whatsappFill }]}
-                onPress={() => void sendToGuest(guest)}
+                onPress={() => void sendToGuest(guest, 'whatsapp')}
                 disabled={sendingId === guest.id}
                 activeOpacity={0.85}
                 accessibilityRole="button"
@@ -294,6 +306,14 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: themeRadius.pill,
     paddingHorizontal: 14,
+  },
+  smsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: themeRadius.pill,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButtonText: {
     fontSize: 13,

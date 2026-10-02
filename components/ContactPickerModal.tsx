@@ -2,7 +2,18 @@ import Feather from '@expo/vector-icons/Feather';
 import * as Contacts from 'expo-contacts';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -24,6 +35,13 @@ interface ContactRow {
 }
 
 type LoadState = 'loading' | 'denied' | 'ready' | 'error';
+
+/** Lowercase, no diacritics: "Ștefan" matches "stefan". */
+const fold = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 
 interface ContactPickerModalProps {
   visible: boolean;
@@ -50,6 +68,7 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
   const [state, setState] = useState<LoadState>('loading');
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (!visible) return;
@@ -58,6 +77,7 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState('loading');
     setSelected(new Set());
+    setQuery('');
 
     let cancelled = false;
     void (async () => {
@@ -115,6 +135,16 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
     });
   };
 
+  // Selection survives filtering: pick a few, search again, pick more.
+  const needle = fold(query.trim());
+  const digits = query.replace(/\D/g, '');
+  const visibleContacts =
+    needle.length === 0
+      ? contacts
+      : contacts.filter(
+          (contact) => fold(contact.name).includes(needle) || (digits.length > 0 && contact.phone.includes(digits)),
+        );
+
   const confirm = () => {
     const picked = contacts
       .filter((contact) => selected.has(contact.id))
@@ -125,6 +155,7 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity
           style={[styles.sheet, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1, paddingBottom: insets.bottom + spacing.lg }]}
@@ -158,9 +189,33 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
           ) : null}
 
           {state === 'ready' && contacts.length > 0 ? (
+            <View style={[styles.search, { backgroundColor: tokens.surface2, borderColor: tokens.border }]}>
+              <Feather name="search" size={18} color={tokens.textSecondary} />
+              <TextInput
+                style={[styles.searchInput, { color: tokens.textPrimary }]}
+                value={query}
+                onChangeText={setQuery}
+                placeholder={t('bulkInviteForm.contactsSearch')}
+                placeholderTextColor={tokens.textMuted}
+                accessibilityLabel={t('bulkInviteForm.contactsSearch')}
+                autoCorrect={false}
+                clearButtonMode="while-editing"
+                returnKeyType="search"
+              />
+            </View>
+          ) : null}
+
+          {state === 'ready' && contacts.length > 0 && visibleContacts.length === 0 ? (
+            <Text style={[styles.message, { color: tokens.textSecondary }]}>
+              {t('bulkInviteForm.contactsNoMatches')}
+            </Text>
+          ) : null}
+
+          {state === 'ready' && visibleContacts.length > 0 ? (
             <FlatList
-              data={contacts}
+              data={visibleContacts}
               keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="handled"
               style={styles.list}
               renderItem={({ item }) => {
                 const isSelected = selected.has(item.id);
@@ -205,11 +260,15 @@ export function ContactPickerModal({ visible, onClose, onImport }: ContactPicker
           />
         </TouchableOpacity>
       </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -234,6 +293,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     paddingVertical: spacing.lg,
+  },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
   },
   list: {
     flexGrow: 0,

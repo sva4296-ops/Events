@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
 import { TabBarIcon } from '@/components/guest/TabBarIcon';
-import { currentStage } from '@/components/StoryTimeline';
+import { currentStage, stageDayKey } from '@/components/StoryTimeline';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useTheme } from '@/hooks/useTheme';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
@@ -58,10 +58,13 @@ export default function GuestEventLayout() {
   const event = getEvent(id);
   const owner = isOwner(event);
   const activeTab = getActiveTab(pathname);
-  const stageKeys = ['onboarding.stageLaunch', 'onboarding.stageJourney', 'onboarding.stageDayX', 'onboarding.stageRecap'] as const;
   const headerSubtitle =
     event !== undefined
-      ? `${formatShortDate(event.date)} · ${t(stageKeys[currentStage(daysUntilEvent(event.date))] ?? stageKeys[1])}`
+      ? `${formatShortDate(event.date)} · ${t(
+          ['onboarding.stageLaunch', 'onboarding.stageJourney', stageDayKey(event.type), 'onboarding.stageRecap'][
+            currentStage(daysUntilEvent(event.date))
+          ] ?? 'onboarding.stageJourney',
+        )}`
       : undefined;
 
   // Which single-row top-right action(s) show depends on the active tab —

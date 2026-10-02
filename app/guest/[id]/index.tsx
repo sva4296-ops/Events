@@ -17,13 +17,15 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
+import type { EventTypeId } from '@/types/event';
 import { daysUntilEvent } from '@/utils/format';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { staggerIn } from '@/utils/motion';
 import { accentButtonShadow, themeRadius, typography } from '@/utils/themeTokens';
 
-/** "Mai sunt 255 de zile · până la Ziua X" card with the four-stage timeline. */
-function CountdownCard({ date }: { date: string }) {
+/** "Mai sunt 255 de zile · până la nuntă" card with the four-stage timeline;
+ * the label and the day-of headline follow the event type. */
+function CountdownCard({ date, type }: { date: string; type: EventTypeId }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const days = daysUntilEvent(date);
@@ -34,7 +36,7 @@ function CountdownCard({ date }: { date: string }) {
         ? null
         : t('acasa.countdown', { count: days })
       : days === 0
-        ? t('acasa.countdownToday')
+        ? t(`eventTypes.${type}.countdownToday`)
         : t('acasa.countdownPast');
 
   return (
@@ -43,11 +45,11 @@ function CountdownCard({ date }: { date: string }) {
         <View style={styles.countdownHead}>
           <Text style={[styles.countdownTitle, { color: tokens.textPrimary }]}>{headline}</Text>
           {days !== null && days > 0 ? (
-            <Text style={[styles.countdownSub, { color: tokens.textSecondary }]}>{t('acasa.untilDayX')}</Text>
+            <Text style={[styles.countdownSub, { color: tokens.textSecondary }]}>{t(`eventTypes.${type}.countdownUntil`)}</Text>
           ) : null}
         </View>
       ) : null}
-      <StoryTimeline stage={currentStage(days)} />
+      <StoryTimeline stage={currentStage(days)} type={type} />
     </View>
   );
 }
@@ -68,7 +70,7 @@ export default function AcasaScreen() {
   if (content === null) {
     return (
       <GuestScreen transparent>
-        {event !== undefined ? <CountdownCard date={event.date} /> : null}
+        {event !== undefined ? <CountdownCard date={event.date} type={event.type} /> : null}
         <MomentCardSkeleton />
         <MomentCardSkeleton />
       </GuestScreen>
@@ -81,7 +83,7 @@ export default function AcasaScreen() {
         contentStyle={owner ? { paddingBottom: tabBarClearance + gSpace.xxl + 56 } : undefined}
         transparent
       >
-        {event !== undefined ? <CountdownCard date={event.date} /> : null}
+        {event !== undefined ? <CountdownCard date={event.date} type={event.type} /> : null}
 
         {content.moments.length === 0 ? (
           <EmptyState message={owner ? t('acasa.emptyOwner') : t('acasa.emptyGuest')} />

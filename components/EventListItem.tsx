@@ -116,7 +116,7 @@ export function EventListItem({
           </View>
         </View>
 
-        <StoryTimeline stage={stage} />
+        <StoryTimeline stage={stage} type={event.type} />
 
         <View style={[styles.divider, { backgroundColor: tokens.border }]} />
 

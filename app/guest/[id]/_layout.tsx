@@ -119,9 +119,10 @@ export default function GuestEventLayout() {
     <GuestEventProvider id={id}>
       <LinearGradient colors={tokens.background} style={styles.shell}>
         <EventHeaderBar
-          name={event?.name ?? 'Evenimentul nostru'}
+          // Name and date only on Acasă; the other tabs keep just their actions.
+          name={activeTab === 'acasa' ? (event?.name ?? 'Evenimentul nostru') : ''}
           type={event?.type ?? null}
-          subtitle={headerSubtitle}
+          subtitle={activeTab === 'acasa' ? headerSubtitle : undefined}
           showBack={activeTab === 'acasa'}
           actions={actions}
         />

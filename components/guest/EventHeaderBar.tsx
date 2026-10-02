@@ -59,10 +59,13 @@ export function EventHeaderBar({ name, subtitle, showBack = false, actions = [] 
         </TouchableOpacity>
       ) : null}
 
+      {/* Stays as a spacer when empty, so actions keep to the right. */}
       <View style={styles.titleBlock}>
-        <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
-          {name}
-        </Text>
+        {name.length > 0 ? (
+          <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
+            {name}
+          </Text>
+        ) : null}
         {subtitle !== undefined ? (
           <Text style={[styles.subtitle, { color: tokens.textSecondary }]} numberOfLines={1}>
             {subtitle}

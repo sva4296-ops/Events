@@ -19,7 +19,7 @@ import { themeRadius } from '@/utils/themeTokens';
 export default function SeatingTableScreen() {
   const { t } = useTranslation();
   const { id, itemId } = useLocalSearchParams<{ id: string; itemId?: string }>();
-  const { getEvent, isOwner } = useEvents();
+  const { getEvent, isVenueManager, isRestaurant } = useEvents();
   const { tokens } = useTheme();
   const event = getEvent(id);
   const { content, saveSeatingTable } = useEventContent(id ?? '');
@@ -41,7 +41,7 @@ export default function SeatingTableScreen() {
   );
   const [pickerVisible, setPickerVisible] = useState(false);
 
-  if (!isOwner(event) || content === null || event === undefined) {
+  if (!isVenueManager(event) || content === null || event === undefined) {
     return (
       <Screen>
         <Header
@@ -55,6 +55,11 @@ export default function SeatingTableScreen() {
 
   const seatCap = Number.parseInt(seatCount, 10);
   const hasSeatCap = Number.isFinite(seatCap) && seatCap > 0;
+  // The restaurant builds the table; the couple seats people. So the
+  // restaurant sees who's seated (read-only) and can't go below that count.
+  const restaurant = isRestaurant(event);
+  const seatedHere = selectedGuestIds.size;
+  const tooFewSeats = restaurant && hasSeatCap && seatCap < seatedHere;
 
   // Only a confirmed guest can be seated; anyone already on a *different*
   // table shows disabled with a note instead of being left out silently.
@@ -94,6 +99,7 @@ export default function SeatingTableScreen() {
   // reopened — trim the newest selections down to fit as soon as it happens.
   const handleSeatCountChange = (value: string) => {
     setSeatCount(value);
+    if (restaurant) return;
     const parsed = Number.parseInt(value, 10);
     const cap = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
     if (cap > 0 && cap < selectedGuestIds.size) {
@@ -109,7 +115,7 @@ export default function SeatingTableScreen() {
       label,
       seat_count: Number.isFinite(parsed) ? parsed : 0,
       shape,
-      guestIds: Array.from(selectedGuestIds),
+      guestIds: restaurant ? null : Array.from(selectedGuestIds),
     });
     router.back();
   };
@@ -123,7 +129,7 @@ export default function SeatingTableScreen() {
         footer={
           <Button
             label={existing === null ? t('tableForm.addButton') : t('common.saveChanges')}
-            disabled={name.trim().length === 0}
+            disabled={name.trim().length === 0 || tooFewSeats}
             onPress={save}
           />
         }
@@ -188,7 +194,7 @@ export default function SeatingTableScreen() {
 
         <View style={styles.assignSection}>
           <Text style={[styles.assignLabel, { color: tokens.textPrimary }]}>
-            {t('tableForm.assignGuestsLabel')}
+            {restaurant ? t('tableForm.seatedGuestsLabel') : t('tableForm.assignGuestsLabel')}
           </Text>
           <TouchableOpacity
             style={[
@@ -200,7 +206,7 @@ export default function SeatingTableScreen() {
               },
             ]}
             onPress={() => setPickerVisible(true)}
-            disabled={!hasSeatCap}
+            disabled={!hasSeatCap || restaurant}
             activeOpacity={0.75}
             accessibilityRole="button"
             accessibilityLabel={t('tableForm.assignGuestsLabel')}
@@ -215,10 +221,14 @@ export default function SeatingTableScreen() {
               {selectedNames.length > 0 ? selectedNames.join(', ') : t('tableForm.assignGuestsPlaceholder')}
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.hint, { color: tokens.textSecondary }]}>
-            {hasSeatCap
-              ? t('tableForm.seatsAssignedCount', { assigned: selectedGuestIds.size, total: seatCap })
-              : t('tableForm.seatsRequiredHint')}
+          <Text style={[styles.hint, { color: tooFewSeats ? tokens.statusDeclined : tokens.textSecondary }]}>
+            {tooFewSeats
+              ? t('tableForm.restaurantTooFewSeats', { count: seatedHere })
+              : restaurant
+                ? t('tableForm.restaurantSeatingHint')
+                : hasSeatCap
+                  ? t('tableForm.seatsAssignedCount', { assigned: selectedGuestIds.size, total: seatCap })
+                  : t('tableForm.seatsRequiredHint')}
           </Text>
         </View>
       </Screen>

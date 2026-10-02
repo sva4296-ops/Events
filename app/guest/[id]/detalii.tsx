@@ -46,12 +46,17 @@ function DetaliiSkeleton() {
   );
 }
 
+/** The restaurant role only manages these sections. */
+const RESTAURANT_CARDS = ['location', 'menu', 'seating'];
+
 export default function DetaliiScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { content } = useEventContent(id);
-  const { isOwner } = useEvents();
-  const owner = event !== undefined && isOwner(event);
+  const { isVenueManager, isRestaurant } = useEvents();
+  // Organizers and the restaurant both get the editing view of the hub.
+  const owner = event !== undefined && isVenueManager(event);
+  const restaurant = isRestaurant(event);
   const { capabilities } = usePlanGate(id);
   const { tokens } = useTheme();
 
@@ -146,7 +151,11 @@ export default function DetaliiScreen() {
   // A guest only sees sections that actually have something in them: no
   // plan-locked cards (an upsell only the organizer can act on) and no empty
   // "not set yet" cards (a to-do list for the organizer, not guest info).
-  const visibleCards = owner ? cards : cards.filter((card) => !card.locked && card.complete);
+  const visibleCards = restaurant
+    ? cards.filter((card) => RESTAURANT_CARDS.includes(card.key))
+    : owner
+      ? cards
+      : cards.filter((card) => !card.locked && card.complete);
 
   if (visibleCards.length === 0) {
     return (

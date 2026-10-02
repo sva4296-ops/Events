@@ -169,10 +169,13 @@ export async function sendGuestSmsInvite(phone: string, input: GuestInviteMessag
  * comes from signing in with this same phone number (event_members auto-link,
  * 20261002000002_event_co_organizers.sql). The link is the site's landing page.
  */
-export function buildCoOrganizerMessage(name: string, eventName: string): string {
+export function buildCoOrganizerMessage(name: string, eventName: string, restaurant = false): string {
   const trimmed = name.trim();
+  const greeting = trimmed.length > 0 ? `Bună ${trimmed}!` : 'Bună!';
   return [
-    `${trimmed.length > 0 ? `Bună ${trimmed}!` : 'Bună!'} Te-am adăugat co-organizator la „${eventName.trim()}” în PovesteaNoastra.`,
+    restaurant
+      ? `${greeting} V-am dat acces la „${eventName.trim()}” în PovesteaNoastra, pentru locație, meniul serii și așezarea la mese.`
+      : `${greeting} Te-am adăugat co-organizator la „${eventName.trim()}” în PovesteaNoastra.`,
     '',
     'Descarcă aplicația și intră cu acest număr de telefon. Evenimentul apare la „Evenimentele mele”:',
     INVITE_SITE_URL,

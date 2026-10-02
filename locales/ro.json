@@ -621,7 +621,10 @@
     "seatsRequiredHint": "Completează mai întâi numărul de locuri",
     "seatsCapReached": "Limita de locuri a fost atinsă",
     "noConfirmedGuests": "Niciun invitat confirmat încă",
-    "guestAlreadyAssigned": "Deja la {{table}}"
+    "guestAlreadyAssigned": "Deja la {{table}}",
+    "seatedGuestsLabel": "Invitați la această masă",
+    "restaurantSeatingHint": "Mirii așază invitații. Tu stabilești masa, forma și locurile.",
+    "restaurantTooFewSeats": "La masă stau deja {{count}} invitați. Locurile nu pot fi mai puține."
   },
   "accommodationForm": {
     "notAvailableSubtitle": "Doar organizatorul poate edita opțiunile de cazare.",
@@ -828,7 +831,7 @@
   },
   "coOrganizers": {
     "title": "Co-organizatori",
-    "subtitle": "Partenerul sau nașii gestionează evenimentul din telefonul lor. Doar tu poți șterge evenimentul, alege pachetul și vedea fondul.",
+    "subtitle": "Partenerul sau nașii gestionează evenimentul din telefonul lor. Restaurantul gestionează doar locația, meniul și așezarea la mese. Doar tu poți șterge evenimentul, alege pachetul și vedea fondul.",
     "notAvailableSubtitle": "Doar organizatorul principal poate gestiona co-organizatorii.",
     "listTitle": "Adăugați",
     "statusActive": "Activ",
@@ -848,7 +851,8 @@
       "groom": "Mire",
       "bride": "Mireasă",
       "godfather": "Naș",
-      "godmother": "Nașă"
+      "godmother": "Nașă",
+      "restaurant": "Restaurant"
     },
     "relationLabel": "Rol"
   },

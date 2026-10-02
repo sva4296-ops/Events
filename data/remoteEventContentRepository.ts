@@ -715,7 +715,8 @@ interface SeatingTableDraft {
   /** Confirmed guests' ids to assign to this table — see
    * app/table/[id].tsx's "Assign guests" section. Replaces whatever this
    * table's assignment set was before the save, in one call. */
-  guestIds: string[];
+  /** null: leave seat assignments as they are (the restaurant role). */
+  guestIds: string[] | null;
 }
 
 /**
@@ -760,6 +761,8 @@ async function saveSeatingTable(
       .eq('id', tableId);
     if (error) throw error;
   }
+
+  if (item.guestIds === null) return;
 
   const { error: clearError } = await client
     .from('event_guests')

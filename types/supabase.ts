@@ -92,7 +92,7 @@ export interface EventMemberRow {
   id: string;
   event_id: string;
   user_id: string | null;
-  role: 'co_organizer';
+  role: 'co_organizer' | 'restaurant';
   invited_phone: string | null;
   invited_name: string | null;
   relation: 'groom' | 'bride' | 'godfather' | 'godmother' | null;

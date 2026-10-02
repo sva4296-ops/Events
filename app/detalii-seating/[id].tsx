@@ -35,9 +35,9 @@ export default function DetaliiSeatingScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
-  const { getEvent, isOwner } = useEvents();
+  const { getEvent, isVenueManager, isRestaurant } = useEvents();
   const event = getEvent(id);
-  const owner = isOwner(event);
+  const owner = isVenueManager(event);
   const { content, deleteSeatingTable, moveSeatingTable } = useEventContent(id ?? '');
   const { tokens } = useTheme();
 
@@ -212,17 +212,19 @@ export default function DetaliiSeatingScreen() {
                     tone: 'edit',
                     onPress: () => router.push(`/table/${id}?itemId=${table.id}`),
                   },
-                  {
+                  // The restaurant can't delete a table people are seated at
+                  // (also enforced server-side).
+                  ...(isRestaurant(event) && assignedCount > 0 ? [] : [{
                     label: t('common.delete'),
-                    icon: 'trash-2',
-                    tone: 'delete',
+                    icon: 'trash-2' as const,
+                    tone: 'delete' as const,
                     onPress: () =>
                       confirmDelete(
                         t('detalii.deleteTableTitle'),
                         t('detalii.deleteTableBody', { name: table.name }),
                         () => deleteSeatingTable(table.id),
                       ),
-                  },
+                  }]),
                 ]}
               >
                 <View

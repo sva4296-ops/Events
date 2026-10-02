@@ -59,12 +59,21 @@ interface EventsResult {
   setPlanTier: (eventId: string, planTier: string) => Promise<void>;
   /** Organizer access: the owner or a linked co-organizer. */
   isOwner: (event: AppEvent | undefined) => boolean;
+  /** The restaurant role: venue, menu and seating only. */
+  isRestaurant: (event: AppEvent | undefined) => boolean;
+  /** Can edit venue, menu and seating: organizers and the restaurant. */
+  isVenueManager: (event: AppEvent | undefined) => boolean;
   /** Owner only (events.organizer_id): delete event, plan, fund, co-organizers. */
   isPrimaryOwner: (event: AppEvent | undefined) => boolean;
   /** Owner only. `phone` digits only (toStoredPhone). */
-  addCoOrganizer: (eventId: string, phone: string, name: string, relation: CoOrganizerRelation) => Promise<void>;
-  /** The signed-in user's co-organizer row on this event, if any. */
-  myCoOrganizerRole: (event: AppEvent | undefined) => CoOrganizerRelation | 'co_organizer' | null;
+  addCoOrganizer: (
+    eventId: string,
+    phone: string,
+    name: string,
+    relation: CoOrganizerRelation | 'restaurant',
+  ) => Promise<void>;
+  /** The signed-in user's event_members row on this event, if any. */
+  myCoOrganizerRole: (event: AppEvent | undefined) => CoOrganizerRelation | 'co_organizer' | 'restaurant' | null;
   removeCoOrganizer: (eventId: string, memberId: string) => Promise<void>;
 }
 
@@ -301,13 +310,33 @@ export function useEvents(): EventsResult {
   const isOwner = useCallback(
     (event: AppEvent | undefined) =>
       isPrimaryOwner(event) ||
-      (event !== undefined && user !== null && event.coOrganizers.some((member) => member.userId === user.id)),
+      (event !== undefined &&
+        user !== null &&
+        event.coOrganizers.some((member) => member.role === 'co_organizer' && member.userId === user.id)),
     [isPrimaryOwner, user],
+  );
+
+  const isRestaurant = useCallback(
+    (event: AppEvent | undefined) =>
+      event !== undefined &&
+      user !== null &&
+      event.coOrganizers.some((member) => member.role === 'restaurant' && member.userId === user.id),
+    [user],
+  );
+
+  const isVenueManager = useCallback(
+    (event: AppEvent | undefined) => isOwner(event) || isRestaurant(event),
+    [isOwner, isRestaurant],
   );
 
   // Refetch rather than patch: the insert trigger may link user_id server-side.
   const addCoOrganizerMutation = useMutation({
-    mutationFn: async (vars: { eventId: string; phone: string; name: string; relation: CoOrganizerRelation }) => {
+    mutationFn: async (vars: {
+      eventId: string;
+      phone: string;
+      name: string;
+      relation: CoOrganizerRelation | 'restaurant';
+    }) => {
       await insertCoOrganizer(vars.eventId, vars.phone, vars.name, vars.relation);
       return fetchEventById(vars.eventId);
     },
@@ -321,7 +350,7 @@ export function useEvents(): EventsResult {
     },
   });
   const addCoOrganizer = useCallback(
-    async (eventId: string, phone: string, name: string, relation: CoOrganizerRelation): Promise<void> => {
+    async (eventId: string, phone: string, name: string, relation: CoOrganizerRelation | 'restaurant'): Promise<void> => {
       await addCoOrganizerMutation.mutateAsync({ eventId, phone, name, relation });
     },
     [addCoOrganizerMutation],
@@ -332,6 +361,7 @@ export function useEvents(): EventsResult {
       if (event === undefined || user === null) return null;
       const member = event.coOrganizers.find((m) => m.userId === user.id);
       if (member === undefined) return null;
+      if (member.role === 'restaurant') return 'restaurant';
       return member.relation ?? 'co_organizer';
     },
     [user],
@@ -480,6 +510,8 @@ export function useEvents(): EventsResult {
     setPlanTier,
     isOwner,
     isPrimaryOwner,
+    isRestaurant,
+    isVenueManager,
     addCoOrganizer,
     removeCoOrganizer,
     myCoOrganizerRole,

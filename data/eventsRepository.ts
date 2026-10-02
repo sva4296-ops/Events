@@ -32,6 +32,7 @@ function mapGuestRow(row: EventGuestRow): Guest {
 function mapMemberRow(row: EventMemberRow): CoOrganizer {
   return {
     id: row.id,
+    role: row.role,
     userId: row.user_id,
     name: row.invited_name,
     phone: row.invited_phone,
@@ -249,15 +250,16 @@ export async function insertCoOrganizer(
   eventId: string,
   phone: string,
   name: string,
-  relation: CoOrganizerRelation,
+  relation: CoOrganizerRelation | 'restaurant',
 ): Promise<void> {
+  const restaurant = relation === 'restaurant';
   const client = supabase;
   const { error } = await client.from('event_members').insert({
     event_id: eventId,
-    role: 'co_organizer',
+    role: restaurant ? 'restaurant' : 'co_organizer',
     invited_phone: phone,
     invited_name: name.length > 0 ? name : null,
-    relation,
+    relation: restaurant ? null : relation,
   });
   if (error) throw error;
 }

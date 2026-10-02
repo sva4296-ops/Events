@@ -50,9 +50,11 @@ export interface Guest {
 export const CO_ORGANIZER_RELATIONS = ['groom', 'bride', 'godfather', 'godmother'] as const;
 export type CoOrganizerRelation = (typeof CO_ORGANIZER_RELATIONS)[number];
 
-/** A co-organizer (event_members row). `userId` is null until that phone signs in. */
+/** An event_members row: a co-organizer, or the restaurant (limited access:
+ * venue, menu, seating only). `userId` is null until that phone signs in. */
 export interface CoOrganizer {
   id: string;
+  role: 'co_organizer' | 'restaurant';
   userId: string | null;
   name: string | null;
   phone: string | null;

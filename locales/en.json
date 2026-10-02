@@ -601,7 +601,10 @@
     "seatsRequiredHint": "Enter the number of seats first",
     "seatsCapReached": "Seat limit reached",
     "noConfirmedGuests": "No confirmed guests yet",
-    "guestAlreadyAssigned": "Already at {{table}}"
+    "guestAlreadyAssigned": "Already at {{table}}",
+    "seatedGuestsLabel": "Seated here",
+    "restaurantSeatingHint": "The couple seats the guests. You set the table, its shape and seats.",
+    "restaurantTooFewSeats": "{{count}} guests are already seated here. Seats can't be fewer."
   },
   "accommodationForm": {
     "notAvailableSubtitle": "Only the organizer can edit accommodation options.",
@@ -808,7 +811,7 @@
   },
   "coOrganizers": {
     "title": "Co-organizers",
-    "subtitle": "Your partner or godparents manage the event from their own phone. Only you can delete the event, choose the plan and see the fund.",
+    "subtitle": "Your partner or godparents manage the event from their own phone. The restaurant only manages the venue, menu and seating. Only you can delete the event, choose the plan and see the fund.",
     "notAvailableSubtitle": "Only the main organizer can manage co-organizers.",
     "listTitle": "Added",
     "statusActive": "Active",
@@ -828,7 +831,8 @@
       "groom": "Groom",
       "bride": "Bride",
       "godfather": "Godfather",
-      "godmother": "Godmother"
+      "godmother": "Godmother",
+      "restaurant": "Restaurant"
     },
     "relationLabel": "Role"
   },

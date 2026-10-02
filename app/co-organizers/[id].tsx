@@ -38,7 +38,7 @@ export default function CoOrganizersScreen() {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [relation, setRelation] = useState<CoOrganizerRelation | null>(null);
+  const [relation, setRelation] = useState<CoOrganizerRelation | 'restaurant' | null>(null);
 
   if (event === undefined || !isPrimaryOwner(event)) {
     return (
@@ -51,7 +51,13 @@ export default function CoOrganizersScreen() {
   const labelFor = (member: CoOrganizer) =>
     member.name ?? (member.phone !== null ? `+${member.phone}` : t('coOrganizers.title'));
   const rowLabel = (member: CoOrganizer) =>
-    `${labelFor(member)} · ${member.relation !== null ? t(`coOrganizers.relation.${member.relation}`) : t('home.coOrganizer')}`;
+    `${labelFor(member)} · ${
+      member.role === 'restaurant'
+        ? t('coOrganizers.relation.restaurant')
+        : member.relation !== null
+          ? t(`coOrganizers.relation.${member.relation}`)
+          : t('home.coOrganizer')
+    }`;
 
   const submit = async (channel: 'whatsapp' | 'sms') => {
     setError(null);
@@ -77,7 +83,7 @@ export default function CoOrganizersScreen() {
     try {
       await addCoOrganizer(event.id, phone, name.trim(), relation);
       // The row is saved; opening WhatsApp/SMS is best-effort.
-      await sendPhoneMessage(phone, buildCoOrganizerMessage(name, event.name), channel);
+      await sendPhoneMessage(phone, buildCoOrganizerMessage(name, event.name, relation === 'restaurant'), channel);
       setName('');
       setLocalNumber('');
       setRelation(null);
@@ -90,7 +96,11 @@ export default function CoOrganizersScreen() {
 
   const resend = (member: CoOrganizer) => {
     if (member.phone === null) return;
-    void sendPhoneMessage(member.phone, buildCoOrganizerMessage(member.name ?? '', event.name), 'whatsapp');
+    void sendPhoneMessage(
+      member.phone,
+      buildCoOrganizerMessage(member.name ?? '', event.name, member.role === 'restaurant'),
+      'whatsapp',
+    );
   };
 
   const remove = (member: CoOrganizer) =>
@@ -164,7 +174,7 @@ export default function CoOrganizersScreen() {
             {t('coOrganizers.relationLabel')}
           </Text>
           <View style={styles.relationRow}>
-            {CO_ORGANIZER_RELATIONS.map((value) => {
+            {[...CO_ORGANIZER_RELATIONS, 'restaurant' as const].map((value) => {
               const selected = relation === value;
               return (
                 <TouchableOpacity

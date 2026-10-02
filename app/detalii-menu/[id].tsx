@@ -50,9 +50,9 @@ function cardStyle(tokens: ThemeTokens) {
 export default function DetaliiMenuScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, isOwner, updateMyDietaryPreferences, updateMyMenuChoice } = useEvents();
+  const { getEvent, isVenueManager, updateMyDietaryPreferences, updateMyMenuChoice } = useEvents();
   const event = getEvent(id);
-  const owner = isOwner(event);
+  const owner = isVenueManager(event);
   const { content, deleteMenuOption, saveMenuDeadline } = useEventContent(id ?? '');
   const { tokens } = useTheme();
   const [deadlineOpen, setDeadlineOpen] = useState(false);

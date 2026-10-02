@@ -20,7 +20,7 @@ import { themeRadius } from '@/utils/themeTokens';
 export default function VenueScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, isOwner } = useEvents();
+  const { getEvent, isVenueManager } = useEvents();
   const event = getEvent(id);
   const { content, updateVenue } = useEventContent(id ?? '');
   const { tokens } = useTheme();
@@ -38,7 +38,7 @@ export default function VenueScreen() {
   );
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  if (!isOwner(event) || content === null) {
+  if (!isVenueManager(event) || content === null) {
     return (
       <Screen>
         <Header

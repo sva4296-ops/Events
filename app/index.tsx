@@ -47,18 +47,21 @@ export default function DashboardScreen() {
   usePushNotifications();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { events, hydrated, isOwner, myCoOrganizerRole } = useEvents();
+  const { events, hydrated, isOwner, isRestaurant, myCoOrganizerRole } = useEvents();
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
   const { isAgencyOwner } = useAgency();
   const { plans } = usePlanFeatures();
   const { firstName, lastName, avatarUrl } = useUserProfile();
 
-  const ownedEvents = events.filter((event) => isOwner(event)).sort(compareEventsByDate);
+  // The restaurant's events sit here too (labelled), never under invitations:
+  // RLS shows it the whole guest list, so guests[0] wouldn't be "its" row.
+  const managesEvent = (event: (typeof events)[number]) => isOwner(event) || isRestaurant(event);
+  const ownedEvents = events.filter(managesEvent).sort(compareEventsByDate);
   // Null for events you own; your label ("Naș", "Mireasă"…) where you're a co-organizer.
   const coOrganizerLabel = (role: ReturnType<typeof myCoOrganizerRole>) =>
     role === null ? null : role === 'co_organizer' ? t('home.coOrganizer') : t(`coOrganizers.relation.${role}`);
-  const invitations = myInvitations(events, isOwner).sort((a, b) => compareEventsByDate(a.event, b.event));
+  const invitations = myInvitations(events, managesEvent).sort((a, b) => compareEventsByDate(a.event, b.event));
   const avatarInitials = initials(firstName, lastName);
 
   // plan_features.display_name is the single source of truth for a tier's
@@ -133,7 +136,10 @@ export default function DashboardScreen() {
               <Animated.View key={event.id} entering={staggerIn(index)}>
                 <EventListItem
                   event={event}
-                  onPress={() => router.push(`/guest/${event.id}`)}
+                  onPress={() =>
+                    // The restaurant only has the Detalii tab.
+                    router.push(isRestaurant(event) ? `/guest/${event.id}/detalii` : `/guest/${event.id}`)
+                  }
                   planLabel={planLabelFor(event.planTier)}
                   onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
                   coOrganizerLabel={coOrganizerLabel(myCoOrganizerRole(event))}

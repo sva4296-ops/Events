@@ -44,7 +44,7 @@ interface CourseDraft {
 export default function MenuScreen() {
   const { t } = useTranslation();
   const { id, itemId } = useLocalSearchParams<{ id: string; itemId?: string }>();
-  const { getEvent, isOwner } = useEvents();
+  const { getEvent, isVenueManager } = useEvents();
   const { tokens } = useTheme();
   const event = getEvent(id);
   const { content, saveMenuOption } = useEventContent(id ?? '');
@@ -69,7 +69,7 @@ export default function MenuScreen() {
   );
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
 
-  if (!isOwner(event) || content === null) {
+  if (!isVenueManager(event) || content === null) {
     return (
       <Screen>
         <Header

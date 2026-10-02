@@ -1,5 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
-import { router, Tabs, useLocalSearchParams, usePathname } from 'expo-router';
+import { Redirect, router, Tabs, useLocalSearchParams, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -44,7 +44,7 @@ function getActiveTab(pathname: string): ActiveTab {
 
 export default function GuestEventLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, hydrated, isOwner, isPrimaryOwner } = useEvents();
+  const { getEvent, hydrated, isOwner, isPrimaryOwner, isRestaurant } = useEvents();
   const { tokens } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -58,6 +58,12 @@ export default function GuestEventLayout() {
   const event = getEvent(id);
   const owner = isOwner(event);
   const activeTab = getActiveTab(pathname);
+  // The restaurant gets only Detalii (venue, menu, seating): no tab bar, and
+  // any other tab (e.g. a push opening /guest/<id>) lands back on Detalii.
+  const restaurant = isRestaurant(event);
+  if (restaurant && activeTab !== 'detalii') {
+    return <Redirect href={`/guest/${id}/detalii`} />;
+  }
   const headerSubtitle =
     event !== undefined
       ? `${formatShortDate(event.date)} · ${t(
@@ -120,16 +126,17 @@ export default function GuestEventLayout() {
       <LinearGradient colors={tokens.background} style={styles.shell}>
         <EventHeaderBar
           // Name and date only on Acasă; the other tabs keep just their actions.
-          name={activeTab === 'acasa' ? (event?.name ?? 'Evenimentul nostru') : ''}
+          name={activeTab === 'acasa' || restaurant ? (event?.name ?? 'Evenimentul nostru') : ''}
           type={event?.type ?? null}
-          subtitle={activeTab === 'acasa' ? headerSubtitle : undefined}
-          showBack={activeTab === 'acasa'}
+          subtitle={activeTab === 'acasa' || restaurant ? headerSubtitle : undefined}
+          showBack={activeTab === 'acasa' || restaurant}
           actions={actions}
         />
         <Tabs
           screenOptions={{
             headerShown: false,
             tabBarStyle: [
+              restaurant && styles.hidden,
               styles.bar,
               {
                 backgroundColor: tokens.tabBar.background,
@@ -192,6 +199,9 @@ const styles = StyleSheet.create({
   },
   item: {
     paddingTop: 2,
+  },
+  hidden: {
+    display: 'none',
   },
   label: {
     fontSize: 11,

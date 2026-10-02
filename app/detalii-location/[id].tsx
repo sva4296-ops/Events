@@ -29,9 +29,9 @@ function cardStyle(tokens: ThemeTokens) {
 export default function DetaliiLocationScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, isOwner } = useEvents();
+  const { getEvent, isVenueManager } = useEvents();
   const event = getEvent(id);
-  const owner = isOwner(event);
+  const owner = isVenueManager(event);
   const { content } = useEventContent(id ?? '');
   const { tokens } = useTheme();
 

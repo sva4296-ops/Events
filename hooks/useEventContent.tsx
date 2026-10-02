@@ -45,7 +45,8 @@ export interface SeatingTableInput {
   seat_count: number;
   shape: TableShape;
   /** Confirmed guests assigned to this table — see app/table/[id].tsx. */
-  guestIds: string[];
+  /** null: leave seat assignments as they are (the restaurant role). */
+  guestIds: string[] | null;
 }
 
 export interface AccommodationInput {

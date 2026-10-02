@@ -1,19 +1,18 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { ScaleTouchable } from '@/components/ScaleTouchable';
 
-import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { RsvpBadge } from '@/components/RsvpBadge';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
 import type { Invitation } from '@/utils/invitations';
+import { EVENT_COVERS } from '@/utils/eventCovers';
 import { getEventType } from '@/utils/eventTypes';
-import { eventShortSubtitle } from '@/utils/format';
+import { daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
-import { bandGradientLocations, themeRadius } from '@/utils/themeTokens';
+import { themeRadius, typeface } from '@/utils/themeTokens';
 
 /**
  * One invitation row. Warm Story 2.0 stacks these inside a single card on
@@ -34,6 +33,8 @@ export function InvitationListItem({
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const type = getEventType(event.type);
+  const days = daysUntilEvent(event.date);
+  const past = days !== null && days < 0;
 
   return (
     <ScaleTouchable
@@ -47,15 +48,9 @@ export function InvitationListItem({
         showDivider && { borderTopWidth: 1, borderTopColor: tokens.border },
       ]}
     >
-      <LinearGradient
-        colors={type.band}
-        locations={bandGradientLocations}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.badge}
-      >
-        <EventTypeIcon type={type.id} size={24} color={type.bandInk} />
-      </LinearGradient>
+      {/* Past event: dim the content, not the row, so the divider stays crisp. */}
+      <View style={[styles.content, past && styles.past]}>
+      <Image source={EVENT_COVERS[type.id]} style={styles.badge} resizeMode="cover" />
 
       <View style={styles.info}>
         <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
@@ -70,6 +65,7 @@ export function InvitationListItem({
         status={guest.status}
         label={guest.status === 'pending' ? t('home.respond') : undefined}
       />
+      </View>
     </ScaleTouchable>
   );
 }
@@ -121,6 +117,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: spacing.lg,
   },
+  content: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  past: {
+    opacity: 0.4,
+  },
   badge: {
     width: 50,
     height: 50,
@@ -134,10 +139,11 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   name: {
+    fontFamily: typeface.bodyBold,
     fontSize: 16,
-    fontWeight: '600',
   },
   date: {
+    fontFamily: typeface.body,
     fontSize: 13,
   },
 });

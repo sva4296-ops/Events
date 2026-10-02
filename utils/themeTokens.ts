@@ -189,28 +189,53 @@ export const accentButtonShadow = {
 /** Warm Story 2.0 WhatsApp button fill (AA with white text). */
 export const whatsappFill = '#1F7A51';
 
-const serif = 'PlayfairDisplay_600SemiBold';
 const serifItalic = 'PlayfairDisplay_500Medium_Italic';
 
 /**
- * Warm Story 2.0 type scale. Playfair for emotion (titles, names, quotes),
- * the system sans for everything read quickly. Colors are not part of the
- * scale; screens pair these with a token.
+ * Loaded in app/_layout.tsx. A custom font's weight is its family, so pick
+ * the family instead of setting fontWeight on these.
+ */
+export const typeface = {
+  display: 'Unbounded_800ExtraBold',
+  title: 'Unbounded_700Bold',
+  titleMedium: 'Unbounded_500Medium',
+  body: 'SpaceGrotesk_400Regular',
+  bodyMedium: 'SpaceGrotesk_500Medium',
+  bodySemiBold: 'SpaceGrotesk_600SemiBold',
+  bodyBold: 'SpaceGrotesk_700Bold',
+} as const;
+
+/** GeneratedAvatar colors (same in both modes) and the face drawn on them. */
+export const avatarPalette = ['#FF8A65', '#7CC4FF', '#FFD166', '#6DD3A0', '#B39DFF'] as const;
+export const avatarInk = '#0F1220';
+
+/** Text and scrim over a cover photo: always light text on a dark fade, in both modes. */
+export const onImage = '#FFFFFF';
+export const onImageMuted = 'rgba(255,255,255,0.85)';
+export const imageScrim = ['rgba(15,18,32,0)', 'rgba(15,18,32,0.78)'] as const;
+/** Extra shade over a finished event's cover, so past events read as switched off. */
+export const pastCoverShade = 'rgba(15,18,32,0.6)';
+
+/**
+ * Type scale: Unbounded for titles and big numbers (wide, so a step smaller
+ * than the old Playfair sizes), Space Grotesk for everything read quickly,
+ * Playfair italic kept only for quotes. Colors are not part of the scale;
+ * screens pair these with a token.
  */
 export const typography = {
-  display: { fontFamily: serif, fontSize: 34, lineHeight: 40 },
-  title1: { fontFamily: serif, fontSize: 28, lineHeight: 34 },
-  title2: { fontFamily: serif, fontSize: 22, lineHeight: 28 },
+  display: { fontFamily: typeface.display, fontSize: 30, lineHeight: 36, letterSpacing: -0.5 },
+  title1: { fontFamily: typeface.title, fontSize: 24, lineHeight: 30, letterSpacing: -0.3 },
+  title2: { fontFamily: typeface.title, fontSize: 19, lineHeight: 25, letterSpacing: -0.2 },
   quote: { fontFamily: serifItalic, fontSize: 17, lineHeight: 25 },
-  subtitle: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
-  body: { fontSize: 16, lineHeight: 24 },
-  bodySmall: { fontSize: 14, lineHeight: 21 },
-  label: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
-  note: { fontSize: 12, lineHeight: 16, fontWeight: '500' },
+  subtitle: { fontFamily: typeface.bodyBold, fontSize: 17, lineHeight: 24 },
+  body: { fontFamily: typeface.body, fontSize: 16, lineHeight: 24 },
+  bodySmall: { fontFamily: typeface.body, fontSize: 14, lineHeight: 21 },
+  label: { fontFamily: typeface.bodySemiBold, fontSize: 13, lineHeight: 18 },
+  note: { fontFamily: typeface.bodyMedium, fontSize: 12, lineHeight: 16 },
   overline: {
+    fontFamily: typeface.bodyBold,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },

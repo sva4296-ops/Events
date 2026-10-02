@@ -75,6 +75,12 @@ export function eventStartTime(value: string, scheduleTimes: readonly string[]):
   return start;
 }
 
+/** The event's day is over (from the next day on). Undated events never are. */
+export function isEventPast(value: string): boolean {
+  const days = daysUntilEvent(value);
+  return days !== null && days < 0;
+}
+
 /**
  * Whole days from today (local midnight) to the event date. Null when the
  * organizer-typed date doesn't parse.

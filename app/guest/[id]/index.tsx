@@ -19,7 +19,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
-import { daysUntilEvent, eventStartTime } from '@/utils/format';
+import { daysUntilEvent, eventStartTime, isEventPast } from '@/utils/format';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { staggerIn } from '@/utils/motion';
 import { accentButtonShadow, themeRadius, typography } from '@/utils/themeTokens';
@@ -181,7 +181,8 @@ export default function AcasaScreen() {
         ) : null}
       </GuestScreen>
 
-      {owner ? (
+      {/* No new moments once the event is over: the story is in the album now. */}
+      {owner && (event === undefined || !isEventPast(event.date)) ? (
         <TouchableOpacity
           style={[
             styles.fab,

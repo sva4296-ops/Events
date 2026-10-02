@@ -7,6 +7,13 @@ import {
   PlayfairDisplay_600SemiBold,
   useFonts,
 } from '@expo-google-fonts/playfair-display';
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
+import { Unbounded_500Medium, Unbounded_700Bold, Unbounded_800ExtraBold } from '@expo-google-fonts/unbounded';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -63,6 +70,13 @@ export default function RootLayout() {
     PlayfairDisplay_400Regular,
     PlayfairDisplay_500Medium_Italic,
     PlayfairDisplay_600SemiBold,
+    Unbounded_500Medium,
+    Unbounded_700Bold,
+    Unbounded_800ExtraBold,
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
   });
 
   const [queryClient] = useState(createQueryClient);

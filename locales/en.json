@@ -39,7 +39,9 @@
     "confirmedCount": "confirmed",
     "pendingCount": "pending",
     "respond": "Respond",
-    "coOrganizer": "Co-organizer"
+    "coOrganizer": "Co-organizer",
+    "tabInvited": "Invited",
+    "tabAll": "All"
   },
   "auth": {
     "headline": "Step into the story",

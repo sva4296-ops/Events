@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Redirect, router, Tabs, useLocalSearchParams, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,8 +14,10 @@ import { useTheme } from '@/hooks/useTheme';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
 import { confirmDelete } from '@/utils/confirm';
-import { daysUntilEvent, formatShortDate } from '@/utils/format';
+import { EVENT_COVERS } from '@/utils/eventCovers';
+import { daysUntilEvent, formatShortDate, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
+import { reportSupabaseError } from '@/utils/reportError';
 import { floatingTabBar, guest, tabBarBottomInset } from '@/utils/guestTheme';
 
 type FeatherName = keyof typeof Feather.glyphMap;
@@ -44,7 +46,7 @@ function getActiveTab(pathname: string): ActiveTab {
 
 export default function GuestEventLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, hydrated, isOwner, isPrimaryOwner, isRestaurant } = useEvents();
+  const { getEvent, hydrated, isOwner, isPrimaryOwner, isRestaurant, deleteEvent } = useEvents();
   const { tokens } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -64,6 +66,12 @@ export default function GuestEventLayout() {
   if (restaurant && activeTab !== 'detalii') {
     return <Redirect href={`/guest/${id}/detalii`} />;
   }
+  // A finished event is an archive: only Acasă (its moments) and the Album
+  // stay; no guest list, details, fund, chat or live, and nothing to edit.
+  const past = event !== undefined && !restaurant && isEventPast(event.date);
+  if (past && activeTab !== 'acasa' && activeTab !== 'album') {
+    return <Redirect href={`/guest/${id}/album`} />;
+  }
   const headerSubtitle =
     event !== undefined
       ? `${formatShortDate(event.date)} · ${t(
@@ -79,7 +87,23 @@ export default function GuestEventLayout() {
   // edit+delete only on Fond (and only once a fund actually exists — an
   // empty Fond tab has nothing to edit or delete). Every other tab gets none.
   const actions: HeaderAction[] = [];
-  if (owner) {
+  if (past) {
+    // Only removing the whole event is left for its owner.
+    if (isPrimaryOwner(event)) {
+      actions.push({
+        key: 'delete-event',
+        icon: 'trash-2',
+        tone: 'destructive',
+        accessibilityLabel: t('editEventForm.deleteButton'),
+        onPress: () =>
+          confirmDelete(t('editEventForm.deleteTitle'), t('editEventForm.deleteBody', { name: event.name }), () => {
+            deleteEvent(event.id)
+              .then(() => router.dismissTo('/'))
+              .catch(reportSupabaseError);
+          }),
+      });
+    }
+  } else if (owner) {
     if (activeTab === 'acasa') {
       actions.push({
         key: 'guests',
@@ -124,6 +148,23 @@ export default function GuestEventLayout() {
   return (
     <GuestEventProvider id={id}>
       <LinearGradient colors={tokens.background} style={styles.shell}>
+        {/* The type's cover photo behind every tab, full screen, under a veil of
+            the page background so the header, chat and cards stay readable. */}
+        {event !== undefined ? (
+          <View style={styles.cover} pointerEvents="none">
+            <Image source={EVENT_COVERS[event.type]} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            <LinearGradient
+              colors={[
+                withAlpha(tokens.background[0], 0.6),
+                withAlpha(tokens.background[0], 0.3),
+                withAlpha(tokens.background[0], 0.55),
+                withAlpha(tokens.background[0], 0.85),
+              ]}
+              locations={[0, 0.25, 0.6, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+        ) : null}
         <EventHeaderBar
           // Name and date only on Acasă; the other tabs keep just their actions.
           name={activeTab === 'acasa' || restaurant ? (event?.name ?? 'Evenimentul nostru') : ''}
@@ -157,6 +198,8 @@ export default function GuestEventLayout() {
               key={tab.name}
               name={tab.name}
               options={{
+                // Past events hide every tab but Acasă and Album.
+                href: past && tab.name !== 'index' && tab.name !== 'album' ? null : undefined,
                 title: t(tab.labelKey),
                 tabBarLabel: ({ color, focused }) => (
                   <Text style={[styles.label, { color, fontWeight: focused ? '700' : '500' }]}>
@@ -174,7 +217,24 @@ export default function GuestEventLayout() {
   );
 }
 
+/** `#RRGGBB` + alpha as `#RRGGBBAA`. */
+function withAlpha(hex: string, alpha: number): string {
+  return `${hex}${Math.round(alpha * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
+}
+
 const styles = StyleSheet.create({
+  // Full screen; overflow hidden because iOS draws a "cover" image past its own
+  // bounds (a portrait photo spilled below the old 380px box).
+  cover: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+  },
   shell: {
     flex: 1,
     backgroundColor: guest.cream,

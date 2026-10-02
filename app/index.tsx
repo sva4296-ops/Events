@@ -1,13 +1,14 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { EventListItem, EventListItemSkeleton } from '@/components/EventListItem';
+import { GeneratedAvatar } from '@/components/GeneratedAvatar';
 import { HomeEmptyState } from '@/components/HomeEmptyState';
 import {
   InvitationGroup,
@@ -17,6 +18,7 @@ import {
 import { Screen } from '@/components/Screen';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAgency } from '@/hooks/useAgency';
+import { useAuth } from '@/hooks/useAuth';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
 import { usePlanFeatures } from '@/hooks/usePlanFeatures';
@@ -24,10 +26,13 @@ import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import i18n from '@/utils/i18n';
 import { compareEventsByDate } from '@/utils/eventOrder';
+import { isEventPast } from '@/utils/format';
 import { myInvitations } from '@/utils/invitations';
 import { staggerIn } from '@/utils/motion';
 import { spacing } from '@/utils/theme';
-import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
+import { themeRadius, typeface, typography } from '@/utils/themeTokens';
+
+type HomeTab = 'mine' | 'invited' | 'all';
 
 function todayLabel(): string {
   const label = new Date().toLocaleDateString(i18n.language, {
@@ -53,6 +58,7 @@ export default function DashboardScreen() {
   const { isAgencyOwner } = useAgency();
   const { plans } = usePlanFeatures();
   const { firstName, lastName, avatarUrl } = useUserProfile();
+  const { user } = useAuth();
 
   // The restaurant's events sit here too (labelled), never under invitations:
   // RLS shows it the whole guest list, so guests[0] wouldn't be "its" row.
@@ -63,6 +69,20 @@ export default function DashboardScreen() {
     role === null ? null : role === 'co_organizer' ? t('home.coOrganizer') : t(`coOrganizers.relation.${role}`);
   const invitations = myInvitations(events, managesEvent).sort((a, b) => compareEventsByDate(a.event, b.event));
   const avatarInitials = initials(firstName, lastName);
+
+  // Null = not picked yet: open on "mine", or on "invited" when you only
+  // have invitations. Agency accounts never get invitations, so no tabs.
+  const [pickedTab, setPickedTab] = useState<HomeTab | null>(null);
+  const tab: HomeTab = isAgencyOwner
+    ? 'mine'
+    : (pickedTab ?? (ownedEvents.length === 0 && invitations.length > 0 ? 'invited' : 'mine'));
+  const showMine = tab !== 'invited';
+  const showInvited = !isAgencyOwner && tab !== 'mine';
+  const tabs: { key: HomeTab; label: string; count: number | null }[] = [
+    { key: 'mine', label: t('home.yourEvents'), count: hydrated ? ownedEvents.length : null },
+    { key: 'invited', label: t('home.tabInvited'), count: hydrated ? invitations.length : null },
+    { key: 'all', label: t('home.tabAll'), count: null },
+  ];
 
   // plan_features.display_name is the single source of truth for a tier's
   // label (the exact same string the pricing screen's own card shows) —
@@ -102,24 +122,53 @@ export default function DashboardScreen() {
             {avatarUrl !== null ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
-              <LinearGradient
-                colors={brandGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.avatar}
-              >
-                {avatarInitials.length > 0 ? (
-                  <Text style={styles.avatarText}>{avatarInitials}</Text>
-                ) : (
-                  <Feather name="user" size={20} color="#FFFFFF" />
-                )}
-              </LinearGradient>
+              <GeneratedAvatar seed={user?.id ?? avatarInitials} size={44} />
             )}
           </TouchableOpacity>
         </View>
 
+        {isAgencyOwner ? null : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabs}
+            accessibilityRole="tablist"
+          >
+            {tabs.map((item) => {
+              const active = tab === item.key;
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  onPress={() => setPickedTab(item.key)}
+                  activeOpacity={0.8}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  style={[
+                    styles.tab,
+                    active
+                      ? { backgroundColor: tokens.textPrimary }
+                      : { backgroundColor: tokens.surface, borderWidth: 1.5, borderColor: tokens.border },
+                  ]}
+                >
+                  <Text style={[styles.tabText, { color: active ? tokens.surface : tokens.textPrimary }]}>
+                    {item.label}
+                  </Text>
+                  {item.count !== null ? (
+                    <Text style={[styles.tabCount, { color: active ? tokens.surface : tokens.textPrimary }]}>
+                      {item.count}
+                    </Text>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {showMine ? (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('home.yourEvents')}</Text>
+          {tab === 'all' ? (
+            <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('home.yourEvents')}</Text>
+          ) : null}
 
           {!hydrated ? (
             <EventListItemSkeleton />
@@ -138,7 +187,14 @@ export default function DashboardScreen() {
                   event={event}
                   onPress={() =>
                     // The restaurant only has the Detalii tab.
-                    router.push(isRestaurant(event) ? `/guest/${event.id}/detalii` : `/guest/${event.id}`)
+                    // A finished event opens on its album (the only thing left to do there).
+                    router.push(
+                      isRestaurant(event)
+                        ? `/guest/${event.id}/detalii`
+                        : isEventPast(event.date)
+                          ? `/guest/${event.id}/album`
+                          : `/guest/${event.id}`,
+                    )
                   }
                   planLabel={planLabelFor(event.planTier)}
                   onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
@@ -148,16 +204,19 @@ export default function DashboardScreen() {
             ))
           )}
         </View>
+        ) : null}
 
         {/* Agency accounts don't participate in guest invitations — see
             CLAUDE.md's "Agency accounts" section. Hidden outright rather than
             just filtered to empty, since (unlike "Your events") there's no
             legitimate agency-owner invitation to ever show here. */}
-        {isAgencyOwner ? null : (
+        {!showInvited ? null : (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>
-              {t('home.myInvitations')}
-            </Text>
+            {tab === 'all' ? (
+              <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>
+                {t('home.myInvitations')}
+              </Text>
+            ) : null}
 
             {!hydrated ? (
               <InvitationGroup>
@@ -184,7 +243,9 @@ export default function DashboardScreen() {
                         // "Change my answer".
                         router.push(
                           invitation.guest.status === 'confirmed'
-                            ? `/guest/${invitation.event.id}`
+                            ? isEventPast(invitation.event.date)
+                              ? `/guest/${invitation.event.id}/album`
+                              : `/guest/${invitation.event.id}`
                             : `/invite/${invitation.event.id}`,
                         )
                       }
@@ -229,6 +290,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   date: {
+    fontFamily: typeface.bodyMedium,
     fontSize: 14,
   },
   hello: {
@@ -243,11 +305,31 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: '#FFFFFF',
+    fontFamily: typeface.bodyBold,
     fontSize: 15,
-    fontWeight: '700',
   },
   section: {
     gap: spacing.md,
+  },
+  tabs: {
+    gap: 8,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: themeRadius.pill,
+  },
+  tabText: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 14,
+  },
+  tabCount: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 14,
+    opacity: 0.7,
   },
   sectionTitle: {
     ...typography.subtitle,

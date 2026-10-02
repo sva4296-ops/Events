@@ -40,7 +40,9 @@
     "confirmedCount": "confirmați",
     "pendingCount": "în așteptare",
     "respond": "Răspunde",
-    "coOrganizer": "Co-organizator"
+    "coOrganizer": "Co-organizator",
+    "tabInvited": "Invitate",
+    "tabAll": "Toate"
   },
   "auth": {
     "headline": "Intră în poveste",

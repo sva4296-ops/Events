@@ -4,7 +4,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Alert, AppState, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -14,6 +13,7 @@ import { Screen } from '@/components/Screen';
 import { ToggleSwitch } from '@/components/Toggle';
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
+import { GeneratedAvatar } from '@/components/GeneratedAvatar';
 import { useTheme, type ThemeMode } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { formatPhoneDisplay } from '@/utils/countryCodes';
@@ -21,7 +21,7 @@ import { processAvatarPhoto } from '@/utils/imageProcessing';
 import { disablePushNotifications, enablePushNotifications, isPushActive } from '@/utils/pushNotifications';
 import { reportSupabaseError } from '@/utils/reportError';
 import { spacing } from '@/utils/theme';
-import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
+import { themeRadius, typography } from '@/utils/themeTokens';
 import { INVITE_SITE_URL } from '@/utils/whatsappInvite';
 import { setLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/utils/i18n';
 
@@ -206,13 +206,7 @@ export default function ProfileScreen() {
           {avatarUrl !== null ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
-            <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.avatar}>
-              {initials.length > 0 ? (
-                <Text style={styles.avatarInitials}>{initials}</Text>
-              ) : (
-                <Feather name="user" size={28} color="#FFFFFF" />
-              )}
-            </LinearGradient>
+            <GeneratedAvatar seed={user?.id ?? initials} size={72} />
           )}
           {uploadingAvatar ? (
             <View style={[styles.avatar, styles.avatarOverlay]}>

@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { ScaleTouchable } from '@/components/ScaleTouchable';
 
@@ -10,19 +10,20 @@ import { Skeleton } from '@/components/Skeleton';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent } from '@/types/event';
+import { EVENT_COVERS } from '@/utils/eventCovers';
 import { getEventType } from '@/utils/eventTypes';
 import { countRsvps, daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
-import { bandGradientLocations, themeRadius, typography } from '@/utils/themeTokens';
+import { imageScrim, onImage, onImageMuted, pastCoverShade, themeRadius, typeface } from '@/utils/themeTokens';
 
 /** On-band chips: white 90% with dark text, same in both modes (text never sits on the gradient itself). */
 const CHIP_BG = 'rgba(255,255,255,0.9)';
 const CHIP_TEXT = '#2B2740';
 
 /**
- * Warm Story 2.0 event card for Home: type band on top (type icon, plan chip,
- * countdown), then name, date · place, the four-stage story timeline and the
- * RSVP counts.
+ * Event card for Home: the type's cover photo on top (type icon, plan chip,
+ * countdown, then name and date · place over a dark fade), then the
+ * four-stage story timeline and the RSVP counts.
  */
 export function EventListItem({
   event,
@@ -47,6 +48,8 @@ export function EventListItem({
   const counts = countRsvps(event.guests);
   const days = daysUntilEvent(event.date);
   const stage = currentStage(days);
+  // An event that already happened: grey band, whole card dimmed.
+  const past = days !== null && days < 0;
 
   const countdown =
     days === null
@@ -66,64 +69,63 @@ export function EventListItem({
       accessibilityLabel={`${event.name}, ${counts.confirmed} ${t('home.confirmedCount')}`}
       style={[
         styles.card,
+        past && styles.past,
         { backgroundColor: tokens.surface, borderColor: tokens.border },
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      <LinearGradient
-        colors={type.band}
-        locations={bandGradientLocations}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.band}
-      >
-        <View style={styles.emojiCircle}>
-          <EventTypeIcon type={type.id} size={22} color={CHIP_TEXT} />
+      <ImageBackground source={EVENT_COVERS[type.id]} style={styles.cover} resizeMode="cover">
+        <LinearGradient colors={imageScrim} locations={[0.25, 1]} style={StyleSheet.absoluteFill} />
+        {past ? <View style={[StyleSheet.absoluteFill, { backgroundColor: pastCoverShade }]} /> : null}
+
+        <View style={styles.coverTop}>
+          <View style={styles.iconChip}>
+            <EventTypeIcon type={type.id} size={18} color={CHIP_TEXT} />
+          </View>
+          <View style={styles.flex} />
+          {coOrganizerLabel !== null ? (
+            <View style={styles.chip}>
+              <Feather name="users" size={13} color={CHIP_TEXT} />
+              <Text style={styles.chipText}>{coOrganizerLabel}</Text>
+            </View>
+          ) : planLabel !== null ? (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>{planLabel}</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={onPressChoosePlan}
+              activeOpacity={0.75}
+              style={styles.chip}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.choosePlan')}
+              hitSlop={8}
+            >
+              <Feather name="plus" size={13} color={CHIP_TEXT} />
+              <Text style={styles.chipText}>{t('common.choosePlan')}</Text>
+            </TouchableOpacity>
+          )}
+          {countdown !== null ? (
+            <View style={[styles.chip, styles.countdown]}>
+              <Text style={[styles.chipText, styles.countdownText]}>{countdown}</Text>
+            </View>
+          ) : null}
         </View>
 
-        {coOrganizerLabel !== null ? (
-          <View style={[styles.chip, styles.planChip]}>
-            <Feather name="users" size={13} color={CHIP_TEXT} />
-            <Text style={styles.chipText}>{coOrganizerLabel}</Text>
-          </View>
-        ) : planLabel !== null ? (
-          <View style={[styles.chip, styles.planChip]}>
-            <Text style={styles.chipText}>{planLabel}</Text>
-          </View>
-        ) : (
-          <TouchableOpacity
-            onPress={onPressChoosePlan}
-            activeOpacity={0.75}
-            style={[styles.chip, styles.planChip]}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.choosePlan')}
-            hitSlop={8}
-          >
-            <Feather name="plus" size={13} color={CHIP_TEXT} />
-            <Text style={styles.chipText}>{t('common.choosePlan')}</Text>
-          </TouchableOpacity>
-        )}
-
-        {countdown !== null ? (
-          <View style={[styles.chip, styles.countdown]}>
-            <Text style={[styles.chipText, styles.countdownText]}>{countdown}</Text>
-          </View>
-        ) : null}
-      </LinearGradient>
-
-      <View style={styles.body}>
         <View style={styles.titleBlock}>
-          <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={2}>
+          <Text style={styles.name} numberOfLines={2}>
             {event.name}
           </Text>
           <View style={styles.metaRow}>
-            <Feather name="calendar" size={15} color={tokens.textSecondary} />
-            <Text style={[styles.meta, { color: tokens.textSecondary }]} numberOfLines={1}>
+            <Feather name="calendar" size={14} color={onImageMuted} />
+            <Text style={styles.meta} numberOfLines={1}>
               {eventShortSubtitle(event)}
             </Text>
           </View>
         </View>
+      </ImageBackground>
 
+      <View style={styles.body}>
         <StoryTimeline stage={stage} type={event.type} />
 
         <View style={[styles.divider, { backgroundColor: tokens.border }]} />
@@ -158,10 +160,8 @@ export function EventListItemSkeleton() {
 
   return (
     <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-      <Skeleton height={80} width="100%" radius={0} />
+      <Skeleton height={150} width="100%" radius={0} />
       <View style={styles.body}>
-        <Skeleton height={22} width="65%" radius={6} />
-        <Skeleton height={13} width="50%" radius={4} />
         <Skeleton height={36} width="100%" radius={8} />
       </View>
     </View>
@@ -169,22 +169,28 @@ export function EventListItemSkeleton() {
 }
 
 const styles = StyleSheet.create({
+  past: {
+    opacity: 0.4,
+  },
   card: {
     borderRadius: themeRadius.xxl,
     borderWidth: 1,
     overflow: 'hidden',
   },
-  band: {
-    height: 80,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+  cover: {
+    height: 150,
+    padding: 12,
     justifyContent: 'space-between',
   },
-  emojiCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  coverTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  iconChip: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: CHIP_BG,
     alignItems: 'center',
     justifyContent: 'center',
@@ -193,40 +199,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    height: 24,
+    height: 26,
     paddingHorizontal: 10,
     borderRadius: themeRadius.pill,
     backgroundColor: CHIP_BG,
   },
-  planChip: {
-    position: 'absolute',
-    top: 10,
-    right: 12,
-  },
   chipText: {
+    fontFamily: typeface.bodySemiBold,
     fontSize: 12,
-    fontWeight: '600',
     color: CHIP_TEXT,
   },
   countdown: {
-    height: 26,
     paddingHorizontal: 11,
   },
   countdownText: {
+    fontFamily: typeface.bodyBold,
     fontSize: 13,
-    fontWeight: '700',
-  },
-  body: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
-    gap: spacing.md,
   },
   titleBlock: {
     gap: 4,
   },
   name: {
-    ...typography.title2,
+    fontFamily: typeface.title,
+    fontSize: 20,
+    lineHeight: 25,
+    letterSpacing: -0.3,
+    color: onImage,
   },
   metaRow: {
     flexDirection: 'row',
@@ -235,7 +233,15 @@ const styles = StyleSheet.create({
   },
   meta: {
     flex: 1,
+    fontFamily: typeface.bodyMedium,
     fontSize: 13,
+    color: onImageMuted,
+  },
+  body: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+    gap: spacing.md,
   },
   divider: {
     height: 1,
@@ -256,10 +262,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   countText: {
+    fontFamily: typeface.body,
     fontSize: 13,
   },
   countNumber: {
-    fontWeight: '700',
+    fontFamily: typeface.bodyBold,
   },
   flex: {
     flex: 1,
@@ -271,7 +278,7 @@ const styles = StyleSheet.create({
     minHeight: 28,
   },
   openText: {
+    fontFamily: typeface.bodySemiBold,
     fontSize: 13,
-    fontWeight: '600',
   },
 });

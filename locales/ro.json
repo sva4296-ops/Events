@@ -652,7 +652,11 @@
     "dateLabel": "Data",
     "selectDate": "Selectează o dată",
     "locationLabel": "Locație",
-    "welcomeMessageLabel": "Mesaj de bun venit"
+    "welcomeMessageLabel": "Mesaj de bun venit",
+    "deleteButton": "Șterge evenimentul",
+    "deleting": "Se șterge…",
+    "deleteTitle": "Ștergi evenimentul?",
+    "deleteBody": "„{{name}}” va fi șters definitiv, împreună cu invitații, mesele, meniurile, mesajele, momentele și toate pozele. Invitații primesc o notificare că evenimentul a fost anulat. Ștergerea e definitivă."
   },
   "addGuestForm": {
     "notAvailableSubtitle": "Doar organizatorul poate invita invitați.",

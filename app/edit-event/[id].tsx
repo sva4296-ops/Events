@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { DateTimeField } from '@/components/DateTimeField';
@@ -9,6 +9,7 @@ import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { useEvents } from '@/hooks/useEvents';
+import { confirmDelete } from '@/utils/confirm';
 import { formatEventDate } from '@/utils/format';
 import { parseIsoDate, toIsoDate } from '@/utils/dateInput';
 import { reportSupabaseError } from '@/utils/reportError';
@@ -16,13 +17,18 @@ import { reportSupabaseError } from '@/utils/reportError';
 export default function EditEventScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, updateEvent, isOwner } = useEvents();
+  const { getEvent, updateEvent, deleteEvent, isOwner } = useEvents();
   const event = getEvent(id);
 
   const [name, setName] = useState(event?.name ?? '');
   const [date, setDate] = useState(event?.date ?? '');
   const [location, setLocation] = useState(event?.location ?? '');
   const [welcomeMessage, setWelcomeMessage] = useState(event?.welcomeMessage ?? '');
+  const [deleting, setDeleting] = useState(false);
+
+  // The event leaves the cache the moment the delete succeeds, a frame before
+  // navigation lands; render nothing then instead of "not available".
+  if (event === undefined && deleting) return <Screen>{null}</Screen>;
 
   if (event === undefined || !isOwner(event)) {
     return (
@@ -44,6 +50,17 @@ export default function EditEventScreen() {
       reportSupabaseError(error);
     }
   };
+
+  const remove = () =>
+    confirmDelete(t('editEventForm.deleteTitle'), t('editEventForm.deleteBody', { name: event.name }), () => {
+      setDeleting(true);
+      deleteEvent(event.id)
+        .then(() => router.dismissTo('/'))
+        .catch((error: unknown) => {
+          setDeleting(false);
+          reportSupabaseError(error);
+        });
+    });
 
   return (
     <KeyboardAvoidingView
@@ -76,6 +93,15 @@ export default function EditEventScreen() {
           onChangeText={setWelcomeMessage}
           multiline
         />
+
+        <View style={styles.danger}>
+          <Button
+            label={deleting ? t('editEventForm.deleting') : t('editEventForm.deleteButton')}
+            variant="danger"
+            disabled={deleting}
+            onPress={remove}
+          />
+        </View>
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -84,5 +110,8 @@ export default function EditEventScreen() {
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+  },
+  danger: {
+    marginTop: 24,
   },
 });

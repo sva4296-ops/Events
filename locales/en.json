@@ -634,7 +634,11 @@
     "dateLabel": "Date",
     "selectDate": "Select a date",
     "locationLabel": "Location",
-    "welcomeMessageLabel": "Welcome message"
+    "welcomeMessageLabel": "Welcome message",
+    "deleteButton": "Delete event",
+    "deleting": "Deleting…",
+    "deleteTitle": "Delete this event?",
+    "deleteBody": "\"{{name}}\" will be permanently deleted, along with its guests, tables, menus, messages, moments and all photos. Guests get a notification that the event was cancelled. This can't be undone."
   },
   "addGuestForm": {
     "notAvailableSubtitle": "Only the organizer can invite guests.",

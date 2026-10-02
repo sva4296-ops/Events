@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
 import {
+  deleteEventRow,
   fetchEventById,
   fetchEvents,
   insertEvent,
@@ -32,6 +33,8 @@ interface EventsResult {
   updateEvent: (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt' | 'planTier' | 'planPurchasedAt'>>) => Promise<void>;
   respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => void;
   removeGuest: (eventId: string, guestId: string) => void;
+  /** Deletes the event and everything under it (rows cascade, photos removed from Storage). */
+  deleteEvent: (eventId: string) => Promise<void>;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
   /** Returns the newly created guest's id (found by phone in the refetched
    * event — guest_phone is unique per event) so the single-invite screen can
@@ -156,6 +159,25 @@ export function useEvents(): EventsResult {
   const removeGuest = useCallback(
     (eventId: string, guestId: string) => removeGuestMutation.mutate({ eventId, guestId }),
     [removeGuestMutation],
+  );
+
+  const deleteEventMutation = useMutation({
+    mutationFn: (eventId: string) => deleteEventRow(eventId),
+    onSuccess: (_data, eventId) => {
+      queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+        current.filter((event) => event.id !== eventId),
+      );
+      for (const category of ['social', 'details', 'contributions']) {
+        queryClient.removeQueries({ queryKey: ['eventContent', category, eventId] });
+      }
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const deleteEvent = useCallback(
+    async (eventId: string): Promise<void> => {
+      await deleteEventMutation.mutateAsync(eventId);
+    },
+    [deleteEventMutation],
   );
 
   /**
@@ -379,6 +401,7 @@ export function useEvents(): EventsResult {
     updateEvent,
     respondToInvite,
     removeGuest,
+    deleteEvent,
     addGuest,
     addGuestByPhone,
     addGuestsBatch,

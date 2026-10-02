@@ -186,6 +186,41 @@ export async function respondToInviteRow(
   if (error) throw error;
 }
 
+/** Every file under `prefix` in event-photos (photos are `{eventId}/{photoId}/thumb|full.jpg`,
+ * moments and menu photos one folder deeper), so folders are walked recursively. */
+async function listEventFiles(prefix: string): Promise<string[]> {
+  const pageSize = 1000;
+  const paths: string[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase.storage.from('event-photos').list(prefix, { limit: pageSize, offset });
+    if (error) throw error;
+    for (const item of data) {
+      // Folders come back with a null id.
+      if (item.id === null) paths.push(...(await listEventFiles(`${prefix}/${item.name}`)));
+      else paths.push(`${prefix}/${item.name}`);
+    }
+    if (data.length < pageSize) return paths;
+  }
+}
+
+/**
+ * Deletes an event the caller organizes. Storage goes first: its delete policy
+ * checks is_event_organizer, which stops matching once the event row is gone.
+ * The row delete then cascades to guests, tables, menus, schedule, venue,
+ * moments, messages, photos, fund and contributions (all on delete cascade).
+ */
+export async function deleteEventRow(eventId: string): Promise<void> {
+  const paths = await listEventFiles(eventId);
+  for (let i = 0; i < paths.length; i += 1000) {
+    const { error } = await supabase.storage.from('event-photos').remove(paths.slice(i, i + 1000));
+    if (error) throw error;
+  }
+  // .select() so an RLS-filtered delete (0 rows) surfaces as an error instead of a silent no-op.
+  const { data, error } = await supabase.from('events').delete().eq('id', eventId).select('id');
+  if (error) throw error;
+  if (data.length === 0) throw new Error('Event not found or not yours to delete.');
+}
+
 export async function removeGuestRow(guestId: string): Promise<void> {
   const client = supabase;
   const { error } = await client.from('event_guests').delete().eq('id', guestId);

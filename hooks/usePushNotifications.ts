@@ -31,8 +31,10 @@ const handledResponses = new Set<string>();
  */
 function refreshEventData(queryClient: QueryClient, route: string | null): void {
   const eventId = eventIdFromRoute(route);
-  if (eventId === null) return;
+  // '/' = an event was deleted (on_event_delete_notify): only Home's list changes.
+  if (eventId === null && route !== '/') return;
   void queryClient.invalidateQueries({ queryKey: ['events'] });
+  if (eventId === null) return;
   void queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === 'eventContent' && query.queryKey[2] === eventId,
   });

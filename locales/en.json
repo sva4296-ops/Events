@@ -851,6 +851,9 @@
     "titleLive": "Live now",
     "offline": "OFFLINE",
     "shareTitle": "Link for those at home",
-    "shareBody": "They watch in the browser, no account needed."
+    "shareBody": "They watch in the browser, no account needed.",
+    "soonTag": "COMING SOON",
+    "soonTitle": "Live video, coming soon",
+    "soonBody": "Soon you'll be able to stream the event from your phone, and family who can't come will watch it live from a link."
   }
 }

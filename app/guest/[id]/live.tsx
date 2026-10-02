@@ -8,6 +8,7 @@ import { GuestScreen } from '@/components/guest/GuestScreen';
 import { LiveVideoCard } from '@/components/guest/LiveVideoCard';
 import { LockedFeature } from '@/components/guest/LockedFeature';
 import { fetchLiveShareToken } from '@/data/liveStreamRepository';
+import { useAppSetting } from '@/hooks/useAppSetting';
 import { useEventStream } from '@/hooks/useEventStream';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
@@ -31,7 +32,10 @@ export default function LiveScreen() {
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
   const { hydrated: planHydrated, capabilities } = usePlanGate(id);
-  const { data: stream } = useEventStream(id);
+  // Kill switch: app_settings.live_video in the Supabase dashboard (no release needed).
+  const liveVideoEnabled = useAppSetting('live_video');
+  // No polling while off: the table may not even exist yet.
+  const { data: stream } = useEventStream(liveVideoEnabled ? id : undefined);
 
   const owner = isOwner(event);
   const whepUrl = stream?.isLive === true ? stream.whepUrl : null;
@@ -47,6 +51,28 @@ export default function LiveScreen() {
       reportSupabaseError(err);
     }
   };
+
+  // Coming soon: same frame as the real screen, no actions, no plan upsell.
+  if (!liveVideoEnabled) {
+    return (
+      <GuestScreen transparent>
+        <View style={styles.wrap}>
+          <View style={[styles.screen, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+            <View style={[styles.offline, { backgroundColor: tokens.accentTint }]}>
+              <Text style={[styles.offlineText, { color: tokens.accentText }]}>{t('liveVideo.soonTag')}</Text>
+            </View>
+            <View style={[styles.halo, { backgroundColor: tokens.accentTint }]}>
+              <Feather name="video" size={30} color={tokens.accentText} />
+            </View>
+          </View>
+          <View style={styles.copy}>
+            <Text style={[styles.title, { color: tokens.textPrimary }]}>{t('liveVideo.soonTitle')}</Text>
+            <Text style={[styles.body, { color: tokens.textSecondary }]}>{t('liveVideo.soonBody')}</Text>
+          </View>
+        </View>
+      </GuestScreen>
+    );
+  }
 
   // Client-side gate only (usePlanGate); see the plan-feature-gating migration.
   if (planHydrated && !capabilities.liveScreenEnabled) {

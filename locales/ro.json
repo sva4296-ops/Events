@@ -871,6 +871,9 @@
     "titleLive": "În direct acum",
     "offline": "OFFLINE",
     "shareTitle": "Link pentru cei de acasă",
-    "shareBody": "Urmăresc din browser, fără cont."
+    "shareBody": "Urmăresc din browser, fără cont.",
+    "soonTag": "ÎN CURÂND",
+    "soonTitle": "Live video, în curând",
+    "soonBody": "În curând vei putea transmite evenimentul din telefon, iar cei care nu pot veni îl vor urmări în direct dintr-un link."
   }
 }

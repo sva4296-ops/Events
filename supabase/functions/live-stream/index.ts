@@ -82,6 +82,13 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  // Kill switch (app_settings.live_video, Supabase dashboard). 'stop' still
+  // works so a running broadcast can always be marked ended.
+  if (action !== 'stop') {
+    const { data: setting } = await admin.from('app_settings').select('enabled').eq('key', 'live_video').maybeSingle();
+    if (setting?.enabled !== true) return json({ error: 'live_video_disabled' }, 403);
+  }
+
   if (action === 'live' || action === 'stop') {
     const { error } = await admin
       .from('event_streams')

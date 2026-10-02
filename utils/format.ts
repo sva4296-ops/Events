@@ -56,6 +56,26 @@ export function eventShortSubtitle(event: AppEvent): string {
 }
 
 /**
+ * When the event starts, for the live countdown: the event date at the
+ * earliest valid "HH:MM" among the schedule items, or local midnight if the
+ * schedule has none. Null when the date doesn't parse.
+ */
+export function eventStartTime(value: string, scheduleTimes: readonly string[]): Date | null {
+  const parsed = new Date(value.trim());
+  if (value.trim().length === 0 || Number.isNaN(parsed.getTime())) return null;
+  const isoDay = /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+  const start = isoDay
+    ? new Date(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate())
+    : new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  const minutes = scheduleTimes
+    .map((time) => /^(\d{1,2}):(\d{2})$/.exec(time.trim()))
+    .filter((match): match is RegExpExecArray => match !== null && Number(match[1]) < 24 && Number(match[2]) < 60)
+    .map((match) => Number(match[1]) * 60 + Number(match[2]));
+  if (minutes.length > 0) start.setMinutes(Math.min(...minutes));
+  return start;
+}
+
+/**
  * Whole days from today (local midnight) to the event date. Null when the
  * organizer-typed date doesn't parse.
  */

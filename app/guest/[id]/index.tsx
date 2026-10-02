@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -18,36 +19,71 @@ import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
-import { daysUntilEvent } from '@/utils/format';
+import { daysUntilEvent, eventStartTime } from '@/utils/format';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { staggerIn } from '@/utils/motion';
 import { accentButtonShadow, themeRadius, typography } from '@/utils/themeTokens';
 
-/** "Mai sunt 255 de zile · până la nuntă" card with the four-stage timeline;
- * the label and the day-of headline follow the event type. */
-function CountdownCard({ date, type }: { date: string; type: EventTypeId }) {
+/**
+ * Live countdown (days · hours · minutes) to the event's start: its date at
+ * the earliest time in the Program, or midnight without one. Once the start
+ * passes it's the type's day-of headline, then "the story continues" after
+ * the day. Ticks every 15s (minute resolution, no seconds).
+ */
+function CountdownCard({ date, type, scheduleTimes }: { date: string; type: EventTypeId; scheduleTimes: string[] }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
+  const [now, setNow] = useState(() => Date.now());
   const days = daysUntilEvent(date);
+  const start = eventStartTime(date, scheduleTimes);
+  const remaining = start !== null ? start.getTime() - now : 0;
+  const counting = start !== null && remaining > 0;
+
+  useEffect(() => {
+    if (!counting) return;
+    const timer = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(timer);
+  }, [counting]);
+
+  // Round up to the minute so "0 min" never shows while time is still left.
+  const totalMinutes = Math.ceil(remaining / 60_000);
+  const units = [
+    { key: 'days', value: Math.floor(totalMinutes / 1440) },
+    { key: 'hours', value: Math.floor((totalMinutes % 1440) / 60) },
+    { key: 'minutes', value: totalMinutes % 60 },
+  ] as const;
+  const untilLabel = t(`eventTypes.${type}.countdownUntil`);
 
   const headline =
-    days === null || days > 0
-      ? days === null
-        ? null
-        : t('acasa.countdown', { count: days })
-      : days === 0
+    days === null || counting
+      ? null
+      : days >= 0
         ? t(`eventTypes.${type}.countdownToday`)
         : t('acasa.countdownPast');
 
   return (
     <View style={[styles.countdown, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-      {headline !== null ? (
-        <View style={styles.countdownHead}>
-          <Text style={[styles.countdownTitle, { color: tokens.textPrimary }]}>{headline}</Text>
-          {days !== null && days > 0 ? (
-            <Text style={[styles.countdownSub, { color: tokens.textSecondary }]}>{t(`eventTypes.${type}.countdownUntil`)}</Text>
-          ) : null}
+      {counting ? (
+        <View
+          style={styles.countdownBody}
+          accessible
+          accessibilityLabel={`${units.map((unit) => t(`acasa.unit_${unit.key}`, { count: unit.value })).join(', ')} ${untilLabel}`}
+        >
+          <View style={styles.units}>
+            {units.map((unit) => (
+              <View key={unit.key} style={[styles.unit, { backgroundColor: tokens.surface2 }]}>
+                <Text style={[styles.unitValue, { color: tokens.textPrimary }]}>{unit.value}</Text>
+                <Text style={[styles.unitLabel, { color: tokens.textSecondary }]}>
+                  {t(`acasa.unitShort_${unit.key}`, { count: unit.value })}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Text style={[styles.countdownSub, { color: tokens.textSecondary }]}>{untilLabel}</Text>
         </View>
+      ) : null}
+      {headline !== null ? (
+        <Text style={[styles.countdownTitle, { color: tokens.textPrimary }]}>{headline}</Text>
       ) : null}
       <StoryTimeline stage={currentStage(days)} type={type} />
     </View>
@@ -70,7 +106,11 @@ export default function AcasaScreen() {
   if (content === null) {
     return (
       <GuestScreen transparent>
-        {event !== undefined ? <CountdownCard date={event.date} type={event.type} /> : null}
+        {event !== undefined ? <CountdownCard
+            date={event.date}
+            type={event.type}
+            scheduleTimes={[]}
+          /> : null}
         <MomentCardSkeleton />
         <MomentCardSkeleton />
       </GuestScreen>
@@ -83,7 +123,11 @@ export default function AcasaScreen() {
         contentStyle={owner ? { paddingBottom: tabBarClearance + gSpace.xxl + 56 } : undefined}
         transparent
       >
-        {event !== undefined ? <CountdownCard date={event.date} type={event.type} /> : null}
+        {event !== undefined ? <CountdownCard
+            date={event.date}
+            type={event.type}
+            scheduleTimes={content.schedule.map((item) => item.time)}
+          /> : null}
 
         {content.moments.length === 0 ? (
           <EmptyState message={owner ? t('acasa.emptyOwner') : t('acasa.emptyGuest')} />
@@ -166,18 +210,34 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 16,
   },
-  countdownHead: {
+  countdownBody: {
+    gap: 10,
+  },
+  units: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
     gap: 8,
+  },
+  unit: {
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: 16,
+    paddingVertical: 12,
+    gap: 2,
+  },
+  unitValue: {
+    ...typography.title1,
+    fontVariant: ['tabular-nums'],
+  },
+  unitLabel: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   countdownTitle: {
     ...typography.title2,
-    flexShrink: 1,
   },
   countdownSub: {
     fontSize: 13,
+    textAlign: 'center',
   },
   promo: {
     borderRadius: 24,

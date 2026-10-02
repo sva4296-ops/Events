@@ -509,7 +509,11 @@ async function addPhoto(
   const { error } = await client
     .from('photos')
     .insert({ id: photoId, event_id: eventId, uploaded_by: actor.id, uploaded_by_label: label });
-  if (error) throw error;
+  if (error) {
+    // e.g. the per-guest photo limit trigger: don't leave the files orphaned.
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+    throw error;
+  }
 }
 
 async function deletePhoto(eventId: string, photoId: string): Promise<void> {

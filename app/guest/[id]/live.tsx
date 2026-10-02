@@ -1,63 +1,54 @@
 import Feather from '@expo/vector-icons/Feather';
-import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
+import { Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { EmptyState } from '@/components/EmptyState';
 import { Button, buttonLabelColor } from '@/components/Button';
-import { LockedFeature } from '@/components/guest/LockedFeature';
 import { GuestScreen } from '@/components/guest/GuestScreen';
-import { PhotoTile } from '@/components/guest/PhotoTile';
-import { Skeleton } from '@/components/Skeleton';
-import { useAuth } from '@/hooks/useAuth';
+import { LiveVideoCard } from '@/components/guest/LiveVideoCard';
+import { LockedFeature } from '@/components/guest/LockedFeature';
+import { fetchLiveShareToken } from '@/data/liveStreamRepository';
+import { useEventStream } from '@/hooks/useEventStream';
 import { useEvents } from '@/hooks/useEvents';
-import { useEventContent } from '@/hooks/useEventContent';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
-import { guest } from '@/utils/guestTheme';
+import { reportSupabaseError } from '@/utils/reportError';
 import { typography } from '@/utils/themeTokens';
-import { buildLiveLink } from '@/utils/invite';
+import { INVITE_SITE_URL } from '@/utils/whatsappInvite';
+
+const LIVE_RED = '#B5335F';
 
 /**
- * Warm Story 2.0 Live: a themed card (LIVE tag, QR + copy, upload button)
- * over a three-column grid of every photo. The QR box stays white/navy in
- * both modes so it always scans.
+ * Live: only the live video (organizer broadcasts, see
+ * app/live-broadcast/[id].tsx). Photo uploads live in the Album tab.
+ * Layout: 16:9 screen (video, or an offline placeholder), short copy, then
+ * the organizer's actions.
  */
 export default function LiveScreen() {
   const { t } = useTranslation();
   const { id, name, event } = useGuestEvent();
-  const { user } = useAuth();
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
-  const { content, addPhoto, deletePhoto } = useEventContent(id);
   const { hydrated: planHydrated, capabilities } = usePlanGate(id);
+  const { data: stream } = useEventStream(id);
 
   const owner = isOwner(event);
+  const whepUrl = stream?.isLive === true ? stream.whepUrl : null;
 
-  const liveUrl = buildLiveLink(id);
-  const loading = content === null;
-  const photos = content?.photos ?? [];
-
-  const pickPhoto = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-    });
-    const asset = result.assets?.[0];
-    if (result.canceled || asset === undefined) return;
-
-    addPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
+  // Public link for people who aren't at the event (browser, no account).
+  const shareLiveLink = async () => {
+    try {
+      const token = await fetchLiveShareToken(id);
+      await Share.share({
+        message: t('liveVideo.shareMessage', { name, url: `${INVITE_SITE_URL}/w/${token}` }),
+      });
+    } catch (err) {
+      reportSupabaseError(err);
+    }
   };
 
-  // Live isn't included in this event's current plan (Esențial). Client-side
-  // only, by design — see the plan-feature-gating migration's header comment
-  // on why the Live screen has no distinct server-side write to enforce (it
-  // shares the `photos` table with Album, which is baseline-always-on).
+  // Client-side gate only (usePlanGate); see the plan-feature-gating migration.
   if (planHydrated && !capabilities.liveScreenEnabled) {
     return (
       <GuestScreen transparent>
@@ -66,143 +57,171 @@ export default function LiveScreen() {
     );
   }
 
+  const title =
+    whepUrl !== null ? t('liveVideo.titleLive') : owner ? t('liveVideo.titleOwner') : t('liveVideo.titleIdle');
+  const body =
+    whepUrl !== null ? null : owner ? t('liveVideo.bodyOwner') : t('liveVideo.bodyIdle');
+
   return (
     <GuestScreen transparent>
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
-          tokens.surfaceElevatedShadow ?? undefined,
-        ]}
-      >
-        <View style={styles.cardHead}>
-          <View style={styles.liveTag}>
-            <View style={styles.recordDot} />
-            <Text style={styles.liveText}>{t('live.liveTag')}</Text>
+      <View style={styles.wrap}>
+        {whepUrl !== null ? (
+          <LiveVideoCard whepUrl={whepUrl} />
+        ) : (
+          <View style={[styles.screen, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+            <View style={[styles.offline, { backgroundColor: tokens.surface2 }]}>
+              <View style={[styles.dot, { backgroundColor: tokens.textMuted }]} />
+              <Text style={[styles.offlineText, { color: tokens.textSecondary }]}>{t('liveVideo.offline')}</Text>
+            </View>
+            <View style={[styles.halo, { backgroundColor: tokens.accentTint }]}>
+              <Feather name="video" size={30} color={tokens.accentText} />
+            </View>
           </View>
-          <Text style={[styles.count, { color: tokens.textSecondary }]} numberOfLines={1}>
-            {loading ? name : t('live.photosCount', { count: photos.length })}
-          </Text>
+        )}
+
+        <View style={styles.copy}>
+          <View style={styles.titleRow}>
+            {whepUrl !== null ? (
+              <View style={styles.liveChip}>
+                <View style={[styles.dot, styles.dotLive]} />
+                <Text style={styles.liveChipText}>LIVE</Text>
+              </View>
+            ) : null}
+            <Text style={[styles.title, { color: tokens.textPrimary }]}>{title}</Text>
+          </View>
+          {body !== null ? <Text style={[styles.body, { color: tokens.textSecondary }]}>{body}</Text> : null}
         </View>
 
-        <View style={styles.qrRow}>
-          <View style={styles.qr}>
-            <QRCode value={liveUrl} size={84} backgroundColor={guest.white} color={guest.navy} />
-          </View>
-          <View style={styles.qrCopy}>
-            <Text style={[styles.cardTitle, { color: tokens.textPrimary }]}>{t('live.cardTitle')}</Text>
-            <Text style={[styles.cardBody, { color: tokens.textSecondary }]}>{t('live.cardBody')}</Text>
-          </View>
-        </View>
+        {owner && whepUrl === null ? (
+          <Button
+            label={t('liveVideo.start')}
+            icon={<Feather name="video" size={20} color={buttonLabelColor('primary', tokens)} />}
+            onPress={() => router.push(`/live-broadcast/${id}`)}
+          />
+        ) : null}
 
-        <Button
-          label={t('live.upload')}
-          icon={<Feather name="upload" size={20} color={buttonLabelColor('primary', tokens)} />}
-          onPress={() => void pickPhoto()}
-        />
+        {owner ? (
+          <TouchableOpacity
+            style={[styles.shareCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+            onPress={() => void shareLiveLink()}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+          >
+            <View style={[styles.shareIcon, { backgroundColor: tokens.accentTint }]}>
+              <Feather name="share-2" size={18} color={tokens.accentText} />
+            </View>
+            <View style={styles.shareCopy}>
+              <Text style={[styles.shareTitle, { color: tokens.textPrimary }]}>{t('liveVideo.shareTitle')}</Text>
+              <Text style={[styles.shareBody, { color: tokens.textSecondary }]}>{t('liveVideo.shareBody')}</Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={tokens.textMuted} />
+          </TouchableOpacity>
+        ) : null}
       </View>
-
-      <Text style={[styles.gridTitle, { color: tokens.textPrimary }]}>{t('live.gridTitle')}</Text>
-
-      {loading ? (
-        <View style={styles.grid}>
-          {Array.from({ length: 6 }, (_, index) => (
-            <Skeleton key={index} width="32%" height={108} radius={12} />
-          ))}
-        </View>
-      ) : photos.length === 0 ? (
-        <EmptyState message={t('live.empty')} />
-      ) : (
-        <View style={styles.grid}>
-          {photos.map((photo) => (
-            <PhotoTile
-              key={photo.id}
-              photo={photo}
-              style={[styles.tile, { backgroundColor: tokens.surface2 }]}
-              canDelete={owner || photo.uploaded_by === user?.id}
-              onDelete={deletePhoto}
-              labelFontSize={10}
-            />
-          ))}
-        </View>
-      )}
     </GuestScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  wrap: {
+    gap: 18,
+  },
+  screen: {
+    aspectRatio: 16 / 9,
     borderRadius: 24,
     borderWidth: 1,
-    padding: 18,
-    gap: 14,
-  },
-  cardHead: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
   },
-  liveTag: {
+  offline: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     height: 26,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: '#B5335F',
   },
-  recordDot: {
+  offlineText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+  },
+  dot: {
     width: 7,
     height: 7,
     borderRadius: 4,
+  },
+  dotLive: {
     backgroundColor: '#FFFFFF',
   },
-  liveText: {
+  halo: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  copy: {
+    gap: 6,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  liveChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: LIVE_RED,
+  },
+  liveChipText: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.7,
     color: '#FFFFFF',
   },
-  count: {
-    flex: 1,
-    fontSize: 13,
+  title: {
+    ...typography.title2,
+    fontSize: 24,
+    lineHeight: 29,
+    flexShrink: 1,
   },
-  qrRow: {
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  shareCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
   },
-  qr: {
-    padding: 6,
-    borderRadius: 12,
-    backgroundColor: guest.white,
+  shareIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  qrCopy: {
+  shareCopy: {
     flex: 1,
-    gap: 6,
+    gap: 2,
   },
-  cardTitle: {
-    ...typography.title2,
-    fontSize: 20,
-    lineHeight: 25,
+  shareTitle: {
+    fontSize: 15,
+    fontWeight: '600',
   },
-  cardBody: {
+  shareBody: {
     fontSize: 13,
-    lineHeight: 19,
-  },
-  gridTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tile: {
-    width: '32%',
-    aspectRatio: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
+    lineHeight: 18,
   },
 });

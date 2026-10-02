@@ -166,8 +166,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  // Explicit lineHeight + a little bottom room: SwipeableRow clips its
+  // overflow, and the default line box cut off the bottom of the digits.
   time: {
     fontSize: 11,
+    lineHeight: 16,
     paddingHorizontal: 4,
+    paddingBottom: 2,
   },
 });

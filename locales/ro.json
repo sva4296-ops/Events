@@ -192,14 +192,20 @@
     "albumTitle": "Albumul vostru",
     "empty": "Nicio poză încă. Pozele adăugate în Live apar aici.",
     "downloadAll": "Descarcă toate pozele",
-    "notReady": "Albumul complet va putea fi descărcat la 3 zile după eveniment.",
     "title": "Albumul nostru",
     "summary_one": "{{count}} poză · de la {{people}} invitați",
     "summary_few": "{{count}} poze · de la {{people}} invitați",
     "summary_other": "{{count}} de poze · de la {{people}} invitați",
     "filterAll": "Toate",
     "filterMine": "Ale mele",
-    "emptyMine": "Nu ai urcat încă nicio poză."
+    "emptyMine": "Nu ai urcat încă nicio poză.",
+    "upload": "Urcă poze",
+    "yourPhotos": "Pozele tale",
+    "uploadedOf": "Ai urcat {{count}} din {{limit}} de poze",
+    "noLimitOrganizer": "Fără limită pentru organizatori",
+    "limitReached": "Ai atins limita de poze",
+    "infoTitle": "Cum funcționează albumul",
+    "infoBody": "• Toți cei de la eveniment urcă poze aici și toți invitații le văd.\n• Fiecare invitat poate urca maximum {{limit}} de poze. Organizatorii nu au limită.\n• Îți poți șterge oricând pozele tale.\n• Albumul complet e gata la 3 zile după eveniment și atunci îl poți descărca."
   },
   "rsvp": {
     "notFoundTitle": "Invitația nu a fost găsită",
@@ -443,12 +449,12 @@
       "Toți invitații confirmați, într-un loc",
       "Organizatorul marcat în conversație"
     ],
-    "liveTitle": "Live-ul e în planul {{plan}}",
-    "liveBody": "Pune un ecran în sală. Invitații scanează codul QR, iar pozele lor apar live, pe loc.",
+    "liveTitle": "Live-ul video e în planul {{plan}}",
+    "liveBody": "Transmiți evenimentul din telefon. Invitații îl văd în aplicație, iar cei care nu pot veni îl urmăresc dintr-un link, fără cont.",
     "liveBullets": [
-      "Ecran live pentru proiector sau TV",
-      "Cod QR pentru încărcarea pozelor",
-      "Toate pozele ajung în album"
+      "Live video din telefonul organizatorului",
+      "Invitații urmăresc în aplicație",
+      "Link pentru cei de acasă, fără cont"
     ]
   },
   "event": {
@@ -845,5 +851,22 @@
       "godmother": "Nașă"
     },
     "relationLabel": "Rol"
+  },
+  "liveVideo": {
+    "start": "Pornește live video",
+    "stop": "Oprește live-ul",
+    "statusLive": "● LIVE",
+    "statusConnecting": "Se conectează…",
+    "statusError": "Live-ul nu a pornit",
+    "notAvailable": "Doar organizatorii pot porni live-ul.",
+    "shareMessage": "Urmărește „{{name}}” în direct, de oriunde: {{url}}",
+    "titleIdle": "Live-ul nu a început încă",
+    "bodyIdle": "Apare aici imediat ce organizatorii pornesc transmisia.",
+    "titleOwner": "Transmite în direct",
+    "bodyOwner": "Filmezi din telefon. Invitații urmăresc aici, iar cei de acasă dintr-un link.",
+    "titleLive": "În direct acum",
+    "offline": "OFFLINE",
+    "shareTitle": "Link pentru cei de acasă",
+    "shareBody": "Urmăresc din browser, fără cont."
   }
 }

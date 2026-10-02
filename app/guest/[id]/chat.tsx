@@ -173,7 +173,7 @@ export default function ChatScreen() {
           ))}
         </ScrollView>
 
-        <View style={[styles.composer, { borderTopColor: tokens.border }]}>
+        <View style={styles.composer}>
           <TextInput
             style={[
               styles.input,
@@ -244,7 +244,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 8,
     paddingTop: 10,
-    borderTopWidth: 1,
   },
   input: {
     flex: 1,

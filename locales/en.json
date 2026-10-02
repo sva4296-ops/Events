@@ -186,13 +186,19 @@
     "albumTitle": "Your album",
     "empty": "No photos yet. Photos added in Live show up here.",
     "downloadAll": "Download all photos",
-    "notReady": "The full album will be ready to download 3 days after the event.",
     "title": "Our album",
     "summary_one": "{{count}} photo · from {{people}} guests",
     "summary_other": "{{count}} photos · from {{people}} guests",
     "filterAll": "All",
     "filterMine": "Mine",
-    "emptyMine": "You haven't uploaded any photos yet."
+    "emptyMine": "You haven't uploaded any photos yet.",
+    "upload": "Upload photos",
+    "yourPhotos": "Your photos",
+    "uploadedOf": "You uploaded {{count}} of {{limit}} photos",
+    "noLimitOrganizer": "No limit for organizers",
+    "limitReached": "Photo limit reached",
+    "infoTitle": "How the album works",
+    "infoBody": "• Everyone at the event uploads photos here, and all guests see them.\n• Each guest can upload up to {{limit}} photos. Organizers have no limit.\n• You can delete your own photos at any time.\n• The full album is ready 3 days after the event, when you can download it."
   },
   "rsvp": {
     "notFoundTitle": "Invitation not found",
@@ -424,12 +430,12 @@
       "Every confirmed guest in one place",
       "The organizer marked in the conversation"
     ],
-    "liveTitle": "Live is in the {{plan}} plan",
-    "liveBody": "Put a screen in the hall. Guests scan the QR code and their photos appear live, instantly.",
+    "liveTitle": "Live video is in the {{plan}} plan",
+    "liveBody": "Stream the event from your phone. Guests watch in the app, and family who can't come watch from a link, no account needed.",
     "liveBullets": [
-      "Live screen for a projector or TV",
-      "QR code for uploading photos",
-      "Every photo lands in the album"
+      "Live video from the organizer's phone",
+      "Guests watch in the app",
+      "A link for those at home, no account"
     ]
   },
   "event": {
@@ -825,5 +831,22 @@
       "godmother": "Godmother"
     },
     "relationLabel": "Role"
+  },
+  "liveVideo": {
+    "start": "Go live with video",
+    "stop": "Stop live",
+    "statusLive": "● LIVE",
+    "statusConnecting": "Connecting…",
+    "statusError": "Couldn't start the live",
+    "notAvailable": "Only organizers can go live.",
+    "shareMessage": "Watch \"{{name}}\" live, from anywhere: {{url}}",
+    "titleIdle": "The live hasn't started yet",
+    "bodyIdle": "It will show up here as soon as the organizers go live.",
+    "titleOwner": "Stream it live",
+    "bodyOwner": "Film from your phone. Guests watch here, family at home watches from a link.",
+    "titleLive": "Live now",
+    "offline": "OFFLINE",
+    "shareTitle": "Link for those at home",
+    "shareBody": "They watch in the browser, no account needed."
   }
 }

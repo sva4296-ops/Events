@@ -50,7 +50,11 @@
       "bundleIdentifier": "com.povesteanoastra.app",
       "associatedDomains": [
         "applinks:events-web-henna.vercel.app"
-      ]
+      ],
+      "infoPlist": {
+        "NSCameraUsageDescription": "PovesteaNoastra folosește camera pentru poze și pentru transmisia live a evenimentului.",
+        "NSMicrophoneUsageDescription": "PovesteaNoastra folosește microfonul pentru sunetul transmisiei live."
+      }
     },
     "android": {
       "package": "com.povesteanoastra.app",
@@ -77,6 +81,11 @@
             "DEFAULT"
           ]
         }
+      ],
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {

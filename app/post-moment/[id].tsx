@@ -19,6 +19,7 @@ import { Header } from '@/components/Header';
 import { MOMENT_ICONS, MomentIcon, isMomentIconId, type MomentIconId } from '@/components/MomentIcon';
 import { Screen } from '@/components/Screen';
 import { useEventContent } from '@/hooks/useEventContent';
+import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import type { PickedPhoto } from '@/utils/imageProcessing';
@@ -31,12 +32,15 @@ export default function PostMomentScreen() {
   const { t } = useTranslation();
   // `?momentId=` opens the same form to edit an existing moment.
   const { id, momentId } = useLocalSearchParams<{ id: string; momentId?: string }>();
-  const { getEvent, isOwner } = useEvents();
+  const { getEvent, isOwner, isPrimaryOwner } = useEvents();
+  const { user } = useAuth();
   const { tokens } = useTheme();
   const event = getEvent(id);
   const { content, addMoment, updateMoment } = useEventContent(id ?? '');
   const existing = momentId !== undefined ? content?.moments.find((moment) => moment.id === momentId) : undefined;
   const editing = existing !== undefined;
+  // Someone else's moment: only the event owner may edit it (moments RLS).
+  const othersMoment = existing !== undefined && user !== null && existing.organizer_id !== user.id;
 
   const [title, setTitle] = useState(existing?.title ?? '');
   // Only a newly picked photo; the existing one shows until it's replaced.
@@ -44,7 +48,7 @@ export default function PostMomentScreen() {
   const [icon, setIcon] = useState<MomentIconId | null>(isMomentIconId(existing?.icon) ? existing.icon : null);
   const previewUri = photo?.uri ?? (existing !== undefined && existing.photo_url.length > 0 ? existing.photo_url : null);
 
-  if (!isOwner(event)) {
+  if (!isOwner(event) || (othersMoment && !isPrimaryOwner(event))) {
     return (
       <Screen coverType={event?.type}>
         <Header
@@ -102,6 +106,17 @@ export default function PostMomentScreen() {
           stepLabel={event?.name}
           onClose={() => router.back()}
         />
+
+        {othersMoment ? (
+          <View style={[styles.notice, { backgroundColor: tokens.accentTint }]}>
+            <Feather name="info" size={16} color={tokens.accentText} />
+            <Text style={[styles.noticeText, { color: tokens.accentText }]}>
+              {existing.author_label !== null
+                ? t('postMomentForm.editingOthers', { name: existing.author_label })
+                : t('postMomentForm.editingOthersUnknown')}
+            </Text>
+          </View>
+        ) : null}
 
         <TouchableOpacity
           style={[styles.picker, { backgroundColor: tokens.accentTint }]}
@@ -168,6 +183,18 @@ export default function PostMomentScreen() {
 }
 
 const styles = StyleSheet.create({
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: themeRadius.md,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   fill: {
     flex: 1,
   },

@@ -12,6 +12,8 @@ export interface Moment {
   photo_url: string;
   /** Optional line icon id (components/MomentIcon.tsx), null when none. */
   icon: string | null;
+  /** Who posted it (display name), null when unknown. */
+  author_label: string | null;
   created_at: string;
 }
 

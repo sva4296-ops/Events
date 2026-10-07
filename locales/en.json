@@ -163,7 +163,11 @@
     "todayTitle": "Today",
     "now": "Now",
     "upNext": "Up next",
-    "seeSchedule": "See the full schedule"
+    "seeSchedule": "See the full schedule",
+    "postedByAgo": "{{name}} · {{time}}",
+    "cantEditOthersTitle": "You can't edit this moment",
+    "cantEditOthersBody": "It was posted by {{name}}. Co-organizers can edit only their own moments; the event owner can edit all of them.",
+    "cantEditOthersBodyUnknown": "Co-organizers can edit only their own moments; the event owner can edit all of them."
   },
   "chat": {
     "sectionLabel": "WEDDING GROUP",
@@ -715,7 +719,9 @@
       "heart": "Heart",
       "baby": "Baby",
       "sparkles": "Sparkles"
-    }
+    },
+    "editingOthers": "Posted by {{name}}. Your changes stay under their name.",
+    "editingOthersUnknown": "Posted by a co-organizer. Your changes stay under their name."
   },
   "onboarding": {
     "step1Title": "It all starts with an invitation",

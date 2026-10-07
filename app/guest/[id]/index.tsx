@@ -13,6 +13,7 @@ import { GuestScreen } from '@/components/guest/GuestScreen';
 import { MomentCard, MomentCardSkeleton } from '@/components/guest/MomentCard';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { confirmDelete } from '@/utils/confirm';
+import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
@@ -185,7 +186,8 @@ function UpNextCard({ eventId, date, schedule }: { eventId: string; date: string
 export default function AcasaScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
-  const { isOwner } = useEvents();
+  const { isOwner, isPrimaryOwner } = useEvents();
+  const { user } = useAuth();
   const { tokens } = useTheme();
   const insets = useSafeAreaInsets();
   const { content, toggleReaction, hasReacted, reactionCount, deleteMoment } = useEventContent(id);
@@ -193,6 +195,10 @@ export default function AcasaScreen() {
   const owner = isOwner(event);
   // Finished events are an archive: moments can't be edited or deleted there.
   const canEditMoments = owner && (event === undefined || !isEventPast(event.date));
+  // Your own moments; the event owner can also edit co-organizers' moments
+  // (same rule as the moments RLS policies).
+  const canEditMoment = (organizerId: string) =>
+    canEditMoments && (isPrimaryOwner(event) || (user !== null && organizerId === user.id));
   // Distance from the true screen bottom up to the tab bar's top edge — the
   // FAB and this screen's own extra bottom padding both build on it.
   const tabBarClearance = tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height;
@@ -239,7 +245,7 @@ export default function AcasaScreen() {
                 celebratedByMe={hasReacted(moment.id, 'celebrate')}
                 onReact={(reaction) => toggleReaction(moment.id, reaction)}
                 onLongPress={
-                  canEditMoments
+                  canEditMoment(moment.organizer_id)
                     ? () => {
                         haptics.press();
                         Alert.alert(moment.title, undefined, [
@@ -260,7 +266,18 @@ export default function AcasaScreen() {
                           { text: t('common.cancel'), style: 'cancel' },
                         ]);
                       }
-                    : undefined
+                    : canEditMoments
+                      ? () => {
+                          // Co-organizer on someone else's moment: say why, instead of nothing.
+                          haptics.press();
+                          Alert.alert(
+                            t('acasa.cantEditOthersTitle'),
+                            moment.author_label !== null
+                              ? t('acasa.cantEditOthersBody', { name: moment.author_label })
+                              : t('acasa.cantEditOthersBodyUnknown'),
+                          );
+                        }
+                      : undefined
                 }
               />
           </Animated.View>

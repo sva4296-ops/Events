@@ -56,7 +56,11 @@ export function MomentCard({
         ) : null}
         <View style={styles.headText}>
           <Text style={[styles.title, { color: tokens.textPrimary }]}>{moment.title}</Text>
-          <Text style={[styles.time, { color: tokens.textSecondary }]}>{timeAgo(moment.created_at)}</Text>
+          <Text style={[styles.time, { color: tokens.textSecondary }]} numberOfLines={1}>
+            {moment.author_label !== null
+              ? t('acasa.postedByAgo', { name: moment.author_label, time: timeAgo(moment.created_at) })
+              : timeAgo(moment.created_at)}
+          </Text>
         </View>
       </View>
 

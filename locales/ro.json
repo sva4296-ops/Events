@@ -168,7 +168,11 @@
     "todayTitle": "Azi",
     "now": "Acum",
     "upNext": "Urmează",
-    "seeSchedule": "Vezi tot programul"
+    "seeSchedule": "Vezi tot programul",
+    "postedByAgo": "{{name}} · {{time}}",
+    "cantEditOthersTitle": "Nu poți modifica acest moment",
+    "cantEditOthersBody": "A fost postat de {{name}}. Co-organizatorii își pot modifica doar momentele lor; proprietarul evenimentului le poate modifica pe toate.",
+    "cantEditOthersBodyUnknown": "Co-organizatorii își pot modifica doar momentele lor; proprietarul evenimentului le poate modifica pe toate."
   },
   "chat": {
     "sectionLabel": "GRUPUL NUNȚII",
@@ -735,7 +739,9 @@
       "heart": "Inimă",
       "baby": "Bebeluș",
       "sparkles": "Sclipiri"
-    }
+    },
+    "editingOthers": "Postat de {{name}}. Modificările tale rămân sub numele lui.",
+    "editingOthersUnknown": "Postat de un co-organizator. Modificările tale rămân sub numele lui."
   },
   "onboarding": {
     "step1Title": "Totul începe cu o invitație",

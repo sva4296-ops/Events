@@ -132,6 +132,8 @@ export interface MomentRow {
   photo_url: string | null;
   /** moments.icon: a MomentIconId, or null. */
   icon: string | null;
+  /** Poster's display name, set by a trigger at insert; null for an account without a name. */
+  author_label: string | null;
   created_at: string;
 }
 

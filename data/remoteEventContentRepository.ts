@@ -117,6 +117,7 @@ function mapMoment(row: MomentRow): Moment {
     title: row.title,
     photo_url: row.photo_url ?? '',
     icon: row.icon ?? null,
+    author_label: row.author_label ?? null,
     created_at: row.created_at,
   };
 }

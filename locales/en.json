@@ -883,5 +883,49 @@
     "soonTag": "COMING SOON",
     "soonTitle": "Live video, coming soon",
     "soonBody": "Soon you'll be able to stream the event from your phone, and family who can't come will watch it live from a link."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Choose which notifications you get.",
+    "deviceToggle": "Allow notifications",
+    "deviceOffNote": "Notifications are off. Turn them on to choose what you get.",
+    "alwaysOn": "Always on",
+    "categories": {
+      "organizer": "As organizer",
+      "reminders": "Reminders",
+      "updates": "Event updates"
+    },
+    "types": {
+      "rsvp_response": {
+        "title": "Guest replies",
+        "description": "When a guest confirms or can't make it."
+      },
+      "event_reminder": {
+        "title": "Day-before reminder",
+        "description": "The day before an event you're attending."
+      },
+      "menu_reminder": {
+        "title": "Menu choice reminder",
+        "description": "When the deadline to pick your menu is close."
+      },
+      "event_changed": {
+        "title": "Date or location changes",
+        "description": "When the organizer changes the date, location or venue."
+      },
+      "new_moment": {
+        "title": "New moments",
+        "description": "When the organizer posts a new moment."
+      },
+      "album_ready": {
+        "title": "Album ready",
+        "description": "When the event photos are ready to view."
+      },
+      "event_cancelled": {
+        "title": "Cancelled events",
+        "description": "Always sent, so you never miss a cancellation."
+      }
+    },
+    "loadFailed": "Couldn't load your notification settings. Check your connection and try again.",
+    "retry": "Try again"
   }
 }

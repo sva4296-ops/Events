@@ -4,6 +4,9 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/data/supabaseClient';
+import { saveUserLocale } from '@/data/usersRepository';
+import i18n from '@/utils/i18n';
+import { generateId } from '@/utils/uuid';
 
 /**
  * Push notifications via Expo Push (FCM on Android). Tokens live in
@@ -27,6 +30,21 @@ Notifications.setNotificationHandler({
 
 /** Last token registered on this device, so sign-out can remove it. */
 let currentToken: string | null = null;
+
+/** Stable per install, so a new token replaces this install's old one server-side. */
+const DEVICE_ID_KEY = 'povesteanoastra:device-id:v1';
+
+async function getDeviceId(): Promise<string | null> {
+  try {
+    const stored = await AsyncStorage.getItem(DEVICE_ID_KEY);
+    if (stored !== null) return stored;
+    const created = generateId();
+    await AsyncStorage.setItem(DEVICE_ID_KEY, created);
+    return created;
+  } catch {
+    return null;
+  }
+}
 
 /** Device-wide on/off from Profile. Absent = on (the default). */
 const PREFERENCE_KEY = 'povesteanoastra:push-enabled:v1';
@@ -87,6 +105,7 @@ export async function registerForPushNotifications(): Promise<boolean> {
     const { error } = await supabase.rpc('register_push_token', {
       p_token: token,
       p_platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      p_device_id: await getDeviceId(),
     });
     if (error) throw error;
     currentToken = token;
@@ -95,6 +114,20 @@ export async function registerForPushNotifications(): Promise<boolean> {
     // No Sentry in this codebase; never block the app on push setup.
     console.warn('[push] registration failed', err);
     return false;
+  }
+}
+
+/**
+ * Pushes are written server-side in the user's language (users.locale).
+ * Best-effort: on failure they keep getting the previous language.
+ */
+export async function syncPushLocale(userId: string): Promise<void> {
+  const language = i18n.language;
+  if (language !== 'en' && language !== 'ro') return;
+  try {
+    await saveUserLocale(userId, language);
+  } catch (err) {
+    console.warn('[push] locale sync failed', err);
   }
 }
 

@@ -1,16 +1,15 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
-import { ActivityIndicator, Alert, AppState, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { BackButton } from '@/components/BackButton';
 import { ListGroup, ListRow } from '@/components/ListGroup';
 import { Screen } from '@/components/Screen';
-import { ToggleSwitch } from '@/components/Toggle';
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { GeneratedAvatar } from '@/components/GeneratedAvatar';
@@ -18,7 +17,7 @@ import { useTheme, type ThemeMode } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { formatPhoneDisplay } from '@/utils/countryCodes';
 import { processAvatarPhoto } from '@/utils/imageProcessing';
-import { disablePushNotifications, enablePushNotifications, isPushActive } from '@/utils/pushNotifications';
+import { syncPushLocale } from '@/utils/pushNotifications';
 import { reportSupabaseError } from '@/utils/reportError';
 import { spacing } from '@/utils/theme';
 import { themeRadius, typography } from '@/utils/themeTokens';
@@ -49,41 +48,6 @@ export default function ProfileScreen() {
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(false);
-  const [pushBusy, setPushBusy] = useState(false);
-
-  const refreshPush = useCallback(() => {
-    void isPushActive().then(setPushEnabled);
-  }, []);
-
-  // Also on return from the system Settings app, where permission may have changed.
-  useEffect(() => {
-    refreshPush();
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') refreshPush();
-    });
-    return () => subscription.remove();
-  }, [refreshPush]);
-
-  const togglePush = async () => {
-    if (pushBusy) return;
-    setPushBusy(true);
-    if (pushEnabled) {
-      setPushEnabled(false);
-      await disablePushNotifications();
-    } else {
-      const result = await enablePushNotifications();
-      setPushEnabled(result === 'enabled');
-      if (result === 'blocked') {
-        Alert.alert(t('profile.notificationsBlockedTitle'), t('profile.notificationsBlockedMessage'), [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('profile.openSettings'), onPress: () => void Linking.openSettings() },
-        ]);
-      }
-    }
-    setPushBusy(false);
-  };
-
   const runDeleteAccount = async () => {
     setDeletingAccount(true);
     const error = await deleteAccount();
@@ -159,7 +123,8 @@ export default function ProfileScreen() {
     Alert.alert(t('profile.language'), undefined, [
       ...SUPPORTED_LANGUAGES.map((language) => ({
         text: t(LANGUAGE_LABEL_KEY[language]),
-        onPress: () => void setLanguage(language),
+        onPress: () =>
+          void setLanguage(language).then(() => (user !== null ? syncPushLocale(user.id) : undefined)),
       })),
       { text: t('common.cancel'), style: 'cancel' as const },
     ]);
@@ -232,12 +197,7 @@ export default function ProfileScreen() {
         <ListRow icon="user" label={t('profile.personalData')} onPress={() => router.push('/edit-profile')} />
         <ListRow icon="globe" label={t('profile.language')} value={languageLabel} onPress={chooseLanguage} />
         <ListRow icon="moon" label={t('profile.theme')} value={t(THEME_LABEL_KEY[mode])} onPress={chooseTheme} />
-        <ListRow
-          icon="bell"
-          label={t('profile.notifications')}
-          trailing={<ToggleSwitch value={pushEnabled} />}
-          onPress={() => void togglePush()}
-        />
+        <ListRow icon="bell" label={t('profile.notifications')} onPress={() => router.push('/notifications')} />
       </ListGroup>
 
       {agencyHydrated ? (

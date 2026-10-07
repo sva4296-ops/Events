@@ -10,6 +10,7 @@ import {
   isPushPreferenceEnabled,
   registerForPushNotifications,
   routeFromNotification,
+  syncPushLocale,
 } from '@/utils/pushNotifications';
 
 /**
@@ -45,6 +46,12 @@ export function usePushNotifications(): void {
   const queryClient = useQueryClient();
   const registeredFor = useRef<string | null>(null);
   const lastResponse = Notifications.useLastNotificationResponse();
+  const userId = user?.id ?? null;
+
+  // Server-side push copy follows the app language (also re-synced on change in Profile).
+  useEffect(() => {
+    if (userId !== null) void syncPushLocale(userId);
+  }, [userId]);
 
   useEffect(() => {
     if (user === null || registeredFor.current === user.id) return;

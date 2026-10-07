@@ -903,5 +903,49 @@
     "soonTag": "ÎN CURÂND",
     "soonTitle": "Live video, în curând",
     "soonBody": "În curând vei putea transmite evenimentul din telefon, iar cei care nu pot veni îl vor urmări în direct dintr-un link."
+  },
+  "notifications": {
+    "title": "Notificări",
+    "subtitle": "Alege ce notificări primești.",
+    "deviceToggle": "Permite notificările",
+    "deviceOffNote": "Notificările sunt oprite. Pornește-le ca să alegi ce primești.",
+    "alwaysOn": "Mereu active",
+    "categories": {
+      "organizer": "Ca organizator",
+      "reminders": "Mementouri",
+      "updates": "Noutăți despre eveniment"
+    },
+    "types": {
+      "rsvp_response": {
+        "title": "Răspunsurile invitaților",
+        "description": "Când un invitat confirmă sau nu poate ajunge."
+      },
+      "event_reminder": {
+        "title": "Memento cu o zi înainte",
+        "description": "Cu o zi înainte de un eveniment la care participi."
+      },
+      "menu_reminder": {
+        "title": "Memento pentru meniu",
+        "description": "Când se apropie termenul de alegere a meniului."
+      },
+      "event_changed": {
+        "title": "Schimbări de dată sau locație",
+        "description": "Când organizatorul schimbă data, locația sau localul."
+      },
+      "new_moment": {
+        "title": "Momente noi",
+        "description": "Când organizatorul postează un moment nou."
+      },
+      "album_ready": {
+        "title": "Album gata",
+        "description": "Când pozele evenimentului sunt gata de văzut."
+      },
+      "event_cancelled": {
+        "title": "Evenimente anulate",
+        "description": "Trimise mereu, ca să nu ratezi o anulare."
+      }
+    },
+    "loadFailed": "Nu am putut încărca setările de notificări. Verifică conexiunea și încearcă din nou.",
+    "retry": "Încearcă din nou"
   }
 }

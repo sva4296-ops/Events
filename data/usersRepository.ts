@@ -95,6 +95,12 @@ export async function saveUserName(userId: string, firstName: string, lastName: 
   if (error) throw error;
 }
 
+/** Language for server-sent push copy; see utils/pushNotifications.ts's syncPushLocale. */
+export async function saveUserLocale(userId: string, locale: 'en' | 'ro'): Promise<void> {
+  const { error } = await supabase.from('users').update({ locale }).eq('id', userId);
+  if (error) throw error;
+}
+
 /**
  * app/edit-profile.tsx's email field — a plain column write, no Supabase Auth
  * involved and no re-verification, unlike updatePhone/verifyPhoneChange in

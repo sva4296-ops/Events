@@ -130,6 +130,8 @@ export interface MomentRow {
   organizer_id: string;
   title: string;
   photo_url: string | null;
+  /** moments.icon: a MomentIconId, or null. */
+  icon: string | null;
   created_at: string;
 }
 

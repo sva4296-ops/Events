@@ -249,11 +249,11 @@ export function useEventContent(eventId: string) {
               },
         ),
 
-      addMoment: (title: string, photo: PickedPhoto | null) => {
+      addMoment: (title: string, photo: PickedPhoto | null, icon: string | null) => {
         runRemote(async () => {
           const momentId = generateId();
           const photoUri = photo === null ? null : await processMomentPhoto(photo);
-          await remoteRepository.createMoment(eventId, momentId, title, photoUri, actor);
+          await remoteRepository.createMoment(eventId, momentId, title, photoUri, icon, actor);
         }, 'social');
       },
 
@@ -274,6 +274,14 @@ export function useEventContent(eventId: string) {
 
       deleteScheduleItem: (itemId: string) => {
         runRemote(() => remoteRepository.deleteScheduleItem(itemId), 'details');
+      },
+
+      /** Title edit, plus a new photo when one was picked (null keeps the current one). */
+      updateMoment: (momentId: string, title: string, photo: PickedPhoto | null, icon: string | null) => {
+        runRemote(async () => {
+          const photoUri = photo === null ? null : await processMomentPhoto(photo);
+          await remoteRepository.updateMoment(eventId, momentId, title, photoUri, icon);
+        }, 'social');
       },
 
       deleteMoment: (momentId: string) => {

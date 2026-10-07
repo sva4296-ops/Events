@@ -1,67 +1,64 @@
 import Feather from '@expo/vector-icons/Feather';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { EventTypeIcon } from '@/components/EventTypeIcon';
+import { MomentIcon, isMomentIconId } from '@/components/MomentIcon';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
-import type { EventTypeId } from '@/types/event';
 import type { Moment, ReactionType } from '@/types/guest';
 import { timeAgo } from '@/utils/relativeTime';
-import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
+import { themeRadius, typeface } from '@/utils/themeTokens';
 
 interface MomentCardProps {
   moment: Moment;
-  /** Who posted it — moments are organizer posts, so this is the event's name. */
-  authorName: string;
-  /** Event type, drawn as a line icon in the gradient avatar. */
-  authorType: EventTypeId | null;
   loveCount: number;
   celebrateCount: number;
   lovedByMe: boolean;
   celebratedByMe: boolean;
   onReact: (reaction: ReactionType) => void;
+  /** Organizer only: long press opens edit / delete. */
+  onLongPress?: () => void;
 }
 
 /** Warm Story 2.0 moment post: author row with a "Moment" chip, Playfair title, photo, reactions. */
 export function MomentCard({
   moment,
-  authorName,
-  authorType,
   loveCount,
   celebrateCount,
   lovedByMe,
   celebratedByMe,
   onReact,
+  onLongPress,
 }: MomentCardProps) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
 
   return (
-    <View
+    <TouchableOpacity
+      onLongPress={onLongPress}
+      disabled={onLongPress === undefined}
+      delayLongPress={350}
+      activeOpacity={0.9}
+      accessibilityHint={onLongPress !== undefined ? t('acasa.momentLongPressHint') : undefined}
       style={[
         styles.card,
         { backgroundColor: tokens.surface, borderColor: tokens.border },
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      <View style={styles.author}>
-        <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.avatar}>
-          <EventTypeIcon type={authorType} size={18} color="#2B2740" />
-        </LinearGradient>
-        <View style={styles.authorText}>
-          <Text style={[styles.authorName, { color: tokens.textPrimary }]} numberOfLines={1}>
-            {authorName}
-          </Text>
+      {/* The event's own name and a "Moment" chip were redundant inside the
+          event: the post opens with its icon, title and when it was posted. */}
+      <View style={styles.head}>
+        {isMomentIconId(moment.icon) ? (
+          <View style={[styles.iconBadge, { backgroundColor: tokens.accentTint }]}>
+            <MomentIcon icon={moment.icon} size={20} color={tokens.accentText} />
+          </View>
+        ) : null}
+        <View style={styles.headText}>
+          <Text style={[styles.title, { color: tokens.textPrimary }]}>{moment.title}</Text>
           <Text style={[styles.time, { color: tokens.textSecondary }]}>{timeAgo(moment.created_at)}</Text>
         </View>
-        <View style={[styles.chip, { backgroundColor: tokens.accentTint }]}>
-          <Text style={[styles.chipText, { color: tokens.accentText }]}>{t('acasa.momentChip')}</Text>
-        </View>
       </View>
-
-      <Text style={[styles.title, { color: tokens.textPrimary }]}>{moment.title}</Text>
 
       {moment.photo_url.length > 0 ? (
         <Image source={{ uri: moment.photo_url }} style={[styles.photo, { backgroundColor: tokens.surface2 }]} />
@@ -92,7 +89,7 @@ export function MomentCard({
           {t('acasa.reactions', { count: loveCount + celebrateCount })}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -102,14 +99,13 @@ export function MomentCardSkeleton() {
 
   return (
     <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-      <View style={styles.author}>
-        <Skeleton width={36} height={36} radius={18} />
-        <View style={styles.authorText}>
-          <Skeleton height={13} width="45%" radius={4} />
+      <View style={styles.head}>
+        <Skeleton width={40} height={40} radius={20} />
+        <View style={styles.headText}>
+          <Skeleton height={16} width="55%" radius={4} />
           <Skeleton height={11} width="25%" radius={4} />
         </View>
       </View>
-      <Skeleton height={20} width="60%" radius={4} />
       <Skeleton height={196} radius={18} />
       <View style={styles.reactions}>
         <Skeleton width={64} height={40} radius={themeRadius.pill} />
@@ -157,44 +153,31 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  author: {
+  head: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  iconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  authorText: {
+  headText: {
     flex: 1,
     minWidth: 0,
     gap: 2,
   },
-  authorName: {
-    fontSize: 14,
-    fontWeight: '600',
+  title: {
+    fontFamily: typeface.bodyBold,
+    fontSize: 18,
+    lineHeight: 24,
   },
   time: {
-    fontSize: 12,
-  },
-  chip: {
-    height: 24,
-    paddingHorizontal: 10,
-    borderRadius: themeRadius.pill,
-    justifyContent: 'center',
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  title: {
-    fontFamily: typography.title2.fontFamily,
-    fontSize: 20,
-    lineHeight: 25,
+    fontFamily: typeface.body,
+    fontSize: 13,
   },
   photo: {
     width: '100%',

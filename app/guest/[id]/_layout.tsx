@@ -83,7 +83,7 @@ export default function GuestEventLayout() {
 
   // Which single-row top-right action(s) show depends on the active tab —
   // guests/stats only on Acasă (the guest list's one entry point, see §4 of
-  // CLAUDE.md), the edit-event pencil only on Detalii, and the fund's own
+  // CLAUDE.md), and the fund's own
   // edit+delete only on Fond (and only once a fund actually exists — an
   // empty Fond tab has nothing to edit or delete). Every other tab gets none.
   const actions: HeaderAction[] = [];
@@ -110,13 +110,6 @@ export default function GuestEventLayout() {
         icon: 'users',
         accessibilityLabel: 'Lista de invitați și statistici',
         onPress: () => router.push(`/event/${id}`),
-      });
-    } else if (activeTab === 'detalii') {
-      actions.push({
-        key: 'edit-event',
-        icon: 'edit-2',
-        accessibilityLabel: t('event.editEvent'),
-        onPress: () => router.push(`/edit-event/${id}`),
       });
     } else if (activeTab === 'fond' && isPrimaryOwner(event) && content !== null && content.fund !== null) {
       const fund = content.fund;

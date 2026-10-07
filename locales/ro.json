@@ -158,11 +158,11 @@
     "unit_minutes_few": "{{count}} minute",
     "unit_minutes_other": "{{count}} de minute",
     "countdownPast": "Povestea continuă în album",
-    "momentChip": "Moment",
     "reactions_one": "{{count}} reacție",
     "reactions_few": "{{count}} reacții",
     "reactions_other": "{{count}} de reacții",
-    "postMoment": "Postează un moment"
+    "postMoment": "Postează un moment",
+    "momentLongPressHint": "Ține apăsat ca să editezi sau să ștergi"
   },
   "chat": {
     "sectionLabel": "GRUPUL NUNȚII",
@@ -710,7 +710,22 @@
     "choosePhoto": "Alege o poză",
     "flowTitle": "Moment nou",
     "changePhoto": "Schimbă poza",
-    "quickEmoji": "Emoji rapid"
+    "editFlowTitle": "Editează momentul",
+    "iconLabel": "Iconiță",
+    "icons": {
+      "rings": "Verighete",
+      "cake": "Tort",
+      "camera": "Fotografii",
+      "glasses": "Pahare",
+      "music": "Muzică",
+      "food": "Mâncare",
+      "flower": "Flori",
+      "location": "Locație",
+      "gift": "Cadou",
+      "heart": "Inimă",
+      "baby": "Bebeluș",
+      "sparkles": "Sclipiri"
+    }
   },
   "onboarding": {
     "step1Title": "Totul începe cu o invitație",

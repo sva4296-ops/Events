@@ -2,7 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,7 +12,6 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { MomentCard, MomentCardSkeleton } from '@/components/guest/MomentCard';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
-import { SwipeableRow } from '@/components/SwipeableRow';
 import { confirmDelete } from '@/utils/confirm';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
@@ -20,6 +19,7 @@ import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
 import { daysUntilEvent, eventStartTime, isEventPast } from '@/utils/format';
+import { haptics } from '@/utils/haptics';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { staggerIn } from '@/utils/motion';
 import { accentButtonShadow, themeRadius, typography } from '@/utils/themeTokens';
@@ -99,6 +99,8 @@ export default function AcasaScreen() {
   const { content, toggleReaction, hasReacted, reactionCount, deleteMoment } = useEventContent(id);
 
   const owner = isOwner(event);
+  // Finished events are an archive: moments can't be edited or deleted there.
+  const canEditMoments = owner && (event === undefined || !isEventPast(event.date));
   // Distance from the true screen bottom up to the tab bar's top edge — the
   // FAB and this screen's own extra bottom padding both build on it.
   const tabBarClearance = tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height;
@@ -135,33 +137,38 @@ export default function AcasaScreen() {
 
         {content.moments.map((moment, index) => (
           <Animated.View key={moment.id} entering={staggerIn(index)}>
-            <SwipeableRow
-              enabled={owner}
-              actions={[
-                {
-                  label: t('common.delete'),
-                  icon: 'trash-2',
-                  tone: 'delete',
-                  onPress: () =>
-                    confirmDelete(
-                      t('acasa.deleteMomentTitle'),
-                      t('acasa.deleteMomentBody', { title: moment.title }),
-                      () => deleteMoment(moment.id),
-                    ),
-                },
-              ]}
-            >
               <MomentCard
                 moment={moment}
-                authorName={event?.name ?? ''}
-                authorType={event?.type ?? null}
                 loveCount={reactionCount(moment.id, 'love')}
                 celebrateCount={reactionCount(moment.id, 'celebrate')}
                 lovedByMe={hasReacted(moment.id, 'love')}
                 celebratedByMe={hasReacted(moment.id, 'celebrate')}
                 onReact={(reaction) => toggleReaction(moment.id, reaction)}
+                onLongPress={
+                  canEditMoments
+                    ? () => {
+                        haptics.press();
+                        Alert.alert(moment.title, undefined, [
+                          {
+                            text: t('common.edit'),
+                            onPress: () => router.push(`/post-moment/${id}?momentId=${moment.id}`),
+                          },
+                          {
+                            text: t('common.delete'),
+                            style: 'destructive',
+                            onPress: () =>
+                              confirmDelete(
+                                t('acasa.deleteMomentTitle'),
+                                t('acasa.deleteMomentBody', { title: moment.title }),
+                                () => deleteMoment(moment.id),
+                              ),
+                          },
+                          { text: t('common.cancel'), style: 'cancel' },
+                        ]);
+                      }
+                    : undefined
+                }
               />
-            </SwipeableRow>
           </Animated.View>
         ))}
 

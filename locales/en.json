@@ -154,10 +154,10 @@
     "unit_minutes_one": "{{count}} minute",
     "unit_minutes_other": "{{count}} minutes",
     "countdownPast": "The story continues in the album",
-    "momentChip": "Moment",
     "reactions_one": "{{count}} reaction",
     "reactions_other": "{{count}} reactions",
-    "postMoment": "Post a moment"
+    "postMoment": "Post a moment",
+    "momentLongPressHint": "Long press to edit or delete"
   },
   "chat": {
     "sectionLabel": "WEDDING GROUP",
@@ -690,7 +690,22 @@
     "choosePhoto": "Choose a photo",
     "flowTitle": "New moment",
     "changePhoto": "Change photo",
-    "quickEmoji": "Quick emoji"
+    "editFlowTitle": "Edit moment",
+    "iconLabel": "Icon",
+    "icons": {
+      "rings": "Rings",
+      "cake": "Cake",
+      "camera": "Photos",
+      "glasses": "Glasses",
+      "music": "Music",
+      "food": "Food",
+      "flower": "Flowers",
+      "location": "Location",
+      "gift": "Gift",
+      "heart": "Heart",
+      "baby": "Baby",
+      "sparkles": "Sparkles"
+    }
   },
   "onboarding": {
     "step1Title": "It all starts with an invitation",

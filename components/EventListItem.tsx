@@ -31,6 +31,7 @@ export function EventListItem({
   planLabel,
   onPressChoosePlan,
   coOrganizerLabel = null,
+  onLongPress,
 }: {
   event: AppEvent;
   onPress: () => void;
@@ -41,6 +42,8 @@ export function EventListItem({
   onPressChoosePlan: () => void;
   /** "Naș", "Mireasă"…: shown instead of the plan chip (the plan is the owner's call). */
   coOrganizerLabel?: string | null;
+  /** Organizers: long press opens edit / delete (see app/index.tsx). */
+  onLongPress?: () => void;
 }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
@@ -64,6 +67,8 @@ export function EventListItem({
     <ScaleTouchable
       scaleTo={0.98}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
       activeOpacity={0.9}
       accessibilityRole="button"
       accessibilityLabel={`${event.name}, ${counts.confirmed} ${t('home.confirmedCount')}`}

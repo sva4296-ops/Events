@@ -10,6 +10,8 @@ export interface Moment {
   organizer_id: string;
   title: string;
   photo_url: string;
+  /** Optional line icon id (components/MomentIcon.tsx), null when none. */
+  icon: string | null;
   created_at: string;
 }
 

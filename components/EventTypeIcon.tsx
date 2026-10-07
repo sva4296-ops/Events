@@ -2,7 +2,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import type { EventTypeId } from '@/types/event';
 
-type Shape =
+export type Shape =
   | { type: 'path'; d: string }
   | { type: 'circle'; cx: number; cy: number; r: number }
   | { type: 'rect'; x: number; y: number; width: number; height: number; rx?: number; ry?: number };
@@ -86,8 +86,21 @@ export function EventTypeIcon({
   color: string;
   strokeWidth?: number;
 }) {
-  const shapes = ICONS[type ?? 'other'] ?? ICONS.other;
+  return <LineIcon shapes={ICONS[type ?? 'other'] ?? ICONS.other} size={size} color={color} strokeWidth={strokeWidth} />;
+}
 
+/** Draws Lucide-style line geometry (24x24, round caps). Shared with MomentIcon. */
+export function LineIcon({
+  shapes,
+  size = 22,
+  color,
+  strokeWidth = 1.8,
+}: {
+  shapes: readonly Shape[];
+  size?: number;
+  color: string;
+  strokeWidth?: number;
+}) {
   return (
     <Svg
       width={size}

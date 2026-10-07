@@ -2,7 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,7 +26,10 @@ import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import i18n from '@/utils/i18n';
 import { compareEventsByDate } from '@/utils/eventOrder';
+import { confirmDelete } from '@/utils/confirm';
 import { isEventPast } from '@/utils/format';
+import { haptics } from '@/utils/haptics';
+import { reportSupabaseError } from '@/utils/reportError';
 import { myInvitations } from '@/utils/invitations';
 import { staggerIn } from '@/utils/motion';
 import { spacing } from '@/utils/theme';
@@ -52,7 +55,7 @@ export default function DashboardScreen() {
   usePushNotifications();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { events, hydrated, isOwner, isRestaurant, myCoOrganizerRole } = useEvents();
+  const { events, hydrated, isOwner, isPrimaryOwner, isRestaurant, myCoOrganizerRole, deleteEvent } = useEvents();
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
   const { isAgencyOwner } = useAgency();
@@ -93,6 +96,31 @@ export default function DashboardScreen() {
   const planLabelFor = (planTier: string | null): string | null => {
     if (planTier === null) return null;
     return plans.find((plan) => plan.planKey === planTier)?.displayName ?? planTier;
+  };
+
+  // Long press on one of your event cards: edit it (until it's over) and, for
+  // its creator, delete it after a confirmation. Replaces Detalii's pencil.
+  const openEventMenu = (event: (typeof events)[number]) => {
+    const canEdit = isOwner(event) && !isEventPast(event.date);
+    const canDelete = isPrimaryOwner(event);
+    if (!canEdit && !canDelete) return;
+    haptics.press();
+    Alert.alert(event.name, undefined, [
+      ...(canEdit ? [{ text: t('common.edit'), onPress: () => router.push(`/edit-event/${event.id}`) }] : []),
+      ...(canDelete
+        ? [
+            {
+              text: t('common.delete'),
+              style: 'destructive' as const,
+              onPress: () =>
+                confirmDelete(t('editEventForm.deleteTitle'), t('editEventForm.deleteBody', { name: event.name }), () => {
+                  deleteEvent(event.id).catch(reportSupabaseError);
+                }),
+            },
+          ]
+        : []),
+      { text: t('common.cancel'), style: 'cancel' as const },
+    ]);
   };
 
   const startCreating = () => {
@@ -199,6 +227,7 @@ export default function DashboardScreen() {
                   planLabel={planLabelFor(event.planTier)}
                   onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
                   coOrganizerLabel={coOrganizerLabel(myCoOrganizerRole(event))}
+                  onLongPress={isRestaurant(event) ? undefined : () => openEventMenu(event)}
                 />
               </Animated.View>
             ))

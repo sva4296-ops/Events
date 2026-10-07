@@ -116,6 +116,7 @@ function mapMoment(row: MomentRow): Moment {
     organizer_id: row.organizer_id,
     title: row.title,
     photo_url: row.photo_url ?? '',
+    icon: row.icon ?? null,
     created_at: row.created_at,
   };
 }
@@ -541,6 +542,7 @@ async function createMoment(
   momentId: string,
   title: string,
   photoUri: string | null,
+  icon: string | null,
   actor: Actor,
 ): Promise<void> {
   const client = supabase;
@@ -561,11 +563,45 @@ async function createMoment(
     organizer_id: actor.id,
     title,
     photo_url: photoPath,
+    icon,
   });
   if (error) {
     if (photoPath !== null) await client.storage.from(PHOTO_BUCKET).remove([photoPath]);
     throw error;
   }
+}
+
+/**
+ * Edit a moment's title and, optionally, replace its photo. A new photo goes
+ * to the moment's own Storage path (upsert), so photo_url keeps pointing at
+ * the same path; a moment that had no photo gets it set here.
+ */
+async function updateMoment(
+  eventId: string,
+  momentId: string,
+  title: string,
+  newPhotoUri: string | null,
+  icon: string | null,
+): Promise<void> {
+  const client = supabase;
+  const patch: { title: string; icon: string | null; photo_url?: string } = { title, icon };
+
+  if (newPhotoUri !== null) {
+    const photoPath = momentStoragePath(eventId, momentId);
+    const buffer = await fetch(newPhotoUri).then((res) => res.arrayBuffer());
+    const { error: uploadError } = await client.storage
+      .from(PHOTO_BUCKET)
+      .upload(photoPath, buffer, { contentType: 'image/jpeg', upsert: true });
+    // TEMP debug (remove after): what Storage answers to the upsert.
+    console.log('[updateMoment] storage upload', { photoPath, uploadError });
+    if (uploadError) throw uploadError;
+    patch.photo_url = photoPath;
+  }
+
+  const { data, error } = await client.from('moments').update(patch).eq('id', momentId).select('id');
+  // TEMP debug (remove after): the row update result. 0 rows with no error = RLS filtered it out.
+  console.log('[updateMoment] moments update', { momentId, patch, data, error });
+  if (error) throw error;
 }
 
 async function deleteMoment(eventId: string, momentId: string): Promise<void> {
@@ -884,6 +920,7 @@ export const remoteRepository = {
   addPhoto,
   deletePhoto,
   createMoment,
+  updateMoment,
   deleteMoment,
   saveFund,
   deleteFund,

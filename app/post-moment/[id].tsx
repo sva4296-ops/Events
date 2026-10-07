@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
+import { MOMENT_ICONS, MomentIcon, isMomentIconId, type MomentIconId } from '@/components/MomentIcon';
 import { Screen } from '@/components/Screen';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
@@ -24,18 +25,24 @@ import type { PickedPhoto } from '@/utils/imageProcessing';
 import { spacing } from '@/utils/theme';
 import { themeRadius, typography } from '@/utils/themeTokens';
 
-const PRESET_EMOJI = ['💍', '👰', '🎂', '📸', '💐', '🥂', '✨', '💜'];
+const ICON_IDS = Object.keys(MOMENT_ICONS) as MomentIconId[];
 
 export default function PostMomentScreen() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `?momentId=` opens the same form to edit an existing moment.
+  const { id, momentId } = useLocalSearchParams<{ id: string; momentId?: string }>();
   const { getEvent, isOwner } = useEvents();
   const { tokens } = useTheme();
   const event = getEvent(id);
-  const { addMoment } = useEventContent(id ?? '');
+  const { content, addMoment, updateMoment } = useEventContent(id ?? '');
+  const existing = momentId !== undefined ? content?.moments.find((moment) => moment.id === momentId) : undefined;
+  const editing = existing !== undefined;
 
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(existing?.title ?? '');
+  // Only a newly picked photo; the existing one shows until it's replaced.
   const [photo, setPhoto] = useState<PickedPhoto | null>(null);
+  const [icon, setIcon] = useState<MomentIconId | null>(isMomentIconId(existing?.icon) ? existing.icon : null);
+  const previewUri = photo?.uri ?? (existing !== undefined && existing.photo_url.length > 0 ? existing.photo_url : null);
 
   if (!isOwner(event)) {
     return (
@@ -64,7 +71,11 @@ export default function PostMomentScreen() {
   };
 
   const post = () => {
-    addMoment(title.trim(), photo);
+    if (existing !== undefined) {
+      updateMoment(existing.id, title.trim(), photo, icon);
+    } else {
+      addMoment(title.trim(), photo, icon);
+    }
     router.back();
   };
 
@@ -77,7 +88,7 @@ export default function PostMomentScreen() {
         contentStyle={styles.content}
         footer={
           <Button
-            label={t('postMomentForm.postButton')}
+            label={editing ? t('common.saveChanges') : t('postMomentForm.postButton')}
             disabled={title.trim().length === 0}
             icon={<Feather name="send" size={20} color={title.trim().length === 0 ? tokens.textMuted : tokens.onAccent} />}
             onPress={post}
@@ -86,7 +97,7 @@ export default function PostMomentScreen() {
       >
         <Header
           title=""
-          flowTitle={t('postMomentForm.flowTitle')}
+          flowTitle={editing ? t('postMomentForm.editFlowTitle') : t('postMomentForm.flowTitle')}
           stepLabel={event?.name}
           onClose={() => router.back()}
         />
@@ -96,9 +107,9 @@ export default function PostMomentScreen() {
           onPress={() => void pickPhoto()}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel={photo === null ? t('postMomentForm.choosePhoto') : t('postMomentForm.changePhoto')}
+          accessibilityLabel={previewUri === null ? t('postMomentForm.choosePhoto') : t('postMomentForm.changePhoto')}
         >
-          {photo === null ? (
+          {previewUri === null ? (
             <View style={styles.pickerEmpty}>
               <Feather name="image" size={28} color={tokens.accentText} />
               <Text style={[styles.pickerLabel, { color: tokens.accentText }]}>
@@ -107,7 +118,7 @@ export default function PostMomentScreen() {
             </View>
           ) : (
             <>
-              <Image source={{ uri: photo.uri }} style={styles.preview} />
+              <Image source={{ uri: previewUri }} style={styles.preview} />
               <View style={styles.changeChip}>
                 <Feather name="camera" size={16} color="#FFFFFF" />
                 <Text style={styles.changeChipText}>{t('postMomentForm.changePhoto')}</Text>
@@ -124,20 +135,30 @@ export default function PostMomentScreen() {
         />
 
         <View style={styles.emojiBlock}>
-          <Text style={[styles.label, { color: tokens.textSecondary }]}>{t('postMomentForm.quickEmoji')}</Text>
+          <Text style={[styles.label, { color: tokens.textSecondary }]}>{t('postMomentForm.iconLabel')}</Text>
           <View style={styles.emojiRow}>
-            {PRESET_EMOJI.map((emoji) => (
-              <TouchableOpacity
-                key={emoji}
-                style={[styles.emojiChip, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
-                onPress={() => setTitle((current) => `${current.trimEnd()} ${emoji}`.trim())}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel={`Add ${emoji}`}
-              >
-                <Text style={styles.emoji}>{emoji}</Text>
-              </TouchableOpacity>
-            ))}
+            {ICON_IDS.map((id) => {
+              const selected = icon === id;
+              return (
+                <TouchableOpacity
+                  key={id}
+                  style={[
+                    styles.emojiChip,
+                    selected
+                      ? { backgroundColor: tokens.accentFill, borderColor: tokens.accentFill }
+                      : { backgroundColor: tokens.surface, borderColor: tokens.border },
+                  ]}
+                  // Tapping the selected icon again clears it.
+                  onPress={() => setIcon(selected ? null : id)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={t(`postMomentForm.icons.${id}`)}
+                >
+                  <MomentIcon icon={id} size={22} color={selected ? tokens.onAccent : tokens.textPrimary} />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       </Screen>
@@ -207,8 +228,5 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 24,
   },
 });

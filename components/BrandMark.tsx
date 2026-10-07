@@ -9,10 +9,11 @@ import {
   MARK_START,
   MARK_STOPS,
   MARK_STROKE_WIDTH,
+  MARK_UNITS_WIDTH,
   MARK_VIEWBOX,
 } from '@/utils/brandMark';
 
-/** The story-thread logo, drawn statically. The splash animates its own copy. */
+/** The story-thread heart logo, drawn statically. The splash animates its own copy. */
 export function BrandMark({ width = 52 }: { width?: number }) {
   // Unique per instance so multiple marks on one screen can't share a gradient id.
   const gradientId = `brandMark-${useId()}`;
@@ -20,7 +21,7 @@ export function BrandMark({ width = 52 }: { width?: number }) {
   return (
     <Svg width={width} height={width / MARK_RATIO} viewBox={MARK_VIEWBOX}>
       <Defs>
-        <LinearGradient id={gradientId} x1="0" y1="0" x2="60" y2="0" gradientUnits="userSpaceOnUse">
+        <LinearGradient id={gradientId} x1="0" y1="0" x2={MARK_UNITS_WIDTH} y2="0" gradientUnits="userSpaceOnUse">
           {MARK_STOPS.map((stop) => (
             <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
           ))}
@@ -31,6 +32,7 @@ export function BrandMark({ width = 52 }: { width?: number }) {
         stroke={`url(#${gradientId})`}
         strokeWidth={MARK_STROKE_WIDTH}
         strokeLinecap="round"
+        strokeLinejoin="round"
         fill="none"
       />
       <Circle cx={MARK_START.x} cy={MARK_START.y} r={MARK_DOT_RADIUS} fill={MARK_STOPS[0].color} />

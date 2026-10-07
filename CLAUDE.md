@@ -86,7 +86,11 @@
 >   `ScreenBackground`, `BrandHeader`. povestea-web: `components/ui/styles.ts` classes, `TabNav` (docked
 >   bar) and every `bg-accent text-white` / `text-accent` moved to accent-fill / accent-text.
 >   **Logo + splash (same day):** the brand mark is the design's "story thread"
->   (`utils/brandMark.ts`: `M5 28C15 28 17 8 29 8S43 30 55 12`, gold + purple end dots). All
+>   (`utils/brandMark.ts`, gold + purple end dots). **Updated 2026-10-07:** the mark is now the
+  "story thread with a heart" (thread from the gold dot loops into a heart, ends at the purple dot;
+  viewBox `0 20 100 68`); the old plain wave survives only as `FLOURISH_PATH` for `BrandFlourish`.
+  `BrandSplash` now: heart double-beat + gold pulse, a white light runs along the thread, purple
+  pulse, then lift + wordmark + fade (~2.3s). All
 >   `assets/` icons were Expo defaults; they're now rendered from that mark (plum `#1E1A30` icon
 >   background, adaptive fg inside the safe zone, white monochrome). The native splash shows the
 >   mark at `imageWidth: 257` (= 180px mark), and `BrandSplash` starts from that exact frame: dots

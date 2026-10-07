@@ -11,7 +11,7 @@ import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
 import { fetchTableCompanions } from '@/data/eventsRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -202,7 +202,8 @@ export default function DetaliiSeatingScreen() {
             const assignedCount = event?.guests.filter((guest) => guest.tableId === table.id).length ?? 0;
             const isMine = !owner && myTableId !== null && table.id === myTableId;
             return (
-              <SwipeableRow
+              <LongPressRow
+                title={table.name}
                 key={table.id}
                 enabled={owner}
                 actions={[
@@ -275,7 +276,7 @@ export default function DetaliiSeatingScreen() {
                     </Text>
                   ) : null}
                 </View>
-              </SwipeableRow>
+              </LongPressRow>
             );
           })}
         </View>

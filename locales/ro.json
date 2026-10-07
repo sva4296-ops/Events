@@ -14,7 +14,8 @@
     "guestsSeeOnDetalii": "Invitații vor vedea asta în tab-ul Detalii.",
     "eventRsvpSummary": "{{confirmed}} confirmați · {{pending}} în așteptare",
     "choosePlan": "Alege pachet",
-    "viewPlans": "Vezi planurile"
+    "viewPlans": "Vezi planurile",
+    "close": "Închide"
   },
   "home": {
     "tagline": "Mai mult decât o invitație — întreaga poveste.",
@@ -162,7 +163,12 @@
     "reactions_few": "{{count}} reacții",
     "reactions_other": "{{count}} de reacții",
     "postMoment": "Postează un moment",
-    "momentLongPressHint": "Ține apăsat ca să editezi sau să ștergi"
+    "momentLongPressHint": "Ține apăsat ca să editezi sau să ștergi",
+    "scheduleTitle": "Programul",
+    "todayTitle": "Azi",
+    "now": "Acum",
+    "upNext": "Urmează",
+    "seeSchedule": "Vezi tot programul"
   },
   "chat": {
     "sectionLabel": "GRUPUL NUNȚII",
@@ -170,7 +176,9 @@
     "empty": "Niciun mesaj încă. Scrie primul!",
     "placeholder": "Scrie un mesaj…",
     "send": "Trimite",
-    "organizerBadge": "Organizator"
+    "organizerBadge": "Organizator",
+    "deleteMessageTitle": "Ștergi mesajul?",
+    "deleteMessageBody": "Mesajul dispare din chat pentru toată lumea."
   },
   "live": {
     "liveTag": "LIVE",
@@ -338,7 +346,9 @@
       "locked": "Blocat"
     },
     "openInMaps": "Deschide în Maps",
-    "openInWaze": "Waze"
+    "openInWaze": "Waze",
+    "deleteVenueTitle": "Ștergi locația?",
+    "deleteVenueBody": "„{{name}}” va fi scoasă din eveniment, cu adresa, harta și notițele. Invitații nu o vor mai vedea."
   },
   "fond": {
     "emptyOwner": "Niciun fond încă. Deschide unul ca invitații să poată contribui la ceva ce contează pentru voi.",
@@ -775,7 +785,8 @@
     "previewEdit": "Editează",
     "shareWhatsApp": "Trimite pe WhatsApp",
     "shareAddGuests": "Adaugă invitați",
-    "shareGoToEvent": "Mergi la eveniment"
+    "shareGoToEvent": "Mergi la eveniment",
+    "pickOnMap": "Alege pe hartă"
   },
   "eventTypes": {
     "wedding": {
@@ -840,7 +851,7 @@
   },
   "guestTabs": {
     "home": "Acasă",
-    "details": "Detalii",
+    "details": "Plan",
     "fund": "Fond",
     "chat": "Chat",
     "live": "Live",

@@ -296,6 +296,10 @@ export function useEventContent(eventId: string) {
         runRemote(() => remoteRepository.deletePhoto(eventId, photoId), 'social');
       },
 
+      deleteVenue: () => {
+        runRemote(() => remoteRepository.deleteVenue(eventId), 'details');
+      },
+
       updateVenue: (venue: Venue) => {
         runRemote(() => remoteRepository.updateVenue(venue), 'details');
       },

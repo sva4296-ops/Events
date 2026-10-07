@@ -16,7 +16,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { LockedFeature } from '@/components/guest/LockedFeature';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { MessageBubble, MessageBubbleSkeleton } from '@/components/guest/MessageBubble';
-import { closeOpenSwipeRow, SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
 import { remoteRepository } from '@/data/remoteEventContentRepository';
 import { supabase } from '@/data/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,7 +27,9 @@ import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import type { SocialContent } from '@/types/guest';
 import type { MessageRow } from '@/types/supabase';
+import { confirmDelete } from '@/utils/confirm';
 import { gSpace } from '@/utils/guestTheme';
+import { generateId } from '@/utils/uuid';
 
 export default function ChatScreen() {
   const { t } = useTranslation();
@@ -47,6 +49,20 @@ export default function ChatScreen() {
   const hasScrolledInitialContent = useRef(false);
 
   /**
+   * Organizer mark in the chat: undefined for a guest, null for the event's
+   * owner (chip reads "Organizator"), or a co-organizer's label ("Naș"…).
+   */
+  const organizerLabelFor = (senderId: string): string | null | undefined => {
+    if (event === undefined) return undefined;
+    if (event.owner_id !== undefined && senderId === event.owner_id) return null;
+    const member = event.coOrganizers.find(
+      (candidate) => candidate.role === 'co_organizer' && candidate.userId === senderId,
+    );
+    if (member === undefined) return undefined;
+    return member.relation !== null ? t(`coOrganizers.relation.${member.relation}`) : t('home.coOrganizer');
+  };
+
+  /**
    * Realtime replaces the request/response gap CLAUDE.md's §7 flags for
    * messages specifically — moments/reactions/photos are unaffected, still
    * on the 'social' category's 30s staleTime + explicit-invalidation
@@ -62,8 +78,13 @@ export default function ChatScreen() {
   useEffect(() => {
     if (id.length === 0) return;
     const socialKey = ['eventContent', 'social', id] as const;
+    // Unique topic per subscription: supabase-js hands back an existing channel
+    // with the same name, and if the previous one (a quick remount, a Fast
+    // Refresh) is still being removed it's already subscribed, so `.on()`
+    // throws "cannot add postgres_changes callbacks after subscribe()". The
+    // event filter below is what scopes the messages, not the topic name.
     const channel = supabase
-      .channel(`messages:${id}`)
+      .channel(`messages:${id}:${generateId()}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `event_id=eq.${id}` },
@@ -120,7 +141,6 @@ export default function ChatScreen() {
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          onScrollBeginDrag={closeOpenSwipeRow}
           // Fires whenever the message list's own content height changes —
           // initial load (skeletons -> real history), a message this device
           // just sent, or one the Realtime subscription just appended — so
@@ -148,28 +168,30 @@ export default function ChatScreen() {
           ) : null}
 
           {content?.messages.map((message) => (
-            <SwipeableRow
+            <LongPressRow
               key={message.id}
-              // Only your own messages swipe; everyone else's stay static.
+              // Only your own messages: hold one to delete it (with a confirmation,
+              // like every other delete in the app).
               enabled={message.sender_id === user?.id}
+              title={message.content.length > 60 ? `${message.content.slice(0, 60)}…` : message.content}
               actions={[
                 {
                   label: t('common.delete'),
-                  icon: 'trash-2',
                   tone: 'delete',
-                  // Low stakes: deletes straight away, no confirmation.
-                  onPress: () => deleteMessage(message.id),
+                  onPress: () =>
+                    confirmDelete(t('chat.deleteMessageTitle'), t('chat.deleteMessageBody'), () =>
+                      deleteMessage(message.id),
+                    ),
                 },
               ]}
             >
               <MessageBubble
                 message={message}
-                fromOrganizer={
-                  event?.owner_id !== undefined && message.sender_id === event.owner_id
-                }
+                fromOrganizer={organizerLabelFor(message.sender_id) !== undefined}
+                organizerLabel={organizerLabelFor(message.sender_id) ?? null}
                 isOwn={message.sender_id === user?.id}
               />
-            </SwipeableRow>
+            </LongPressRow>
           ))}
         </ScrollView>
 

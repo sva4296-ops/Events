@@ -8,7 +8,7 @@ import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { usePlanGate } from '@/hooks/usePlanGate';
@@ -107,7 +107,8 @@ export default function DetaliiAccommodationScreen() {
       ) : (
         <View style={styles.stack}>
           {content.accommodations.map((entry) => (
-            <SwipeableRow
+            <LongPressRow
+                title={entry.name}
               key={entry.id}
               enabled={owner}
               actions={[
@@ -141,7 +142,7 @@ export default function DetaliiAccommodationScreen() {
                   <Text style={[styles.rowMeta, { color: tokens.textSecondary }]}>{entry.price_line}</Text>
                 ) : null}
               </View>
-            </SwipeableRow>
+            </LongPressRow>
           ))}
         </View>
       )}

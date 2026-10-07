@@ -2,11 +2,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { LineIcon, type Shape } from '@/components/EventTypeIcon';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
 import type { Message } from '@/types/guest';
 import { timeOfDay } from '@/utils/relativeTime';
 import { brandGradient } from '@/utils/themeTokens';
+
+/** Lucide "crown" (ISC, https://lucide.dev): marks the organizers in the chat. */
+const CROWN: readonly Shape[] = [
+  {
+    type: 'path',
+    d: 'M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z',
+  },
+  { type: 'path', d: 'M5 21h14' },
+];
 
 function initialsOf(label: string): string {
   return label
@@ -27,10 +37,14 @@ function initialsOf(label: string): string {
 export function MessageBubble({
   message,
   fromOrganizer,
+  organizerLabel = null,
   isOwn,
 }: {
   message: Message;
+  /** Owner or co-organizer: crown on the avatar and a crown chip. */
   fromOrganizer: boolean;
+  /** Co-organizer's label ("Naș", "Mireasă"…); null shows "Organizator". */
+  organizerLabel?: string | null;
   isOwn: boolean;
 }) {
   const { t } = useTranslation();
@@ -52,9 +66,19 @@ export function MessageBubble({
   return (
     <View style={styles.otherRow}>
       {fromOrganizer ? (
-        <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.avatar}>
-          <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>{initials}</Text>
-        </LinearGradient>
+        <View style={styles.avatarWrap}>
+          <LinearGradient
+            colors={brandGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.avatar, styles.avatarInWrap]}
+          >
+            <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>{initials}</Text>
+          </LinearGradient>
+          <View style={[styles.crownBadge, { backgroundColor: tokens.accentFill, borderColor: tokens.surface }]}>
+            <LineIcon shapes={CROWN} size={9} color={tokens.onAccent} strokeWidth={2.6} />
+          </View>
+        </View>
       ) : (
         <View style={[styles.avatar, { backgroundColor: tokens.accentTint }]}>
           <Text style={[styles.avatarText, { color: tokens.accentText }]}>{initials}</Text>
@@ -67,7 +91,10 @@ export function MessageBubble({
           </Text>
           {fromOrganizer ? (
             <View style={[styles.chip, { backgroundColor: tokens.accentTint }]}>
-              <Text style={[styles.chipText, { color: tokens.accentText }]}>{t('chat.organizerBadge')}</Text>
+              <LineIcon shapes={CROWN} size={11} color={tokens.accentText} strokeWidth={2.2} />
+              <Text style={[styles.chipText, { color: tokens.accentText }]}>
+                {organizerLabel ?? t('chat.organizerBadge')}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -140,7 +167,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flexShrink: 1,
   },
+  avatarWrap: {
+    marginBottom: 18,
+  },
+  avatarInWrap: {
+    marginBottom: 0,
+  },
+  crownBadge: {
+    position: 'absolute',
+    right: -3,
+    bottom: -3,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     height: 22,
     paddingHorizontal: 10,
     borderRadius: 999,

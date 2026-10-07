@@ -2,12 +2,13 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { DateTimeField } from '@/components/DateTimeField';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
+import { MapPickerModal, type PickedLocation } from '@/components/MapPickerModal';
 import { Screen } from '@/components/Screen';
 import { useCancelCreate } from '@/hooks/useCancelCreate';
 import { useEventDraft } from '@/hooks/useEventDraft';
@@ -15,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/utils/theme';
 import { parseIsoDate, toIsoDate } from '@/utils/dateInput';
 import { formatEventDate } from '@/utils/format';
+import { mapsAvailable } from '@/utils/maps';
 
 /** Soft cap for the invitation quote — keeps it readable on the invitation card. */
 const WELCOME_MAX = 280;
@@ -32,7 +34,15 @@ export default function EventDetailsScreen() {
   const { draft, updateDraft } = useEventDraft();
   const cancel = useCancelCreate();
   const [dateError, setDateError] = useState<string | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
   const canContinue = draft.name.trim().length > 0 && draft.date.trim().length > 0;
+
+  // The pin opens the map; the address under the pin fills the field (still
+  // editable as text). Coordinates are set later, on the venue screen.
+  const onPickLocation = (picked: PickedLocation) => {
+    if (picked.address !== null) updateDraft({ location: picked.address });
+    setMapOpen(false);
+  };
 
   const handleContinue = () => {
     // Backstop, not just UI prevention: minimumDate on the picker below can't
@@ -96,7 +106,21 @@ export default function EventDetailsScreen() {
           value={draft.location}
           onChangeText={(location) => updateDraft({ location })}
           placeholder={t('createWizard.locationPlaceholder')}
-          icon={<Feather name="map-pin" size={18} color={tokens.textSecondary} />}
+          icon={
+            mapsAvailable ? (
+              <TouchableOpacity
+                onPress={() => setMapOpen(true)}
+                activeOpacity={0.7}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t('createWizard.pickOnMap')}
+              >
+                <Feather name="map-pin" size={18} color={tokens.accentText} />
+              </TouchableOpacity>
+            ) : (
+              <Feather name="map-pin" size={18} color={tokens.textSecondary} />
+            )
+          }
         />
         <Field
           label={t('editEventForm.welcomeMessageLabel')}
@@ -108,6 +132,7 @@ export default function EventDetailsScreen() {
           hint={`${draft.welcomeMessage.length} / ${WELCOME_MAX}`}
         />
       </Screen>
+      {mapOpen ? <MapPickerModal initial={null} onClose={() => setMapOpen(false)} onPick={onPickLocation} /> : null}
     </KeyboardAvoidingView>
   );
 }

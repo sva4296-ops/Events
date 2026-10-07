@@ -8,7 +8,7 @@ import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
@@ -76,7 +76,8 @@ export default function DetaliiScheduleScreen() {
       ) : (
         <View style={styles.stack}>
           {content.schedule.map((item) => (
-            <SwipeableRow
+            <LongPressRow
+                title={item.title}
               key={item.id}
               enabled={owner}
               actions={[
@@ -108,7 +109,7 @@ export default function DetaliiScheduleScreen() {
                   </Text>
                 </View>
               </View>
-            </SwipeableRow>
+            </LongPressRow>
           ))}
         </View>
       )}

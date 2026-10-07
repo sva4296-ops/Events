@@ -1,4 +1,3 @@
-import Feather from '@expo/vector-icons/Feather';
 import { Redirect, router, Tabs, useLocalSearchParams, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, View } from 'react-native';
@@ -7,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
-import { TabBarIcon } from '@/components/guest/TabBarIcon';
+import { TabBarIcon, type TabIconId } from '@/components/guest/TabBarIcon';
 import { currentStage, stageDayKey } from '@/components/StoryTimeline';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useTheme } from '@/hooks/useTheme';
@@ -21,15 +20,13 @@ import { haptics } from '@/utils/haptics';
 import { reportSupabaseError } from '@/utils/reportError';
 import { floatingTabBar, guest, tabBarBottomInset } from '@/utils/guestTheme';
 
-type FeatherName = keyof typeof Feather.glyphMap;
-
-const TABS: readonly { name: string; labelKey: string; icon: FeatherName }[] = [
+const TABS: readonly { name: string; labelKey: string; icon: TabIconId }[] = [
   { name: 'index', labelKey: 'guestTabs.home', icon: 'home' },
-  { name: 'detalii', labelKey: 'guestTabs.details', icon: 'list' },
-  { name: 'fond', labelKey: 'guestTabs.fund', icon: 'gift' },
-  { name: 'chat', labelKey: 'guestTabs.chat', icon: 'message-circle' },
-  { name: 'live', labelKey: 'guestTabs.live', icon: 'radio' },
-  { name: 'album', labelKey: 'guestTabs.album', icon: 'image' },
+  { name: 'detalii', labelKey: 'guestTabs.details', icon: 'plan' },
+  { name: 'fond', labelKey: 'guestTabs.fund', icon: 'fund' },
+  { name: 'chat', labelKey: 'guestTabs.chat', icon: 'chat' },
+  { name: 'live', labelKey: 'guestTabs.live', icon: 'live' },
+  { name: 'album', labelKey: 'guestTabs.album', icon: 'album' },
 ];
 
 /** Derived from the pathname rather than the tab bar's own state, since this

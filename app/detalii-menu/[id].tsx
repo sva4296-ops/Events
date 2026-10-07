@@ -9,7 +9,8 @@ import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
+import { PhotoViewer } from '@/components/PhotoViewer';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
@@ -56,6 +57,8 @@ export default function DetaliiMenuScreen() {
   const { content, deleteMenuOption, saveMenuDeadline } = useEventContent(id ?? '');
   const { tokens } = useTheme();
   const [deadlineOpen, setDeadlineOpen] = useState(false);
+  // A course photo opened full screen (tap on its thumbnail).
+  const [viewer, setViewer] = useState<{ uri: string; caption: string } | null>(null);
 
   if (content === null) {
     return (
@@ -261,11 +264,23 @@ export default function DetaliiMenuScreen() {
                     // Courses have no id; their order is their identity.
                     <View key={courseIndex} style={styles.courseRow}>
                       {course.photo_url !== null ? (
-                        <Image
-                          source={{ uri: course.photo_url }}
-                          style={[styles.courseThumb, { backgroundColor: tokens.surface2 }]}
-                          accessibilityIgnoresInvertColors
-                        />
+                        <TouchableOpacity
+                          onPress={() =>
+                            setViewer({
+                              uri: course.photo_url ?? '',
+                              caption: [course.name, course.dish].filter((part) => part.trim().length > 0).join(' · '),
+                            })
+                          }
+                          activeOpacity={0.8}
+                          accessibilityRole="imagebutton"
+                          accessibilityLabel={course.dish || course.name}
+                        >
+                          <Image
+                            source={{ uri: course.photo_url }}
+                            style={[styles.courseThumb, { backgroundColor: tokens.surface2 }]}
+                            accessibilityIgnoresInvertColors
+                          />
+                        </TouchableOpacity>
                       ) : null}
                       <Text style={[styles.courseLabel, { color: tokens.textSecondary }]}>{course.name}</Text>
                       <Text style={[styles.courseValue, { color: tokens.textPrimary }]}>{course.dish}</Text>
@@ -289,7 +304,8 @@ export default function DetaliiMenuScreen() {
 
               if (owner) {
                 return (
-                  <SwipeableRow
+                  <LongPressRow
+                title={option.name}
                     key={option.id}
                     actions={[
                       {
@@ -312,7 +328,7 @@ export default function DetaliiMenuScreen() {
                     ]}
                   >
                     <View style={cardStyles}>{courses}</View>
-                  </SwipeableRow>
+                  </LongPressRow>
                 );
               }
 
@@ -365,6 +381,12 @@ export default function DetaliiMenuScreen() {
           ) : null}
         </>
       )}
+      <PhotoViewer
+        uri={viewer?.uri}
+        visible={viewer !== null}
+        onClose={() => setViewer(null)}
+        caption={viewer?.caption}
+      />
     </GuestScreen>
   );
 }

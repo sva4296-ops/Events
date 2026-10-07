@@ -8,7 +8,7 @@ import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { usePlanGate } from '@/hooks/usePlanGate';
@@ -120,7 +120,8 @@ export default function DetaliiVendorsScreen() {
         <>
           <View style={styles.stack}>
             {content.vendors.map((vendor) => (
-              <SwipeableRow
+              <LongPressRow
+                title={vendor.name}
                 key={vendor.id}
                 enabled={owner}
                 actions={[
@@ -166,7 +167,7 @@ export default function DetaliiVendorsScreen() {
                     </TouchableOpacity>
                   ) : null}
                 </View>
-              </SwipeableRow>
+              </LongPressRow>
             ))}
           </View>
           <Text style={[styles.vendorCaption, { color: tokens.textSecondary }]}>

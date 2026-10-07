@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { closeOpenSwipeRow } from '@/components/SwipeableRow';
 import { useTheme } from '@/hooks/useTheme';
 import type { Gradient } from '@/types/event';
 import { spacing } from '@/utils/theme';
@@ -41,7 +40,6 @@ export function Screen({
             contentContainerStyle={[styles.content, contentStyle]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            onScrollBeginDrag={closeOpenSwipeRow}
           >
             {children}
           </ScrollView>

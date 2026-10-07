@@ -14,7 +14,8 @@
     "guestsSeeOnDetalii": "Guests will see this on the Detalii tab.",
     "eventRsvpSummary": "{{confirmed}} confirmed · {{pending}} pending",
     "choosePlan": "Choose a plan",
-    "viewPlans": "View plans"
+    "viewPlans": "View plans",
+    "close": "Close"
   },
   "home": {
     "tagline": "More than an invitation — the whole story.",
@@ -157,7 +158,12 @@
     "reactions_one": "{{count}} reaction",
     "reactions_other": "{{count}} reactions",
     "postMoment": "Post a moment",
-    "momentLongPressHint": "Long press to edit or delete"
+    "momentLongPressHint": "Long press to edit or delete",
+    "scheduleTitle": "Schedule",
+    "todayTitle": "Today",
+    "now": "Now",
+    "upNext": "Up next",
+    "seeSchedule": "See the full schedule"
   },
   "chat": {
     "sectionLabel": "WEDDING GROUP",
@@ -165,7 +171,9 @@
     "empty": "No messages yet. Write the first one!",
     "placeholder": "Write a message…",
     "send": "Send",
-    "organizerBadge": "Organizer"
+    "organizerBadge": "Organizer",
+    "deleteMessageTitle": "Delete this message?",
+    "deleteMessageBody": "It disappears from the chat for everyone."
   },
   "live": {
     "liveTag": "LIVE",
@@ -323,7 +331,9 @@
       "locked": "Locked"
     },
     "openInMaps": "Open in Maps",
-    "openInWaze": "Waze"
+    "openInWaze": "Waze",
+    "deleteVenueTitle": "Delete the location?",
+    "deleteVenueBody": "\"{{name}}\" will be removed from the event, with its address, map and notes. Guests won't see it anymore."
   },
   "fond": {
     "emptyOwner": "No fund yet. Open one so guests can contribute to something that matters to you.",
@@ -755,7 +765,8 @@
     "previewEdit": "Edit",
     "shareWhatsApp": "Send on WhatsApp",
     "shareAddGuests": "Add guests",
-    "shareGoToEvent": "Go to the event"
+    "shareGoToEvent": "Go to the event",
+    "pickOnMap": "Pick on the map"
   },
   "eventTypes": {
     "wedding": {
@@ -820,7 +831,7 @@
   },
   "guestTabs": {
     "home": "Home",
-    "details": "Details",
+    "details": "Plan",
     "fund": "Fund",
     "chat": "Chat",
     "live": "Live",

@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { closeOpenSwipeRow } from '@/components/SwipeableRow';
 import { useTheme } from '@/hooks/useTheme';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 
@@ -47,8 +46,6 @@ export function GuestScreen({
       contentContainerStyle={[styles.content, padding, contentStyle]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      // Scrolling dismisses any revealed swipe actions, as on iOS.
-      onScrollBeginDrag={closeOpenSwipeRow}
     >
       {children}
     </ScrollView>

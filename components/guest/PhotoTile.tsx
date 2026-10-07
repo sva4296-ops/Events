@@ -1,22 +1,11 @@
-import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import {
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image, StyleSheet, Text, TouchableOpacity, type StyleProp, type ViewStyle } from 'react-native';
+
+import { PhotoViewer } from '@/components/PhotoViewer';
 
 import type { Photo } from '@/types/guest';
 import { confirmDelete } from '@/utils/confirm';
-import { guest } from '@/utils/guestTheme';
 
 interface PhotoTileProps {
   photo: Photo;
@@ -35,7 +24,6 @@ interface PhotoTileProps {
  */
 export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 12 }: PhotoTileProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
-  const insets = useSafeAreaInsets();
   const label = photo.uploaded_by_label ?? 'Invitat';
   // Grid tile: thumbnail (400px) — this is the whole point of having one.
   // Lightbox: full (2800px, near-lossless) for a crisp zoomed view. `url` is
@@ -69,32 +57,7 @@ export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 1
         </LinearGradient>
       </TouchableOpacity>
 
-      <Modal
-        visible={viewerOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setViewerOpen(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setViewerOpen(false)}>
-          <View style={styles.viewerBackdrop}>
-            <Image source={{ uri: viewerUri }} style={styles.viewerImage} resizeMode="contain" />
-
-            <TouchableOpacity
-              style={[styles.viewerClose, { top: insets.top + 12 }]}
-              onPress={() => setViewerOpen(false)}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Închide"
-            >
-              <Feather name="x" size={22} color={guest.white} />
-            </TouchableOpacity>
-
-            <View style={[styles.viewerCaption, { bottom: insets.bottom + 24 }]}>
-              <Text style={styles.viewerCaptionText}>{label}</Text>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+      <PhotoViewer uri={viewerUri} visible={viewerOpen} onClose={() => setViewerOpen(false)} caption={label} />
     </>
   );
 }
@@ -111,34 +74,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  viewerBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(10,8,20,0.94)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewerImage: {
-    width: '100%',
-    height: '80%',
-  },
-  viewerClose: {
-    position: 'absolute',
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewerCaption: {
-    position: 'absolute',
-  },
-  viewerCaptionText: {
-    fontSize: 14,
-    fontWeight: '600',
     color: '#FFFFFF',
   },
 });

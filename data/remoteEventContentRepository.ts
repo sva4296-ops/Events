@@ -660,6 +660,12 @@ async function deleteScheduleItem(itemId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Removes the event's location (the single venue_info row); the app then shows the empty state. */
+async function deleteVenue(eventId: string): Promise<void> {
+  const { error } = await supabase.from('venue_info').delete().eq('event_id', eventId);
+  if (error) throw error;
+}
+
 async function updateVenue(venue: Venue): Promise<void> {
   const client = supabase;
   const { error } = await client
@@ -927,6 +933,7 @@ export const remoteRepository = {
   saveScheduleItem,
   deleteScheduleItem,
   updateVenue,
+  deleteVenue,
   saveMenu,
   saveMenuOption,
   deleteMenuOption,

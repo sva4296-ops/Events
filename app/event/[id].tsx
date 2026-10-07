@@ -21,7 +21,7 @@ import { GuestRow, GuestRowSkeleton } from "@/components/GuestRow";
 import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import { Skeleton } from "@/components/Skeleton";
-import { SwipeableRow } from "@/components/SwipeableRow";
+import { LongPressRow } from "@/components/LongPressRow";
 import { remoteRepository } from "@/data/remoteEventContentRepository";
 import { confirmDelete } from "@/utils/confirm";
 import { useEvents } from "@/hooks/useEvents";
@@ -341,7 +341,8 @@ export default function EventDetailScreen() {
             <View style={[styles.listCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
               {visibleGuests.map((guest, index) => (
                 <Animated.View key={guest.id} entering={staggerIn(index)}>
-                  <SwipeableRow
+                  <LongPressRow
+                title={guest.name}
                     enabled={owner}
                     actions={[
                       {
@@ -358,7 +359,7 @@ export default function EventDetailScreen() {
                     ]}
                   >
                     <GuestRow guest={guest} showDivider={index > 0} />
-                  </SwipeableRow>
+                  </LongPressRow>
                 </Animated.View>
               ))}
             </View>

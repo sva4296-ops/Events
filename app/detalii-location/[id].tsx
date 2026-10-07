@@ -1,19 +1,21 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Button, buttonLabelColor } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { LongPressRow } from '@/components/LongPressRow';
 import { Screen } from '@/components/Screen';
 import { VenueMapPreview } from '@/components/VenueMapPreview';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import { fonts, gRadius, gSpace } from '@/utils/guestTheme';
+import { confirmDelete } from '@/utils/confirm';
 import { mapsAvailable, openInMaps, openInWaze } from '@/utils/maps';
 import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
@@ -32,7 +34,7 @@ export default function DetaliiLocationScreen() {
   const { getEvent, isVenueManager } = useEvents();
   const event = getEvent(id);
   const owner = isVenueManager(event);
-  const { content } = useEventContent(id ?? '');
+  const { content, deleteVenue } = useEventContent(id ?? '');
   const { tokens } = useTheme();
 
   if (content === null) {
@@ -58,18 +60,25 @@ export default function DetaliiLocationScreen() {
           }
         />
       ) : (
+        // Hold the card to edit or delete the location, like every other list.
+        <LongPressRow
+          title={content.venue.name.trim() || content.venue.address}
+          enabled={owner}
+          actions={[
+            { label: t('common.edit'), tone: 'edit', onPress: () => router.push(`/venue/${id}`) },
+            {
+              label: t('common.delete'),
+              tone: 'delete',
+              onPress: () =>
+                confirmDelete(
+                  t('detalii.deleteVenueTitle'),
+                  t('detalii.deleteVenueBody', { name: content.venue.name.trim() || content.venue.address }),
+                  deleteVenue,
+                ),
+            },
+          ]}
+        >
         <View style={[styles.mapCard, card]}>
-          {owner ? (
-            <TouchableOpacity
-              style={[styles.venueEdit, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
-              onPress={() => router.push(`/venue/${id}`)}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Editează locația"
-            >
-              <Feather name="edit-2" size={16} color={tokens.accentText} />
-            </TouchableOpacity>
-          ) : null}
           {mapsAvailable && content.venue.latitude !== null && content.venue.longitude !== null ? (
             <VenueMapPreview latitude={content.venue.latitude} longitude={content.venue.longitude} height={170} />
           ) : (
@@ -105,6 +114,7 @@ export default function DetaliiLocationScreen() {
             </View>
           </View>
         </View>
+        </LongPressRow>
       )}
     </GuestScreen>
   );
@@ -114,17 +124,6 @@ const styles = StyleSheet.create({
   mapCard: {
     borderRadius: themeRadius.xl,
     overflow: 'hidden',
-  },
-  venueEdit: {
-    position: 'absolute',
-    top: gSpace.md,
-    right: gSpace.md,
-    zIndex: 2,
-    width: 44,
-    height: 44,
-    borderRadius: gRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   mapPreview: {
     height: 170,

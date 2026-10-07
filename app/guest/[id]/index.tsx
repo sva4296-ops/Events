@@ -18,12 +18,13 @@ import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
+import type { ScheduleItem } from '@/types/guest';
 import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, eventStartTime, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { staggerIn } from '@/utils/motion';
-import { accentButtonShadow, themeRadius, typography } from '@/utils/themeTokens';
+import { accentButtonShadow, themeRadius, typeface, typography } from '@/utils/themeTokens';
 
 /**
  * Live countdown (days · hours · minutes) to the event's start: its date at
@@ -91,6 +92,96 @@ function CountdownCard({ date, type, scheduleTimes }: { date: string; type: Even
   );
 }
 
+/** "HH:MM" to minutes after midnight; null when it doesn't parse. */
+function minutesOf(time: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
+  if (match === null) return null;
+  const minutes = Number(match[1]) * 60 + Number(match[2]);
+  return minutes < 24 * 60 ? minutes : null;
+}
+
+/**
+ * "Up next" card under the countdown, only when the day is close: in the last
+ * 3 days the first few items of the Program; on the day itself what's on now
+ * and what's next (refreshed every minute). Hidden otherwise, and when the
+ * Program is empty. Items without a time are left out.
+ */
+function UpNextCard({ eventId, date, schedule }: { eventId: string; date: string; schedule: ScheduleItem[] }) {
+  const { t } = useTranslation();
+  const { tokens } = useTheme();
+  const days = daysUntilEvent(date);
+  const today = days === 0;
+  const [nowMinutes, setNowMinutes] = useState(() => {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  });
+
+  useEffect(() => {
+    if (!today) return;
+    const timer = setInterval(() => {
+      const now = new Date();
+      setNowMinutes(now.getHours() * 60 + now.getMinutes());
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [today]);
+
+  const timed = schedule
+    .map((item) => ({ item, minutes: minutesOf(item.time) }))
+    .filter((entry): entry is { item: ScheduleItem; minutes: number } => entry.minutes !== null)
+    .sort((a, b) => a.minutes - b.minutes);
+  if (days === null || days < 0 || days > 3 || timed.length === 0) return null;
+
+  const rows: { label: string; item: ScheduleItem; highlight: boolean }[] = [];
+  if (today) {
+    const startedIndex = timed.reduce((found, entry, index) => (entry.minutes <= nowMinutes ? index : found), -1);
+    const current = timed[startedIndex];
+    const next = timed[startedIndex + 1];
+    if (current !== undefined) rows.push({ label: t('acasa.now'), item: current.item, highlight: true });
+    if (next !== undefined) rows.push({ label: t('acasa.upNext'), item: next.item, highlight: current === undefined });
+  } else {
+    timed.slice(0, 3).forEach((entry) => rows.push({ label: entry.item.time, item: entry.item, highlight: false }));
+  }
+
+  return (
+    <View style={[styles.upNext, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+      <Text style={[styles.upNextTitle, { color: tokens.textPrimary }]}>
+        {today ? t('acasa.todayTitle') : t('acasa.scheduleTitle')}
+      </Text>
+      {rows.map((row) => (
+        <View key={`${row.label}-${row.item.id}`} style={styles.upNextRow}>
+          <View
+            style={[
+              styles.upNextLabel,
+              { backgroundColor: row.highlight ? tokens.accentFill : tokens.surface2 },
+            ]}
+          >
+            <Text style={[styles.upNextLabelText, { color: row.highlight ? tokens.onAccent : tokens.textPrimary }]}>
+              {row.label}
+            </Text>
+          </View>
+          <View style={styles.upNextText}>
+            <Text style={[styles.upNextItem, { color: tokens.textPrimary }]} numberOfLines={1}>
+              {row.item.title}
+            </Text>
+            <Text style={[styles.upNextMeta, { color: tokens.textSecondary }]} numberOfLines={1}>
+              {[today ? row.item.time : null, row.item.location.trim() || null].filter(Boolean).join(' · ')}
+            </Text>
+          </View>
+        </View>
+      ))}
+      <TouchableOpacity
+        onPress={() => router.push(`/detalii-schedule/${eventId}`)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        style={styles.upNextLink}
+      >
+        <Text style={[styles.upNextLinkText, { color: tokens.accentText }]}>{t('acasa.seeSchedule')}</Text>
+        <Feather name="chevron-right" size={16} color={tokens.accentText} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function AcasaScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
@@ -132,8 +223,10 @@ export default function AcasaScreen() {
             scheduleTimes={content.schedule.map((item) => item.time)}
           /> : null}
 
+        {event !== undefined ? <UpNextCard eventId={id} date={event.date} schedule={content.schedule} /> : null}
+
         {content.moments.length === 0 ? (
-          <EmptyState message={owner ? t('acasa.emptyOwner') : t('acasa.emptyGuest')} />
+          <EmptyState message={canEditMoments ? t('acasa.emptyOwner') : t('acasa.emptyGuest')} />
         ) : null}
 
         {content.moments.map((moment, index) => (
@@ -247,6 +340,56 @@ const styles = StyleSheet.create({
   countdownSub: {
     fontSize: 13,
     textAlign: 'center',
+  },
+  upNext: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  upNextTitle: {
+    fontFamily: typeface.bodyBold,
+    fontSize: 16,
+  },
+  upNextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  upNextLabel: {
+    minWidth: 64,
+    height: 30,
+    paddingHorizontal: 10,
+    borderRadius: themeRadius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upNextLabelText: {
+    fontFamily: typeface.bodyBold,
+    fontSize: 13,
+  },
+  upNextText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  upNextItem: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 15,
+  },
+  upNextMeta: {
+    fontFamily: typeface.body,
+    fontSize: 13,
+  },
+  upNextLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 2,
+    minHeight: 32,
+  },
+  upNextLinkText: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 14,
   },
   promo: {
     borderRadius: 24,

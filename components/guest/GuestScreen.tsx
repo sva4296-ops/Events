@@ -2,7 +2,9 @@ import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EventCoverBackground } from '@/components/EventCoverBackground';
 import { useTheme } from '@/hooks/useTheme';
+import type { EventTypeId } from '@/types/event';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 
 interface GuestScreenProps {
@@ -13,6 +15,8 @@ interface GuestScreenProps {
   topInset?: boolean;
   /** Skips the solid cream fill so a ScreenBackground behind it shows through. */
   transparent?: boolean;
+  /** Screens opened from an event (outside the tabs): its type's cover behind the content. */
+  coverType?: EventTypeId | null;
 }
 
 export function GuestScreen({
@@ -21,6 +25,7 @@ export function GuestScreen({
   contentStyle,
   topInset = false,
   transparent = false,
+  coverType = null,
 }: GuestScreenProps) {
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
@@ -32,15 +37,13 @@ export function GuestScreen({
     paddingTop: (topInset ? insets.top : 0) + gSpace.lg,
     paddingBottom: tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height + gSpace.lg,
   };
-  const pageStyle = transparent
+  const pageStyle = transparent || coverType !== null
     ? styles.pageTransparent
     : [styles.page, { backgroundColor: tokens.background[0] }];
 
-  if (!scroll) {
-    return <View style={[pageStyle, padding, contentStyle]}>{children}</View>;
-  }
-
-  return (
+  const body = !scroll ? (
+    <View style={[pageStyle, padding, contentStyle]}>{children}</View>
+  ) : (
     <ScrollView
       style={pageStyle}
       contentContainerStyle={[styles.content, padding, contentStyle]}
@@ -49,6 +52,15 @@ export function GuestScreen({
     >
       {children}
     </ScrollView>
+  );
+
+  if (coverType === null) return body;
+
+  return (
+    <View style={[styles.page, { backgroundColor: tokens.background[0] }]}>
+      <EventCoverBackground type={coverType} />
+      {body}
+    </View>
   );
 }
 

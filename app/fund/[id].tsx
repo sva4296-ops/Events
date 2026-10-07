@@ -25,7 +25,7 @@ export default function FundFormScreen() {
 
   if (!isPrimaryOwner(event)) {
     return (
-      <Screen>
+      <Screen coverType={event?.type}>
         <Header
           title={t('common.notAvailable')}
           subtitle={t('fundForm.notAvailableSubtitle')}
@@ -54,6 +54,7 @@ export default function FundFormScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
+        coverType={event?.type}
         footer={
           <Button
             label={existing === null ? t('fundForm.setupButton') : t('fundForm.saveButton')}

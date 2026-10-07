@@ -73,6 +73,7 @@ export default function EditEventScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
+        coverType={event?.type}
         footer={
           <Button
             label={t('common.saveChanges')}

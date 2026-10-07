@@ -62,7 +62,7 @@ export default function DetaliiMenuScreen() {
 
   if (content === null) {
     return (
-      <Screen>
+      <Screen coverType={event?.type}>
         <Header title={t('detalii.hub.menuTitle')} showBack />
       </Screen>
     );
@@ -111,7 +111,7 @@ export default function DetaliiMenuScreen() {
         : t('detalii.menuChooseOpen', { date: lastDayLabel });
 
   return (
-    <GuestScreen topInset>
+    <GuestScreen coverType={event?.type} topInset>
       <Header
         title={t('detalii.hub.menuTitle')}
         subtitle={t('detalii.menuDescription')}

@@ -36,7 +36,7 @@ export default function DetaliiScheduleScreen() {
 
   if (content === null) {
     return (
-      <Screen>
+      <Screen coverType={event?.type}>
         <Header title={t('detalii.hub.scheduleTitle')} showBack />
       </Screen>
     );
@@ -45,7 +45,7 @@ export default function DetaliiScheduleScreen() {
   const card = cardStyle(tokens);
 
   return (
-    <GuestScreen topInset>
+    <GuestScreen coverType={event?.type} topInset>
       <Header
         title={t('detalii.hub.scheduleTitle')}
         showBack

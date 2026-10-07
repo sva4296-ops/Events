@@ -27,7 +27,7 @@ export default function ScheduleItemScreen() {
 
   if (!isOwner(event) || content === null) {
     return (
-      <Screen>
+      <Screen coverType={event?.type}>
         <Header
           title={t('common.notAvailable')}
           subtitle={t('scheduleForm.notAvailableSubtitle')}
@@ -48,6 +48,7 @@ export default function ScheduleItemScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
+        coverType={event?.type}
         footer={
           <Button
             label={existing === null ? t('scheduleForm.addButton') : t('common.saveChanges')}

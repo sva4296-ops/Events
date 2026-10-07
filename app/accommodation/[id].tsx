@@ -25,7 +25,7 @@ export default function AccommodationScreen() {
 
   if (!isOwner(event) || content === null) {
     return (
-      <Screen>
+      <Screen coverType={event?.type}>
         <Header
           title={t('common.notAvailable')}
           subtitle={t('accommodationForm.notAvailableSubtitle')}
@@ -51,6 +51,7 @@ export default function AccommodationScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
+        coverType={event?.type}
         footer={
           <Button
             label={existing === null ? t('accommodationForm.addTitle') : t('common.saveChanges')}

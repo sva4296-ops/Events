@@ -109,7 +109,7 @@ export default function SendInvitesScreen() {
       : null;
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen coverType={event?.type} contentStyle={styles.content}>
       <Header
         title=""
         showBack

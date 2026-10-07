@@ -38,7 +38,7 @@ export default function DetaliiAccommodationScreen() {
 
   if (content === null) {
     return (
-      <Screen>
+      <Screen coverType={event?.type}>
         <Header title={t('detalii.hub.accommodationTitle')} showBack />
       </Screen>
     );
@@ -51,7 +51,7 @@ export default function DetaliiAccommodationScreen() {
   // plan-feature-gating migration).
   if (planHydrated && !capabilities.lodgingTransportEnabled) {
     return (
-      <GuestScreen topInset>
+      <GuestScreen coverType={event?.type} topInset>
         <Header title={t('detalii.hub.accommodationTitle')} showBack />
         <EmptyState
           icon="lock"
@@ -72,7 +72,7 @@ export default function DetaliiAccommodationScreen() {
   const card = cardStyle(tokens);
 
   return (
-    <GuestScreen topInset>
+    <GuestScreen coverType={event?.type} topInset>
       <Header
         title={t('detalii.hub.accommodationTitle')}
         subtitle={t('detalii.accommodationDescription')}

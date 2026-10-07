@@ -3,8 +3,9 @@ import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EventCoverBackground } from '@/components/EventCoverBackground';
 import { useTheme } from '@/hooks/useTheme';
-import type { Gradient } from '@/types/event';
+import type { EventTypeId, Gradient } from '@/types/event';
 import { spacing } from '@/utils/theme';
 
 interface ScreenProps {
@@ -18,6 +19,8 @@ interface ScreenProps {
   contentStyle?: ViewStyle;
   /** Skips the gradient so a ScreenBackground behind it shows through. */
   transparent?: boolean;
+  /** Screens opened from an event: its type's cover behind the content, same as the event tabs. */
+  coverType?: EventTypeId | null;
 }
 
 export function Screen({
@@ -27,6 +30,7 @@ export function Screen({
   scroll = true,
   contentStyle,
   transparent = false,
+  coverType = null,
 }: ScreenProps) {
   const { tokens } = useTheme();
   const Wrapper = transparent ? TransparentWrapper : LinearGradient;
@@ -34,6 +38,7 @@ export function Screen({
 
   return (
     <Wrapper colors={resolvedGradient} style={styles.fill}>
+      {coverType !== null ? <EventCoverBackground type={coverType} /> : null}
       <SafeAreaView style={styles.fill} edges={['top', 'bottom']}>
         {scroll ? (
           <ScrollView

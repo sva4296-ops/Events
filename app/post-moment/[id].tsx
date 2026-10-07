@@ -46,7 +46,7 @@ export default function PostMomentScreen() {
 
   if (!isOwner(event)) {
     return (
-      <Screen>
+      <Screen coverType={event?.type}>
         <Header
           title={t('common.notAvailable')}
           subtitle={t('postMomentForm.notAvailableSubtitle')}
@@ -85,6 +85,7 @@ export default function PostMomentScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
+        coverType={event?.type}
         contentStyle={styles.content}
         footer={
           <Button

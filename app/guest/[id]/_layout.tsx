@@ -1,10 +1,11 @@
 import { Redirect, router, Tabs, useLocalSearchParams, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { EventCoverBackground } from '@/components/EventCoverBackground';
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
 import { TabBarIcon, type TabIconId } from '@/components/guest/TabBarIcon';
 import { currentStage, stageDayKey } from '@/components/StoryTimeline';
@@ -13,7 +14,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
 import { confirmDelete } from '@/utils/confirm';
-import { EVENT_COVERS } from '@/utils/eventCovers';
 import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, formatShortDate, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
@@ -145,21 +145,7 @@ export default function GuestEventLayout() {
       <LinearGradient colors={tokens.background} style={styles.shell}>
         {/* The type's cover photo behind every tab, full screen, under a veil of
             the page background so the header, chat and cards stay readable. */}
-        {event !== undefined ? (
-          <View style={styles.cover} pointerEvents="none">
-            <Image source={EVENT_COVERS[event.type]} style={StyleSheet.absoluteFill} resizeMode="cover" />
-            <LinearGradient
-              colors={[
-                withAlpha(tokens.background[0], 0.6),
-                withAlpha(tokens.background[0], 0.3),
-                withAlpha(tokens.background[0], 0.55),
-                withAlpha(tokens.background[0], 0.85),
-              ]}
-              locations={[0, 0.25, 0.6, 1]}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
-        ) : null}
+        {event !== undefined ? <EventCoverBackground type={event.type} /> : null}
         <EventHeaderBar
           // Name and date only on Acasă; the other tabs keep just their actions.
           name={activeTab === 'acasa' || restaurant ? (event?.name ?? 'Evenimentul nostru') : ''}
@@ -215,24 +201,7 @@ export default function GuestEventLayout() {
   );
 }
 
-/** `#RRGGBB` + alpha as `#RRGGBBAA`. */
-function withAlpha(hex: string, alpha: number): string {
-  return `${hex}${Math.round(alpha * 255)
-    .toString(16)
-    .padStart(2, '0')}`;
-}
-
 const styles = StyleSheet.create({
-  // Full screen; overflow hidden because iOS draws a "cover" image past its own
-  // bounds (a portrait photo spilled below the old 380px box).
-  cover: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    overflow: 'hidden',
-  },
   shell: {
     flex: 1,
     backgroundColor: guest.cream,

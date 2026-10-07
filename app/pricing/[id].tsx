@@ -187,7 +187,7 @@ export default function PricingScreen() {
   // owner's call (guard_event_owner_columns enforces it server-side).
   if (!isPrimaryOwner(event)) {
     return (
-      <Screen>
+      <Screen coverType={event?.type}>
         <Header title={t('pricing.title')} subtitle={t('pricing.ownerOnly')} showBack />
       </Screen>
     );
@@ -195,6 +195,7 @@ export default function PricingScreen() {
 
   return (
     <Screen
+      coverType={event?.type}
       footer={
         context === 'create' ? (
           <Button label={t('pricing.skipForNow')} variant="ghost" onPress={continueAfterPricing} />

@@ -114,6 +114,7 @@ export default function CoOrganizersScreen() {
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen
+        coverType={event?.type}
         contentStyle={styles.content}
         footer={
           <View style={styles.footer}>

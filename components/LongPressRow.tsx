@@ -1,15 +1,15 @@
 import type { ReactNode } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
+import { showActionSheet } from '@/components/ActionSheet';
 import { haptics } from '@/utils/haptics';
-import i18n from '@/utils/i18n';
 
 export interface LongPressAction {
   label: string;
   tone: 'edit' | 'delete';
   onPress: () => void;
-  /** Kept from the old swipe actions; the menu doesn't draw icons. */
+  /** Kept from the old swipe actions; the sheet picks its icon from `tone`. */
   icon?: string;
 }
 
@@ -37,14 +37,10 @@ export function LongPressRow({ children, actions, enabled = true, title }: LongP
 
   const openMenu = () => {
     haptics.press();
-    Alert.alert(title ?? '', undefined, [
-      ...actions.map((action) => ({
-        text: action.label,
-        style: action.tone === 'delete' ? ('destructive' as const) : ('default' as const),
-        onPress: action.onPress,
-      })),
-      { text: i18n.t('common.cancel'), style: 'cancel' as const },
-    ]);
+    showActionSheet({
+      title,
+      actions: actions.map((action) => ({ label: action.label, tone: action.tone, onPress: action.onPress })),
+    });
   };
 
   const longPress = Gesture.LongPress().minDuration(350).runOnJS(true).onStart(openMenu);

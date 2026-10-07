@@ -24,6 +24,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthGate } from '@/components/AuthGate';
+import { ActionSheetHost } from '@/components/ActionSheet';
 import { BrandSplash } from '@/components/BrandSplash';
 import { AuthProvider } from '@/hooks/useAuth';
 import { EventDraftProvider } from '@/hooks/useEventDraft';
@@ -146,6 +147,7 @@ function AppShell({
             contentStyle: { backgroundColor: tokens.background[0] },
           }}
         />
+        <ActionSheetHost />
         {splashVisible ? <BrandSplash onReveal={onReveal} onFinished={onFinished} /> : null}
       </View>
     </>

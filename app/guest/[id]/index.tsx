@@ -6,6 +6,7 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showActionSheet } from '@/components/ActionSheet';
 import { BrandFlourish } from '@/components/BrandFlourish';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
@@ -248,23 +249,26 @@ export default function AcasaScreen() {
                   canEditMoment(moment.organizer_id)
                     ? () => {
                         haptics.press();
-                        Alert.alert(moment.title, undefined, [
-                          {
-                            text: t('common.edit'),
-                            onPress: () => router.push(`/post-moment/${id}?momentId=${moment.id}`),
-                          },
-                          {
-                            text: t('common.delete'),
-                            style: 'destructive',
-                            onPress: () =>
-                              confirmDelete(
-                                t('acasa.deleteMomentTitle'),
-                                t('acasa.deleteMomentBody', { title: moment.title }),
-                                () => deleteMoment(moment.id),
-                              ),
-                          },
-                          { text: t('common.cancel'), style: 'cancel' },
-                        ]);
+                        showActionSheet({
+                          title: moment.title,
+                          actions: [
+                            {
+                              label: t('common.edit'),
+                              tone: 'edit',
+                              onPress: () => router.push(`/post-moment/${id}?momentId=${moment.id}`),
+                            },
+                            {
+                              label: t('common.delete'),
+                              tone: 'delete',
+                              onPress: () =>
+                                confirmDelete(
+                                  t('acasa.deleteMomentTitle'),
+                                  t('acasa.deleteMomentBody', { title: moment.title }),
+                                  () => deleteMoment(moment.id),
+                                ),
+                            },
+                          ],
+                        });
                       }
                     : canEditMoments
                       ? () => {

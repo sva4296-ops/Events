@@ -2,10 +2,11 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showActionSheet } from '@/components/ActionSheet';
 import { Button } from '@/components/Button';
 import { EventListItem, EventListItemSkeleton } from '@/components/EventListItem';
 import { GeneratedAvatar } from '@/components/GeneratedAvatar';
@@ -105,22 +106,30 @@ export default function DashboardScreen() {
     const canDelete = isPrimaryOwner(event);
     if (!canEdit && !canDelete) return;
     haptics.press();
-    Alert.alert(event.name, undefined, [
-      ...(canEdit ? [{ text: t('common.edit'), onPress: () => router.push(`/edit-event/${event.id}`) }] : []),
-      ...(canDelete
-        ? [
-            {
-              text: t('common.delete'),
-              style: 'destructive' as const,
-              onPress: () =>
-                confirmDelete(t('editEventForm.deleteTitle'), t('editEventForm.deleteBody', { name: event.name }), () => {
-                  deleteEvent(event.id).catch(reportSupabaseError);
-                }),
-            },
-          ]
-        : []),
-      { text: t('common.cancel'), style: 'cancel' as const },
-    ]);
+    showActionSheet({
+      title: event.name,
+      actions: [
+        ...(canEdit
+          ? [{ label: t('common.edit'), tone: 'edit' as const, onPress: () => router.push(`/edit-event/${event.id}`) }]
+          : []),
+        ...(canDelete
+          ? [
+              {
+                label: t('common.delete'),
+                tone: 'delete' as const,
+                onPress: () =>
+                  confirmDelete(
+                    t('editEventForm.deleteTitle'),
+                    t('editEventForm.deleteBody', { name: event.name }),
+                    () => {
+                      deleteEvent(event.id).catch(reportSupabaseError);
+                    },
+                  ),
+              },
+            ]
+          : []),
+      ],
+    });
   };
 
   const startCreating = () => {

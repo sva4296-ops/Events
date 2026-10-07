@@ -15,6 +15,7 @@ import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
 import { confirmDelete } from '@/utils/confirm';
 import { EVENT_COVERS } from '@/utils/eventCovers';
+import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, formatShortDate, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
 import { reportSupabaseError } from '@/utils/reportError';
@@ -69,6 +70,10 @@ export default function GuestEventLayout() {
   // A finished event is an archive: only Acasă (its moments) and the Album
   // stay; no guest list, details, fund, chat or live, and nothing to edit.
   const past = event !== undefined && !restaurant && isEventPast(event.date);
+  // Fund hidden for now (utils/features.ts): an old link to it lands on Acasă.
+  if (!FUND_ENABLED && activeTab === 'fond') {
+    return <Redirect href={`/guest/${id}`} />;
+  }
   if (past && activeTab !== 'acasa' && activeTab !== 'album') {
     return <Redirect href={`/guest/${id}/album`} />;
   }
@@ -192,7 +197,10 @@ export default function GuestEventLayout() {
               name={tab.name}
               options={{
                 // Past events hide every tab but Acasă and Album.
-                href: past && tab.name !== 'index' && tab.name !== 'album' ? null : undefined,
+                href:
+                  (past && tab.name !== 'index' && tab.name !== 'album') || (!FUND_ENABLED && tab.name === 'fond')
+                    ? null
+                    : undefined,
                 title: t(tab.labelKey),
                 tabBarLabel: ({ color, focused }) => (
                   <Text style={[styles.label, { color, fontWeight: focused ? '700' : '500' }]}>

@@ -18,6 +18,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
+import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, eventStartTime, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
@@ -172,7 +173,7 @@ export default function AcasaScreen() {
           </Animated.View>
         ))}
 
-        {content.fund !== null ? (
+        {FUND_ENABLED && content.fund !== null ? (
           <View
             style={[
               styles.promo,

@@ -20,6 +20,7 @@ import { spacing } from '@/utils/theme';
 import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
 import { reportSupabaseError } from '@/utils/reportError';
 import { fetchOfferingPackages } from '@/utils/revenueCat';
+import { FUND_ENABLED } from '@/utils/features';
 
 /**
  * Per-event pricing screen — reached two ways, both event-scoped: right
@@ -68,7 +69,7 @@ function buildFeatureBullets(plan: PlanFeature, t: Translate): string[] {
       ? t('pricing.featureMaxGuests', { count: plan.maxGuests })
       : t('pricing.featureUnlimitedGuests'),
   );
-  if (plan.contributionsEnabled) bullets.push(t('pricing.featureContributions'));
+  if (FUND_ENABLED && plan.contributionsEnabled) bullets.push(t('pricing.featureContributions'));
   if (plan.liveScreenEnabled) bullets.push(t('pricing.featureLiveScreen'));
   if (plan.chatEnabled) bullets.push(t('pricing.featureChat'));
   if (plan.lodgingTransportEnabled) bullets.push(t('pricing.featureLodgingTransport'));

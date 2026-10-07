@@ -6,3 +6,9 @@
  * react-native-webview + expo-keep-awake.
  */
 export const LIVE_VIDEO_ENABLED = false;
+
+/**
+ * Fund (Fond tab, the fund card on Acasă, the pricing bullet). Hidden for now:
+ * nothing is deleted, the screens and data stay; set to true to bring it back.
+ */
+export const FUND_ENABLED = false;

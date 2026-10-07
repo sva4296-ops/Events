@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventCoverBackground } from '@/components/EventCoverBackground';
-import { useTheme } from '@/hooks/useTheme';
+import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 
@@ -59,7 +59,7 @@ export function GuestScreen({
   return (
     <View style={[styles.page, { backgroundColor: tokens.background[0] }]}>
       <EventCoverBackground type={coverType} />
-      {body}
+      <EventAccentProvider type={coverType}>{body}</EventAccentProvider>
     </View>
   );
 }

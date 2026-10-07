@@ -41,7 +41,10 @@ export function Button({
 }: ButtonProps) {
   const { tokens } = useTheme();
   const look = disabled ? disabledLook(tokens) : variantLook(variant, tokens);
-  const glow = !disabled && tokens.mode === 'light' && look.glow ? accentButtonShadow : undefined;
+  const glow =
+    !disabled && tokens.mode === 'light' && look.glow
+      ? { ...accentButtonShadow, shadowColor: tokens.accentFill }
+      : undefined;
   const compact = variant === 'ghost' || variant === 'danger';
   // Main calls to action get a light bump; secondary buttons stay silent.
   const bumps = variant === 'primary' || variant === 'success' || variant === 'whatsapp';

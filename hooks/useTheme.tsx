@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
+import type { EventTypeId } from '@/types/event';
+import { eventAccentTokens } from '@/utils/eventAccent';
 import { darkTheme, lightTheme, type ThemeTokens } from '@/utils/themeTokens';
 
 export type ThemeMode = 'light' | 'dark';
@@ -57,4 +59,18 @@ export function useTheme(): ThemeContextValue {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return ctx;
+}
+
+/**
+ * Inside an event's screens: same theme, but the accent (buttons, switches,
+ * + button, active tab) in the event type's color. Cards and text unchanged.
+ * Pass null to keep the app's purple.
+ */
+export function EventAccentProvider({ type, children }: { type: EventTypeId | null; children: ReactNode }) {
+  const parent = useTheme();
+  const value = useMemo<ThemeContextValue>(
+    () => (type === null ? parent : { ...parent, tokens: { ...parent.tokens, ...eventAccentTokens(type, parent.tokens) } }),
+    [parent, type],
+  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

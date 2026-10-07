@@ -10,10 +10,11 @@ import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeade
 import { TabBarIcon, type TabIconId } from '@/components/guest/TabBarIcon';
 import { currentStage, stageDayKey } from '@/components/StoryTimeline';
 import { useEventContent } from '@/hooks/useEventContent';
-import { useTheme } from '@/hooks/useTheme';
+import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
 import { confirmDelete } from '@/utils/confirm';
+import { eventAccentTokens } from '@/utils/eventAccent';
 import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, formatShortDate, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
@@ -142,6 +143,7 @@ export default function GuestEventLayout() {
 
   return (
     <GuestEventProvider id={id}>
+      <EventAccentProvider type={event?.type ?? null}>
       <LinearGradient colors={tokens.background} style={styles.shell}>
         {/* The type's cover photo behind every tab, full screen, under a veil of
             the page background so the header, chat and cards stay readable. */}
@@ -167,7 +169,8 @@ export default function GuestEventLayout() {
                 paddingBottom: tabBarBottomInset(insets.bottom),
               },
             ],
-            tabBarActiveTintColor: tokens.tabBar.active,
+            tabBarActiveTintColor:
+              event !== undefined ? eventAccentTokens(event.type, tokens).tabBar.active : tokens.tabBar.active,
             tabBarInactiveTintColor: tokens.tabBar.inactive,
             tabBarItemStyle: styles.item,
             sceneStyle: { backgroundColor: 'transparent' },
@@ -197,6 +200,7 @@ export default function GuestEventLayout() {
           ))}
         </Tabs>
       </LinearGradient>
+      </EventAccentProvider>
     </GuestEventProvider>
   );
 }

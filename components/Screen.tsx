@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventCoverBackground } from '@/components/EventCoverBackground';
-import { useTheme } from '@/hooks/useTheme';
+import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
 import type { EventTypeId, Gradient } from '@/types/event';
 import { spacing } from '@/utils/theme';
 
@@ -39,6 +39,7 @@ export function Screen({
   return (
     <Wrapper colors={resolvedGradient} style={styles.fill}>
       {coverType !== null ? <EventCoverBackground type={coverType} /> : null}
+      <EventAccentProvider type={coverType}>
       <SafeAreaView style={styles.fill} edges={['top', 'bottom']}>
         {scroll ? (
           <ScrollView
@@ -53,6 +54,7 @@ export function Screen({
         )}
         {footer !== undefined ? <View style={styles.footer}>{footer}</View> : null}
       </SafeAreaView>
+      </EventAccentProvider>
     </Wrapper>
   );
 }

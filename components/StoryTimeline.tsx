@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
+import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
 import { brandGradient } from '@/utils/themeTokens';
 
 /**
@@ -24,7 +25,8 @@ export function stageDayKey(type?: EventTypeId): string {
   return type !== undefined ? `eventTypes.${type}.stageDay` : 'onboarding.stageDayX';
 }
 
-/** Warm Story 2.0 four-stage story timeline: done stages checked, the current one haloed. */
+/** Four-stage story timeline: done stages checked, the current one haloed. With
+ * an event type it takes that type's cover colors; without (onboarding) the brand's. */
 export function StoryTimeline({ stage, type }: { stage: number; type?: EventTypeId }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
@@ -34,13 +36,18 @@ export function StoryTimeline({ stage, type }: { stage: number; type?: EventType
     t(stageDayKey(type)),
     t('onboarding.stageRecap'),
   ];
+  const palette = type !== undefined ? EVENT_TYPE_COLORS[type] : null;
+  const gradient = palette?.gradient ?? brandGradient;
+  const doneFill = palette?.fill ?? tokens.accentFill;
+  const doneInk = palette?.onFill ?? tokens.onAccent;
+  const haloTint = palette?.tint ?? tokens.accentTint;
 
   return (
     <View style={styles.timeline}>
       <View style={[styles.track, { backgroundColor: tokens.border }]} />
       {stage > 0 ? (
         <LinearGradient
-          colors={brandGradient}
+          colors={gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[styles.track, { right: undefined, width: `${(75 * stage) / 3}%` }]}
@@ -52,12 +59,12 @@ export function StoryTimeline({ stage, type }: { stage: number; type?: EventType
         return (
           <View key={label} style={styles.stage}>
             {done ? (
-              <View style={[styles.node, { backgroundColor: tokens.accentFill }]}>
-                <Feather name="check" size={13} color={tokens.onAccent} />
+              <View style={[styles.node, { backgroundColor: doneFill }]}>
+                <Feather name="check" size={13} color={doneInk} />
               </View>
             ) : current ? (
-              <View style={[styles.currentHalo, { backgroundColor: tokens.accentTint }]}>
-                <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.node}>
+              <View style={[styles.currentHalo, { backgroundColor: haloTint }]}>
+                <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.node}>
                   <View style={styles.currentDot} />
                 </LinearGradient>
               </View>

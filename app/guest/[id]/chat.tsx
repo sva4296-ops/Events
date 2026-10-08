@@ -1,8 +1,10 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  AppState,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -20,6 +22,7 @@ import { LongPressRow } from '@/components/LongPressRow';
 import { remoteRepository } from '@/data/remoteEventContentRepository';
 import { supabase } from '@/data/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
+import { useChatRead } from '@/hooks/useChatRead';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
@@ -29,6 +32,7 @@ import type { SocialContent } from '@/types/guest';
 import type { MessageRow } from '@/types/supabase';
 import { confirmDelete } from '@/utils/confirm';
 import { gSpace } from '@/utils/guestTheme';
+import { setActiveChat } from '@/utils/pushNotifications';
 import { generateId } from '@/utils/uuid';
 
 export default function ChatScreen() {
@@ -47,6 +51,32 @@ export default function ChatScreen() {
   // to the latest message" — while every later arrival (send or Realtime
   // receive) animates instead of jumping.
   const hasScrolledInitialContent = useRef(false);
+  const { markRead } = useChatRead(id);
+
+  // Opening the chat marks it read (resets chat pushes and the tab's unread
+  // dot), and so does leaving it or sending the app to the background, so
+  // messages seen while here don't count as unread. While it's on screen,
+  // a chat push for this event shows no banner.
+  useFocusEffect(
+    useCallback(() => {
+      setActiveChat(id);
+      markRead();
+      const subscription = AppState.addEventListener('change', (state) => {
+        if (state === 'active') {
+          setActiveChat(id);
+          markRead();
+        } else if (state === 'background') {
+          setActiveChat(null);
+          markRead();
+        }
+      });
+      return () => {
+        subscription.remove();
+        setActiveChat(null);
+        markRead();
+      };
+    }, [id, markRead]),
+  );
 
   /**
    * Organizer mark in the chat: undefined for a guest, null for the event's

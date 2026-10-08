@@ -63,13 +63,15 @@ interface TabBarIconProps {
   name: TabIconId;
   color: ColorValue;
   focused: boolean;
+  /** Small dot on the icon, e.g. unread chat messages. */
+  badge?: boolean;
 }
 
 /**
  * Tab icon with the Warm Story accentTint pill. When a tab becomes active the
  * pill grows in and the icon does a short pop. Transform + opacity only.
  */
-export function TabBarIcon({ name, color, focused }: TabBarIconProps) {
+export function TabBarIcon({ name, color, focused, badge = false }: TabBarIconProps) {
   const { tokens } = useTheme();
   const pill = useSharedValue(focused ? 1 : 0);
   const pop = useSharedValue(1);
@@ -93,6 +95,9 @@ export function TabBarIcon({ name, color, focused }: TabBarIconProps) {
       <Animated.View style={iconStyle}>
         <LineIcon shapes={TAB_ICONS[name]} size={22} color={String(color)} strokeWidth={focused ? 2 : 1.8} />
       </Animated.View>
+      {badge ? (
+        <View style={[styles.badge, { backgroundColor: tokens.accentFill, borderColor: tokens.surface }]} />
+      ) : null}
     </View>
   );
 }
@@ -106,5 +111,14 @@ const styles = StyleSheet.create({
   },
   pill: {
     borderRadius: gRadius.pill,
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
   },
 });

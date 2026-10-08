@@ -8,7 +8,7 @@ import { supabase } from '@/data/supabaseClient';
  * type off.
  */
 
-export type NotificationCategory = 'organizer' | 'reminders' | 'updates';
+export type NotificationCategory = 'organizer' | 'reminders' | 'updates' | 'chat';
 
 export interface NotificationType {
   key: string;

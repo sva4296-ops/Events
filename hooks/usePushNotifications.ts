@@ -35,6 +35,7 @@ function refreshEventData(queryClient: QueryClient, route: string | null): void 
   // '/' = an event was deleted (on_event_delete_notify): only Home's list changes.
   if (eventId === null && route !== '/') return;
   void queryClient.invalidateQueries({ queryKey: ['events'] });
+  void queryClient.invalidateQueries({ queryKey: ['unreadChats'] });
   if (eventId === null) return;
   void queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === 'eventContent' && query.queryKey[2] === eventId,

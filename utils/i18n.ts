@@ -11,17 +11,17 @@ export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 const LANGUAGE_KEY = 'povesteanoastra:language:v1';
 
 /**
- * English for everyone by default, regardless of device locale — this pass
- * deliberately does not auto-detect device language (e.g. via
- * expo-localization). A language the user previously chose in Profile is
- * still restored below; that's a saved preference, not detection.
+ * Romanian for everyone by default, regardless of device locale (no
+ * auto-detection, e.g. via expo-localization). A language the user chose in
+ * Profile is restored below; that's a saved preference, not detection.
+ * Missing Romanian keys still fall back to English.
  */
 void i18n.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     ro: { translation: ro },
   },
-  lng: 'en',
+  lng: 'ro',
   fallbackLng: 'en',
   interpolation: {
     // React already escapes rendered text; i18next's own escaping would double-escape it.

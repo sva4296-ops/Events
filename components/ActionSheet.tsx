@@ -16,6 +16,8 @@ export interface SheetAction {
   /** 'delete' draws it red with a trash icon. */
   tone?: 'default' | 'edit' | 'delete';
   icon?: FeatherName;
+  /** Current choice in a picker (language, theme): check mark on the right. */
+  selected?: boolean;
 }
 
 interface SheetRequest {
@@ -122,6 +124,7 @@ export function ActionSheetHost() {
                     <Feather name={action.icon ?? DEFAULT_ICON[tone]} size={18} color={color} />
                   </View>
                   <Text style={[styles.label, { color }]}>{action.label}</Text>
+                  {action.selected === true ? <Feather name="check" size={20} color={tokens.accentText} /> : null}
                 </TouchableOpacity>
               );
             })}

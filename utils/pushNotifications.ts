@@ -18,14 +18,27 @@ import { generateId } from '@/utils/uuid';
  * there fails and is ignored, the same as on an emulator without Play services.
  */
 
-// Shown as a banner while the app is open, too.
+/** Event whose chat is on screen right now (set by the Chat tab). */
+let activeChatEventId: string | null = null;
+
+export function setActiveChat(eventId: string | null): void {
+  activeChatEventId = eventId;
+}
+
+// Shown as a banner while the app is open, too, except a chat push for the
+// chat you're already reading.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data as { type?: unknown; event_id?: unknown } | undefined;
+    const inThatChat =
+      data?.type === 'chat_message' && activeChatEventId !== null && data.event_id === activeChatEventId;
+    return {
+      shouldShowBanner: !inThatChat,
+      shouldShowList: !inThatChat,
+      shouldPlaySound: !inThatChat,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 /** Last token registered on this device, so sign-out can remove it. */

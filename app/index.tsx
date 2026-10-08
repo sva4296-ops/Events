@@ -1,6 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -23,6 +23,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
 import { usePlanFeatures } from '@/hooks/usePlanFeatures';
+import { useChatActivity } from '@/hooks/useChatActivity';
+import { useUnreadChats } from '@/hooks/useUnreadChats';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import i18n from '@/utils/i18n';
@@ -54,6 +56,14 @@ function initials(firstName: string | null, lastName: string | null): string {
 
 export default function DashboardScreen() {
   usePushNotifications();
+  useChatActivity();
+  const { unreadFor, refetch: refetchUnread } = useUnreadChats();
+  // Back on Home (e.g. after reading a chat): refresh the "new messages" pills.
+  useFocusEffect(
+    useCallback(() => {
+      refetchUnread();
+    }, [refetchUnread]),
+  );
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { events, hydrated, isOwner, isPrimaryOwner, isRestaurant, myCoOrganizerRole, deleteEvent } = useEvents();
@@ -237,6 +247,7 @@ export default function DashboardScreen() {
                   onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
                   coOrganizerLabel={coOrganizerLabel(myCoOrganizerRole(event))}
                   onLongPress={isRestaurant(event) ? undefined : () => openEventMenu(event)}
+                  unreadMessages={isRestaurant(event) ? 0 : unreadFor(event.id)}
                 />
               </Animated.View>
             ))
@@ -274,6 +285,7 @@ export default function DashboardScreen() {
                     <InvitationListItem
                       invitation={invitation}
                       showDivider={index > 0}
+                      unreadMessages={invitation.guest.status === 'confirmed' ? unreadFor(invitation.event.id) : 0}
                       onPress={() =>
                         // Only a confirmed guest enters the event. Pending and
                         // declined both land on the RSVP screen, which for a

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 import { ActivityIndicator, Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { showActionSheet } from '@/components/ActionSheet';
 import { Button } from '@/components/Button';
 import { BackButton } from '@/components/BackButton';
 import { ListGroup, ListRow } from '@/components/ListGroup';
@@ -105,11 +106,13 @@ export default function ProfileScreen() {
   };
 
   const chooseAvatarSource = () => {
-    Alert.alert(t('profile.changePhoto'), undefined, [
-      { text: t('profile.takePhoto'), onPress: () => void pickAndUploadAvatar('camera') },
-      { text: t('profile.chooseFromLibrary'), onPress: () => void pickAndUploadAvatar('library') },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+    showActionSheet({
+      title: t('profile.changePhoto'),
+      actions: [
+        { label: t('profile.takePhoto'), icon: 'camera', onPress: () => void pickAndUploadAvatar('camera') },
+        { label: t('profile.chooseFromLibrary'), icon: 'image', onPress: () => void pickAndUploadAvatar('library') },
+      ],
+    });
   };
 
   const initials = (displayName ?? '')
@@ -120,24 +123,28 @@ export default function ProfileScreen() {
     .toUpperCase();
 
   const chooseLanguage = () => {
-    Alert.alert(t('profile.language'), undefined, [
-      ...SUPPORTED_LANGUAGES.map((language) => ({
-        text: t(LANGUAGE_LABEL_KEY[language]),
+    showActionSheet({
+      title: t('profile.language'),
+      actions: SUPPORTED_LANGUAGES.map((language) => ({
+        label: t(LANGUAGE_LABEL_KEY[language]),
+        icon: 'globe' as const,
+        selected: activeLanguage === language,
         onPress: () =>
           void setLanguage(language).then(() => (user !== null ? syncPushLocale(user.id) : undefined)),
       })),
-      { text: t('common.cancel'), style: 'cancel' as const },
-    ]);
+    });
   };
 
   const chooseTheme = () => {
-    Alert.alert(t('profile.theme'), undefined, [
-      ...THEME_MODES.map((themeMode) => ({
-        text: t(THEME_LABEL_KEY[themeMode]),
+    showActionSheet({
+      title: t('profile.theme'),
+      actions: THEME_MODES.map((themeMode) => ({
+        label: t(THEME_LABEL_KEY[themeMode]),
+        icon: themeMode === 'dark' ? ('moon' as const) : ('sun' as const),
+        selected: mode === themeMode,
         onPress: () => setThemeMode(themeMode),
       })),
-      { text: t('common.cancel'), style: 'cancel' as const },
-    ]);
+    });
   };
 
   const languageLabel = SUPPORTED_LANGUAGES.includes(activeLanguage as SupportedLanguage)

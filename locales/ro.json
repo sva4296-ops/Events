@@ -43,7 +43,10 @@
     "respond": "Răspunde",
     "coOrganizer": "Co-organizator",
     "tabInvited": "Invitate",
-    "tabAll": "Toate"
+    "tabAll": "Toate",
+    "unreadMessages_one": "{{count}} mesaj nou",
+    "unreadMessages_few": "{{count}} mesaje noi",
+    "unreadMessages_other": "{{count}} mesaje noi"
   },
   "auth": {
     "headline": "Intră în poveste",
@@ -919,7 +922,8 @@
     "categories": {
       "organizer": "Ca organizator",
       "reminders": "Mementouri",
-      "updates": "Noutăți despre eveniment"
+      "updates": "Noutăți despre eveniment",
+      "chat": "Chat"
     },
     "types": {
       "rsvp_response": {
@@ -949,6 +953,10 @@
       "event_cancelled": {
         "title": "Evenimente anulate",
         "description": "Trimise mereu, ca să nu ratezi o anulare."
+      },
+      "chat_message": {
+        "title": "Mesaje noi",
+        "description": "O notificare când apar mesaje noi, apoi liniște până deschizi chatul."
       }
     },
     "loadFailed": "Nu am putut încărca setările de notificări. Verifică conexiunea și încearcă din nou.",

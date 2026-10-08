@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, View } from 'react-native';
@@ -23,9 +24,12 @@ export function InvitationListItem({
   invitation,
   onPress,
   showDivider = false,
+  unreadMessages = 0,
 }: {
   invitation: Invitation;
   onPress: () => void;
+  /** Unread chat messages; > 0 shows a small count bubble. */
+  unreadMessages?: number;
   /** Hairline above the row — every row after the first in a group. */
   showDivider?: boolean;
 }) {
@@ -60,6 +64,18 @@ export function InvitationListItem({
           {eventShortSubtitle(event)}
         </Text>
       </View>
+
+      {unreadMessages > 0 ? (
+        <View
+          style={[styles.unread, { backgroundColor: tokens.accentFill }]}
+          accessibilityLabel={t('home.unreadMessages', { count: unreadMessages })}
+        >
+          <Feather name="message-circle" size={12} color={tokens.onAccent} />
+          <Text style={[styles.unreadText, { color: tokens.onAccent }]}>
+            {unreadMessages > 99 ? '99+' : unreadMessages}
+          </Text>
+        </View>
+      ) : null}
 
       <RsvpBadge
         status={guest.status}
@@ -104,6 +120,18 @@ export function InvitationListItemSkeleton({ showDivider = false }: { showDivide
 }
 
 const styles = StyleSheet.create({
+  unread: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    minHeight: 24,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+  },
+  unreadText: {
+    fontFamily: typeface.bodyBold,
+    fontSize: 12,
+  },
   group: {
     borderRadius: themeRadius.xl,
     borderWidth: 1,

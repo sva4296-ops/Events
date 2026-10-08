@@ -32,6 +32,7 @@ export function EventListItem({
   onPressChoosePlan,
   coOrganizerLabel = null,
   onLongPress,
+  unreadMessages = 0,
 }: {
   event: AppEvent;
   onPress: () => void;
@@ -44,6 +45,8 @@ export function EventListItem({
   coOrganizerLabel?: string | null;
   /** Organizers: long press opens edit / delete (see app/index.tsx). */
   onLongPress?: () => void;
+  /** Unread chat messages; > 0 shows a "3 new messages" pill instead of "Open". */
+  unreadMessages?: number;
 }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
@@ -136,6 +139,10 @@ export function EventListItem({
         <View style={[styles.divider, { backgroundColor: tokens.border }]} />
 
         <View style={styles.footerRow}>
+          {/* Counts take the leftover width and wrap onto a second line on
+              narrow phones / large font sizes, so "Open" (or the unread pill)
+              is never pushed off the card. */}
+          <View style={styles.counts}>
           <View style={styles.count}>
             <View style={[styles.countDot, { backgroundColor: tokens.statusConfirmed }]} />
             <Text style={[styles.countText, { color: tokens.textPrimary }]}>
@@ -148,11 +155,20 @@ export function EventListItem({
               <Text style={styles.countNumber}>{counts.pending}</Text> {t('home.pendingCount')}
             </Text>
           </View>
-          <View style={styles.flex} />
-          <View style={styles.open}>
-            <Text style={[styles.openText, { color: tokens.accentText }]}>{t('home.open')}</Text>
-            <Feather name="chevron-right" size={16} color={tokens.accentText} />
           </View>
+          {unreadMessages > 0 ? (
+            <View style={[styles.unread, { backgroundColor: tokens.accentFill }]}>
+              <Feather name="message-circle" size={13} color={tokens.onAccent} />
+              <Text style={[styles.unreadText, { color: tokens.onAccent }]}>
+                {t('home.unreadMessages', { count: unreadMessages })}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.open}>
+              <Text style={[styles.openText, { color: tokens.accentText }]}>{t('home.open')}</Text>
+              <Feather name="chevron-right" size={16} color={tokens.accentText} />
+            </View>
+          )}
         </View>
       </View>
     </ScaleTouchable>
@@ -254,7 +270,15 @@ const styles = StyleSheet.create({
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
+  },
+  counts: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: 14,
+    rowGap: 4,
   },
   count: {
     flexDirection: 'row',
@@ -277,6 +301,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   open: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
@@ -285,5 +310,18 @@ const styles = StyleSheet.create({
   openText: {
     fontFamily: typeface.bodySemiBold,
     fontSize: 13,
+  },
+  unread: {
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minHeight: 26,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
+  unreadText: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 12,
   },
 });

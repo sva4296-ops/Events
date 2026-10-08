@@ -9,6 +9,7 @@ import { EventCoverBackground } from '@/components/EventCoverBackground';
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
 import { TabBarIcon, type TabIconId } from '@/components/guest/TabBarIcon';
 import { currentStage, stageDayKey } from '@/components/StoryTimeline';
+import { useChatRead } from '@/hooks/useChatRead';
 import { useEventContent } from '@/hooks/useEventContent';
 import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
@@ -51,6 +52,7 @@ export default function GuestEventLayout() {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { content, deleteFund } = useEventContent(id ?? '');
+  const { hasUnread } = useChatRead(id ?? '');
 
   if (!hydrated || id === undefined) {
     return <View style={[styles.blank, { backgroundColor: tokens.background[0] }]} />;
@@ -194,7 +196,14 @@ export default function GuestEventLayout() {
                   </Text>
                 ),
                 // Warm Story 2.0: accentTint pill behind the active icon.
-                tabBarIcon: ({ color, focused }) => <TabBarIcon name={tab.icon} color={color} focused={focused} />,
+                tabBarIcon: ({ color, focused }) => (
+                  <TabBarIcon
+                    name={tab.icon}
+                    color={color}
+                    focused={focused}
+                    badge={tab.name === 'chat' && !focused && content !== null && hasUnread(content.messages)}
+                  />
+                ),
               }}
             />
           ))}

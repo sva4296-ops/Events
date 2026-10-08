@@ -42,7 +42,9 @@
     "respond": "Respond",
     "coOrganizer": "Co-organizer",
     "tabInvited": "Invited",
-    "tabAll": "All"
+    "tabAll": "All",
+    "unreadMessages_one": "{{count}} new message",
+    "unreadMessages_other": "{{count}} new messages"
   },
   "auth": {
     "headline": "Step into the story",
@@ -899,7 +901,8 @@
     "categories": {
       "organizer": "As organizer",
       "reminders": "Reminders",
-      "updates": "Event updates"
+      "updates": "Event updates",
+      "chat": "Chat"
     },
     "types": {
       "rsvp_response": {
@@ -929,6 +932,10 @@
       "event_cancelled": {
         "title": "Cancelled events",
         "description": "Always sent, so you never miss a cancellation."
+      },
+      "chat_message": {
+        "title": "New messages",
+        "description": "One notification when new messages arrive, then quiet until you open the chat."
       }
     },
     "loadFailed": "Couldn't load your notification settings. Check your connection and try again.",

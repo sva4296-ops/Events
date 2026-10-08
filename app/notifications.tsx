@@ -16,7 +16,7 @@ import { spacing } from '@/utils/theme';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
-const CATEGORIES: readonly NotificationCategory[] = ['organizer', 'reminders', 'updates'];
+const CATEGORIES: readonly NotificationCategory[] = ['organizer', 'reminders', 'updates', 'chat'];
 
 const TYPE_ICON: Record<string, FeatherName> = {
   rsvp_response: 'user-check',
@@ -26,6 +26,7 @@ const TYPE_ICON: Record<string, FeatherName> = {
   new_moment: 'star',
   album_ready: 'image',
   event_cancelled: 'x-circle',
+  chat_message: 'message-circle',
 };
 
 /**

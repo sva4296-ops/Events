@@ -216,6 +216,7 @@ const styles = StyleSheet.create({
   brand: {
     fontFamily: typography.title2.fontFamily,
     fontSize: 17,
+    flexShrink: 1,
   },
   panel: {
     borderRadius: 24,

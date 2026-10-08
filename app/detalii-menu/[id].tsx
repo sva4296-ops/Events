@@ -415,6 +415,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
+    flexShrink: 1,
   },
   courseValue: {
     flex: 1,
@@ -428,11 +429,12 @@ const styles = StyleSheet.create({
     marginTop: gSpace.xs,
   },
   pill: {
-    height: 40,
+    minHeight: 40,
     paddingHorizontal: 14,
     justifyContent: 'center',
     borderRadius: gRadius.pill,
     borderWidth: 1.5,
+    paddingVertical: 4,
   },
   pillText: {
     fontSize: 14,
@@ -504,6 +506,7 @@ const styles = StyleSheet.create({
   selectText: {
     fontSize: 15,
     fontWeight: '600',
+    flexShrink: 1,
   },
   dropdown: {
     borderRadius: themeRadius.md,
@@ -519,5 +522,6 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 15,
+    flexShrink: 1,
   },
 });

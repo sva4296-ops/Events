@@ -204,5 +204,6 @@ const styles = StyleSheet.create({
   },
   disclaimer: {
     fontSize: 12,
+    flexShrink: 1,
   },
 });

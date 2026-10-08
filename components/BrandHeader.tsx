@@ -42,6 +42,7 @@ const styles = StyleSheet.create({
   wordmark: {
     fontFamily: fonts.displayBold,
     fontSize: 24,
+    flexShrink: 1,
   },
   wordmarkSmall: {
     fontSize: 19,

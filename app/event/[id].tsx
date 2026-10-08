@@ -491,9 +491,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    height: 40,
+    minHeight: 40,
     paddingHorizontal: 14,
     borderRadius: themeRadius.pill,
+    paddingVertical: 4,
   },
   chipText: {
     fontSize: 14,

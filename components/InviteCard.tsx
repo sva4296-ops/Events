@@ -96,11 +96,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 14,
     left: 14,
-    height: 24,
+    minHeight: 24,
     paddingHorizontal: 10,
     borderRadius: themeRadius.pill,
     backgroundColor: CHIP_BG,
     justifyContent: 'center',
+    paddingVertical: 4,
   },
   chipText: {
     fontSize: 12,

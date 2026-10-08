@@ -1,12 +1,12 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from "expo-linear-gradient";
+import type { ReactNode } from "react";
+import { ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { EventCoverBackground } from '@/components/EventCoverBackground';
-import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
-import type { EventTypeId, Gradient } from '@/types/event';
-import { spacing } from '@/utils/theme';
+import { EventCoverBackground } from "@/components/EventCoverBackground";
+import { EventAccentProvider, useTheme } from "@/hooks/useTheme";
+import type { EventTypeId, Gradient } from "@/types/event";
+import { spacing } from "@/utils/theme";
 
 interface ScreenProps {
   children: ReactNode;
@@ -44,20 +44,27 @@ export function Screen({
     <Wrapper colors={resolvedGradient} style={styles.fill}>
       {coverType !== null ? <EventCoverBackground type={coverType} /> : null}
       <EventAccentProvider type={coverType}>
-      <SafeAreaView style={styles.fill} edges={bottomSafeArea ? ['top', 'bottom'] : ['top']}>
-        {scroll ? (
-          <ScrollView
-            contentContainerStyle={[styles.content, contentStyle]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {children}
-          </ScrollView>
-        ) : (
-          <View style={[styles.fill, styles.content, contentStyle]}>{children}</View>
-        )}
-        {footer !== undefined ? <View style={styles.footer}>{footer}</View> : null}
-      </SafeAreaView>
+        <SafeAreaView
+          style={styles.fill}
+          edges={bottomSafeArea ? ["top", "bottom"] : ["top"]}
+        >
+          {scroll ? (
+            <ScrollView
+              contentContainerStyle={[styles.content, contentStyle]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={[styles.fill, styles.content, contentStyle]}>
+              {children}
+            </View>
+          )}
+          {footer !== undefined ? (
+            <View style={styles.footer}>{footer}</View>
+          ) : null}
+        </SafeAreaView>
       </EventAccentProvider>
     </Wrapper>
   );

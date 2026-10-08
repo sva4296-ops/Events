@@ -259,11 +259,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   relationChip: {
-    height: 40,
+    minHeight: 40,
     paddingHorizontal: 16,
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
+    paddingVertical: 4,
   },
   relationText: {
     fontSize: 14,

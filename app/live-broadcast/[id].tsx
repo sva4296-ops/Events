@@ -157,11 +157,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   statusChip: {
-    height: 30,
+    minHeight: 30,
     paddingHorizontal: 12,
     borderRadius: 999,
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 4,
   },
   statusLive: {
     backgroundColor: '#B5335F',

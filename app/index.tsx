@@ -370,18 +370,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 40,
+    minHeight: 40,
     paddingHorizontal: 14,
     borderRadius: themeRadius.pill,
+    paddingVertical: 4,
   },
   tabText: {
     fontFamily: typeface.bodySemiBold,
     fontSize: 14,
+    flexShrink: 1,
   },
   tabCount: {
     fontFamily: typeface.bodySemiBold,
     fontSize: 14,
     opacity: 0.7,
+    flexShrink: 1,
   },
   sectionTitle: {
     ...typography.subtitle,

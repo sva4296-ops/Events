@@ -232,5 +232,6 @@ const styles = StyleSheet.create({
   rowLabel: {
     ...typography.overline,
     fontSize: 12,
+    flexShrink: 1,
   },
 });

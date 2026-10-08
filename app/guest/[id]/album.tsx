@@ -284,10 +284,11 @@ const styles = StyleSheet.create({
   },
   chip: {
     flex: 1,
-    height: 38,
+    minHeight: 38,
     borderRadius: themeRadius.pill,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 4,
   },
   chipText: {
     fontSize: 14,

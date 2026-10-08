@@ -206,18 +206,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 40,
+    minHeight: 40,
     paddingHorizontal: 14,
     borderRadius: themeRadius.pill,
+    paddingVertical: 4,
   },
   pillCount: {
     fontSize: 14,
     fontWeight: '700',
+    flexShrink: 1,
   },
   flex: {
     flex: 1,
   },
   total: {
     fontSize: 13,
+    flexShrink: 1,
   },
 });

@@ -133,5 +133,6 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 14,
+    flexShrink: 1,
   },
 });

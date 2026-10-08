@@ -35,9 +35,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 24,
+    minHeight: 24,
     paddingHorizontal: 10,
     borderRadius: themeRadius.pill,
+    paddingVertical: 4,
+    flexShrink: 1,
   },
   dot: {
     width: 6,
@@ -47,5 +49,6 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     fontWeight: '600',
+    flexShrink: 1,
   },
 });

@@ -50,7 +50,7 @@ export function GuestRow({ guest, showDivider = false }: { guest: Guest; showDiv
   return (
     <View style={[styles.row, showDivider && { borderTopWidth: 1, borderTopColor: tokens.border }]}>
       <View style={[styles.avatar, { backgroundColor: tone.bg }]}>
-        <Text style={[styles.avatarText, { color: tone.fg }]}>{initials}</Text>
+        <Text maxFontSizeMultiplier={1.2} style={[styles.avatarText, { color: tone.fg }]}>{initials}</Text>
       </View>
       <View style={styles.info}>
         <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>

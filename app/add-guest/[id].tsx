@@ -1,23 +1,30 @@
-import Feather from '@expo/vector-icons/Feather';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Feather from "@expo/vector-icons/Feather";
+import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { Button } from '@/components/Button';
-import { Field } from '@/components/Field';
-import { Header } from '@/components/Header';
-import { PhoneField } from '@/components/PhoneField';
-import { Screen } from '@/components/Screen';
-import { Toggle } from '@/components/Toggle';
-import { checkGuestPhoneInvited } from '@/data/eventsRepository';
-import { useAuth } from '@/hooks/useAuth';
-import { useEvents } from '@/hooks/useEvents';
-import { usePlanGate } from '@/hooks/usePlanGate';
-import { useTheme } from '@/hooks/useTheme';
-import { DEFAULT_COUNTRY_CODE, toStoredPhone } from '@/utils/countryCodes';
-import { reportSupabaseError } from '@/utils/reportError';
-import { sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
+import { Button } from "@/components/Button";
+import { Field } from "@/components/Field";
+import { Header } from "@/components/Header";
+import { PhoneField } from "@/components/PhoneField";
+import { Screen } from "@/components/Screen";
+import { Toggle } from "@/components/Toggle";
+import { checkGuestPhoneInvited } from "@/data/eventsRepository";
+import { useAuth } from "@/hooks/useAuth";
+import { useEvents } from "@/hooks/useEvents";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import { useTheme } from "@/hooks/useTheme";
+import { DEFAULT_COUNTRY_CODE, toStoredPhone } from "@/utils/countryCodes";
+import { reportSupabaseError } from "@/utils/reportError";
+import { sendGuestWhatsAppInvite } from "@/utils/whatsappInvite";
 
 /**
  * Phone-only now — this app's auth is phone-only end to end (see
@@ -42,12 +49,16 @@ export default function AddGuestScreen() {
   const { getEvent, isOwner, addGuestByPhone, markWhatsAppSent } = useEvents();
   const { user } = useAuth();
   const { tokens } = useTheme();
-  const { hydrated: planHydrated, canAddGuests, capabilities } = usePlanGate(id);
+  const {
+    hydrated: planHydrated,
+    canAddGuests,
+    capabilities,
+  } = usePlanGate(id);
   const event = getEvent(id);
 
   const [dialCode, setDialCode] = useState(DEFAULT_COUNTRY_CODE.dialCode);
-  const [localNumber, setLocalNumber] = useState('');
-  const [name, setName] = useState('');
+  const [localNumber, setLocalNumber] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sendNow, setSendNow] = useState(true);
@@ -56,8 +67,8 @@ export default function AddGuestScreen() {
     return (
       <Screen>
         <Header
-          title={t('common.notAvailable')}
-          subtitle={t('addGuestForm.notAvailableSubtitle')}
+          title={t("common.notAvailable")}
+          subtitle={t("addGuestForm.notAvailableSubtitle")}
           showBack
         />
       </Screen>
@@ -72,12 +83,17 @@ export default function AddGuestScreen() {
     return (
       <Screen
         footer={
-          <Button label={t('common.viewPlans')} onPress={() => router.push(`/pricing/${event.id}`)} />
+          <Button
+            label={t("common.viewPlans")}
+            onPress={() => router.push(`/pricing/${event.id}`)}
+          />
         }
       >
         <Header
-          title={t('planGate.guestLimitReachedTitle')}
-          subtitle={t('planGate.guestLimitReachedBody', { count: capabilities.maxGuests ?? 0 })}
+          title={t("planGate.guestLimitReachedTitle")}
+          subtitle={t("planGate.guestLimitReachedBody", {
+            count: capabilities.maxGuests ?? 0,
+          })}
           showBack
         />
       </Screen>
@@ -87,9 +103,9 @@ export default function AddGuestScreen() {
   const submit = async () => {
     setError(null);
 
-    const digits = localNumber.replace(/\D/g, '');
+    const digits = localNumber.replace(/\D/g, "");
     if (digits.length < 6) {
-      setError(t('phoneAuth.errors.invalidPhone'));
+      setError(t("phoneAuth.errors.invalidPhone"));
       return;
     }
 
@@ -98,7 +114,7 @@ export default function AddGuestScreen() {
     // trigger, both of which Supabase stores without a leading `+`.
     const phone = toStoredPhone(dialCode, localNumber);
     if (user?.phone != null && phone === user.phone) {
-      setError(t('addGuestForm.selfInviteError'));
+      setError(t("addGuestForm.selfInviteError"));
       return;
     }
 
@@ -106,7 +122,7 @@ export default function AddGuestScreen() {
     try {
       const alreadyInvited = await checkGuestPhoneInvited(event.id, phone);
       if (alreadyInvited) {
-        setError(t('addGuestForm.alreadyInvitedError'));
+        setError(t("addGuestForm.alreadyInvitedError"));
         return;
       }
 
@@ -148,27 +164,41 @@ export default function AddGuestScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.fill}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Screen
+        coverType={event.type}
         contentStyle={styles.content}
         footer={
           <Button
-            label={busy ? t('addGuestForm.adding') : t('addGuestForm.add')}
+            label={busy ? t("addGuestForm.adding") : t("addGuestForm.add")}
             disabled={localNumber.trim().length === 0 || busy}
             onPress={() => void submit()}
           />
         }
       >
-        <Header title={t('addGuestForm.title')} subtitle={t('addGuestForm.subtitlePhone')} showBack />
+        <Header
+          title={t("addGuestForm.title")}
+          subtitle={t("addGuestForm.subtitlePhone")}
+          showBack
+        />
 
-        <View style={[styles.segment, { backgroundColor: tokens.surface2 }]} accessibilityRole="tablist">
+        <View
+          style={[styles.segment, { backgroundColor: tokens.surface2 }]}
+          accessibilityRole="tablist"
+        >
           <View
-            style={[styles.segmentItem, styles.segmentActive, { backgroundColor: tokens.surface }]}
+            style={[
+              styles.segmentItem,
+              styles.segmentActive,
+              { backgroundColor: tokens.surface },
+            ]}
             accessibilityRole="tab"
             accessibilityState={{ selected: true }}
           >
-            <Text style={[styles.segmentText, { color: tokens.textPrimary }]}>{t('addGuestForm.tabManual')}</Text>
+            <Text style={[styles.segmentText, { color: tokens.textPrimary }]}>
+              {t("addGuestForm.tabManual")}
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.segmentItem}
@@ -179,20 +209,20 @@ export default function AddGuestScreen() {
           >
             <Feather name="book-open" size={16} color={tokens.textSecondary} />
             <Text style={[styles.segmentText, { color: tokens.textSecondary }]}>
-              {t('addGuestForm.tabContacts')}
+              {t("addGuestForm.tabContacts")}
             </Text>
           </TouchableOpacity>
         </View>
 
         <Field
-          label={t('addGuestForm.nameLabel')}
+          label={t("addGuestForm.nameLabel")}
           value={name}
           onChangeText={setName}
-          placeholder={t('addGuestForm.namePlaceholder')}
+          placeholder={t("addGuestForm.namePlaceholder")}
         />
 
         <PhoneField
-          label={t('phoneAuth.phoneLabel')}
+          label={t("phoneAuth.phoneLabel")}
           dialCode={dialCode}
           onChangeDialCode={setDialCode}
           localNumber={localNumber}
@@ -200,11 +230,15 @@ export default function AddGuestScreen() {
             setLocalNumber(value);
             setError(null);
           }}
-          placeholder={t('phoneAuth.phonePlaceholder')}
+          placeholder={t("phoneAuth.phonePlaceholder")}
           error={error}
         />
 
-        <Toggle label={t('addGuestForm.sendNow')} value={sendNow} onChange={setSendNow} />
+        <Toggle
+          label={t("addGuestForm.sendNow")}
+          value={sendNow}
+          onChange={setSendNow}
+        />
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -219,21 +253,22 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   segment: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 4,
     borderRadius: 999,
   },
   segmentItem: {
     flex: 1,
-    height: 40,
+    minHeight: 40,
     borderRadius: 999,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
+    paddingVertical: 4,
   },
   segmentActive: {
-    shadowColor: '#000000',
+    shadowColor: "#000000",
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
@@ -241,6 +276,7 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
+    flexShrink: 1,
   },
 });

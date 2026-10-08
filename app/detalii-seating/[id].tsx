@@ -319,11 +319,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: gSpace.sm,
     paddingVertical: 4,
     borderRadius: gRadius.pill,
+    flexShrink: 1,
   },
   hereBadgeText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#FFFFFF',
+    flexShrink: 1,
   },
   rowSubtitle: {
     fontSize: 13,
@@ -347,12 +349,13 @@ const styles = StyleSheet.create({
   },
   segmentItem: {
     flex: 1,
-    height: 40,
+    minHeight: 40,
     borderRadius: 999,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingVertical: 4,
   },
   segmentActive: {
     shadowColor: '#000000',
@@ -364,5 +367,6 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 14,
     fontWeight: '600',
+    flexShrink: 1,
   },
 });

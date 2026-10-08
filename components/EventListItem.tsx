@@ -90,7 +90,9 @@ export function EventListItem({
           <View style={styles.iconChip}>
             <EventTypeIcon type={type.id} size={18} color={CHIP_TEXT} />
           </View>
-          <View style={styles.flex} />
+          {/* Chips stay on the right and wrap onto a second line when they
+              don't fit (narrow screens, large text). */}
+          <View style={styles.chips}>
           {coOrganizerLabel !== null ? (
             <View style={styles.chip}>
               <Feather name="users" size={13} color={CHIP_TEXT} />
@@ -118,6 +120,7 @@ export function EventListItem({
               <Text style={[styles.chipText, styles.countdownText]}>{countdown}</Text>
             </View>
           ) : null}
+          </View>
         </View>
 
         <View style={styles.titleBlock}>
@@ -205,7 +208,14 @@ const styles = StyleSheet.create({
   },
   coverTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  chips: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
     gap: 6,
   },
   iconChip: {
@@ -220,15 +230,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    height: 26,
+    minHeight: 26,
     paddingHorizontal: 10,
     borderRadius: themeRadius.pill,
     backgroundColor: CHIP_BG,
+    paddingVertical: 4,
+    flexShrink: 1,
   },
   chipText: {
     fontFamily: typeface.bodySemiBold,
     fontSize: 12,
     color: CHIP_TEXT,
+    flexShrink: 1,
   },
   countdown: {
     paddingHorizontal: 11,
@@ -293,6 +306,7 @@ const styles = StyleSheet.create({
   countText: {
     fontFamily: typeface.body,
     fontSize: 13,
+    flexShrink: 1,
   },
   countNumber: {
     fontFamily: typeface.bodyBold,
@@ -310,6 +324,7 @@ const styles = StyleSheet.create({
   openText: {
     fontFamily: typeface.bodySemiBold,
     fontSize: 13,
+    flexShrink: 1,
   },
   unread: {
     flexShrink: 0,
@@ -323,5 +338,6 @@ const styles = StyleSheet.create({
   unreadText: {
     fontFamily: typeface.bodySemiBold,
     fontSize: 12,
+    flexShrink: 1,
   },
 });

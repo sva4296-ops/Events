@@ -330,5 +330,6 @@ const styles = StyleSheet.create({
   addCourseText: {
     fontSize: 15,
     fontWeight: '600',
+    flexShrink: 1,
   },
 });

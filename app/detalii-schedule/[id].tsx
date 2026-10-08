@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: '800',
     width: 62,
+    flexShrink: 1,
   },
   scheduleBody: {
     flex: 1,

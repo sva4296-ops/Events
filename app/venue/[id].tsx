@@ -188,6 +188,7 @@ const styles = StyleSheet.create({
   mapActionText: {
     fontSize: 14,
     fontWeight: '600',
+    flexShrink: 1,
   },
   mapHint: {
     fontSize: 12,

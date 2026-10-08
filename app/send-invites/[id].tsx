@@ -149,7 +149,7 @@ export default function SendInvitesScreen() {
               style={[styles.row, index > 0 && { borderTopWidth: 1, borderTopColor: tokens.border }]}
             >
               <View style={[styles.avatar, { backgroundColor: tokens.statusPendingSoft }]}>
-                <Text style={[styles.avatarText, { color: tokens.statusPending }]}>
+                <Text maxFontSizeMultiplier={1.2} style={[styles.avatarText, { color: tokens.statusPending }]}>
                   {guest.name === guest.phone ? '#' : initialsOf(guest.name)}
                 </Text>
               </View>
@@ -258,10 +258,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
+    flexShrink: 1,
   },
   progress: {
     fontSize: 13,
     fontWeight: '600',
+    flexShrink: 1,
   },
   list: {
     borderRadius: 22,
@@ -303,9 +305,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 40,
+    minHeight: 40,
     borderRadius: themeRadius.pill,
     paddingHorizontal: 14,
+    paddingVertical: 4,
   },
   smsButton: {
     width: 40,
@@ -319,6 +322,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+    flexShrink: 1,
   },
   skipButton: {
     minHeight: 40,

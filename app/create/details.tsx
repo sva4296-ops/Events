@@ -1,22 +1,33 @@
-import Feather from '@expo/vector-icons/Feather';
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import Feather from "@expo/vector-icons/Feather";
+import { router } from "expo-router";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 
-import { Button } from '@/components/Button';
-import { DateTimeField } from '@/components/DateTimeField';
-import { Field } from '@/components/Field';
-import { Header } from '@/components/Header';
-import { MapPickerModal, type PickedLocation } from '@/components/MapPickerModal';
-import { Screen } from '@/components/Screen';
-import { useCancelCreate } from '@/hooks/useCancelCreate';
-import { useEventDraft } from '@/hooks/useEventDraft';
-import { useTheme } from '@/hooks/useTheme';
-import { spacing } from '@/utils/theme';
-import { parseIsoDate, toIsoDate } from '@/utils/dateInput';
-import { formatEventDate } from '@/utils/format';
-import { mapsAvailable } from '@/utils/maps';
+import { Button } from "@/components/Button";
+import { DateTimeField } from "@/components/DateTimeField";
+import { Field } from "@/components/Field";
+import { Header } from "@/components/Header";
+import {
+  MapPickerModal,
+  type PickedLocation,
+} from "@/components/MapPickerModal";
+import { Screen } from "@/components/Screen";
+import { useCancelCreate } from "@/hooks/useCancelCreate";
+import { useEventDraft } from "@/hooks/useEventDraft";
+import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/utils/theme";
+import { EVENT_TYPE_COLORS } from "@/utils/eventCovers";
+
+import { parseIsoDate, toIsoDate } from "@/utils/dateInput";
+import { formatEventDate } from "@/utils/format";
+import { mapsAvailable } from "@/utils/maps";
 
 /** Soft cap for the invitation quote — keeps it readable on the invitation card. */
 const WELCOME_MAX = 280;
@@ -35,7 +46,8 @@ export default function EventDetailsScreen() {
   const cancel = useCancelCreate();
   const [dateError, setDateError] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
-  const canContinue = draft.name.trim().length > 0 && draft.date.trim().length > 0;
+  const canContinue =
+    draft.name.trim().length > 0 && draft.date.trim().length > 0;
 
   // The pin opens the map; the address under the pin fills the field (still
   // editable as text). Coordinates are set later, on the venue screen.
@@ -49,48 +61,56 @@ export default function EventDetailsScreen() {
     // catch manual text entry or picker-library edge cases, so the date is
     // re-validated here regardless of how it was set.
     if (parseIsoDate(draft.date) < todayAtLocalMidnight()) {
-      setDateError(t('createWizard.pastDateError'));
+      setDateError(t("createWizard.pastDateError"));
       return;
     }
-    router.push('/create/preview');
+    router.push("/create/preview");
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.fill}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Screen
+        coverType={draft.type}
         footer={
           <Button
-            label={t('createWizard.detailsButton')}
+            label={t("createWizard.detailsButton")}
             disabled={!canContinue}
             onPress={handleContinue}
           />
         }
       >
         <Header
-          title={t('createWizard.detailsTitle')}
+          title={t("createWizard.detailsTitle")}
           showBack
           onClose={cancel}
-          flowTitle={t('createWizard.flowTitle')}
-          stepLabel={t('createWizard.stepLabel', { step: 2, total: 5, name: t('createWizard.stepDetails') })}
+          flowTitle={t("createWizard.flowTitle")}
+          stepLabel={t("createWizard.stepLabel", {
+            step: 2,
+            total: 5,
+            name: t("createWizard.stepDetails"),
+          })}
           step={2}
           totalSteps={5}
+          progressColors={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].gradient : undefined}
         />
 
         <Field
-          label={t('editEventForm.nameLabel')}
+          label={t("editEventForm.nameLabel")}
           value={draft.name}
           onChangeText={(name) => updateDraft({ name })}
-          placeholder={t('createWizard.namePlaceholder')}
+          placeholder={t("createWizard.namePlaceholder")}
         />
         <DateTimeField
-          label={t('editEventForm.dateLabel')}
+          label={t("editEventForm.dateLabel")}
           mode="date"
           value={parseIsoDate(draft.date)}
           displayValue={
-            draft.date.trim().length === 0 ? t('editEventForm.selectDate') : formatEventDate(draft.date)
+            draft.date.trim().length === 0
+              ? t("editEventForm.selectDate")
+              : formatEventDate(draft.date)
           }
           onChange={(selected) => {
             updateDraft({ date: toIsoDate(selected) });
@@ -99,13 +119,15 @@ export default function EventDetailsScreen() {
           minimumDate={todayAtLocalMidnight()}
         />
         {dateError !== null ? (
-          <Text style={[styles.error, { color: tokens.destructive }]}>{dateError}</Text>
+          <Text style={[styles.error, { color: tokens.destructive }]}>
+            {dateError}
+          </Text>
         ) : null}
         <Field
-          label={t('editEventForm.locationLabel')}
+          label={t("editEventForm.locationLabel")}
           value={draft.location}
           onChangeText={(location) => updateDraft({ location })}
-          placeholder={t('createWizard.locationPlaceholder')}
+          placeholder={t("createWizard.locationPlaceholder")}
           icon={
             mapsAvailable ? (
               <TouchableOpacity
@@ -113,7 +135,7 @@ export default function EventDetailsScreen() {
                 activeOpacity={0.7}
                 hitSlop={10}
                 accessibilityRole="button"
-                accessibilityLabel={t('createWizard.pickOnMap')}
+                accessibilityLabel={t("createWizard.pickOnMap")}
               >
                 <Feather name="map-pin" size={18} color={tokens.accentText} />
               </TouchableOpacity>
@@ -123,16 +145,22 @@ export default function EventDetailsScreen() {
           }
         />
         <Field
-          label={t('editEventForm.welcomeMessageLabel')}
+          label={t("editEventForm.welcomeMessageLabel")}
           value={draft.welcomeMessage}
           onChangeText={(welcomeMessage) => updateDraft({ welcomeMessage })}
-          placeholder={t('createWizard.welcomeMessagePlaceholder')}
+          placeholder={t("createWizard.welcomeMessagePlaceholder")}
           multiline
           maxLength={WELCOME_MAX}
           hint={`${draft.welcomeMessage.length} / ${WELCOME_MAX}`}
         />
       </Screen>
-      {mapOpen ? <MapPickerModal initial={null} onClose={() => setMapOpen(false)} onPick={onPickLocation} /> : null}
+      {mapOpen ? (
+        <MapPickerModal
+          initial={null}
+          onClose={() => setMapOpen(false)}
+          onPick={onPickLocation}
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

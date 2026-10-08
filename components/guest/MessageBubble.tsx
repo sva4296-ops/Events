@@ -73,7 +73,7 @@ export function MessageBubble({
             end={{ x: 1, y: 0 }}
             style={[styles.avatar, styles.avatarInWrap]}
           >
-            <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>{initials}</Text>
+            <Text maxFontSizeMultiplier={1.2} style={[styles.avatarText, { color: '#FFFFFF' }]}>{initials}</Text>
           </LinearGradient>
           <View style={[styles.crownBadge, { backgroundColor: tokens.accentFill, borderColor: tokens.surface }]}>
             <LineIcon shapes={CROWN} size={9} color={tokens.onAccent} strokeWidth={2.6} />
@@ -81,7 +81,7 @@ export function MessageBubble({
         </View>
       ) : (
         <View style={[styles.avatar, { backgroundColor: tokens.accentTint }]}>
-          <Text style={[styles.avatarText, { color: tokens.accentText }]}>{initials}</Text>
+          <Text maxFontSizeMultiplier={1.2} style={[styles.avatarText, { color: tokens.accentText }]}>{initials}</Text>
         </View>
       )}
       <View style={styles.column}>
@@ -188,14 +188,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    height: 22,
+    minHeight: 22,
     paddingHorizontal: 10,
     borderRadius: 999,
     justifyContent: 'center',
+    paddingVertical: 4,
+    flexShrink: 1,
   },
   chipText: {
     fontSize: 10,
     fontWeight: '600',
+    flexShrink: 1,
   },
   bubble: {
     paddingHorizontal: 14,

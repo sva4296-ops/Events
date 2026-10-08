@@ -122,14 +122,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    height: 23,
+    minHeight: 23,
     paddingHorizontal: 8,
     borderRadius: 999,
     flexShrink: 1,
+    paddingVertical: 4,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
+    flexShrink: 1,
   },
   info: {
     gap: 2,

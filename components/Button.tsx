@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
+    flexShrink: 1,
   },
   labelCompact: {
     fontSize: 15,

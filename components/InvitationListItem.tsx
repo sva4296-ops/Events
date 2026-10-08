@@ -131,6 +131,7 @@ const styles = StyleSheet.create({
   unreadText: {
     fontFamily: typeface.bodyBold,
     fontSize: 12,
+    flexShrink: 1,
   },
   group: {
     borderRadius: themeRadius.xl,

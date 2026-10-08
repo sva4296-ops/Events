@@ -385,11 +385,12 @@ const styles = StyleSheet.create({
   },
   upNextLabel: {
     minWidth: 64,
-    height: 30,
+    minHeight: 30,
     paddingHorizontal: 10,
     borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 4,
   },
   upNextLabelText: {
     fontFamily: typeface.bodyBold,
@@ -417,6 +418,7 @@ const styles = StyleSheet.create({
   upNextLinkText: {
     fontFamily: typeface.bodySemiBold,
     fontSize: 14,
+    flexShrink: 1,
   },
   promo: {
     borderRadius: 24,

@@ -86,5 +86,6 @@ const styles = StyleSheet.create({
     fontFamily: typeface.bodySemiBold,
     fontSize: 14,
     color: '#FFFFFF',
+    flexShrink: 1,
   },
 });

@@ -1,16 +1,18 @@
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { StyleSheet, View } from "react-native";
 
-import { Button } from '@/components/Button';
-import { Header } from '@/components/Header';
-import { InviteCard } from '@/components/InviteCard';
-import { Screen } from '@/components/Screen';
-import { useCancelCreate } from '@/hooks/useCancelCreate';
-import { useEventDraft } from '@/hooks/useEventDraft';
-import { useEvents } from '@/hooks/useEvents';
-import { spacing } from '@/utils/theme';
-import { reportSupabaseError } from '@/utils/reportError';
+import { Button } from "@/components/Button";
+import { Header } from "@/components/Header";
+import { InviteCard } from "@/components/InviteCard";
+import { Screen } from "@/components/Screen";
+import { useCancelCreate } from "@/hooks/useCancelCreate";
+import { useEventDraft } from "@/hooks/useEventDraft";
+import { useEvents } from "@/hooks/useEvents";
+import { spacing } from "@/utils/theme";
+import { EVENT_TYPE_COLORS } from "@/utils/eventCovers";
+
+import { reportSupabaseError } from "@/utils/reportError";
 
 export default function PreviewScreen() {
   const { t } = useTranslation();
@@ -27,7 +29,10 @@ export default function PreviewScreen() {
       // stack shape this screen produced before (details → preview → share),
       // rather than leaving this submit screen behind pricing where a literal
       // back tap could resubmit and create a second event.
-      router.replace({ pathname: '/pricing/[id]', params: { id: event.id, context: 'create' } });
+      router.replace({
+        pathname: "/pricing/[id]",
+        params: { id: event.id, context: "create" },
+      });
     } catch (error) {
       reportSupabaseError(error);
     }
@@ -35,16 +40,17 @@ export default function PreviewScreen() {
 
   return (
     <Screen
+      coverType={draft.type}
       footer={
         <View style={styles.actions}>
           <Button
-            label={t('createWizard.previewEdit')}
+            label={t("createWizard.previewEdit")}
             variant="secondary"
             onPress={() => router.back()}
             style={styles.editButton}
           />
           <Button
-            label={t('createWizard.previewButton')}
+            label={t("createWizard.previewButton")}
             onPress={() => void handleGenerate()}
             style={styles.confirmButton}
           />
@@ -53,14 +59,19 @@ export default function PreviewScreen() {
       contentStyle={styles.content}
     >
       <Header
-        title={t('createWizard.previewTitle')}
-        subtitle={t('createWizard.previewSubtitle')}
+        title={t("createWizard.previewTitle")}
+        subtitle={t("createWizard.previewSubtitle")}
         showBack
         onClose={cancel}
-        flowTitle={t('createWizard.flowTitle')}
-        stepLabel={t('createWizard.stepLabel', { step: 3, total: 5, name: t('createWizard.stepPreview') })}
+        flowTitle={t("createWizard.flowTitle")}
+        stepLabel={t("createWizard.stepLabel", {
+          step: 3,
+          total: 5,
+          name: t("createWizard.stepPreview"),
+        })}
         step={3}
         totalSteps={5}
+          progressColors={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].gradient : undefined}
       />
 
       <InviteCard event={draft} />
@@ -73,7 +84,7 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
   },
   editButton: {

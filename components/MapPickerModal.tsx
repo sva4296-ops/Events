@@ -251,11 +251,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   titlePill: {
-    height: 44,
+    minHeight: 44,
     paddingHorizontal: 18,
     borderRadius: themeRadius.pill,
     borderWidth: 1,
     justifyContent: 'center',
+    paddingVertical: 4,
   },
   title: {
     fontSize: 15,
@@ -274,14 +275,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    height: 44,
+    minHeight: 44,
     paddingHorizontal: 16,
     borderRadius: themeRadius.pill,
     borderWidth: 1,
+    paddingVertical: 4,
   },
   myLocationText: {
     fontSize: 15,
     fontWeight: '600',
+    flexShrink: 1,
   },
   card: {
     borderRadius: themeRadius.xl,

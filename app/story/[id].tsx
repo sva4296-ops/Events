@@ -561,9 +561,10 @@ const styles = StyleSheet.create({
   chip: {
     alignSelf: "flex-start",
     paddingHorizontal: 12,
-    height: 28,
+    minHeight: 28,
     borderRadius: 14,
     justifyContent: "center",
+    paddingVertical: 4,
   },
   chipText: {
     fontFamily: typeface.bodySemiBold,

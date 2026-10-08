@@ -1,9 +1,10 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, AppState, Linking, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Linking, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { showDialog } from '@/components/ActionSheet';
 import { Header } from '@/components/Header';
 import { ListGroup, ListRow } from '@/components/ListGroup';
 import { Screen } from '@/components/Screen';
@@ -65,10 +66,14 @@ export default function NotificationsScreen() {
       const result = await enablePushNotifications();
       setPushEnabled(result === 'enabled');
       if (result === 'blocked') {
-        Alert.alert(t('profile.notificationsBlockedTitle'), t('profile.notificationsBlockedMessage'), [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('profile.openSettings'), onPress: () => void Linking.openSettings() },
-        ]);
+        showDialog({
+          title: t('profile.notificationsBlockedTitle'),
+          message: t('profile.notificationsBlockedMessage'),
+          buttons: [
+            { label: t('common.cancel'), style: 'cancel' },
+            { label: t('profile.openSettings'), onPress: () => void Linking.openSettings() },
+          ],
+        });
       }
     }
     setPushBusy(false);

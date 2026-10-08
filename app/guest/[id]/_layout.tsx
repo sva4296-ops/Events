@@ -19,7 +19,6 @@ import { eventAccentTokens } from '@/utils/eventAccent';
 import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, formatShortDate, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
-import { reportSupabaseError } from '@/utils/reportError';
 import { floatingTabBar, guest, tabBarBottomInset } from '@/utils/guestTheme';
 
 const TABS: readonly { name: string; labelKey: string; icon: TabIconId }[] = [
@@ -46,7 +45,7 @@ function getActiveTab(pathname: string): ActiveTab {
 
 export default function GuestEventLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, hydrated, isOwner, isPrimaryOwner, isRestaurant, deleteEvent } = useEvents();
+  const { getEvent, hydrated, isOwner, isPrimaryOwner, isRestaurant } = useEvents();
   const { tokens } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -74,8 +73,9 @@ export default function GuestEventLayout() {
   if (!FUND_ENABLED && activeTab === 'fond') {
     return <Redirect href={`/guest/${id}`} />;
   }
+  // Finished events keep only Acasă and Album; any other tab lands on Acasă.
   if (past && activeTab !== 'acasa' && activeTab !== 'album') {
-    return <Redirect href={`/guest/${id}/album`} />;
+    return <Redirect href={`/guest/${id}`} />;
   }
   const headerSubtitle =
     event !== undefined
@@ -92,23 +92,9 @@ export default function GuestEventLayout() {
   // edit+delete only on Fond (and only once a fund actually exists — an
   // empty Fond tab has nothing to edit or delete). Every other tab gets none.
   const actions: HeaderAction[] = [];
-  if (past) {
-    // Only removing the whole event is left for its owner.
-    if (isPrimaryOwner(event)) {
-      actions.push({
-        key: 'delete-event',
-        icon: 'trash-2',
-        tone: 'destructive',
-        accessibilityLabel: t('editEventForm.deleteButton'),
-        onPress: () =>
-          confirmDelete(t('editEventForm.deleteTitle'), t('editEventForm.deleteBody', { name: event.name }), () => {
-            deleteEvent(event.id)
-              .then(() => router.dismissTo('/'))
-              .catch(reportSupabaseError);
-          }),
-      });
-    }
-  } else if (owner) {
+  // Finished events get no header actions: deleting one is a long press on
+  // its Home card, like every other event.
+  if (!past && owner) {
     if (activeTab === 'acasa') {
       actions.push({
         key: 'guests',
@@ -166,9 +152,11 @@ export default function GuestEventLayout() {
               styles.bar,
               {
                 backgroundColor: tokens.tabBar.background,
+                borderColor: tokens.border,
                 borderTopColor: tokens.border,
-                height: floatingTabBar.height + tabBarBottomInset(insets.bottom),
-                paddingBottom: tabBarBottomInset(insets.bottom),
+                height: floatingTabBar.height,
+                bottom: tabBarBottomInset(insets.bottom),
+                shadowOpacity: tokens.mode === 'dark' ? 0.45 : 0.16,
               },
             ],
             tabBarActiveTintColor:
@@ -223,22 +211,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: guest.cream,
   },
-  // Docked to the bottom edge (Warm Story 2.0). Still `position: 'absolute'`
-  // so screens scroll under the translucent bar; every guest screen clears it
-  // with `tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height`.
+  // Floating pill above the bottom edge. `position: 'absolute'` so screens
+  // scroll under it; every guest screen clears it with
+  // `tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height`.
+  // borderTopWidth is set explicitly: React Navigation's own top border
+  // otherwise stays under a custom style.
   bar: {
     position: 'absolute',
+    // Margins, not left/right offsets: React Navigation's tab bar overrides
+    // left/right, and the pill came out full width.
     left: 0,
     right: 0,
-    bottom: 0,
+    marginHorizontal: floatingTabBar.side,
+    borderRadius: 32,
+    borderWidth: 1,
     borderTopWidth: 1,
-    paddingTop: 8,
+    paddingTop: 0,
+    paddingBottom: 0,
     paddingHorizontal: 6,
-    elevation: 0,
-    shadowOpacity: 0,
+    shadowColor: '#000000',
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
   },
   item: {
-    paddingTop: 2,
+    paddingTop: 8,
+    paddingBottom: 6,
+    justifyContent: 'center',
   },
   hidden: {
     display: 'none',

@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +14,7 @@ import {
   View,
 } from 'react-native';
 
+import { showActionSheet } from '@/components/ActionSheet';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { FocusRing } from '@/components/FocusRing';
@@ -116,15 +116,17 @@ export default function MenuScreen() {
       void pickCoursePhoto(course.key);
       return;
     }
-    Alert.alert(t('menuForm.coursePhotoTitle'), undefined, [
-      { text: t('menuForm.coursePhotoChange'), onPress: () => void pickCoursePhoto(course.key) },
-      {
-        text: t('menuForm.coursePhotoRemove'),
-        style: 'destructive',
-        onPress: () => updateCourse(course.key, { photo: null, previewUri: null }),
-      },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+    showActionSheet({
+      title: t('menuForm.coursePhotoTitle'),
+      actions: [
+        { label: t('menuForm.coursePhotoChange'), icon: 'image', onPress: () => void pickCoursePhoto(course.key) },
+        {
+          label: t('menuForm.coursePhotoRemove'),
+          tone: 'delete',
+          onPress: () => updateCourse(course.key, { photo: null, previewUri: null }),
+        },
+      ],
+    });
   };
 
   // Placeholders for the three default rows of a new menu; anything else gets a generic one.

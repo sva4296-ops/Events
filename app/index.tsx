@@ -149,7 +149,12 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.root}>
-      <Screen contentStyle={styles.content}>
+      {/* Cards scroll all the way down, behind the floating "create" button
+          and the home indicator; the padding keeps the last one reachable. */}
+      <Screen
+        bottomSafeArea={false}
+        contentStyle={{ ...styles.content, paddingBottom: styles.content.paddingBottom + insets.bottom }}
+      >
         <View style={styles.header}>
           <View style={styles.greeting}>
             <Text style={[styles.date, { color: tokens.textSecondary }]}>{todayLabel()}</Text>
@@ -233,15 +238,9 @@ export default function DashboardScreen() {
                 <EventListItem
                   event={event}
                   onPress={() =>
-                    // The restaurant only has the Detalii tab.
-                    // A finished event opens on its album (the only thing left to do there).
-                    router.push(
-                      isRestaurant(event)
-                        ? `/guest/${event.id}/detalii`
-                        : isEventPast(event.date)
-                          ? `/guest/${event.id}/album`
-                          : `/guest/${event.id}`,
-                    )
+                    // The restaurant only has the Detalii tab. Everyone else
+                    // lands on Acasă, finished events too (the story card is there).
+                    router.push(isRestaurant(event) ? `/guest/${event.id}/detalii` : `/guest/${event.id}`)
                   }
                   planLabel={planLabelFor(event.planTier)}
                   onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
@@ -293,9 +292,7 @@ export default function DashboardScreen() {
                         // "Change my answer".
                         router.push(
                           invitation.guest.status === 'confirmed'
-                            ? isEventPast(invitation.event.date)
-                              ? `/guest/${invitation.event.id}/album`
-                              : `/guest/${invitation.event.id}`
+                            ? `/guest/${invitation.event.id}`
                             : `/invite/${invitation.event.id}`,
                         )
                       }
@@ -308,7 +305,12 @@ export default function DashboardScreen() {
         )}
       </Screen>
 
-      <View style={[styles.createBar, { bottom: insets.bottom + spacing.lg }]} pointerEvents="box-none">
+      {/* Down into the home-indicator area (it's a floating pill), but never on
+          the edge itself (some Androids report a 0 inset). */}
+      <View
+        style={[styles.createBar, { bottom: Math.max(insets.bottom - 10, spacing.sm) }]}
+        pointerEvents="box-none"
+      >
         <Button
           label={t('home.createEvent')}
           onPress={startCreating}

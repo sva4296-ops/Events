@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/EmptyState';
 import { LockedFeature } from '@/components/guest/LockedFeature';
@@ -31,7 +32,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { SocialContent } from '@/types/guest';
 import type { MessageRow } from '@/types/supabase';
 import { confirmDelete } from '@/utils/confirm';
-import { gSpace } from '@/utils/guestTheme';
+import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { setActiveChat } from '@/utils/pushNotifications';
 import { generateId } from '@/utils/uuid';
 
@@ -52,6 +53,10 @@ export default function ChatScreen() {
   // receive) animates instead of jumping.
   const hasScrolledInitialContent = useRef(false);
   const { markRead } = useChatRead(id);
+  const insets = useSafeAreaInsets();
+  // The composer sits just above the floating tab bar, closer than the
+  // default page clearance (which also leaves room for scrolled content).
+  const composerClearance = { paddingBottom: tabBarBottomInset(insets.bottom) + floatingTabBar.height + gSpace.sm };
 
   // Opening the chat marks it read (resets chat pushes and the tab's unread
   // dot), and so does leaving it or sending the app to the background, so
@@ -164,7 +169,7 @@ export default function ChatScreen() {
         fixed header and the fixed composer below it) keeps the composer's
         position stable while the list scrolls behind it.
       */}
-      <GuestScreen scroll={false} contentStyle={styles.content} transparent>
+      <GuestScreen scroll={false} contentStyle={{ ...styles.content, ...composerClearance }} transparent>
         <ScrollView
           ref={scrollRef}
           style={styles.messagesScroll}
@@ -276,7 +281,7 @@ const styles = StyleSheet.create({
   // floating tab bar above/below it (both use the same gSpace.xl margin).
   content: {
     paddingHorizontal: 20,
-    gap: gSpace.lg,
+    gap: gSpace.sm,
   },
   headerBlock: {
     gap: gSpace.xs,
@@ -295,7 +300,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
-    paddingTop: 10,
   },
   input: {
     flex: 1,

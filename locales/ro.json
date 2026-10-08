@@ -15,7 +15,9 @@
     "eventRsvpSummary": "{{confirmed}} confirmați · {{pending}} în așteptare",
     "choosePlan": "Alege pachet",
     "viewPlans": "Vezi planurile",
-    "close": "Închide"
+    "close": "Închide",
+    "somethingWentWrong": "Ceva n-a mers",
+    "tryAgain": "Te rugăm să încerci din nou."
   },
   "home": {
     "tagline": "Mai mult decât o invitație — întreaga poveste.",
@@ -222,7 +224,11 @@
     "noLimitOrganizer": "Fără limită pentru organizatori",
     "limitReached": "Ai atins limita de poze",
     "infoTitle": "Cum funcționează albumul",
-    "infoBody": "• Toți cei de la eveniment urcă poze aici și toți invitații le văd.\n• Fiecare invitat poate urca maximum {{limit}} de poze. Organizatorii nu au limită.\n• Îți poți șterge oricând pozele tale.\n• Albumul complet e gata la 3 zile după eveniment și atunci îl poți descărca."
+    "infoBody": "• Toți cei de la eveniment urcă poze aici și toți invitații le văd.\n• Fiecare invitat poate urca maximum {{limit}} de poze. Organizatorii nu au limită.\n• Îți poți șterge oricând pozele tale.\n• Albumul complet e gata la 3 zile după eveniment și atunci îl poți descărca.",
+    "closedTitle": "Albumul s-a închis",
+    "closedBody_one": "Pozele se puteau adăuga până la o zi după eveniment.",
+    "closedBody_few": "Pozele se puteau adăuga până la {{count}} zile după eveniment.",
+    "closedBody_other": "Pozele se puteau adăuga până la {{count}} zile după eveniment."
   },
   "rsvp": {
     "notFoundTitle": "Invitația nu a fost găsită",
@@ -795,7 +801,11 @@
     "shareWhatsApp": "Trimite pe WhatsApp",
     "shareAddGuests": "Adaugă invitați",
     "shareGoToEvent": "Mergi la eveniment",
-    "pickOnMap": "Alege pe hartă"
+    "pickOnMap": "Alege pe hartă",
+    "discardTitle": "Renunți la eveniment?",
+    "discardBody": "Tot ce ai completat se va pierde.",
+    "keepEditing": "Continuă editarea",
+    "discard": "Renunță"
   },
   "eventTypes": {
     "wedding": {
@@ -948,7 +958,7 @@
       },
       "album_ready": {
         "title": "Album gata",
-        "description": "Când pozele evenimentului sunt gata de văzut."
+        "description": "Când povestea și pozele evenimentului sunt gata."
       },
       "event_cancelled": {
         "title": "Evenimente anulate",
@@ -961,5 +971,82 @@
     },
     "loadFailed": "Nu am putut încărca setările de notificări. Verifică conexiunea și încearcă din nou.",
     "retry": "Încearcă din nou"
+  },
+  "story": {
+    "close": "Închide",
+    "previous": "Înapoi",
+    "next": "Înainte",
+    "entryTitle": "Povestea evenimentului e gata",
+    "entryBody": "Momentele, programul și pozele, într-un story.",
+    "entryCta": "Vezi povestea",
+    "statsTitle": "În cifre",
+    "statsGuests_one": "invitat a fost alături",
+    "statsGuests_few": "invitați au fost alături",
+    "statsGuests_other": "invitați au fost alături",
+    "statsPhotos_one": "fotografie",
+    "statsPhotos_few": "fotografii",
+    "statsPhotos_other": "fotografii",
+    "statsMoments_one": "moment împărtășit",
+    "statsMoments_few": "momente împărtășite",
+    "statsMoments_other": "momente împărtășite",
+    "journeyTitle": "Drumul până aici",
+    "whenDay": "În ziua cea mare",
+    "whenDays_one": "Cu o zi înainte",
+    "whenDays_few": "Cu {{count}} zile înainte",
+    "whenDays_other": "Cu {{count}} zile înainte",
+    "whenWeeks_one": "Cu o săptămână înainte",
+    "whenWeeks_few": "Cu {{count}} săptămâni înainte",
+    "whenWeeks_other": "Cu {{count}} săptămâni înainte",
+    "whenMonths_one": "Cu o lună înainte",
+    "whenMonths_few": "Cu {{count}} luni înainte",
+    "whenMonths_other": "Cu {{count}} luni înainte",
+    "photosTitle": "Prin ochii invitaților",
+    "photosCount_one": "O fotografie în album",
+    "photosCount_few": "{{count}} fotografii în album",
+    "photosCount_other": "{{count}} fotografii în album",
+    "peopleTitle": "Cei care au surprins momentele",
+    "peopleCount_one": "O persoană a adăugat poze",
+    "peopleCount_few": "{{count}} persoane au adăugat poze",
+    "peopleCount_other": "{{count}} persoane au adăugat poze",
+    "endTitle": "Totul e în album",
+    "endBody": "Toate pozele evenimentului, într-un singur loc.",
+    "openAlbum": "Deschide albumul",
+    "types": {
+      "wedding": {
+        "cover": "Povestea nunții",
+        "day": "Ziua nunții",
+        "thanks": "Mulțumim că ați fost alături de noi în cea mai frumoasă zi. Amintirile acestea sunt și ale voastre."
+      },
+      "baptism": {
+        "cover": "Povestea botezului",
+        "day": "Ziua botezului",
+        "thanks": "Vă mulțumim că ați fost alături de noi și de cel mic într-o zi atât de specială."
+      },
+      "birthday": {
+        "cover": "Povestea aniversării",
+        "day": "Ziua petrecerii",
+        "thanks": "Mulțumim că ați sărbătorit împreună cu noi. A fost o zi de neuitat."
+      },
+      "cause": {
+        "cover": "Povestea cauzei",
+        "day": "Ziua evenimentului",
+        "thanks": "Mulțumim pentru fiecare gest de susținere. Împreună am făcut o diferență."
+      },
+      "corporate": {
+        "cover": "Povestea evenimentului",
+        "day": "Agenda zilei",
+        "thanks": "Mulțumim tuturor pentru prezență și implicare. Ne vedem la următorul eveniment."
+      },
+      "memorial": {
+        "cover": "In memoriam",
+        "day": "Programul zilei",
+        "thanks": "Vă mulțumim că ați fost alături de noi și ați păstrat vie amintirea celui drag."
+      },
+      "other": {
+        "cover": "Povestea evenimentului",
+        "day": "Ziua cea mare",
+        "thanks": "Mulțumim că ați fost alături de noi. Amintirile acestea sunt ale tuturor."
+      }
+    }
   }
 }

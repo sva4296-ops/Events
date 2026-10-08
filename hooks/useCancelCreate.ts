@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
-import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
+import { showDialog } from '@/components/ActionSheet';
 import { useEventDraft } from '@/hooks/useEventDraft';
 
 /**
@@ -8,6 +9,7 @@ import { useEventDraft } from '@/hooks/useEventDraft';
  * organizer has already entered something.
  */
 export function useCancelCreate(): () => void {
+  const { t } = useTranslation();
   const { draft, resetDraft } = useEventDraft();
 
   const dirty =
@@ -27,9 +29,13 @@ export function useCancelCreate(): () => void {
       return;
     }
 
-    Alert.alert('Discard this event?', 'Everything you entered will be lost.', [
-      { text: 'Keep editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: exit },
-    ]);
+    showDialog({
+      title: t('createWizard.discardTitle'),
+      message: t('createWizard.discardBody'),
+      buttons: [
+        { label: t('createWizard.keepEditing'), style: 'cancel' },
+        { label: t('createWizard.discard'), style: 'destructive', onPress: exit },
+      ],
+    });
   };
 }

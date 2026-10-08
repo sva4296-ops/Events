@@ -15,7 +15,9 @@
     "eventRsvpSummary": "{{confirmed}} confirmed · {{pending}} pending",
     "choosePlan": "Choose a plan",
     "viewPlans": "View plans",
-    "close": "Close"
+    "close": "Close",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Please try again."
   },
   "home": {
     "tagline": "More than an invitation — the whole story.",
@@ -214,7 +216,10 @@
     "noLimitOrganizer": "No limit for organizers",
     "limitReached": "Photo limit reached",
     "infoTitle": "How the album works",
-    "infoBody": "• Everyone at the event uploads photos here, and all guests see them.\n• Each guest can upload up to {{limit}} photos. Organizers have no limit.\n• You can delete your own photos at any time.\n• The full album is ready 3 days after the event, when you can download it."
+    "infoBody": "• Everyone at the event uploads photos here, and all guests see them.\n• Each guest can upload up to {{limit}} photos. Organizers have no limit.\n• You can delete your own photos at any time.\n• The full album is ready 3 days after the event, when you can download it.",
+    "closedTitle": "The album is closed",
+    "closedBody_one": "Photos could be added up to {{count}} day after the event.",
+    "closedBody_other": "Photos could be added up to {{count}} days after the event."
   },
   "rsvp": {
     "notFoundTitle": "Invitation not found",
@@ -774,7 +779,11 @@
     "shareWhatsApp": "Send on WhatsApp",
     "shareAddGuests": "Add guests",
     "shareGoToEvent": "Go to the event",
-    "pickOnMap": "Pick on the map"
+    "pickOnMap": "Pick on the map",
+    "discardTitle": "Discard this event?",
+    "discardBody": "Everything you entered will be lost.",
+    "keepEditing": "Keep editing",
+    "discard": "Discard"
   },
   "eventTypes": {
     "wedding": {
@@ -927,7 +936,7 @@
       },
       "album_ready": {
         "title": "Album ready",
-        "description": "When the event photos are ready to view."
+        "description": "When the event's story and photos are ready."
       },
       "event_cancelled": {
         "title": "Cancelled events",
@@ -940,5 +949,74 @@
     },
     "loadFailed": "Couldn't load your notification settings. Check your connection and try again.",
     "retry": "Try again"
+  },
+  "story": {
+    "close": "Close",
+    "previous": "Previous",
+    "next": "Next",
+    "entryTitle": "The event's story is ready",
+    "entryBody": "The moments, the schedule and the photos, in one story.",
+    "entryCta": "Watch the story",
+    "statsTitle": "In numbers",
+    "statsGuests_one": "guest was there",
+    "statsGuests_other": "guests were there",
+    "statsPhotos_one": "photo",
+    "statsPhotos_other": "photos",
+    "statsMoments_one": "moment shared",
+    "statsMoments_other": "moments shared",
+    "journeyTitle": "The road here",
+    "whenDay": "On the big day",
+    "whenDays_one": "1 day before",
+    "whenDays_other": "{{count}} days before",
+    "whenWeeks_one": "1 week before",
+    "whenWeeks_other": "{{count}} weeks before",
+    "whenMonths_one": "1 month before",
+    "whenMonths_other": "{{count}} months before",
+    "photosTitle": "Through the guests' eyes",
+    "photosCount_one": "1 photo in the album",
+    "photosCount_other": "{{count}} photos in the album",
+    "peopleTitle": "Who captured the moments",
+    "peopleCount_one": "1 person added photos",
+    "peopleCount_other": "{{count}} people added photos",
+    "endTitle": "It's all in the album",
+    "endBody": "Every photo from the event, in one place.",
+    "openAlbum": "Open the album",
+    "types": {
+      "wedding": {
+        "cover": "The wedding story",
+        "day": "The wedding day",
+        "thanks": "Thank you for being with us on our most beautiful day. These memories are yours too."
+      },
+      "baptism": {
+        "cover": "The christening story",
+        "day": "The christening day",
+        "thanks": "Thank you for being with us and our little one on such a special day."
+      },
+      "birthday": {
+        "cover": "The birthday story",
+        "day": "The party",
+        "thanks": "Thank you for celebrating with us. It was a day to remember."
+      },
+      "cause": {
+        "cover": "The story of the cause",
+        "day": "The event day",
+        "thanks": "Thank you for every gesture of support. Together we made a difference."
+      },
+      "corporate": {
+        "cover": "The event story",
+        "day": "The day's agenda",
+        "thanks": "Thank you all for being there and taking part. See you at the next one."
+      },
+      "memorial": {
+        "cover": "In memoriam",
+        "day": "The day's schedule",
+        "thanks": "Thank you for being with us and keeping the memory of our loved one alive."
+      },
+      "other": {
+        "cover": "The event story",
+        "day": "The big day",
+        "thanks": "Thank you for being with us. These memories belong to all of us."
+      }
+    }
   }
 }

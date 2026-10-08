@@ -4,9 +4,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
-import { ActivityIndicator, Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { showActionSheet } from '@/components/ActionSheet';
+import { showActionSheet, showDialog } from '@/components/ActionSheet';
 import { Button } from '@/components/Button';
 import { BackButton } from '@/components/BackButton';
 import { ListGroup, ListRow } from '@/components/ListGroup';
@@ -54,20 +54,20 @@ export default function ProfileScreen() {
     const error = await deleteAccount();
     if (error !== null) {
       setDeletingAccount(false);
-      Alert.alert(t('profile.deleteAccountFailed'), error);
+      showDialog({ title: t('profile.deleteAccountFailed'), message: error });
     }
     // On success AuthGate sees the session drop and routes to /auth.
   };
 
   const confirmDeleteAccount = () => {
-    Alert.alert(t('profile.deleteAccountTitle'), t('profile.deleteAccountMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('profile.deleteAccountConfirm'),
-        style: 'destructive',
-        onPress: () => void runDeleteAccount(),
-      },
-    ]);
+    showDialog({
+      title: t('profile.deleteAccountTitle'),
+      message: t('profile.deleteAccountMessage'),
+      buttons: [
+        { label: t('common.cancel'), style: 'cancel' },
+        { label: t('profile.deleteAccountConfirm'), style: 'destructive', onPress: () => void runDeleteAccount() },
+      ],
+    });
   };
 
   const pickAndUploadAvatar = async (source: 'camera' | 'library') => {

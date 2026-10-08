@@ -21,6 +21,9 @@ interface ScreenProps {
   transparent?: boolean;
   /** Screens opened from an event: its type's cover behind the content, same as the event tabs. */
   coverType?: EventTypeId | null;
+  /** False = content scrolls all the way under the home indicator / nav bar
+   * (no bottom safe-area edge); the screen adds that inset to its own padding. */
+  bottomSafeArea?: boolean;
 }
 
 export function Screen({
@@ -31,6 +34,7 @@ export function Screen({
   contentStyle,
   transparent = false,
   coverType = null,
+  bottomSafeArea = true,
 }: ScreenProps) {
   const { tokens } = useTheme();
   const Wrapper = transparent ? TransparentWrapper : LinearGradient;
@@ -40,7 +44,7 @@ export function Screen({
     <Wrapper colors={resolvedGradient} style={styles.fill}>
       {coverType !== null ? <EventCoverBackground type={coverType} /> : null}
       <EventAccentProvider type={coverType}>
-      <SafeAreaView style={styles.fill} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.fill} edges={bottomSafeArea ? ['top', 'bottom'] : ['top']}>
         {scroll ? (
           <ScrollView
             contentContainerStyle={[styles.content, contentStyle]}

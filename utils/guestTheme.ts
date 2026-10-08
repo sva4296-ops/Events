@@ -81,13 +81,16 @@ export const gShadow = {
  * manually now that it's no longer a normal layout sibling.
  */
 /**
- * Warm Story 2.0 docks the event tab bar to the screen bottom (it used to
- * float). `height` is the bar above the safe-area inset; `gap` stays in the
- * shape so every `insets.bottom + gap + height` clearance keeps working.
+ * The event tab bar floats again: a rounded pill `height` tall, sitting
+ * tabBarBottomInset() above the screen bottom. `gap` is the breathing room
+ * between page content and the pill, so every
+ * `tabBarBottomInset + gap + height` clearance stays correct.
  */
 export const floatingTabBar = {
-  height: 62,
-  gap: 0,
+  height: 64,
+  gap: 12,
+  /** Distance from the screen's left/right edges. */
+  side: 16,
 } as const;
 
 /**

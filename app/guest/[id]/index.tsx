@@ -2,15 +2,16 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { showActionSheet } from '@/components/ActionSheet';
+import { showActionSheet, showDialog } from '@/components/ActionSheet';
 import { BrandFlourish } from '@/components/BrandFlourish';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { GuestScreen } from '@/components/guest/GuestScreen';
+import { StoryEntryCard } from '@/components/guest/StoryEntryCard';
 import { MomentCard, MomentCardSkeleton } from '@/components/guest/MomentCard';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { confirmDelete } from '@/utils/confirm';
@@ -21,6 +22,7 @@ import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
 import type { ScheduleItem } from '@/types/guest';
+import { isStoryReady } from '@/utils/eventStory';
 import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, eventStartTime, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
@@ -230,6 +232,9 @@ export default function AcasaScreen() {
             scheduleTimes={content.schedule.map((item) => item.time)}
           /> : null}
 
+        {/* Finished event with its album ready: the story of the whole thing. */}
+        {event !== undefined && isEventPast(event.date) && isStoryReady(event) ? <StoryEntryCard event={event} /> : null}
+
         {event !== undefined ? <UpNextCard eventId={id} date={event.date} schedule={content.schedule} /> : null}
 
         {content.moments.length === 0 ? (
@@ -274,12 +279,13 @@ export default function AcasaScreen() {
                       ? () => {
                           // Co-organizer on someone else's moment: say why, instead of nothing.
                           haptics.press();
-                          Alert.alert(
-                            t('acasa.cantEditOthersTitle'),
-                            moment.author_label !== null
-                              ? t('acasa.cantEditOthersBody', { name: moment.author_label })
-                              : t('acasa.cantEditOthersBodyUnknown'),
-                          );
+                          showDialog({
+                            title: t('acasa.cantEditOthersTitle'),
+                            message:
+                              moment.author_label !== null
+                                ? t('acasa.cantEditOthersBody', { name: moment.author_label })
+                                : t('acasa.cantEditOthersBodyUnknown'),
+                          });
                         }
                       : undefined
                 }

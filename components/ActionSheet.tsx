@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -25,16 +25,49 @@ interface SheetRequest {
   actions: SheetAction[];
 }
 
+export interface DialogButton {
+  label: string;
+  /** 'cancel' = neutral, 'destructive' = red, 'default' = accent. */
+  style?: 'default' | 'cancel' | 'destructive';
+  onPress?: () => void;
+}
+
+interface DialogRequest {
+  title: string;
+  message?: string;
+  /** None = a single "OK"-style close button. */
+  buttons?: DialogButton[];
+}
+
+type HostRequest = { kind: 'sheet'; sheet: SheetRequest } | { kind: 'dialog'; dialog: DialogRequest };
+
 /**
  * The app's long-press menu (Edit / Delete / Cancel): a small centered popup
  * in the theme instead of the system Alert, which looks out of place on Android.
  * Imperative so it can open from a gesture callback: call showActionSheet()
  * anywhere; ActionSheetHost is mounted once in app/_layout.tsx.
  */
-let present: ((request: SheetRequest) => void) | null = null;
+let present: ((request: HostRequest) => void) | null = null;
 
 export function showActionSheet(request: SheetRequest): void {
-  present?.(request);
+  present?.({ kind: 'sheet', sheet: request });
+}
+
+/**
+ * The app's confirmation / message popup, same look as the action sheet,
+ * replacing Alert.alert everywhere. Falls back to the system Alert only if
+ * the host isn't mounted yet.
+ */
+export function showDialog(request: DialogRequest): void {
+  if (present === null) {
+    Alert.alert(
+      request.title,
+      request.message,
+      request.buttons?.map((button) => ({ text: button.label, style: button.style, onPress: button.onPress })),
+    );
+    return;
+  }
+  present({ kind: 'dialog', dialog: request });
 }
 
 const DEFAULT_ICON: Record<NonNullable<SheetAction['tone']>, FeatherName> = {
@@ -46,7 +79,7 @@ const DEFAULT_ICON: Record<NonNullable<SheetAction['tone']>, FeatherName> = {
 export function ActionSheetHost() {
   const { t } = useTranslation();
   const { tokens } = useTheme();
-  const [request, setRequest] = useState<SheetRequest | null>(null);
+  const [current, setCurrent] = useState<HostRequest | null>(null);
   const [visible, setVisible] = useState(false);
   // Run after the sheet is gone: an action that opens another dialog (the
   // delete confirmation) can't present over a Modal that's still closing on iOS.
@@ -54,7 +87,7 @@ export function ActionSheetHost() {
 
   useEffect(() => {
     present = (next) => {
-      setRequest(next);
+      setCurrent(next);
       setVisible(true);
     };
     return () => {
@@ -91,20 +124,58 @@ export function ActionSheetHost() {
         accessibilityRole="button"
         accessibilityLabel={t('common.cancel')}
       />
-      {visible && request !== null ? (
+      {visible && current?.kind === 'dialog' ? (
+        <View style={styles.center} pointerEvents="box-none">
+          <Animated.View
+            entering={ZoomIn.duration(180)}
+            style={[styles.popup, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+            accessibilityRole="alert"
+          >
+            <View style={styles.dialogText}>
+              <Text style={[styles.dialogTitle, { color: tokens.textPrimary }]}>{current.dialog.title}</Text>
+              {current.dialog.message !== undefined && current.dialog.message.length > 0 ? (
+                <Text style={[styles.dialogMessage, { color: tokens.textSecondary }]}>{current.dialog.message}</Text>
+              ) : null}
+            </View>
+            <View style={[styles.dialogButtons, (current.dialog.buttons?.length ?? 1) > 2 && styles.dialogButtonsStacked]}>
+              {(current.dialog.buttons ?? [{ label: t('common.close'), style: 'cancel' as const }]).map((button, index) => {
+                const kind = button.style ?? 'default';
+                const background =
+                  kind === 'destructive' ? tokens.destructiveSoft : kind === 'cancel' ? tokens.surface2 : tokens.accentFill;
+                const color =
+                  kind === 'destructive' ? tokens.destructive : kind === 'cancel' ? tokens.textPrimary : tokens.onAccent;
+                return (
+                  <TouchableOpacity
+                    key={`${button.label}-${index}`}
+                    style={[styles.dialogButton, { backgroundColor: background }]}
+                    onPress={() => close(button.onPress)}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.dialogButtonLabel, { color }]} numberOfLines={1}>
+                      {button.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Animated.View>
+        </View>
+      ) : null}
+      {visible && current?.kind === 'sheet' ? (
         <View style={styles.center} pointerEvents="box-none">
         <Animated.View
           entering={ZoomIn.duration(180)}
           style={[styles.popup, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
         >
-          {request.title !== undefined && request.title.length > 0 ? (
+          {current.sheet.title !== undefined && current.sheet.title.length > 0 ? (
             <Text style={[styles.title, { color: tokens.textPrimary }]} numberOfLines={2}>
-              {request.title}
+              {current.sheet.title}
             </Text>
           ) : null}
 
           <View style={[styles.group, { backgroundColor: tokens.surface2 }]}>
-            {request.actions.map((action, index) => {
+            {current.sheet.actions.map((action, index) => {
               const tone = action.tone ?? 'default';
               const color = tone === 'delete' ? tokens.destructive : tokens.textPrimary;
               return (
@@ -146,6 +217,35 @@ export function ActionSheetHost() {
 }
 
 const styles = StyleSheet.create({
+  dialogText: {
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  dialogTitle: {
+    ...typography.subtitle,
+  },
+  dialogMessage: {
+    ...typography.bodySmall,
+  },
+  dialogButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  dialogButtonsStacked: {
+    flexDirection: 'column',
+  },
+  dialogButton: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  dialogButtonLabel: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 16,
+  },
   backdrop: {
     position: 'absolute',
     top: 0,

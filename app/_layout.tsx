@@ -1,35 +1,35 @@
 // Side-effect import — initializes i18next before anything below renders.
-import '@/utils/i18n';
+import "@/utils/i18n";
 
 import {
   PlayfairDisplay_400Regular,
   PlayfairDisplay_500Medium_Italic,
   PlayfairDisplay_600SemiBold,
   useFonts,
-} from '@expo-google-fonts/playfair-display';
+} from "@expo-google-fonts/playfair-display";
 import {
   SpaceGrotesk_400Regular,
   SpaceGrotesk_500Medium,
   SpaceGrotesk_600SemiBold,
   SpaceGrotesk_700Bold,
-} from '@expo-google-fonts/space-grotesk';
-import { Unbounded_500Medium, Unbounded_700Bold, Unbounded_800ExtraBold } from '@expo-google-fonts/unbounded';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+} from "@expo-google-fonts/space-grotesk";
+import { Fraunces_500Medium, Fraunces_600SemiBold } from "@expo-google-fonts/fraunces";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { AuthGate } from '@/components/AuthGate';
-import { ActionSheetHost } from '@/components/ActionSheet';
-import { BrandSplash } from '@/components/BrandSplash';
-import { AuthProvider } from '@/hooks/useAuth';
-import { EventDraftProvider } from '@/hooks/useEventDraft';
-import { ThemeProvider, useTheme } from '@/hooks/useTheme';
-import { markAppReady } from '@/utils/appReady';
+import { AuthGate } from "@/components/AuthGate";
+import { ActionSheetHost } from "@/components/ActionSheet";
+import { BrandSplash } from "@/components/BrandSplash";
+import { AuthProvider } from "@/hooks/useAuth";
+import { EventDraftProvider } from "@/hooks/useEventDraft";
+import { ThemeProvider, useTheme } from "@/hooks/useTheme";
+import { markAppReady } from "@/utils/appReady";
 
 /**
  * Keeps the native splash (app.json's `expo-splash-screen` plugin config, with
@@ -71,9 +71,8 @@ export default function RootLayout() {
     PlayfairDisplay_400Regular,
     PlayfairDisplay_500Medium_Italic,
     PlayfairDisplay_600SemiBold,
-    Unbounded_500Medium,
-    Unbounded_700Bold,
-    Unbounded_800ExtraBold,
+    Fraunces_500Medium,
+    Fraunces_600SemiBold,
     SpaceGrotesk_400Regular,
     SpaceGrotesk_500Medium,
     SpaceGrotesk_600SemiBold,
@@ -106,17 +105,21 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-      <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <EventDraftProvider>
-          <AuthGate>
-            <AppShell splashVisible={splashVisible} onReveal={handleReveal} onFinished={handleFinished} />
-          </AuthGate>
-        </EventDraftProvider>
-      </AuthProvider>
-      </QueryClientProvider>
-      </ThemeProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <EventDraftProvider>
+                <AuthGate>
+                  <AppShell
+                    splashVisible={splashVisible}
+                    onReveal={handleReveal}
+                    onFinished={handleFinished}
+                  />
+                </AuthGate>
+              </EventDraftProvider>
+            </AuthProvider>
+          </QueryClientProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -139,7 +142,7 @@ function AppShell({
 
   return (
     <>
-      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={mode === "dark" ? "light" : "dark"} />
       <View style={styles.root}>
         <Stack
           screenOptions={{
@@ -148,7 +151,9 @@ function AppShell({
           }}
         />
         <ActionSheetHost />
-        {splashVisible ? <BrandSplash onReveal={onReveal} onFinished={onFinished} /> : null}
+        {splashVisible ? (
+          <BrandSplash onReveal={onReveal} onFinished={onFinished} />
+        ) : null}
       </View>
     </>
   );

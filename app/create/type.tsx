@@ -9,6 +9,8 @@ import { TypeTile } from '@/components/TypeTile';
 import { useCancelCreate } from '@/hooks/useCancelCreate';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { EVENT_TYPES } from '@/utils/eventTypes';
+import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
+
 import { spacing } from '@/utils/theme';
 
 export default function PickTypeScreen() {
@@ -35,6 +37,7 @@ export default function PickTypeScreen() {
         stepLabel={t('createWizard.stepLabel', { step: 1, total: 5, name: t('createWizard.stepType') })}
         step={1}
         totalSteps={5}
+          progressColors={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].gradient : undefined}
       />
 
       <View style={styles.grid}>

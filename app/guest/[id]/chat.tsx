@@ -176,6 +176,11 @@ export default function ChatScreen() {
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          // Android doesn't clamp the scroll offset when the list grows taller
+          // (keyboard closing), which left an empty gap above the composer.
+          onLayout={() => {
+            if (content !== null) scrollRef.current?.scrollToEnd({ animated: false });
+          }}
           // Fires whenever the message list's own content height changes —
           // initial load (skeletons -> real history), a message this device
           // just sent, or one the Realtime subscription just appended — so

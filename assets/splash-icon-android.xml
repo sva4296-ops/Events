@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android native splash mark as a vector, so the system splash can scale it
+  without pixelating. Same geometry and colors as utils/brandMark.ts, sized
+  like BrandSplash (180dp wide mark on the 288dp splash icon canvas).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+    <group
+        android:scaleX="1.8"
+        android:scaleY="1.8"
+        android:translateX="54"
+        android:translateY="46.8">
+        <path
+            android:pathData="M8 66C22 66 38 72 50 82C26 64 20 40 32 30C40 23 50 28 50 38C50 28 60 23 68 30C80 40 74 64 50 82C62 72 78 66 92 66"
+            android:strokeWidth="6.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="#00000000">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="0"
+                    android:startY="0"
+                    android:endX="100"
+                    android:endY="0"
+                    android:startColor="#F5C36B"
+                    android:centerColor="#E8779E"
+                    android:endColor="#7F77DD" />
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M2 66a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z"
+            android:fillColor="#F5C36B" />
+        <path
+            android:pathData="M86 66a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z"
+            android:fillColor="#7F77DD" />
+    </group>
+</vector>

@@ -84,13 +84,15 @@ export const themeRadius = {
 
 export const lightTheme: ThemeTokens = {
   mode: "light",
-  background: ["#FFF8F1", "#FBEAE0"],
+  // Sand beige (was cream to peach #FFF8F1 -> #FBEAE0): neutral, so each
+  // event's own colors (cover, accent) stand out.
+  background: ["#F7F3EC", "#ECE4D7"],
   surface: "#FFFFFF",
   surfaceElevated: "#FFFFFF",
   // Reuses the background gradient's second stop rather than a new hex —
   // warm and light enough to sit under a white card while still reading as
   // a distinct region.
-  surfaceMuted: "#FBEAE0",
+  surfaceMuted: "#ECE4D7",
   // Warm Story 2.0: 0 6 20 rgba(43,39,64,.07).
   surfaceElevatedShadow: {
     shadowColor: "#2B2740",
@@ -100,13 +102,13 @@ export const lightTheme: ThemeTokens = {
     elevation: 3,
   },
   // Warm Story 2.0: light cards carry the hairline border too, alongside the shadow.
-  surfaceBorder: "#EEE2D7",
+  surfaceBorder: "#E3DACC",
   textPrimary: "#2B2740",
   // Warm Story 2.0: darkened from #8A8496 for 5.3:1 on cream.
   textSecondary: "#6E6880",
   textMuted: "#8A8496",
-  border: "#EEE2D7",
-  surface2: "#F7EFE8",
+  border: "#E3DACC",
+  surface2: "#F1ECE3",
   accentPrimary: "#7F77DD",
   accentFill: "#6A61D1",
   onAccent: "#FFFFFF",

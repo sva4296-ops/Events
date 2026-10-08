@@ -24,6 +24,12 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 /** Must match app.json's splash imageWidth × 0.7 (the mark fills 70% of splash-icon.png). */
 const MARK_WIDTH = 180;
 const MARK_HEIGHT = MARK_WIDTH / MARK_RATIO;
+/**
+ * The SVG is drawn at this multiple of its on-screen size and scaled down.
+ * react-native-svg rasterizes at layout size, so scaling it up for the
+ * heartbeat would stretch that bitmap and look pixelated.
+ */
+const SUPERSAMPLE = 2;
 /** How far the mark glides up to make room for the wordmark. */
 const LIFT = 56;
 /** Length of the light that runs along the thread, in viewBox units. */
@@ -145,8 +151,8 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
       <Animated.View
         style={{ transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -LIFT] }) }] }}
       >
-        <Animated.View style={{ transform: [{ scale: beat }] }}>
-          <Svg width={MARK_WIDTH} height={MARK_HEIGHT} viewBox={MARK_VIEWBOX} style={styles.mark}>
+        <Animated.View style={{ transform: [{ scale: Animated.multiply(beat, 1 / SUPERSAMPLE) }] }}>
+          <Svg width={MARK_WIDTH * SUPERSAMPLE} height={MARK_HEIGHT * SUPERSAMPLE} viewBox={MARK_VIEWBOX} style={styles.mark}>
             <Defs>
               <SvgLinearGradient
                 id="splashThread"

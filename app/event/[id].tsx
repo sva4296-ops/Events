@@ -61,7 +61,7 @@ export default function EventDetailScreen() {
   const [exporting, setExporting] = useState(false);
   const queryClient = useQueryClient();
   const addGuestRef = useTourTarget(TOUR_TARGETS.guests);
-  const whatsappRef = useTourTarget(TOUR_TARGETS.invites);
+  const whatsappRef = useTourTarget(TOUR_TARGETS.invites, 18); // styles.action borderRadius
 
   const event = getEvent(id);
   const owner = isOwner(event);

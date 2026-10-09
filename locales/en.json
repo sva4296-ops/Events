@@ -1069,6 +1069,11 @@
         "title": "Post the first moment",
         "hint": "A photo and a few words for your guests.",
         "tip": "Tap here to post a moment. Guests see it on Home and can react."
+      },
+      "menu": {
+        "title": "Create the menu",
+        "hint": "The menus guests choose from, course by course.",
+        "tip": "Tap here to add a menu. Confirmed guests pick their menu in the app, until the deadline you set."
       }
     }
   }

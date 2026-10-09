@@ -8,7 +8,7 @@ import { useEvents } from "@/hooks/useEvents";
 import i18n from "@/utils/i18n";
 
 export type GettingStartedKey =
-  "event" | "location" | "schedule" | "guests" | "invites" | "moment";
+  "event" | "location" | "schedule" | "guests" | "invites" | "moment" | "menu";
 
 export interface GettingStartedStep {
   key: GettingStartedKey;
@@ -24,6 +24,7 @@ export const TOUR_TARGETS = {
   guests: "guests-add",
   invites: "guests-whatsapp",
   moment: "acasa-post-moment",
+  menu: "plan-menu",
 } as const;
 
 function tour(
@@ -70,6 +71,11 @@ export function useGettingStarted(eventId: string) {
       key: "schedule",
       done: (content?.schedule.length ?? 0) > 0,
       showMe: tour("schedule", toPlan),
+    },
+    {
+      key: "menu",
+      done: (content?.menuOptions.length ?? 0) > 0,
+      showMe: tour("menu", toPlan),
     },
     {
       key: "guests",

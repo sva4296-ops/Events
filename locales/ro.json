@@ -1100,6 +1100,11 @@
         "title": "Postează primul moment",
         "hint": "O poză și câteva cuvinte pentru invitați.",
         "tip": "Apasă aici ca să postezi un moment. Invitații îl văd pe Acasă și pot reacționa."
+      },
+      "menu": {
+        "title": "Creează meniul",
+        "hint": "Meniurile din care aleg invitații, pe feluri.",
+        "tip": "Apasă aici ca să adaugi un meniu. Invitații confirmați își aleg meniul din aplicație, până la termenul pe care îl setezi."
       }
     }
   }

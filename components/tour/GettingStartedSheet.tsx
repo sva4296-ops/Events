@@ -58,14 +58,17 @@ export function GettingStartedSheet({ eventId }: { eventId: string }) {
       transparent
       onRequestClose={close}
     >
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={close}
-      >
+      <View style={styles.backdrop}>
+        {/* Behind the sheet: a tap outside closes it. A sibling, not a parent,
+            so it never competes with the list's scroll gesture. */}
         <TouchableOpacity
+          style={StyleSheet.absoluteFill}
           activeOpacity={1}
-          onPress={() => undefined}
+          onPress={close}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.close")}
+        />
+        <View
           style={[
             styles.sheet,
             {
@@ -117,6 +120,7 @@ export function GettingStartedSheet({ eventId }: { eventId: string }) {
           </View>
 
           <ScrollView
+            style={styles.scroll}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
           >
@@ -203,8 +207,8 @@ export function GettingStartedSheet({ eventId }: { eventId: string }) {
               </View>
             ))}
           </ScrollView>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -265,6 +269,11 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 13,
     fontWeight: "600",
+  },
+  // Lets the list shrink inside the sheet's maxHeight, so it scrolls instead of overflowing.
+  scroll: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   list: {
     gap: spacing.sm,

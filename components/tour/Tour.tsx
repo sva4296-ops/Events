@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Animated, {
   cancelAnimation,
+  Easing,
   FadeIn,
   FadeOut,
   useAnimatedStyle,
@@ -55,7 +56,17 @@ interface Rect {
   height: number;
 }
 
-const targets = new Map<string, Measurable>();
+interface Spot extends Rect {
+  /** Corner radius of the target, so the wave follows its shape. */
+  radius: number;
+}
+
+interface TargetEntry {
+  node: Measurable;
+  radius?: number;
+}
+
+const targets = new Map<string, TargetEntry>();
 let present: ((step: TourStep | null) => void) | null = null;
 
 export function startTour(step: TourStep): void {
@@ -67,25 +78,28 @@ export function endTour(): void {
 }
 
 /** Ref for the element the tour can point at. Pass to any View/Touchable `ref`. */
-export function useTourTarget(key: string | undefined) {
+export function useTourTarget(key: string | undefined, radius?: number) {
   const current = useRef<Measurable | null>(null);
   return useCallback(
     (node: Measurable | null) => {
       if (key === undefined) return;
       if (node !== null) {
         current.current = node;
-        targets.set(key, node);
+        targets.set(key, { node, radius });
       } else if (
         current.current !== null &&
-        targets.get(key) === current.current
+        targets.get(key)?.node === current.current
       ) {
         targets.delete(key);
         current.current = null;
       }
     },
-    [key],
+    [key, radius],
   );
 }
+
+/** Default corner radius: half the height, capped at 22 (round buttons and the app's cards). */
+const DEFAULT_MAX_RADIUS = 22;
 
 function measure(node: Measurable): Promise<Rect | null> {
   return new Promise((resolve) => {
@@ -100,7 +114,7 @@ const sameRect = (a: Rect, b: Rect) =>
   Math.abs(a.y - b.y) < 1 &&
   Math.abs(a.width - b.width) < 1;
 
-const HOLE_PAD = 6;
+const DIM_COLOR = "rgba(16, 12, 28, 0.62)";
 const FIRST_LOOK_MS = 450; // let the screen / tab transition finish
 const RETRY_MS = 250;
 const MAX_TRIES = 14; // ~4s, then show the tip without a spotlight
@@ -113,7 +127,7 @@ export function TourHost() {
   const reducedMotion = useReducedMotion();
 
   const [step, setStep] = useState<TourStep | null>(null);
-  const [rect, setRect] = useState<Rect | "missing" | null>(null);
+  const [rect, setRect] = useState<Spot | "missing" | null>(null);
   const shownAt = useRef<string | null>(null);
   const latestPath = useRef(pathname);
   latestPath.current = pathname;
@@ -139,15 +153,18 @@ export function TourHost() {
 
     const tick = async () => {
       if (cancelled) return;
-      const node = targets.get(step.target);
-      const first = node !== undefined ? await measure(node) : null;
-      if (first !== null && node !== undefined) {
+      const entry = targets.get(step.target);
+      const first = entry !== undefined ? await measure(entry.node) : null;
+      if (first !== null && entry !== undefined) {
         await new Promise((resolve) => setTimeout(resolve, 150));
-        const second = await measure(node);
+        const second = await measure(entry.node);
         if (cancelled) return;
         if (second !== null && sameRect(first, second)) {
           shownAt.current = latestPath.current;
-          setRect(second);
+          setRect({
+            ...second,
+            radius: entry.radius ?? Math.min(second.height / 2, DEFAULT_MAX_RADIUS),
+          });
           return;
         }
       }
@@ -180,22 +197,23 @@ export function TourHost() {
     }
   }, [pathname, step]);
 
-  const pulse = useSharedValue(0);
+  // A wave leaving the target's edge: grows a little and fades out, then again.
+  const wave = useSharedValue(0);
   useEffect(() => {
     if (reducedMotion || rect === null || rect === "missing") return;
-    pulse.set(0);
-    pulse.set(withRepeat(withTiming(1, { duration: 900 }), -1, true));
-    return () => cancelAnimation(pulse);
-  }, [rect, reducedMotion, pulse]);
-  const ringStyle = useAnimatedStyle(() => ({
-    opacity: 1 - pulse.get() * 0.45,
-    transform: [{ scale: 1 + pulse.get() * 0.04 }],
+    wave.set(0);
+    wave.set(withRepeat(withTiming(1, { duration: 1400, easing: Easing.out(Easing.quad) }), -1, false));
+    return () => cancelAnimation(wave);
+  }, [rect, reducedMotion, wave]);
+  const waveStyle = useAnimatedStyle(() => ({
+    opacity: reducedMotion ? 0 : 0.9 * (1 - wave.get()),
+    transform: [{ scale: 1 + wave.get() * 0.1 }],
   }));
 
   if (step === null || rect === null) return null;
 
   const close = () => endTour();
-  const dim = { backgroundColor: "rgba(16, 12, 28, 0.62)" };
+  const dim = { backgroundColor: DIM_COLOR };
 
   const card = (
     <View
@@ -239,12 +257,11 @@ export function TourHost() {
     );
   }
 
-  const hole = {
-    x: rect.x - HOLE_PAD,
-    y: rect.y - HOLE_PAD,
-    width: rect.width + HOLE_PAD * 2,
-    height: rect.height + HOLE_PAD * 2,
-  };
+  // The dim is ONE view: a border so thick it covers the whole screen, whose
+  // inner edge has the target's radius (inner radius = outer radius - width).
+  // Its outer corners fall far off screen, so no seams and no corners show.
+  const hole = rect;
+  const spread = Math.max(screenW, screenH);
   const below = hole.y + hole.height / 2 < screenH * 0.55;
 
   return (
@@ -254,13 +271,29 @@ export function TourHost() {
       style={StyleSheet.absoluteFill}
       pointerEvents="box-none"
     >
-      {/* Four dim panels around the hole; the hole itself passes touches through. */}
+      <View
+        pointerEvents="none"
+        style={[
+          styles.dimLayer,
+          {
+            left: rect.x - spread,
+            top: rect.y - spread,
+            width: rect.width + spread * 2,
+            height: rect.height + spread * 2,
+            borderWidth: spread,
+            borderRadius: rect.radius + spread,
+            borderColor: DIM_COLOR,
+          },
+        ]}
+      />
+
+      {/* Four invisible panels around the target catch taps outside it (close);
+          the target itself passes touches through to the real button. */}
       <TouchableOpacity
         activeOpacity={1}
         onPress={close}
         style={[
           styles.panel,
-          dim,
           { top: 0, left: 0, right: 0, height: Math.max(hole.y, 0) },
         ]}
       />
@@ -269,7 +302,6 @@ export function TourHost() {
         onPress={close}
         style={[
           styles.panel,
-          dim,
           { top: hole.y + hole.height, left: 0, right: 0, bottom: 0 },
         ]}
       />
@@ -278,7 +310,6 @@ export function TourHost() {
         onPress={close}
         style={[
           styles.panel,
-          dim,
           {
             top: hole.y,
             height: hole.height,
@@ -292,7 +323,6 @@ export function TourHost() {
         onPress={close}
         style={[
           styles.panel,
-          dim,
           {
             top: hole.y,
             height: hole.height,
@@ -305,15 +335,16 @@ export function TourHost() {
       <Animated.View
         pointerEvents="none"
         style={[
-          styles.ring,
+          styles.wave,
           {
             left: hole.x,
             top: hole.y,
             width: hole.width,
             height: hole.height,
+            borderRadius: hole.radius,
             borderColor: tokens.onAccent,
           },
-          ringStyle,
+          waveStyle,
         ]}
       />
 
@@ -337,10 +368,12 @@ const styles = StyleSheet.create({
   panel: {
     position: "absolute",
   },
-  ring: {
+  wave: {
     position: "absolute",
     borderWidth: 2,
-    borderRadius: themeRadius.lg,
+  },
+  dimLayer: {
+    position: "absolute",
   },
   cardWrap: {
     position: "absolute",

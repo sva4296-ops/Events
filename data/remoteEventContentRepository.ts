@@ -91,7 +91,15 @@ interface FundDraft {
 }
 
 function mapSchedule(row: ScheduleItemRow): ScheduleItem {
-  return { id: row.id, event_id: row.event_id, time: row.time, title: row.title, location: row.location ?? '' };
+  return {
+    id: row.id,
+    event_id: row.event_id,
+    time: row.time,
+    title: row.title,
+    location: row.location ?? '',
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
+  };
 }
 
 function mapVenue(eventId: string, row: VenueInfoRow | null): Venue {
@@ -637,6 +645,8 @@ interface ScheduleItemDraft {
   time: string;
   title: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 async function saveScheduleItem(eventId: string, item: ScheduleItemDraft, sortOrder: number): Promise<void> {
@@ -644,13 +654,21 @@ async function saveScheduleItem(eventId: string, item: ScheduleItemDraft, sortOr
   if (item.id === null) {
     const { error } = await client
       .from('schedule_items')
-      .insert({ event_id: eventId, time: item.time, title: item.title, location: item.location, sort_order: sortOrder });
+      .insert({
+        event_id: eventId,
+        time: item.time,
+        title: item.title,
+        location: item.location,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        sort_order: sortOrder,
+      });
     if (error) throw error;
     return;
   }
   const { error } = await client
     .from('schedule_items')
-    .update({ time: item.time, title: item.title, location: item.location })
+    .update({ time: item.time, title: item.title, location: item.location, latitude: item.latitude, longitude: item.longitude })
     .eq('id', item.id);
   if (error) throw error;
 }

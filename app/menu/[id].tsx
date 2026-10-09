@@ -19,6 +19,7 @@ import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { FocusRing } from '@/components/FocusRing';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
 import { useEventContent, type MenuCoursePhotoInput } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
@@ -27,6 +28,7 @@ import { haptics } from '@/utils/haptics';
 import { spacing } from '@/utils/theme';
 import { themeRadius, typography } from '@/utils/themeTokens';
 import { generateId } from '@/utils/uuid';
+import { confirmDelete } from '@/utils/confirm';
 
 const MAX_COURSES = 8;
 
@@ -47,7 +49,7 @@ export default function MenuScreen() {
   const { getEvent, isVenueManager } = useEvents();
   const { tokens } = useTheme();
   const event = getEvent(id);
-  const { content, saveMenuOption } = useEventContent(id ?? '');
+  const { content, saveMenuOption, deleteMenuOption } = useEventContent(id ?? '');
 
   const existing = content?.menuOptions.find((option) => option.id === itemId) ?? null;
 
@@ -163,6 +165,21 @@ export default function MenuScreen() {
           title={existing === null ? t('menuForm.addTitle') : t('menuForm.editTitle')}
           subtitle={t('menuForm.subtitle')}
           showBack
+          right={
+            existing !== null ? (
+              <IconCircleButton
+                icon="trash-2"
+                tone="destructive"
+                accessibilityLabel={t('common.delete')}
+                onPress={() =>
+                  confirmDelete(t('detalii.deleteMenuOptionTitle'), t('detalii.deleteMenuOptionBody', { name: existing.name }), () => {
+                    deleteMenuOption(existing.id);
+                    router.back();
+                  })
+                }
+              />
+            ) : undefined
+          }
         />
 
         <Field

@@ -85,6 +85,9 @@ export interface ScheduleItem {
   time: string;
   title: string;
   location: string;
+  /** Map point picked in the schedule editor; both null when not set. */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface Venue {

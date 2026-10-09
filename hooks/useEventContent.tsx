@@ -21,6 +21,8 @@ export interface ScheduleItemInput {
   time: string;
   title: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface MenuInput {

@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
 import { LongPressRow } from '@/components/LongPressRow';
 import { PhotoViewer } from '@/components/PhotoViewer';
@@ -258,6 +259,14 @@ export default function DetaliiMenuScreen() {
                       >
                         {selected ? <Feather name="check" size={13} color={tokens.onAccent} /> : null}
                       </View>
+                    ) : null}
+                    {owner ? (
+                      <IconCircleButton
+                        size="sm"
+                        icon="edit-2"
+                        accessibilityLabel={t('common.edit')}
+                        onPress={() => router.push(`/menu/${id}?itemId=${option.id}`)}
+                      />
                     ) : null}
                   </View>
                   {option.courses.map((course, courseIndex) => (

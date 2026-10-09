@@ -10,6 +10,7 @@ import { FloorPlan } from '@/components/FloorPlan';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
 import { LongPressRow } from '@/components/LongPressRow';
 import { fetchTableCompanions } from '@/data/eventsRepository';
@@ -253,6 +254,14 @@ export default function DetaliiSeatingScreen() {
                         <Feather name="check" size={11} color={tokens.onAccent} />
                         <Text style={[styles.hereBadgeText, { color: tokens.onAccent }]}>{t('detalii.seatingYoureHere')}</Text>
                       </View>
+                    ) : null}
+                    {owner ? (
+                      <IconCircleButton
+                        size="sm"
+                        icon="edit-2"
+                        accessibilityLabel={t('common.edit')}
+                        onPress={() => router.push(`/table/${id}?itemId=${table.id}`)}
+                      />
                     ) : null}
                   </View>
                   {table.label.length > 0 ? (

@@ -112,6 +112,8 @@ export interface ScheduleItemRow {
   title: string;
   location: string | null;
   sort_order: number;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface VenueInfoRow {

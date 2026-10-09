@@ -6,16 +6,18 @@ import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
+import { confirmDelete } from '@/utils/confirm';
 
 export default function AccommodationScreen() {
   const { t } = useTranslation();
   const { id, itemId } = useLocalSearchParams<{ id: string; itemId?: string }>();
   const { getEvent, isOwner } = useEvents();
   const event = getEvent(id);
-  const { content, saveAccommodation } = useEventContent(id ?? '');
+  const { content, saveAccommodation, deleteAccommodation } = useEventContent(id ?? '');
 
   const existing = content?.accommodations.find((entry) => entry.id === itemId) ?? null;
 
@@ -64,6 +66,21 @@ export default function AccommodationScreen() {
           title={existing === null ? t('accommodationForm.addTitle') : t('accommodationForm.editTitle')}
           subtitle={t('common.guestsSeeOnDetalii')}
           showBack
+          right={
+            existing !== null ? (
+              <IconCircleButton
+                icon="trash-2"
+                tone="destructive"
+                accessibilityLabel={t('common.delete')}
+                onPress={() =>
+                  confirmDelete(t('detalii.deleteAccommodationTitle'), t('detalii.deleteAccommodationBody', { name: existing.name }), () => {
+                    deleteAccommodation(existing.id);
+                    router.back();
+                  })
+                }
+              />
+            ) : undefined
+          }
         />
 
         <Field

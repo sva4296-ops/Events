@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
 import { LongPressRow } from '@/components/LongPressRow';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -165,6 +166,14 @@ export default function DetaliiVendorsScreen() {
                         {t('detalii.vendorLink')}
                       </Text>
                     </TouchableOpacity>
+                  ) : null}
+                  {owner ? (
+                    <IconCircleButton
+                      size="sm"
+                      icon="edit-2"
+                      accessibilityLabel={t('common.edit')}
+                      onPress={() => router.push(`/vendor/${id}?itemId=${vendor.id}`)}
+                    />
                   ) : null}
                 </View>
               </LongPressRow>

@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, Vie
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
 import { TableGuestPickerModal, type AssignableGuestRow } from '@/components/TableGuestPickerModal';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -15,6 +16,7 @@ import type { TableShape } from '@/types/guest';
 import { haptics } from '@/utils/haptics';
 import { spacing } from '@/utils/theme';
 import { themeRadius } from '@/utils/themeTokens';
+import { confirmDelete } from '@/utils/confirm';
 
 export default function SeatingTableScreen() {
   const { t } = useTranslation();
@@ -22,7 +24,7 @@ export default function SeatingTableScreen() {
   const { getEvent, isVenueManager, isRestaurant } = useEvents();
   const { tokens } = useTheme();
   const event = getEvent(id);
-  const { content, saveSeatingTable } = useEventContent(id ?? '');
+  const { content, saveSeatingTable, deleteSeatingTable } = useEventContent(id ?? '');
 
   const existing = content?.seatingTables.find((table) => table.id === itemId) ?? null;
 
@@ -139,6 +141,21 @@ export default function SeatingTableScreen() {
           title={existing === null ? t('tableForm.addTitle') : t('tableForm.editTitle')}
           subtitle={t('common.guestsSeeOnDetalii')}
           showBack
+          right={
+            existing !== null ? (
+              <IconCircleButton
+                icon="trash-2"
+                tone="destructive"
+                accessibilityLabel={t('common.delete')}
+                onPress={() =>
+                  confirmDelete(t('detalii.deleteTableTitle'), t('detalii.deleteTableBody', { name: existing.name }), () => {
+                    deleteSeatingTable(existing.id);
+                    router.back();
+                  })
+                }
+              />
+            ) : undefined
+          }
         />
 
         <Field

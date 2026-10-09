@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
 import { LongPressRow } from '@/components/LongPressRow';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -15,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { confirmDelete } from '@/utils/confirm';
 import { gSpace } from '@/utils/guestTheme';
 import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
+import { openInMaps } from '@/utils/maps';
 
 function cardStyle(tokens: ThemeTokens) {
   return {
@@ -108,6 +110,29 @@ export default function DetaliiScheduleScreen() {
                     {item.location}
                   </Text>
                 </View>
+                {item.latitude !== null && item.longitude !== null ? (
+                  <IconCircleButton
+                    size="sm"
+                    icon="navigation"
+                    accessibilityLabel={t('detalii.openInMaps')}
+                    onPress={() =>
+                      openInMaps({
+                        name: item.location.trim() || item.title,
+                        address: item.location,
+                        latitude: item.latitude,
+                        longitude: item.longitude,
+                      })
+                    }
+                  />
+                ) : null}
+                {owner ? (
+                  <IconCircleButton
+                    size="sm"
+                    icon="edit-2"
+                    accessibilityLabel={t('common.edit')}
+                    onPress={() => router.push(`/schedule/${id}?itemId=${item.id}`)}
+                  />
+                ) : null}
               </View>
             </LongPressRow>
           ))}

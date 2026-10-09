@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { LongPressRow } from '@/components/LongPressRow';
 import { Screen } from '@/components/Screen';
 import { VenueMapPreview } from '@/components/VenueMapPreview';
@@ -50,7 +51,19 @@ export default function DetaliiLocationScreen() {
 
   return (
     <GuestScreen coverType={event?.type} topInset>
-      <Header title={t('detalii.hub.locationTitle')} showBack />
+      <Header
+        title={t('detalii.hub.locationTitle')}
+        showBack
+        right={
+          owner && hasVenue ? (
+            <IconCircleButton
+              icon="edit-2"
+              accessibilityLabel={t('common.edit')}
+              onPress={() => router.push(`/venue/${id}`)}
+            />
+          ) : undefined
+        }
+      />
 
       {!hasVenue ? (
         <EmptyState

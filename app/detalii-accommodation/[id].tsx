@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
 import { LongPressRow } from '@/components/LongPressRow';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -131,15 +132,25 @@ export default function DetaliiAccommodationScreen() {
                 },
               ]}
             >
-              <View style={[styles.rowCard, card]}>
-                <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{entry.name}</Text>
-                {entry.detail_line.length > 0 ? (
-                  <Text style={[styles.rowSubtitle, { color: tokens.textSecondary }]}>
-                    {entry.detail_line}
-                  </Text>
-                ) : null}
-                {entry.price_line.length > 0 ? (
-                  <Text style={[styles.rowMeta, { color: tokens.textSecondary }]}>{entry.price_line}</Text>
+              <View style={[styles.rowCard, styles.rowInline, card]}>
+                <View style={styles.rowBody}>
+                  <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{entry.name}</Text>
+                  {entry.detail_line.length > 0 ? (
+                    <Text style={[styles.rowSubtitle, { color: tokens.textSecondary }]}>
+                      {entry.detail_line}
+                    </Text>
+                  ) : null}
+                  {entry.price_line.length > 0 ? (
+                    <Text style={[styles.rowMeta, { color: tokens.textSecondary }]}>{entry.price_line}</Text>
+                  ) : null}
+                </View>
+                {owner ? (
+                  <IconCircleButton
+                    size="sm"
+                    icon="edit-2"
+                    accessibilityLabel={t('common.edit')}
+                    onPress={() => router.push(`/accommodation/${id}?itemId=${entry.id}`)}
+                  />
                 ) : null}
               </View>
             </LongPressRow>
@@ -164,6 +175,15 @@ const styles = StyleSheet.create({
   rowCard: {
     borderRadius: themeRadius.xl,
     padding: gSpace.xl,
+    gap: 2,
+  },
+  rowInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: gSpace.md,
+  },
+  rowBody: {
+    flex: 1,
     gap: 2,
   },
   rowTitle: {

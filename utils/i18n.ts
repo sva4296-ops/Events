@@ -1,3 +1,12 @@
+// Hermes' Intl.PluralRules doesn't resolve Romanian "few" (2-19: "5 zile"),
+// so every "_few" key fell back to "_other" ("5 de zile"). Force the formatjs
+// implementation for both languages. Must run before i18next initializes.
+import '@formatjs/intl-getcanonicallocales/polyfill.js';
+import '@formatjs/intl-locale/polyfill.js';
+import '@formatjs/intl-pluralrules/polyfill-force.js';
+import '@formatjs/intl-pluralrules/locale-data/en.js';
+import '@formatjs/intl-pluralrules/locale-data/ro.js';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';

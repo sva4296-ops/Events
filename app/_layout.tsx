@@ -30,6 +30,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { EventDraftProvider } from "@/hooks/useEventDraft";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { markAppReady } from "@/utils/appReady";
+import { initSentry, wrapRoot } from "@/utils/sentry";
 
 /**
  * Keeps the native splash (app.json's `expo-splash-screen` plugin config, with
@@ -40,6 +41,9 @@ import { markAppReady } from "@/utils/appReady";
  * Module scope so this runs before the first render, not inside an effect.
  */
 void SplashScreen.preventAutoHideAsync();
+
+// No-op until EXPO_PUBLIC_SENTRY_DSN is set (see utils/sentry.ts).
+initSentry();
 
 /**
  * Baseline only — every query below overrides staleTime (and gcTime where it
@@ -66,7 +70,7 @@ function createQueryClient(): QueryClient {
   });
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_500Medium_Italic,
@@ -164,3 +168,5 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+export default wrapRoot(RootLayout);

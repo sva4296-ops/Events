@@ -211,6 +211,15 @@
     "albumTitle": "Albumul vostru",
     "empty": "Nicio poză încă. Pozele adăugate în Live apar aici.",
     "downloadAll": "Descarcă toate pozele",
+    "downloadProgress": "Se salvează {{done}} din {{total}}…",
+    "downloadDoneTitle": "Gata!",
+    "downloadDoneBody_one": "Am salvat o poză în galeria telefonului.",
+    "downloadDoneBody_few": "Am salvat {{count}} poze în galeria telefonului.",
+    "downloadDoneBody_other": "Am salvat {{count}} de poze în galeria telefonului.",
+    "downloadPartialTitle": "Unele poze nu s-au salvat",
+    "downloadPartialBody": "Salvate: {{saved}}. Nereușite: {{failed}}. Verifică internetul și încearcă din nou.",
+    "downloadDeniedTitle": "Fără acces la galerie",
+    "downloadDeniedBody": "Ca să salvăm pozele, permite accesul la galerie din setările telefonului.",
     "title": "Albumul nostru",
     "summary_one": "{{count}} poză · de la {{people}} invitați",
     "summary_few": "{{count}} poze · de la {{people}} invitați",
@@ -443,7 +452,9 @@
     "featureVolumeBilling": "Facturare pe volum",
     "headline": "Alege planul potrivit poveștii tale",
     "flowTitle": "Planuri",
-    "ownerOnly": "Doar organizatorul principal poate alege pachetul."
+    "ownerOnly": "Doar organizatorul principal poate alege pachetul.",
+    "paymentsSoonTitle": "Plățile vin în curând",
+    "paymentsSoonBody": "Planurile plătite vor putea fi cumpărate direct din aplicație în curând. Până atunci poți folosi planul Esențial."
   },
   "planGate": {
     "chatLocked": "Chatul de grup nu este inclus în planul curent al acestui eveniment.",

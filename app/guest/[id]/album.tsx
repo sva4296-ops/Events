@@ -21,6 +21,8 @@ import {
   isPhotoUploadClosed,
   PHOTO_UPLOAD_DAYS_AFTER,
 } from "@/utils/limits";
+import { saveAlbumToGallery } from "@/utils/albumDownload";
+import { reportSupabaseError } from "@/utils/reportError";
 import { themeRadius, typography } from "@/utils/themeTokens";
 
 type AlbumFilter = "all" | "mine";
@@ -33,6 +35,7 @@ export default function AlbumScreen() {
   const { tokens } = useTheme();
   const { content, addPhoto, deletePhoto } = useEventContent(id);
   const [filter, setFilter] = useState<AlbumFilter>("all");
+  const [download, setDownload] = useState<{ done: number; total: number } | null>(null);
 
   const owner = isOwner(event);
   const loading = content === null;
@@ -65,6 +68,38 @@ export default function AlbumScreen() {
     if (result.canceled || asset === undefined) return;
 
     addPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
+  };
+
+  const downloadAll = async () => {
+    if (download !== null) return;
+    try {
+      const result = await saveAlbumToGallery(photos, (done, total) =>
+        setDownload({ done, total }),
+      );
+      if (result.status === "denied") {
+        showDialog({
+          title: t("album.downloadDeniedTitle"),
+          message: t("album.downloadDeniedBody"),
+        });
+      } else if (result.failed === 0) {
+        showDialog({
+          title: t("album.downloadDoneTitle"),
+          message: t("album.downloadDoneBody", { count: result.saved }),
+        });
+      } else {
+        showDialog({
+          title: t("album.downloadPartialTitle"),
+          message: t("album.downloadPartialBody", {
+            saved: result.saved,
+            failed: result.failed,
+          }),
+        });
+      }
+    } catch (error) {
+      reportSupabaseError(error);
+    } finally {
+      setDownload(null);
+    }
   };
 
   const filters: { key: AlbumFilter; label: string }[] = [
@@ -216,14 +251,22 @@ export default function AlbumScreen() {
           ~72h after the event). The timing is explained in the ⓘ next to the title. */}
       {canDownload ? (
         <TouchableOpacity
-          style={[styles.download, { backgroundColor: tokens.textPrimary }]}
-          onPress={() => {}}
+          style={[
+            styles.download,
+            { backgroundColor: tokens.textPrimary },
+            download !== null && styles.downloadBusy,
+          ]}
+          onPress={() => void downloadAll()}
+          disabled={download !== null}
           activeOpacity={0.85}
           accessibilityRole="button"
+          accessibilityState={{ busy: download !== null }}
         >
           <Feather name="download" size={20} color={tokens.surface} />
           <Text style={[styles.downloadText, { color: tokens.surface }]}>
-            {t("album.downloadAll")}
+            {download !== null
+              ? t("album.downloadProgress", { done: download.done, total: download.total })
+              : t("album.downloadAll")}
           </Text>
         </TouchableOpacity>
       ) : null}
@@ -314,6 +357,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingHorizontal: 22,
+  },
+  downloadBusy: {
+    opacity: 0.7,
   },
   downloadText: {
     fontSize: 16,

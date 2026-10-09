@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import type { PurchasesPackage } from "react-native-purchases";
 
+import { showDialog } from "@/components/ActionSheet";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
@@ -27,6 +28,9 @@ import { brandGradient, themeRadius, typography } from "@/utils/themeTokens";
 import { reportSupabaseError } from "@/utils/reportError";
 import { fetchOfferingPackages } from "@/utils/revenueCat";
 import { FUND_ENABLED } from "@/utils/features";
+
+/** The only plan_key the client may write (see the lock_paid_plan_tier migration). */
+const FREE_PLAN_KEY = "esential";
 
 /**
  * Per-event pricing screen — reached two ways, both event-scoped: right
@@ -185,11 +189,19 @@ export default function PricingScreen() {
       return;
     }
 
+    // Paid tiers are written only server-side after a verified store purchase
+    // (20261009000001_lock_paid_plan_tier.sql); real purchasing isn't wired yet.
+    if (plan.planKey !== FREE_PLAN_KEY) {
+      showDialog({
+        title: t("pricing.paymentsSoonTitle"),
+        message: t("pricing.paymentsSoonBody"),
+      });
+      return;
+    }
+
     setPurchasingPlanId(plan.id);
     try {
-      // Placeholder purchase — no RevenueCat call. See this file's own
-      // top comment and CLAUDE.md's "Pricing screen" for what replaces
-      // this once real purchasing is wired up.
+      // The free tier is the only plan the app may set itself.
       await setPlanTier(id, plan.planKey);
       continueAfterPricing();
     } catch (err) {

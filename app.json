@@ -19,6 +19,15 @@
         }
       ],
       [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow PovesteaNoastra to access your photos.",
+          "savePhotosPermission": "Allow PovesteaNoastra to save the event album photos to your gallery.",
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": []
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
@@ -32,7 +41,7 @@
           },
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#1E1A30"
+            "backgroundColor": "#F7F3EC"
           }
         }
       ],
@@ -91,6 +100,12 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ]
     },
     "web": {

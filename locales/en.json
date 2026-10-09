@@ -204,6 +204,14 @@
     "albumTitle": "Your album",
     "empty": "No photos yet. Photos added in Live show up here.",
     "downloadAll": "Download all photos",
+    "downloadProgress": "Saving {{done}} of {{total}}…",
+    "downloadDoneTitle": "Done!",
+    "downloadDoneBody_one": "Saved one photo to your gallery.",
+    "downloadDoneBody_other": "Saved {{count}} photos to your gallery.",
+    "downloadPartialTitle": "Some photos weren't saved",
+    "downloadPartialBody": "Saved: {{saved}}. Failed: {{failed}}. Check your connection and try again.",
+    "downloadDeniedTitle": "No gallery access",
+    "downloadDeniedBody": "To save the photos, allow gallery access in your phone's settings.",
     "title": "Our album",
     "summary_one": "{{count}} photo · from {{people}} guests",
     "summary_other": "{{count}} photos · from {{people}} guests",
@@ -423,7 +431,9 @@
     "featureVolumeBilling": "Per-event billing",
     "headline": "Pick the right plan for your story",
     "flowTitle": "Plans",
-    "ownerOnly": "Only the main organizer can choose the plan."
+    "ownerOnly": "Only the main organizer can choose the plan.",
+    "paymentsSoonTitle": "Payments coming soon",
+    "paymentsSoonBody": "Paid plans will be available to buy right in the app soon. Until then you can use the Esențial plan."
   },
   "planGate": {
     "chatLocked": "Group chat isn't included in this event's current plan.",

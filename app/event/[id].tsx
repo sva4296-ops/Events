@@ -22,9 +22,11 @@ import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import { Skeleton } from "@/components/Skeleton";
 import { LongPressRow } from "@/components/LongPressRow";
+import { useTourTarget } from "@/components/tour/Tour";
 import { remoteRepository } from "@/data/remoteEventContentRepository";
 import { confirmDelete } from "@/utils/confirm";
 import { useEvents } from "@/hooks/useEvents";
+import { TOUR_TARGETS } from "@/hooks/useGettingStarted";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import { useTheme } from "@/hooks/useTheme";
@@ -58,6 +60,8 @@ export default function EventDetailScreen() {
   const [query, setQuery] = useState("");
   const [exporting, setExporting] = useState(false);
   const queryClient = useQueryClient();
+  const addGuestRef = useTourTarget(TOUR_TARGETS.guests);
+  const whatsappRef = useTourTarget(TOUR_TARGETS.invites);
 
   const event = getEvent(id);
   const owner = isOwner(event);
@@ -158,6 +162,7 @@ export default function EventDetailScreen() {
         right={
           owner ? (
             <TouchableOpacity
+              ref={addGuestRef}
               style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
               onPress={() => router.push(`/add-guest/${event.id}`)}
               activeOpacity={0.7}
@@ -232,6 +237,7 @@ export default function EventDetailScreen() {
           ].map((action) => (
             <TouchableOpacity
               key={action.key}
+              ref={action.key === "whatsapp" ? whatsappRef : undefined}
               style={[
                 styles.action,
                 { backgroundColor: tokens.surface, borderColor: tokens.border },

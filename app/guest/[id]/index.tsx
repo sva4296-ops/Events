@@ -10,14 +10,17 @@ import { showActionSheet, showDialog } from '@/components/ActionSheet';
 import { BrandFlourish } from '@/components/BrandFlourish';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
+import { GettingStartedCard } from '@/components/guest/GettingStartedCard';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { StoryEntryCard } from '@/components/guest/StoryEntryCard';
 import { MomentCard, MomentCardSkeleton } from '@/components/guest/MomentCard';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
+import { useTourTarget } from '@/components/tour/Tour';
 import { confirmDelete } from '@/utils/confirm';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
+import { TOUR_TARGETS } from '@/hooks/useGettingStarted';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
@@ -194,6 +197,7 @@ export default function AcasaScreen() {
   const { tokens } = useTheme();
   const insets = useSafeAreaInsets();
   const { content, toggleReaction, hasReacted, reactionCount, deleteMoment } = useEventContent(id);
+  const postMomentRef = useTourTarget(TOUR_TARGETS.moment);
 
   const owner = isOwner(event);
   // Finished events are an archive: moments can't be edited or deleted there.
@@ -231,6 +235,9 @@ export default function AcasaScreen() {
             type={event.type}
             scheduleTimes={content.schedule.map((item) => item.time)}
           /> : null}
+
+        {/* Organizer's checklist while the event is still ahead. */}
+        {owner && event !== undefined && !isEventPast(event.date) ? <GettingStartedCard eventId={id} /> : null}
 
         {/* Finished event with its album ready: the story of the whole thing. */}
         {event !== undefined && isEventPast(event.date) && isStoryReady(event) ? <StoryEntryCard event={event} /> : null}
@@ -312,6 +319,7 @@ export default function AcasaScreen() {
       {/* No new moments once the event is over: the story is in the album now. */}
       {owner && (event === undefined || !isEventPast(event.date)) ? (
         <TouchableOpacity
+          ref={postMomentRef}
           style={[
             styles.fab,
             { backgroundColor: tokens.accentFill, bottom: tabBarClearance + gSpace.lg },

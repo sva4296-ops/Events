@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { EventCoverBackground } from '@/components/EventCoverBackground';
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
 import { TabBarIcon, type TabIconId } from '@/components/guest/TabBarIcon';
+import { GettingStartedSheet, openGettingStarted } from '@/components/tour/GettingStartedSheet';
 import { currentStage, stageDayKey } from '@/components/StoryTimeline';
 import { useChatRead } from '@/hooks/useChatRead';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -96,6 +97,12 @@ export default function GuestEventLayout() {
   // its Home card, like every other event.
   if (!past && owner) {
     if (activeTab === 'acasa') {
+      actions.push({
+        key: 'help',
+        icon: 'help-circle',
+        accessibilityLabel: t('gettingStarted.title'),
+        onPress: openGettingStarted,
+      });
       actions.push({
         key: 'guests',
         icon: 'users',
@@ -196,6 +203,7 @@ export default function GuestEventLayout() {
             />
           ))}
         </Tabs>
+        {!past && owner && !restaurant ? <GettingStartedSheet eventId={id} /> : null}
       </LinearGradient>
       </EventAccentProvider>
     </GuestEventProvider>

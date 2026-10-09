@@ -13,7 +13,10 @@ import {
   SpaceGrotesk_600SemiBold,
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
-import { Fraunces_500Medium, Fraunces_600SemiBold } from "@expo-google-fonts/fraunces";
+import {
+  Fraunces_500Medium,
+  Fraunces_600SemiBold,
+} from "@expo-google-fonts/fraunces";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -26,6 +29,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthGate } from "@/components/AuthGate";
 import { ActionSheetHost } from "@/components/ActionSheet";
 import { BrandSplash } from "@/components/BrandSplash";
+import { TourHost } from "@/components/tour/Tour";
 import { AuthProvider } from "@/hooks/useAuth";
 import { EventDraftProvider } from "@/hooks/useEventDraft";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
@@ -154,6 +158,7 @@ function AppShell({
             contentStyle: { backgroundColor: tokens.background[0] },
           }}
         />
+        <TourHost />
         <ActionSheetHost />
         {splashVisible ? (
           <BrandSplash onReveal={onReveal} onFinished={onFinished} />

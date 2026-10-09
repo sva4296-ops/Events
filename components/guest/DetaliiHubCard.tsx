@@ -1,11 +1,12 @@
-import Feather from '@expo/vector-icons/Feather';
-import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import Feather from "@expo/vector-icons/Feather";
+import { useTranslation } from "react-i18next";
+import { StyleSheet, Text, View } from "react-native";
 
-import { ScaleTouchable } from '@/components/ScaleTouchable';
+import { ScaleTouchable } from "@/components/ScaleTouchable";
+import { useTourTarget } from "@/components/tour/Tour";
 
-import { Skeleton } from '@/components/Skeleton';
-import { useTheme } from '@/hooks/useTheme';
+import { Skeleton } from "@/components/Skeleton";
+import { useTheme } from "@/hooks/useTheme";
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -24,6 +25,8 @@ interface DetaliiHubCardProps {
    * meaningless to a guest who only ever sees sections with content. */
   showStatusDot?: boolean;
   onPress: () => void;
+  /** Lets the "Primii pași" tour spotlight this card. */
+  tourKey?: string;
 }
 
 /**
@@ -38,40 +41,66 @@ export function DetaliiHubCard({
   locked = false,
   showStatusDot = true,
   onPress,
+  tourKey,
 }: DetaliiHubCardProps) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
+  const tourRef = useTourTarget(tourKey);
 
   return (
     <ScaleTouchable
+      ref={tourRef}
       scaleTo={0.97}
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityLabel={`${title}, ${status}`}
-      style={[styles.tile, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+      style={[
+        styles.tile,
+        { backgroundColor: tokens.surface, borderColor: tokens.border },
+      ]}
     >
       <View style={styles.top}>
         <View style={[styles.iconWrap, { backgroundColor: tokens.accentTint }]}>
           <Feather name={icon} size={20} color={tokens.accentText} />
         </View>
         {locked ? (
-          <View style={[styles.badge, { backgroundColor: tokens.statusPendingSoft }]}>
+          <View
+            style={[
+              styles.badge,
+              { backgroundColor: tokens.statusPendingSoft },
+            ]}
+          >
             <Feather name="lock" size={11} color={tokens.statusPending} />
-            <Text style={[styles.badgeText, { color: tokens.statusPending }]}>{t('detalii.hub.locked')}</Text>
+            <Text style={[styles.badgeText, { color: tokens.statusPending }]}>
+              {t("detalii.hub.locked")}
+            </Text>
           </View>
         ) : showStatusDot && !complete ? (
-          <View style={[styles.badge, { backgroundColor: tokens.statusPendingSoft }]}>
-            <Text style={[styles.badgeText, { color: tokens.statusPending }]}>{t('detalii.hub.toComplete')}</Text>
+          <View
+            style={[
+              styles.badge,
+              { backgroundColor: tokens.statusPendingSoft },
+            ]}
+          >
+            <Text style={[styles.badgeText, { color: tokens.statusPending }]}>
+              {t("detalii.hub.toComplete")}
+            </Text>
           </View>
         ) : null}
       </View>
 
       <View style={styles.info}>
-        <Text style={[styles.title, { color: tokens.textPrimary }]} numberOfLines={1}>
+        <Text
+          style={[styles.title, { color: tokens.textPrimary }]}
+          numberOfLines={1}
+        >
           {title}
         </Text>
-        <Text style={[styles.status, { color: tokens.textSecondary }]} numberOfLines={2}>
+        <Text
+          style={[styles.status, { color: tokens.textSecondary }]}
+          numberOfLines={2}
+        >
           {status}
         </Text>
       </View>
@@ -84,7 +113,12 @@ export function DetaliiHubCardSkeleton() {
   const { tokens } = useTheme();
 
   return (
-    <View style={[styles.tile, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+    <View
+      style={[
+        styles.tile,
+        { backgroundColor: tokens.surface, borderColor: tokens.border },
+      ]}
+    >
       <Skeleton width={40} height={40} radius={14} />
       <View style={styles.info}>
         <Skeleton height={15} width="55%" radius={4} />
@@ -96,31 +130,31 @@ export function DetaliiHubCardSkeleton() {
 
 const styles = StyleSheet.create({
   tile: {
-    flexBasis: '47%',
+    flexBasis: "47%",
     flexGrow: 1,
     minHeight: 112,
     padding: 14,
     borderRadius: 22,
     borderWidth: 1,
     gap: 10,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   top: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 6,
   },
   iconWrap: {
     width: 40,
     height: 40,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     minHeight: 23,
     paddingHorizontal: 8,
@@ -130,7 +164,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     flexShrink: 1,
   },
   info: {
@@ -138,7 +172,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   status: {
     fontSize: 13,

@@ -1059,5 +1059,48 @@
         "thanks": "Mulțumim că ați fost alături de noi. Amintirile acestea sunt ale tuturor."
       }
     }
+  },
+  "gettingStarted": {
+    "title": "Primii pași",
+    "subtitle": "Pregătește evenimentul în câțiva pași. Apasă „Arată-mi” și îți arătăm exact unde să apeși.",
+    "allDone": "Totul e pregătit. Spor la organizat!",
+    "progress": "{{done}} din {{total}} gata",
+    "next": "Următorul pas: {{step}}",
+    "showMe": "Arată-mi",
+    "gotIt": "Am înțeles",
+    "hide": "Ascunde primii pași",
+    "missingTarget": "Nu găsim butonul acum. Încearcă din nou după ce se încarcă ecranul.",
+    "steps": {
+      "event": {
+        "title": "Creează evenimentul",
+        "hint": ""
+      },
+      "location": {
+        "title": "Adaugă locația",
+        "hint": "Unde are loc evenimentul, cu punct pe hartă.",
+        "tip": "Apasă aici ca să adaugi locul evenimentului. Invitații vor primi navigare direct până acolo."
+      },
+      "schedule": {
+        "title": "Fă programul zilei",
+        "hint": "Ceremonia, petrecerea și orele lor.",
+        "tip": "Apasă aici ca să adaugi momentele zilei, cu ora și locul fiecăruia."
+      },
+      "guests": {
+        "title": "Adaugă invitați",
+        "hint": "Unul câte unul sau direct din contacte.",
+        "tip": "Apasă aici ca să adaugi un invitat. Poți importa mai mulți deodată din contacte."
+      },
+      "invites": {
+        "title": "Trimite invitațiile",
+        "hint": "Pe WhatsApp, fiecare cu linkul lui personal.",
+        "tip": "Apasă aici ca să trimiți invitațiile pe WhatsApp. Fiecare invitat primește linkul lui pentru răspuns.",
+        "missing": "Butonul de trimitere apare după ce adaugi primii invitați."
+      },
+      "moment": {
+        "title": "Postează primul moment",
+        "hint": "O poză și câteva cuvinte pentru invitați.",
+        "tip": "Apasă aici ca să postezi un moment. Invitații îl văd pe Acasă și pot reacționa."
+      }
+    }
   }
 }

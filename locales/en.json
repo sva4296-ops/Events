@@ -1028,5 +1028,48 @@
         "thanks": "Thank you for being with us. These memories belong to all of us."
       }
     }
+  },
+  "gettingStarted": {
+    "title": "Getting started",
+    "subtitle": "Set up your event in a few steps. Tap “Show me” and we'll point at exactly what to press.",
+    "allDone": "You're all set. Happy planning!",
+    "progress": "{{done}} of {{total}} done",
+    "next": "Next step: {{step}}",
+    "showMe": "Show me",
+    "gotIt": "Got it",
+    "hide": "Hide getting started",
+    "missingTarget": "We can't find that button right now. Try again once the screen has loaded.",
+    "steps": {
+      "event": {
+        "title": "Create the event",
+        "hint": ""
+      },
+      "location": {
+        "title": "Add the location",
+        "hint": "Where it happens, with a pin on the map.",
+        "tip": "Tap here to add the venue. Guests get directions straight to it."
+      },
+      "schedule": {
+        "title": "Plan the day",
+        "hint": "The ceremony, the party and their times.",
+        "tip": "Tap here to add the moments of the day, each with its time and place."
+      },
+      "guests": {
+        "title": "Add guests",
+        "hint": "One by one or straight from your contacts.",
+        "tip": "Tap here to add a guest. You can import several at once from your contacts."
+      },
+      "invites": {
+        "title": "Send the invitations",
+        "hint": "On WhatsApp, each with their own link.",
+        "tip": "Tap here to send the invitations on WhatsApp. Every guest gets their own link to reply.",
+        "missing": "The send button shows up once you've added your first guests."
+      },
+      "moment": {
+        "title": "Post the first moment",
+        "hint": "A photo and a few words for your guests.",
+        "tip": "Tap here to post a moment. Guests see it on Home and can react."
+      }
+    }
   }
 }

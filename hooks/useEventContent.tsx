@@ -204,8 +204,13 @@ export function useEventContent(eventId: string) {
     onError: (error: unknown) => reportSupabaseError(error),
   });
   const runRemote = useCallback(
-    (write: () => Promise<void>, category: ContentCategory, extraKeys?: readonly QueryKey[]) =>
-      remoteMutation.mutate({ write, category, extraKeys }),
+    // Resolves when the write settles; never rejects (onError already reports),
+    // so a caller can await it, e.g. to keep the delete loader up until done.
+    (write: () => Promise<void>, category: ContentCategory, extraKeys?: readonly QueryKey[]): Promise<void> =>
+      remoteMutation.mutateAsync({ write, category, extraKeys }).then(
+        () => undefined,
+        () => undefined,
+      ),
     [remoteMutation],
   );
 
@@ -264,7 +269,7 @@ export function useEventContent(eventId: string) {
       },
 
       deleteFund: () => {
-        runRemote(() => remoteRepository.deleteFund(eventId), 'details');
+        return runRemote(() => remoteRepository.deleteFund(eventId), 'details');
       },
 
       saveScheduleItem: (item: ScheduleItemInput) => {
@@ -275,7 +280,7 @@ export function useEventContent(eventId: string) {
       },
 
       deleteScheduleItem: (itemId: string) => {
-        runRemote(() => remoteRepository.deleteScheduleItem(itemId), 'details');
+        return runRemote(() => remoteRepository.deleteScheduleItem(itemId), 'details');
       },
 
       /** Title edit, plus a new photo when one was picked (null keeps the current one). */
@@ -287,19 +292,19 @@ export function useEventContent(eventId: string) {
       },
 
       deleteMoment: (momentId: string) => {
-        runRemote(() => remoteRepository.deleteMoment(eventId, momentId), 'social');
+        return runRemote(() => remoteRepository.deleteMoment(eventId, momentId), 'social');
       },
 
       deleteMessage: (messageId: string) => {
-        runRemote(() => remoteRepository.deleteMessage(messageId), 'social');
+        return runRemote(() => remoteRepository.deleteMessage(messageId), 'social');
       },
 
       deletePhoto: (photoId: string) => {
-        runRemote(() => remoteRepository.deletePhoto(eventId, photoId), 'social');
+        return runRemote(() => remoteRepository.deletePhoto(eventId, photoId), 'social');
       },
 
       deleteVenue: () => {
-        runRemote(() => remoteRepository.deleteVenue(eventId), 'details');
+        return runRemote(() => remoteRepository.deleteVenue(eventId), 'details');
       },
 
       updateVenue: (venue: Venue) => {
@@ -345,7 +350,7 @@ export function useEventContent(eventId: string) {
           content?.menuOptions
             .find((option) => option.id === optionId)
             ?.courses.flatMap((course) => (course.photo_path !== null ? [course.photo_path] : [])) ?? [];
-        runRemote(
+        return runRemote(
           async () => {
             await remoteRepository.deleteMenuOption(optionId);
             await remoteRepository.removeMenuPhotos(paths);
@@ -403,7 +408,7 @@ export function useEventContent(eventId: string) {
       },
 
       deleteSeatingTable: (tableId: string) => {
-        runRemote(
+        return runRemote(
           () => remoteRepository.deleteSeatingTable(tableId),
           'details',
           [['events', user?.id ?? null], ['tableCompanions', eventId]],
@@ -418,7 +423,7 @@ export function useEventContent(eventId: string) {
       },
 
       deleteAccommodation: (accommodationId: string) => {
-        runRemote(() => remoteRepository.deleteAccommodation(accommodationId), 'details');
+        return runRemote(() => remoteRepository.deleteAccommodation(accommodationId), 'details');
       },
 
       saveVendor: (item: VendorInput) => {
@@ -429,7 +434,7 @@ export function useEventContent(eventId: string) {
       },
 
       deleteVendor: (vendorId: string) => {
-        runRemote(() => remoteRepository.deleteVendor(vendorId), 'details');
+        return runRemote(() => remoteRepository.deleteVendor(vendorId), 'details');
       },
     }),
     [eventId, actor, hasReacted, runRemote, content, queryClient, detailsKey, user],

@@ -29,6 +29,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthGate } from "@/components/AuthGate";
 import { ActionSheetHost } from "@/components/ActionSheet";
 import { BrandSplash } from "@/components/BrandSplash";
+import { BusyOverlayHost } from "@/components/BusyOverlay";
 import { TourHost } from "@/components/tour/Tour";
 import { AuthProvider } from "@/hooks/useAuth";
 import { EventDraftProvider } from "@/hooks/useEventDraft";
@@ -160,6 +161,7 @@ function AppShell({
         />
         <TourHost />
         <ActionSheetHost />
+        <BusyOverlayHost />
         {splashVisible ? (
           <BrandSplash onReveal={onReveal} onFinished={onFinished} />
         ) : null}

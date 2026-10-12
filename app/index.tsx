@@ -131,9 +131,7 @@ export default function DashboardScreen() {
                   confirmDelete(
                     t('editEventForm.deleteTitle'),
                     t('editEventForm.deleteBody', { name: event.name }),
-                    () => {
-                      deleteEvent(event.id).catch(reportSupabaseError);
-                    },
+                    () => deleteEvent(event.id).catch(reportSupabaseError),
                   ),
               },
             ]

@@ -90,8 +90,8 @@ export default function VenueScreen() {
                 tone="destructive"
                 accessibilityLabel={t('common.delete')}
                 onPress={() =>
-                  confirmDelete(t('detalii.deleteVenueTitle'), t('detalii.deleteVenueBody', { name: savedVenueName }), () => {
-                    deleteVenue();
+                  confirmDelete(t('detalii.deleteVenueTitle'), t('detalii.deleteVenueBody', { name: savedVenueName }), async () => {
+                    await deleteVenue();
                     router.back();
                   })
                 }

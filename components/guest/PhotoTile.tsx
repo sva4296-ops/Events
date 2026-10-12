@@ -11,7 +11,7 @@ interface PhotoTileProps {
   photo: Photo;
   style: StyleProp<ViewStyle>;
   canDelete: boolean;
-  onDelete: (photoId: string) => void;
+  onDelete: (photoId: string) => void | Promise<unknown>;
   /** Live's filmstrip tiles are much smaller than Album's — shrink the caption to match. */
   labelFontSize?: number;
 }

@@ -172,8 +172,8 @@ export default function MenuScreen() {
                 tone="destructive"
                 accessibilityLabel={t('common.delete')}
                 onPress={() =>
-                  confirmDelete(t('detalii.deleteMenuOptionTitle'), t('detalii.deleteMenuOptionBody', { name: existing.name }), () => {
-                    deleteMenuOption(existing.id);
+                  confirmDelete(t('detalii.deleteMenuOptionTitle'), t('detalii.deleteMenuOptionBody', { name: existing.name }), async () => {
+                    await deleteMenuOption(existing.id);
                     router.back();
                   })
                 }

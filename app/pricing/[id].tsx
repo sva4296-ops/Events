@@ -27,7 +27,7 @@ import { EVENT_TYPE_COLORS } from "@/utils/eventCovers";
 import { brandGradient, themeRadius, typography } from "@/utils/themeTokens";
 import { reportSupabaseError } from "@/utils/reportError";
 import { fetchOfferingPackages } from "@/utils/revenueCat";
-import { FUND_ENABLED } from "@/utils/features";
+import { FUND_ENABLED, PAID_PLANS_FOR_TESTING } from "@/utils/features";
 
 /** The only plan_key the client may write (see the lock_paid_plan_tier migration). */
 const FREE_PLAN_KEY = "esential";
@@ -191,7 +191,7 @@ export default function PricingScreen() {
 
     // Paid tiers are written only server-side after a verified store purchase
     // (20261009000001_lock_paid_plan_tier.sql); real purchasing isn't wired yet.
-    if (plan.planKey !== FREE_PLAN_KEY) {
+    if (plan.planKey !== FREE_PLAN_KEY && !PAID_PLANS_FOR_TESTING) {
       showDialog({
         title: t("pricing.paymentsSoonTitle"),
         message: t("pricing.paymentsSoonBody"),

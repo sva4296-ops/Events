@@ -148,8 +148,8 @@ export default function SeatingTableScreen() {
                 tone="destructive"
                 accessibilityLabel={t('common.delete')}
                 onPress={() =>
-                  confirmDelete(t('detalii.deleteTableTitle'), t('detalii.deleteTableBody', { name: existing.name }), () => {
-                    deleteSeatingTable(existing.id);
+                  confirmDelete(t('detalii.deleteTableTitle'), t('detalii.deleteTableBody', { name: existing.name }), async () => {
+                    await deleteSeatingTable(existing.id);
                     router.back();
                   })
                 }

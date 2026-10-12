@@ -5,6 +5,7 @@
     "declined": "Refuzat",
     "dateToBeAnnounced": "Data va fi anunțată",
     "delete": "Șterge",
+    "deleting": "Se șterge…",
     "cancel": "Renunță",
     "edit": "Editează",
     "save": "Salvează",
@@ -16,7 +17,7 @@
     "choosePlan": "Alege pachet",
     "viewPlans": "Vezi planurile",
     "close": "Închide",
-    "somethingWentWrong": "Ceva n-a mers",
+    "somethingWentWrong": "Ceva nu a mers",
     "tryAgain": "Te rugăm să încerci din nou."
   },
   "home": {

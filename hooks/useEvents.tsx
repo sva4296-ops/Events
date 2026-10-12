@@ -34,7 +34,7 @@ interface EventsResult {
   createEvent: (draft: EventDraft) => Promise<AppEvent>;
   updateEvent: (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt' | 'planTier' | 'planPurchasedAt'>>) => Promise<void>;
   respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => void;
-  removeGuest: (eventId: string, guestId: string) => void;
+  removeGuest: (eventId: string, guestId: string) => Promise<void>;
   /** Deletes the event and everything under it (rows cascade, photos removed from Storage). */
   deleteEvent: (eventId: string) => Promise<void>;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
@@ -176,7 +176,12 @@ export function useEvents(): EventsResult {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
   });
   const removeGuest = useCallback(
-    (eventId: string, guestId: string) => removeGuestMutation.mutate({ eventId, guestId }),
+    // Never rejects: onError already reports and rolls back.
+    (eventId: string, guestId: string) =>
+      removeGuestMutation.mutateAsync({ eventId, guestId }).then(
+        () => undefined,
+        () => undefined,
+      ),
     [removeGuestMutation],
   );
 

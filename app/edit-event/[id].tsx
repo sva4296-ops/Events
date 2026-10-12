@@ -59,7 +59,7 @@ export default function EditEventScreen() {
   const remove = () =>
     confirmDelete(t('editEventForm.deleteTitle'), t('editEventForm.deleteBody', { name: event.name }), () => {
       setDeleting(true);
-      deleteEvent(event.id)
+      return deleteEvent(event.id)
         .then(() => router.dismissTo('/'))
         .catch((error: unknown) => {
           setDeleting(false);

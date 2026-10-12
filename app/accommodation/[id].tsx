@@ -73,8 +73,8 @@ export default function AccommodationScreen() {
                 tone="destructive"
                 accessibilityLabel={t('common.delete')}
                 onPress={() =>
-                  confirmDelete(t('detalii.deleteAccommodationTitle'), t('detalii.deleteAccommodationBody', { name: existing.name }), () => {
-                    deleteAccommodation(existing.id);
+                  confirmDelete(t('detalii.deleteAccommodationTitle'), t('detalii.deleteAccommodationBody', { name: existing.name }), async () => {
+                    await deleteAccommodation(existing.id);
                     router.back();
                   })
                 }

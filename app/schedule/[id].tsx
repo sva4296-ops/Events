@@ -90,8 +90,8 @@ export default function ScheduleItemScreen() {
                 tone="destructive"
                 accessibilityLabel={t('common.delete')}
                 onPress={() =>
-                  confirmDelete(t('detalii.deleteScheduleTitle'), t('detalii.deleteScheduleBody', { title: existing.title }), () => {
-                    deleteScheduleItem(existing.id);
+                  confirmDelete(t('detalii.deleteScheduleTitle'), t('detalii.deleteScheduleBody', { title: existing.title }), async () => {
+                    await deleteScheduleItem(existing.id);
                     router.back();
                   })
                 }

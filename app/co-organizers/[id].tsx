@@ -104,9 +104,9 @@ export default function CoOrganizersScreen() {
   };
 
   const remove = (member: CoOrganizer) =>
-    confirmDelete(t('coOrganizers.removeTitle'), t('coOrganizers.removeBody', { name: labelFor(member) }), () => {
-      removeCoOrganizer(event.id, member.id).catch((err: unknown) => reportSupabaseError(err));
-    });
+    confirmDelete(t('coOrganizers.removeTitle'), t('coOrganizers.removeBody', { name: labelFor(member) }), () =>
+      removeCoOrganizer(event.id, member.id).catch((err: unknown) => reportSupabaseError(err)),
+    );
 
   const disabled = localNumber.trim().length === 0 || relation === null || busy;
   const hasPending = event.coOrganizers.some((member) => member.userId === null);

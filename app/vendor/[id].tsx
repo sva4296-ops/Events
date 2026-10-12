@@ -75,8 +75,8 @@ export default function VendorScreen() {
                 tone="destructive"
                 accessibilityLabel={t('common.delete')}
                 onPress={() =>
-                  confirmDelete(t('detalii.deleteVendorTitle'), t('detalii.deleteVendorBody', { name: existing.name }), () => {
-                    deleteVendor(existing.id);
+                  confirmDelete(t('detalii.deleteVendorTitle'), t('detalii.deleteVendorBody', { name: existing.name }), async () => {
+                    await deleteVendor(existing.id);
                     router.back();
                   })
                 }

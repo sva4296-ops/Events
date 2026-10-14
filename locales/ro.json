@@ -585,6 +585,9 @@
     "flowSubtitle": "Prin WhatsApp",
     "messageLabel": "Mesajul",
     "messageHint": "Fiecare invitat primește numele lui și un link personal.",
+    "introLabel": "Mesajul tău de invitație",
+    "introPlaceholder": "Te invităm cu drag la nunta noastră...",
+    "introHint": "Opțional. Înlocuiește fraza standard; salutul cu numele, data, locația și linkul se pun automat.",
     "recipients": "Destinatari",
     "howItWorks": "WhatsApp se deschide pe rând, pentru fiecare invitat. Tu apeși Trimite, iar noi bifăm cine a primit. Pentru cine nu are WhatsApp, butonul cu telefonul deschide SMS-ul cu același mesaj."
   },
@@ -796,6 +799,7 @@
     "previewButton": "Arată bine",
     "previewTitle": "Așa o vor primi invitații",
     "previewSubtitle": "Linkul se deschide și în browser, fără să instaleze aplicația.",
+    "previewNameFallback": "Numele evenimentului",
     "previewNote": "Vrei să schimbi ceva? Mergi înapoi și editează detaliile.",
     "shareTitle": "Povestea a început!",
     "shareSubtitle": "Trimite invitația celor dragi. Fiecare invitat primește un link personal.",
@@ -1108,5 +1112,15 @@
         "tip": "Apasă aici ca să adaugi un meniu. Invitații confirmați își aleg meniul din aplicație, până la termenul pe care îl setezi."
       }
     }
+  },
+  "ai": {
+    "write": "Scrie cu AI",
+    "improve": "Îmbunătățește",
+    "tidy": "Aranjează cu AI",
+    "writing": "Se scrie…",
+    "undo": "Anulează",
+    "quotaTitle": "Ai atins limita de azi",
+    "quotaBody": "Poți folosi din nou scrierea cu AI de mâine. Până atunci poți scrie textul de mână.",
+    "errorBody": "Nu am putut genera textul acum. Încearcă din nou în câteva momente."
   }
 }

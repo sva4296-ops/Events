@@ -562,6 +562,9 @@
     "flowSubtitle": "Via WhatsApp",
     "messageLabel": "The message",
     "messageHint": "Every guest gets their own name and a personal link.",
+    "introLabel": "Your invitation line",
+    "introPlaceholder": "We'd love you to join us at our wedding...",
+    "introHint": "Optional. Replaces the default line; the greeting with their name, date, place and link are added automatically.",
     "recipients": "Recipients",
     "howItWorks": "WhatsApp opens one guest at a time. You tap Send, and we tick off who got it. For guests without WhatsApp, the phone button opens an SMS with the same message."
   },
@@ -773,6 +776,7 @@
     "previewButton": "Looks good",
     "previewTitle": "This is how guests will get it",
     "previewSubtitle": "The link also opens in the browser, no app install needed.",
+    "previewNameFallback": "Your event name",
     "previewNote": "Need a change? Go back and edit the details.",
     "shareTitle": "The story has begun!",
     "shareSubtitle": "Send the invitation to your loved ones. Every guest gets a personal link.",
@@ -1077,5 +1081,15 @@
         "tip": "Tap here to add a menu. Confirmed guests pick their menu in the app, until the deadline you set."
       }
     }
+  },
+  "ai": {
+    "write": "Write with AI",
+    "improve": "Improve",
+    "tidy": "Tidy with AI",
+    "writing": "Writing…",
+    "undo": "Undo",
+    "quotaTitle": "You've reached today's limit",
+    "quotaBody": "You can use AI writing again tomorrow. Until then you can write the text yourself.",
+    "errorBody": "We couldn't write the text right now. Please try again in a moment."
   }
 }

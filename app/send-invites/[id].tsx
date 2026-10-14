@@ -5,8 +5,10 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import Feather from '@expo/vector-icons/Feather';
 
+import { AiWriteButton } from '@/components/AiWriteButton';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
+import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { useEvents } from '@/hooks/useEvents';
@@ -14,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { Guest } from '@/types/event';
 import { formatPhoneDisplay } from '@/utils/countryCodes';
 import { haptics } from '@/utils/haptics';
+import { reportSupabaseError } from '@/utils/reportError';
 import { buildGuestInviteMessage, sendGuestSmsInvite, sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
 import { themeRadius, whatsappFill } from '@/utils/themeTokens';
 
@@ -36,13 +39,15 @@ import { themeRadius, whatsappFill } from '@/utils/themeTokens';
 export default function SendInvitesScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, isOwner, markWhatsAppSent } = useEvents();
+  const { getEvent, isOwner, markWhatsAppSent, updateEvent } = useEvents();
   const { tokens } = useTheme();
   const event = getEvent(id);
 
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sentCount, setSentCount] = useState(0);
+  // The organizer's own invitation line; saved on the event before the first send.
+  const [intro, setIntro] = useState(event?.inviteIntro ?? '');
   // Captured once, on mount, via the lazy initializer below — the running
   // "X of Y" total shouldn't shrink as the queue itself shrinks.
   const [totalAtStart] = useState(
@@ -81,7 +86,11 @@ export default function SendInvitesScreen() {
     // list display, but "Bună 40790586600," is an awkward greeting, so treat
     // that specific fallback as "no name" for the message itself.
     const displayName = guest.name === guest.phone ? '' : guest.name;
-    const input = { guestName: displayName, event, inviteToken: guest.inviteToken };
+    // Save an edited line first, so it's also used later (single invites, other devices).
+    if (intro.trim() !== event.inviteIntro.trim()) {
+      await updateEvent(event.id, { inviteIntro: intro }).catch(reportSupabaseError);
+    }
+    const input = { guestName: displayName, event: { ...event, inviteIntro: intro }, inviteToken: guest.inviteToken };
     const opened =
       channel === 'sms'
         ? await sendGuestSmsInvite(guest.phone, input)
@@ -103,7 +112,7 @@ export default function SendInvitesScreen() {
     sample !== undefined
       ? buildGuestInviteMessage({
           guestName: sample.name === sample.phone ? '' : sample.name,
-          event,
+          event: { ...event, inviteIntro: intro },
           inviteToken: sample.inviteToken,
         })
       : null;
@@ -116,6 +125,27 @@ export default function SendInvitesScreen() {
         flowTitle={t('sendInvitesQueue.title')}
         stepLabel={t('sendInvitesQueue.flowSubtitle')}
       />
+
+      {sampleMessage !== null ? (
+        <Field
+          label={t('sendInvitesQueue.introLabel')}
+          value={intro}
+          onChangeText={setIntro}
+          placeholder={t('sendInvitesQueue.introPlaceholder')}
+          hint={t('sendInvitesQueue.introHint')}
+          multiline
+          maxLength={400}
+          action={
+            <AiWriteButton
+              kind="invite"
+              value={intro}
+              onChange={setIntro}
+              maxChars={220}
+              context={{ type: event.type, name: event.name, date: event.date, location: event.location }}
+            />
+          }
+        />
+      ) : null}
 
       {sampleMessage !== null ? (
         <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>

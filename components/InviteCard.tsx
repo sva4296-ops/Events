@@ -1,11 +1,12 @@
 import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventDraft } from '@/types/event';
+import { EVENT_COVERS } from '@/utils/eventCovers';
 import { getEventType } from '@/utils/eventTypes';
 import { formatEventDate } from '@/utils/format';
 import { spacing } from '@/utils/theme';
@@ -20,14 +21,26 @@ const RADIUS = 28;
  * Warm Story 2.0 invitation card: the type's band on top (type chip + icon),
  * then the name in Playfair, the welcome message as a quote, and date/place.
  * Accepts both a wizard draft and a saved event — the shapes overlap.
+ * `coverPhoto` swaps the gradient band for the type's cover photo.
  */
-export function InviteCard({ event }: { event: EventDraft }) {
+export function InviteCard({ event, coverPhoto = false }: { event: EventDraft; coverPhoto?: boolean }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const type = getEventType(event.type);
   const name = event.name.trim();
   const location = event.location.trim();
   const message = event.welcomeMessage.trim();
+
+  const coverContent = (
+    <>
+      <View style={styles.chip}>
+        <Text style={styles.chipText}>{t(`eventTypes.${type.id}.label`)}</Text>
+      </View>
+      <View style={styles.emojiCircle}>
+        <EventTypeIcon type={type.id} size={36} color={CHIP_TEXT} strokeWidth={1.6} />
+      </View>
+    </>
+  );
 
   return (
     <View
@@ -37,24 +50,26 @@ export function InviteCard({ event }: { event: EventDraft }) {
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      <LinearGradient
-        colors={type.band}
-        locations={bandGradientLocations}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.cover}
-      >
-        <View style={styles.chip}>
-          <Text style={styles.chipText}>{t(`eventTypes.${type.id}.label`)}</Text>
+      {coverPhoto ? (
+        <View style={styles.cover}>
+          <Image source={EVENT_COVERS[type.id]} style={styles.coverImage} resizeMode="cover" />
+          {coverContent}
         </View>
-        <View style={styles.emojiCircle}>
-          <EventTypeIcon type={type.id} size={36} color={CHIP_TEXT} strokeWidth={1.6} />
-        </View>
-      </LinearGradient>
+      ) : (
+        <LinearGradient
+          colors={type.band}
+          locations={bandGradientLocations}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.cover}
+        >
+          {coverContent}
+        </LinearGradient>
+      )}
 
       <View style={styles.body}>
         <Text style={[styles.name, { color: tokens.textPrimary }]}>
-          {name.length > 0 ? name : 'Your event name'}
+          {name.length > 0 ? name : t('createWizard.previewNameFallback')}
         </Text>
         {message.length > 0 ? (
           <Text style={[styles.quote, { color: tokens.textPrimary }]}>„{message}”</Text>
@@ -91,6 +106,16 @@ const styles = StyleSheet.create({
     // peeking out past the clip (a known RN overflow/border rendering gap).
     borderTopLeftRadius: RADIUS - 1,
     borderTopRightRadius: RADIUS - 1,
+    overflow: 'hidden',
+  },
+  coverImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   chip: {
     position: 'absolute',

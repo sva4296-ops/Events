@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 
+import { AiWriteButton } from '@/components/AiWriteButton';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
@@ -148,6 +149,20 @@ export default function PostMomentScreen() {
           value={title}
           onChangeText={setTitle}
           placeholder={t('postMomentForm.titlePlaceholder')}
+          action={
+            <AiWriteButton
+              kind="moment"
+              value={title}
+              onChange={setTitle}
+              maxChars={120}
+              context={{
+                type: event?.type ?? null,
+                name: event?.name ?? '',
+                date: event?.date ?? null,
+                location: event?.location ?? '',
+              }}
+            />
+          }
         />
 
         <View style={styles.emojiBlock}>

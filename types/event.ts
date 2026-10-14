@@ -79,6 +79,8 @@ export interface AppEvent {
   date: string;
   location: string;
   welcomeMessage: string;
+  /** Organizer's own line in the WhatsApp/SMS invitation; '' = the default per-type line. */
+  inviteIntro: string;
   createdAt: string;
   guests: Guest[];
   /** Empty for guests (RLS). See hooks/useEvents.tsx's isOwner / isPrimaryOwner. */

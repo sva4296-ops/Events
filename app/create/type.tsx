@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
@@ -15,8 +16,13 @@ import { spacing } from '@/utils/theme';
 
 export default function PickTypeScreen() {
   const { t } = useTranslation();
-  const { draft, updateDraft } = useEventDraft();
+  const { draft, updateDraft, resetDraft } = useEventDraft();
   const cancel = useCancelCreate();
+
+  // This is the wizard's first screen: it unmounts only when the wizard is
+  // left (back arrow, Android back, X, or the end of the flow). Start the next
+  // event from an empty draft instead of the previous one's text.
+  useEffect(() => resetDraft, [resetDraft]);
 
   return (
     <Screen

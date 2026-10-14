@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 
+import { AiWriteButton } from "@/components/AiWriteButton";
 import { Button } from "@/components/Button";
 import { DateTimeField } from "@/components/DateTimeField";
 import { Field } from "@/components/Field";
@@ -151,6 +152,15 @@ export default function EventDetailsScreen() {
           placeholder={t("createWizard.welcomeMessagePlaceholder")}
           multiline
           maxLength={WELCOME_MAX}
+          action={
+            <AiWriteButton
+              kind="welcome"
+              value={draft.welcomeMessage}
+              onChange={(welcomeMessage) => updateDraft({ welcomeMessage })}
+              maxChars={WELCOME_MAX}
+              context={{ type: draft.type, name: draft.name, date: draft.date, location: draft.location }}
+            />
+          }
           hint={`${draft.welcomeMessage.length} / ${WELCOME_MAX}`}
         />
       </Screen>

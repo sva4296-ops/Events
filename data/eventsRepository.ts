@@ -63,6 +63,7 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     date: row.event_date ?? '',
     location: row.location ?? '',
     welcomeMessage: row.welcome_message ?? '',
+    inviteIntro: row.invite_intro ?? '',
     createdAt: row.created_at,
     guests: row.event_guests.map(mapGuestRow),
     coOrganizers: (row.event_members ?? []).map(mapMemberRow),
@@ -133,6 +134,9 @@ export async function updateEventRow(
   }
   if (patch.location !== undefined) columns.location = patch.location;
   if (patch.welcomeMessage !== undefined) columns.welcome_message = patch.welcomeMessage;
+  if (patch.inviteIntro !== undefined) {
+    columns.invite_intro = patch.inviteIntro.trim().length > 0 ? patch.inviteIntro.trim() : null;
+  }
   if (patch.type !== undefined) columns.type = patch.type;
   if (Object.keys(columns).length === 0) return;
 

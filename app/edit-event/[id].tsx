@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
+import { AiWriteButton } from '@/components/AiWriteButton';
 import { Button } from '@/components/Button';
 import { DateTimeField } from '@/components/DateTimeField';
 import { Field } from '@/components/Field';
@@ -121,6 +122,15 @@ export default function EditEventScreen() {
           value={welcomeMessage}
           onChangeText={setWelcomeMessage}
           multiline
+          action={
+            <AiWriteButton
+              kind="welcome"
+              value={welcomeMessage}
+              onChange={setWelcomeMessage}
+              maxChars={280}
+              context={{ type: event?.type ?? null, name, date, location }}
+            />
+          }
         />
 
         {isPrimaryOwner(event) ? (

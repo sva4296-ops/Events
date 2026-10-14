@@ -5,6 +5,7 @@ import { StyleSheet, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Header } from "@/components/Header";
 import { InviteCard } from "@/components/InviteCard";
+import { InviteReveal } from "@/components/InviteReveal";
 import { Screen } from "@/components/Screen";
 import { useCancelCreate } from "@/hooks/useCancelCreate";
 import { useEventDraft } from "@/hooks/useEventDraft";
@@ -74,7 +75,9 @@ export default function PreviewScreen() {
           progressColors={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].gradient : undefined}
       />
 
-      <InviteCard event={draft} />
+      <InviteReveal type={draft.type}>
+        <InviteCard event={draft} coverPhoto />
+      </InviteReveal>
     </Screen>
   );
 }

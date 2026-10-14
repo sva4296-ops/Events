@@ -15,7 +15,7 @@ export function formatEventDate(value: string): string {
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) return trimmed;
 
-  return parsed.toLocaleDateString(undefined, {
+  return parsed.toLocaleDateString(i18n.language, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

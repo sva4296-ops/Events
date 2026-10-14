@@ -26,6 +26,8 @@ export interface EventRow {
   event_date: string | null;
   location: string | null;
   welcome_message: string | null;
+  /** Organizer's own WhatsApp invitation line (20261014000002). */
+  invite_intro: string | null;
   created_at: string;
   /** Which plan_features row (by plan_key) this event has picked, if any —
    * see supabase/migrations/20260826000001_event_plan_tier.sql and

@@ -17,7 +17,7 @@ export const INVITE_SITE_URL = 'https://events-web-henna.vercel.app';
 export interface GuestInviteMessageInput {
   /** Empty string when the organizer didn't type a name. */
   guestName: string;
-  event: Pick<AppEvent, 'type' | 'name' | 'date' | 'location'>;
+  event: Pick<AppEvent, 'type' | 'name' | 'date' | 'location'> & { inviteIntro?: string };
   inviteToken: string;
 }
 
@@ -63,9 +63,14 @@ export function buildGuestInviteMessage({ guestName, event, inviteToken }: Guest
   const greeting = memorial
     ? name.length > 0 ? `Bună ziua, ${name},` : 'Bună ziua,'
     : `${name.length > 0 ? `Bună ${name}!` : 'Bună!'} ${copy.emoji}`;
-  const intro = memorial
-    ? `Te invităm la „${event.name.trim()}”. ${copy.line}`
-    : `Te invităm cu drag la „${event.name.trim()}”. ${copy.line}`;
+  // The organizer's own line (send-invites screen) replaces the default one.
+  const custom = event.inviteIntro?.trim() ?? '';
+  const intro =
+    custom.length > 0
+      ? custom
+      : memorial
+        ? `Te invităm la „${event.name.trim()}”. ${copy.line}`
+        : `Te invităm cu drag la „${event.name.trim()}”. ${copy.line}`;
 
   const date = formatInviteDate(event.date);
   const location = event.location.trim();

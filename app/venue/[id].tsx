@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
+import { AiWriteButton } from '@/components/AiWriteButton';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
@@ -111,6 +112,21 @@ export default function VenueScreen() {
           onChangeText={setNotes}
           hint={t('venueForm.notesHint')}
           multiline
+          action={
+            <AiWriteButton
+              kind="venueNotes"
+              value={notes}
+              onChange={setNotes}
+              maxChars={600}
+              requireText
+              context={{
+                type: event?.type ?? null,
+                name: event?.name ?? '',
+                date: event?.date ?? null,
+                location: [name, address].filter((part) => part.trim().length > 0).join(', '),
+              }}
+            />
+          }
         />
       </Screen>
     </KeyboardAvoidingView>

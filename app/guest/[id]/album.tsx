@@ -27,15 +27,19 @@ import { themeRadius, typography } from "@/utils/themeTokens";
 
 type AlbumFilter = "all" | "mine";
 
+/** Per pick, so a large batch doesn't sit resizing for minutes. */
+const MAX_PHOTOS_PER_BATCH = 30;
+
 export default function AlbumScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { user } = useAuth();
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
-  const { content, addPhoto, deletePhoto } = useEventContent(id);
+  const { content, addPhotos, deletePhoto } = useEventContent(id);
   const [filter, setFilter] = useState<AlbumFilter>("all");
   const [download, setDownload] = useState<{ done: number; total: number } | null>(null);
+  const [upload, setUpload] = useState<{ done: number; total: number } | null>(null);
 
   const owner = isOwner(event);
   const loading = content === null;
@@ -56,18 +60,30 @@ export default function AlbumScreen() {
 
   // Moved here from the Live tab (Live is video only now).
   const pickPhoto = async () => {
-    if (limitReached || uploadClosed) return;
+    if (limitReached || uploadClosed || upload !== null) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return;
 
+    // Several at once; a guest can pick only what's left of their limit.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: 0.8,
+      allowsMultipleSelection: true,
+      orderedSelection: true,
+      selectionLimit: owner
+        ? MAX_PHOTOS_PER_BATCH
+        : Math.min(MAX_PHOTOS_PER_BATCH, GUEST_PHOTO_LIMIT - myCount),
     });
-    const asset = result.assets?.[0];
-    if (result.canceled || asset === undefined) return;
+    if (result.canceled || result.assets.length === 0) return;
 
-    addPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
+    const picked = result.assets.map((asset) => ({
+      uri: asset.uri,
+      width: asset.width,
+      height: asset.height,
+    }));
+    setUpload({ done: 0, total: picked.length });
+    await addPhotos(picked, (done, total) => setUpload({ done, total }));
+    setUpload(null);
   };
 
   const downloadAll = async () => {
@@ -175,7 +191,13 @@ export default function AlbumScreen() {
         ) : null}
         {uploadClosed ? null : (
           <Button
-            label={limitReached ? t("album.limitReached") : t("album.upload")}
+            label={
+              upload !== null
+                ? t("album.uploadProgress", upload)
+                : limitReached
+                  ? t("album.limitReached")
+                  : t("album.upload")
+            }
             icon={
               limitReached ? undefined : (
                 <Feather
@@ -185,7 +207,7 @@ export default function AlbumScreen() {
                 />
               )
             }
-            disabled={limitReached}
+            disabled={limitReached || upload !== null}
             onPress={() => void pickPhoto()}
           />
         )}

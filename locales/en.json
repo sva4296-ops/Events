@@ -228,7 +228,8 @@
     "infoBody": "• Everyone at the event uploads photos here, and all guests see them.\n• Each guest can upload up to {{limit}} photos. Organizers have no limit.\n• You can delete your own photos at any time.\n• The full album is ready 3 days after the event, when you can download it.",
     "closedTitle": "The album is closed",
     "closedBody_one": "Photos could be added up to {{count}} day after the event.",
-    "closedBody_other": "Photos could be added up to {{count}} days after the event."
+    "closedBody_other": "Photos could be added up to {{count}} days after the event.",
+    "uploadProgress": "Uploading {{done}} of {{total}}…"
   },
   "rsvp": {
     "notFoundTitle": "Invitation not found",

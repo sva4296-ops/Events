@@ -236,13 +236,23 @@ export function useEventContent(eventId: string) {
         runRemote(() => remoteRepository.sendMessage(eventId, trimmed, actor), 'social');
       },
 
-      addPhoto: (photo: PickedPhoto) => {
+      /** Uploads one or more photos, one at a time (resizing several at once
+       * would spike memory). A failed photo doesn't stop the rest; if any
+       * failed, the first error is reported once at the end. */
+      addPhotos: (photos: PickedPhoto[], onProgress?: (done: number, total: number) => void) =>
         runRemote(async () => {
-          const photoId = generateId();
-          const versions = await processPhotoVersions(photo);
-          await remoteRepository.addPhoto(eventId, photoId, versions, actor);
-        }, 'social');
-      },
+          let firstError: unknown = null;
+          for (const [index, photo] of photos.entries()) {
+            try {
+              const versions = await processPhotoVersions(photo);
+              await remoteRepository.addPhoto(eventId, generateId(), versions, actor);
+            } catch (error) {
+              firstError ??= error;
+            }
+            onProgress?.(index + 1, photos.length);
+          }
+          if (firstError !== null) throw firstError;
+        }, 'social'),
 
       /** Stubbed: the `contributions` table has no client insert policy, on
        * purpose — a contribution is meant to land via a Stripe webhook using

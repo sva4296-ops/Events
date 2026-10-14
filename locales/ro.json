@@ -238,7 +238,8 @@
     "closedTitle": "Albumul s-a închis",
     "closedBody_one": "Pozele se puteau adăuga până la o zi după eveniment.",
     "closedBody_few": "Pozele se puteau adăuga până la {{count}} zile după eveniment.",
-    "closedBody_other": "Pozele se puteau adăuga până la {{count}} zile după eveniment."
+    "closedBody_other": "Pozele se puteau adăuga până la {{count}} zile după eveniment.",
+    "uploadProgress": "Se urcă {{done}} din {{total}}…"
   },
   "rsvp": {
     "notFoundTitle": "Invitația nu a fost găsită",

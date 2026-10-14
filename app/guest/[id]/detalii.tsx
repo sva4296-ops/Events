@@ -11,6 +11,7 @@ import {
 import { GuestScreen } from "@/components/guest/GuestScreen";
 import { useEventContent } from "@/hooks/useEventContent";
 import { useEvents } from "@/hooks/useEvents";
+import { useEventTasks } from "@/hooks/useEventTasks";
 import { useGuestEvent } from "@/hooks/useGuestEvent";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import { useTheme } from "@/hooks/useTheme";
@@ -57,6 +58,8 @@ export default function DetaliiScreen() {
   const { id, event } = useGuestEvent();
   const { content } = useEventContent(id);
   const { isVenueManager, isRestaurant } = useEvents();
+  // Owner + co-organizers only (false for guests and the restaurant).
+  const { tasks, organizer } = useEventTasks(id);
   // Organizers and the restaurant both get the editing view of the hub.
   const owner = event !== undefined && isVenueManager(event);
   const restaurant = isRestaurant(event);
@@ -167,6 +170,21 @@ export default function DetaliiScreen() {
         : `/pricing/${id}`,
     },
   ];
+
+  if (organizer) {
+    const doneTasks = tasks.filter((task) => task.done).length;
+    cards.push({
+      key: "checklist",
+      icon: "check-square",
+      title: t("checklist.title"),
+      status:
+        tasks.length === 0
+          ? t("checklist.hubStatusEmpty")
+          : t("checklist.hubStatus", { done: doneTasks, total: tasks.length }),
+      complete: tasks.length > 0,
+      route: `/checklist/${id}`,
+    });
+  }
 
   // A guest only sees sections that actually have something in them: no
   // plan-locked cards (an upsell only the organizer can act on) and no empty

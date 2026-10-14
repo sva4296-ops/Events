@@ -1097,5 +1097,38 @@
   },
   "locationField": {
     "pointSet": "Map point set"
+  },
+  "checklist": {
+    "title": "Checklist",
+    "subtitle": "Your to-do list, with reminders.",
+    "progress": "{{done}} of {{total}} done",
+    "notAvailable": "Only organizers can see the checklist.",
+    "empty": "Nothing on the list yet. Add your first to-do, like “Hairdresser at 12:00”.",
+    "add": "Add",
+    "addTitle": "New to-do",
+    "editTitle": "Edit",
+    "formSubtitle": "Only organizers see this list.",
+    "titleLabel": "What needs doing",
+    "titlePlaceholder": "Hairdresser",
+    "dateLabel": "Day",
+    "timeLabel": "Time",
+    "noDate": "No due date",
+    "clearDate": "Remove due date",
+    "reminderLabel": "Reminder",
+    "remindNone": "None",
+    "remind_0": "At that time",
+    "remind_15": "15 min before",
+    "remind_30": "30 min before",
+    "remind_60": "1 hour before",
+    "remind_120": "2 hours before",
+    "remind_1440": "1 day before",
+    "reminderHint": "You'll get a notification at {{time}}, on this phone.",
+    "reminderBody": "{{when}}",
+    "deleteTitle": "Remove from the list?",
+    "deleteBody": "“{{title}}” will be removed from the checklist.",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "hubStatusEmpty": "Nothing on the list",
+    "hubStatus": "{{done}} of {{total}} done"
   }
 }

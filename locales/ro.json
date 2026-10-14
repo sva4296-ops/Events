@@ -1128,5 +1128,38 @@
   },
   "locationField": {
     "pointSet": "Punct ales pe hartă"
+  },
+  "checklist": {
+    "title": "Checklist",
+    "subtitle": "Lista ta de lucruri de făcut, cu remindere.",
+    "progress": "{{done}} din {{total}} bifate",
+    "notAvailable": "Doar organizatorii au acces la checklist.",
+    "empty": "Nimic pe listă încă. Adaugă primul lucru de făcut, de exemplu „Coafor la 12:00”.",
+    "add": "Adaugă",
+    "addTitle": "Lucru nou",
+    "editTitle": "Editează",
+    "formSubtitle": "Doar organizatorii văd lista.",
+    "titleLabel": "Ce ai de făcut",
+    "titlePlaceholder": "Mers la coafor",
+    "dateLabel": "Ziua",
+    "timeLabel": "Ora",
+    "noDate": "Fără termen",
+    "clearDate": "Scoate termenul",
+    "reminderLabel": "Reminder",
+    "remindNone": "Fără",
+    "remind_0": "La ora respectivă",
+    "remind_15": "Cu 15 min înainte",
+    "remind_30": "Cu 30 min înainte",
+    "remind_60": "Cu 1 oră înainte",
+    "remind_120": "Cu 2 ore înainte",
+    "remind_1440": "Cu o zi înainte",
+    "reminderHint": "Primești notificare la {{time}}, pe acest telefon.",
+    "reminderBody": "{{when}}",
+    "deleteTitle": "Ștergi din listă?",
+    "deleteBody": "„{{title}}” va fi șters din checklist.",
+    "today": "Azi",
+    "tomorrow": "Mâine",
+    "hubStatusEmpty": "Nimic pe listă",
+    "hubStatus": "{{done}} din {{total}} bifate"
   }
 }

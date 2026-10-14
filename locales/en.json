@@ -652,7 +652,9 @@
     "detailsLabel": "Details",
     "detailsPlaceholder": "4★ · 2 min from the castle",
     "priceLabel": "Price",
-    "pricePlaceholder": "from 320 lei/night"
+    "pricePlaceholder": "from 320 lei/night",
+    "locationLabel": "Location",
+    "locationPlaceholder": "12 Republicii St, Brașov"
   },
   "vendorForm": {
     "notAvailableSubtitle": "Only the organizer can edit vendors.",
@@ -1091,5 +1093,8 @@
     "quotaTitle": "You've reached today's limit",
     "quotaBody": "You can use AI writing again tomorrow. Until then you can write the text yourself.",
     "errorBody": "We couldn't write the text right now. Please try again in a moment."
+  },
+  "locationField": {
+    "pointSet": "Map point set"
   }
 }

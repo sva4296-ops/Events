@@ -8,6 +8,7 @@ import { AiWriteButton } from '@/components/AiWriteButton';
 import { Button } from '@/components/Button';
 import { DateTimeField } from '@/components/DateTimeField';
 import { Field } from '@/components/Field';
+import { LocationField } from '@/components/LocationField';
 import { Header } from '@/components/Header';
 import { ListGroup, ListRow } from '@/components/ListGroup';
 import { Screen } from '@/components/Screen';
@@ -116,7 +117,14 @@ export default function EditEventScreen() {
           displayValue={date.trim().length === 0 ? t('editEventForm.selectDate') : formatEventDate(date)}
           onChange={(selected) => setDate(toIsoDate(selected))}
         />
-        <Field label={t('editEventForm.locationLabel')} value={location} onChangeText={setLocation} />
+        <LocationField
+          label={t('editEventForm.locationLabel')}
+          value={location}
+          onChangeText={setLocation}
+          onPick={(picked) => {
+            if (picked.address !== null) setLocation(picked.address);
+          }}
+        />
         <Field
           label={t('editEventForm.welcomeMessageLabel')}
           value={welcomeMessage}

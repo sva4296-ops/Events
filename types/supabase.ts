@@ -225,6 +225,9 @@ export interface AccommodationRow {
   name: string;
   detail_line: string | null;
   price_line: string | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
   sort_order: number;
 }
 

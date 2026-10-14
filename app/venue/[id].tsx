@@ -9,7 +9,7 @@ import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
 import { IconCircleButton } from '@/components/IconCircleButton';
 import { type PickedLocation } from '@/components/MapPickerModal';
-import { MapPointField } from '@/components/MapPointField';
+import { LocationField } from '@/components/LocationField';
 import { Screen } from '@/components/Screen';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
@@ -102,9 +102,14 @@ export default function VenueScreen() {
         />
 
         <Field label={t('venueForm.nameLabel')} value={name} onChangeText={setName} />
-        <Field label={t('venueForm.addressLabel')} value={address} onChangeText={setAddress} />
-
-        <MapPointField value={coords} onPick={onPick} onClear={() => setCoords(null)} />
+        <LocationField
+          label={t('venueForm.addressLabel')}
+          value={address}
+          onChangeText={setAddress}
+          coords={coords}
+          onPick={onPick}
+          onClearCoords={() => setCoords(null)}
+        />
 
         <Field
           label={t('venueForm.notesLabel')}

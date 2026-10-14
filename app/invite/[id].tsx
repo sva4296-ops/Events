@@ -11,6 +11,7 @@ import { BrandMark } from '@/components/BrandMark';
 import { Button, buttonLabelColor } from '@/components/Button';
 import { Header } from '@/components/Header';
 import { InviteCard } from '@/components/InviteCard';
+import { InviteReveal } from '@/components/InviteReveal';
 import { Screen } from '@/components/Screen';
 import { fetchInvitePreview } from '@/data/eventsRepository';
 import type { RsvpStatus } from '@/types/event';
@@ -129,7 +130,9 @@ export default function InviteScreen() {
       return (
         <Screen contentStyle={styles.content}>
           <InviteTopBar canGoBack={canGoBack} />
-          <InviteCard event={preview} />
+          <InviteReveal type={preview.type}>
+            <InviteCard event={preview} />
+          </InviteReveal>
           {showChoices ? (
             <RsvpChoices onRespond={respond} />
           ) : preview.rsvpStatus !== 'pending' ? (
@@ -180,7 +183,9 @@ export default function InviteScreen() {
   return (
     <Screen contentStyle={styles.content}>
       <InviteTopBar canGoBack={canGoBack} />
-      <InviteCard event={event} />
+      <InviteReveal type={event.type}>
+        <InviteCard event={event} />
+      </InviteReveal>
 
       {owner ? (
         <>

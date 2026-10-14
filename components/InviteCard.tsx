@@ -46,7 +46,7 @@ export function InviteCard({ event, coverPhoto = false }: { event: EventDraft; c
     <View
       style={[
         styles.card,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface },
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
@@ -95,17 +95,16 @@ export function InviteCard({ event, coverPhoto = false }: { event: EventDraft; c
 const styles = StyleSheet.create({
   card: {
     borderRadius: RADIUS,
-    borderWidth: 1,
     overflow: 'hidden',
   },
   cover: {
     height: 130,
     alignItems: 'center',
     justifyContent: 'center',
-    // Rounded to match the card so the border never shows a square corner
-    // peeking out past the clip (a known RN overflow/border rendering gap).
-    borderTopLeftRadius: RADIUS - 1,
-    borderTopRightRadius: RADIUS - 1,
+    // Rounded to match the card so no square corner peeks out past the clip
+    // (a known RN overflow rendering gap).
+    borderTopLeftRadius: RADIUS,
+    borderTopRightRadius: RADIUS,
     overflow: 'hidden',
   },
   coverImage: {

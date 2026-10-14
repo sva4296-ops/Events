@@ -675,7 +675,9 @@
     "detailsLabel": "Detalii",
     "detailsPlaceholder": "4★ · 2 min de castel",
     "priceLabel": "Preț",
-    "pricePlaceholder": "de la 320 lei/noapte"
+    "pricePlaceholder": "de la 320 lei/noapte",
+    "locationLabel": "Locație",
+    "locationPlaceholder": "Str. Republicii 12, Brașov"
   },
   "vendorForm": {
     "notAvailableSubtitle": "Doar organizatorul poate edita furnizorii.",
@@ -1122,5 +1124,8 @@
     "quotaTitle": "Ai atins limita de azi",
     "quotaBody": "Poți folosi din nou scrierea cu AI de mâine. Până atunci poți scrie textul de mână.",
     "errorBody": "Nu am putut genera textul acum. Încearcă din nou în câteva momente."
+  },
+  "locationField": {
+    "pointSet": "Punct ales pe hartă"
   }
 }

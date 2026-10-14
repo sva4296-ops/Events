@@ -15,6 +15,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import { confirmDelete } from '@/utils/confirm';
+import { openInMaps } from '@/utils/maps';
 import { gSpace } from '@/utils/guestTheme';
 import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
@@ -140,10 +141,33 @@ export default function DetaliiAccommodationScreen() {
                       {entry.detail_line}
                     </Text>
                   ) : null}
+                  {entry.location.length > 0 ? (
+                    <View style={styles.locationRow}>
+                      <Feather name="map-pin" size={12} color={tokens.textSecondary} />
+                      <Text style={[styles.rowMeta, styles.locationText, { color: tokens.textSecondary }]}>
+                        {entry.location}
+                      </Text>
+                    </View>
+                  ) : null}
                   {entry.price_line.length > 0 ? (
                     <Text style={[styles.rowMeta, { color: tokens.textSecondary }]}>{entry.price_line}</Text>
                   ) : null}
                 </View>
+                {entry.location.length > 0 || (entry.latitude !== null && entry.longitude !== null) ? (
+                  <IconCircleButton
+                    size="sm"
+                    icon="navigation"
+                    accessibilityLabel={t('detalii.openInMaps')}
+                    onPress={() =>
+                      openInMaps({
+                        name: entry.name,
+                        address: entry.location,
+                        latitude: entry.latitude,
+                        longitude: entry.longitude,
+                      })
+                    }
+                  />
+                ) : null}
                 {owner ? (
                   <IconCircleButton
                     size="sm"
@@ -196,5 +220,15 @@ const styles = StyleSheet.create({
   rowMeta: {
     fontSize: 12,
     marginTop: 2,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  locationText: {
+    marginTop: 0,
+    flexShrink: 1,
   },
 });

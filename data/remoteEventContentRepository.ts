@@ -281,6 +281,18 @@ function mapSeatingTable(row: SeatingTableRow): SeatingTable {
   };
 }
 
+/** "HH:MM" -> minutes since midnight; anything unparsable (or empty) sorts last. */
+function scheduleMinutes(time: string): number {
+  const match = /^(\d{1,2}):(\d{2})/.exec(time.trim());
+  if (match === null) return Number.MAX_SAFE_INTEGER;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+/** The day's program in clock order, whatever order the items were added in (stable for equal times). */
+function sortScheduleByTime(items: ScheduleItem[]): ScheduleItem[] {
+  return [...items].sort((a, b) => scheduleMinutes(a.time) - scheduleMinutes(b.time));
+}
+
 function mapAccommodation(row: AccommodationRow): Accommodation {
   return {
     id: row.id,
@@ -288,6 +300,9 @@ function mapAccommodation(row: AccommodationRow): Accommodation {
     name: row.name,
     detail_line: row.detail_line ?? '',
     price_line: row.price_line ?? '',
+    location: row.location ?? '',
+    latitude: row.latitude,
+    longitude: row.longitude,
   };
 }
 
@@ -406,7 +421,7 @@ async function loadDetails(eventId: string): Promise<DetailsContent> {
 
   return {
     fund: fundRow === null ? null : mapFund(fundRow),
-    schedule: (scheduleRes.data as ScheduleItemRow[]).map(mapSchedule),
+    schedule: sortScheduleByTime((scheduleRes.data as ScheduleItemRow[]).map(mapSchedule)),
     venue: mapVenue(eventId, venueRes.data as VenueInfoRow | null),
     menu: mapMenu(eventId, menuRes.data as MenuRow | null),
     menuOptions,
@@ -858,6 +873,9 @@ interface AccommodationDraft {
   name: string;
   detail_line: string;
   price_line: string;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 async function saveAccommodation(
@@ -872,6 +890,9 @@ async function saveAccommodation(
       name: item.name,
       detail_line: item.detail_line,
       price_line: item.price_line,
+      location: item.location,
+      latitude: item.latitude,
+      longitude: item.longitude,
       sort_order: sortOrder,
     });
     if (error) throw error;
@@ -879,7 +900,14 @@ async function saveAccommodation(
   }
   const { error } = await client
     .from('accommodations')
-    .update({ name: item.name, detail_line: item.detail_line, price_line: item.price_line })
+    .update({
+      name: item.name,
+      detail_line: item.detail_line,
+      price_line: item.price_line,
+      location: item.location,
+      latitude: item.latitude,
+      longitude: item.longitude,
+    })
     .eq('id', item.id);
   if (error) throw error;
 }

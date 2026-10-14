@@ -7,6 +7,8 @@ import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
 import { IconCircleButton } from '@/components/IconCircleButton';
+import { LocationField, type MapPoint } from '@/components/LocationField';
+import { type PickedLocation } from '@/components/MapPickerModal';
 import { Screen } from '@/components/Screen';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
@@ -24,6 +26,12 @@ export default function AccommodationScreen() {
   const [name, setName] = useState(existing?.name ?? '');
   const [detailLine, setDetailLine] = useState(existing?.detail_line ?? '');
   const [priceLine, setPriceLine] = useState(existing?.price_line ?? '');
+  const [location, setLocation] = useState(existing?.location ?? '');
+  const [coords, setCoords] = useState<MapPoint | null>(
+    existing !== null && existing.latitude !== null && existing.longitude !== null
+      ? { latitude: existing.latitude, longitude: existing.longitude }
+      : null,
+  );
 
   if (!isOwner(event) || content === null) {
     return (
@@ -43,8 +51,16 @@ export default function AccommodationScreen() {
       name: name.trim(),
       detail_line: detailLine,
       price_line: priceLine,
+      location: location.trim(),
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
     });
     router.back();
+  };
+
+  const onPick = (picked: PickedLocation) => {
+    setCoords({ latitude: picked.latitude, longitude: picked.longitude });
+    if (picked.address !== null) setLocation(picked.address);
   };
 
   return (
@@ -88,6 +104,15 @@ export default function AccommodationScreen() {
           value={name}
           onChangeText={setName}
           placeholder={t('accommodationForm.namePlaceholder')}
+        />
+        <LocationField
+          label={t('accommodationForm.locationLabel')}
+          value={location}
+          onChangeText={setLocation}
+          placeholder={t('accommodationForm.locationPlaceholder')}
+          coords={coords}
+          onPick={onPick}
+          onClearCoords={() => setCoords(null)}
         />
         <Field
           label={t('accommodationForm.detailsLabel')}

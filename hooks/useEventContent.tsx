@@ -56,6 +56,9 @@ export interface AccommodationInput {
   name: string;
   detail_line: string;
   price_line: string;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface VendorInput {

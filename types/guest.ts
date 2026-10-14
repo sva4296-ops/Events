@@ -151,6 +151,10 @@ export interface Accommodation {
   name: string;
   detail_line: string;
   price_line: string;
+  /** Address text; '' when not set. */
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface Vendor {

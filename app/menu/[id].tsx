@@ -14,7 +14,6 @@ import {
   View,
 } from 'react-native';
 
-import { AiWriteButton } from '@/components/AiWriteButton';
 import { showActionSheet } from '@/components/ActionSheet';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
@@ -203,20 +202,6 @@ export default function MenuScreen() {
               />
               <Feather name="edit-3" size={12} color={tokens.textMuted} />
               <View style={styles.spacer} />
-              <AiWriteButton
-                kind="dish"
-                value={course.dish}
-                onChange={(value) => updateCourse(course.key, { dish: value })}
-                maxChars={120}
-                requireText
-                context={{
-                  type: event?.type ?? null,
-                  name: event?.name ?? '',
-                  date: null,
-                  location: '',
-                  detail: course.name,
-                }}
-              />
               {courses.length > 1 ? (
                 <TouchableOpacity
                   style={styles.removeButton}

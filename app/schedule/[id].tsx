@@ -9,7 +9,7 @@ import { Field } from '@/components/Field';
 import { Header } from '@/components/Header';
 import { IconCircleButton } from '@/components/IconCircleButton';
 import { type PickedLocation } from '@/components/MapPickerModal';
-import { MapPointField, type MapPoint } from '@/components/MapPointField';
+import { LocationField, type MapPoint } from '@/components/LocationField';
 import { Screen } from '@/components/Screen';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
@@ -113,13 +113,15 @@ export default function ScheduleItemScreen() {
           onChangeText={setTitle}
           placeholder={t('scheduleForm.titlePlaceholder')}
         />
-        <Field
+        <LocationField
           label={t('scheduleForm.whereLabel')}
           value={location}
           onChangeText={setLocation}
           placeholder={t('scheduleForm.wherePlaceholder')}
+          coords={coords}
+          onPick={onPick}
+          onClearCoords={() => setCoords(null)}
         />
-        <MapPointField value={coords} onPick={onPick} onClear={() => setCoords(null)} />
       </Screen>
     </KeyboardAvoidingView>
   );

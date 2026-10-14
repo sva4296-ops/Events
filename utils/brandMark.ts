@@ -1,5 +1,3 @@
-import { brandGradient } from '@/utils/themeTokens';
-
 /**
  * Warm Story 2.0 brand mark: the "story thread with a heart". A thread runs
  * from a gold dot (the beginning), loops into a heart, and ends at a purple
@@ -22,11 +20,14 @@ export const MARK_STROKE_WIDTH = 6.5;
 /** Slightly over the real curve length (~267.2), so a dash can fully clear the stroke. */
 export const MARK_STROKE_LENGTH = 270;
 
-/** Horizontal gold → pink → purple, like the design's thread. */
+/**
+ * Horizontal yellow → pink → blue-violet, the same stops as the app icon and
+ * splash PNGs in assets/ (more vivid than the UI's brandGradient on purpose).
+ */
 export const MARK_STOPS = [
-  { offset: '0', color: brandGradient[0] },
-  { offset: '0.5', color: brandGradient[1] },
-  { offset: '1', color: brandGradient[2] },
+  { offset: '0', color: '#F7C948' },
+  { offset: '0.5', color: '#F0509E' },
+  { offset: '1', color: '#5E5EF2' },
 ] as const;
 
 /**

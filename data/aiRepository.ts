@@ -40,6 +40,12 @@ export async function aiWrite(input: AiWriteInput): Promise<string> {
     if (error instanceof FunctionsHttpError && error.context instanceof Response && error.context.status === 429) {
       throw new AiQuotaError('ai_quota');
     }
+    // Turn the function's answer into a readable code, e.g. "ai_write 502 ai_error upstream 401".
+    if (error instanceof FunctionsHttpError && error.context instanceof Response) {
+      const body = (await error.context.json().catch(() => null)) as { error?: unknown; upstream?: unknown } | null;
+      const upstream = typeof body?.upstream === 'number' ? ` upstream ${body.upstream}` : '';
+      throw new Error(`ai_write ${error.context.status} ${String(body?.error ?? 'unknown')}${upstream}`);
+    }
     throw error;
   }
   const text = (data as { text?: unknown } | null)?.text;

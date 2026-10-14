@@ -147,7 +147,8 @@ export default function GuestEventLayout() {
           // Name and date only on Acasă; the other tabs keep just their actions.
           name={activeTab === 'acasa' || restaurant ? (event?.name ?? 'Evenimentul nostru') : ''}
           type={event?.type ?? null}
-          subtitle={activeTab === 'acasa' || restaurant ? headerSubtitle : undefined}
+          // Acasă shows just the name: the date and stage live in the countdown card below.
+          subtitle={restaurant ? headerSubtitle : undefined}
           showBack={activeTab === 'acasa' || restaurant}
           actions={actions}
         />

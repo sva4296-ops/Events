@@ -74,7 +74,9 @@ export function AiWriteButton({ kind, value, onChange, context, maxChars, requir
         showDialog({ title: t('ai.quotaTitle'), message: t('ai.quotaBody') });
       } else {
         captureError(error, { where: 'AiWriteButton', kind });
-        showDialog({ title: t('common.somethingWentWrong'), message: t('ai.errorBody') });
+        // In dev builds the technical code is appended, to tell a bad key from a missing deploy.
+        const detail = __DEV__ && error instanceof Error ? `\n\n(${error.message})` : '';
+        showDialog({ title: t('common.somethingWentWrong'), message: `${t('ai.errorBody')}${detail}` });
       }
     } finally {
       setBusy(false);

@@ -27,7 +27,7 @@ import type { EventTypeId } from '@/types/event';
 import type { ScheduleItem } from '@/types/guest';
 import { isStoryReady } from '@/utils/eventStory';
 import { FUND_ENABLED } from '@/utils/features';
-import { daysUntilEvent, eventStartTime, isEventPast } from '@/utils/format';
+import { daysUntilEvent, eventStartTime, formatEventDate, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { staggerIn } from '@/utils/motion';
@@ -62,6 +62,13 @@ function CountdownCard({ date, type, scheduleTimes }: { date: string; type: Even
     { key: 'minutes', value: totalMinutes % 60 },
   ] as const;
   const untilLabel = t(`eventTypes.${type}.countdownUntil`);
+  // The largest non-zero unit is the headline number; the smaller ones ride along in the line under it.
+  const leadIndex = Math.max(0, units.findIndex((unit) => unit.value > 0));
+  const lead = units[leadIndex] ?? units[2];
+  const restText = units
+    .slice(leadIndex + 1)
+    .map((unit) => `${unit.value} ${t(`acasa.unitShort_${unit.key}`, { count: unit.value })}`)
+    .join(' ');
 
   const headline =
     days === null || counting
@@ -78,17 +85,16 @@ function CountdownCard({ date, type, scheduleTimes }: { date: string; type: Even
           accessible
           accessibilityLabel={`${units.map((unit) => t(`acasa.unit_${unit.key}`, { count: unit.value })).join(', ')} ${untilLabel}`}
         >
-          <View style={styles.units}>
-            {units.map((unit) => (
-              <View key={unit.key} style={[styles.unit, { backgroundColor: tokens.surface2 }]}>
-                <Text style={[styles.unitValue, { color: tokens.textPrimary }]}>{unit.value}</Text>
-                <Text style={[styles.unitLabel, { color: tokens.textSecondary }]}>
-                  {t(`acasa.unitShort_${unit.key}`, { count: unit.value })}
-                </Text>
-              </View>
-            ))}
+          <View style={styles.leadRow}>
+            <Text style={[styles.leadValue, { color: tokens.textPrimary }]}>{lead.value}</Text>
+            <Text style={[styles.leadUnit, { color: tokens.textSecondary }]}>
+              {t(`acasa.unitShort_${lead.key}`, { count: lead.value })}
+            </Text>
           </View>
-          <Text style={[styles.countdownSub, { color: tokens.textSecondary }]}>{untilLabel}</Text>
+          <Text style={[styles.countdownSub, { color: tokens.textSecondary }]}>
+            {restText.length > 0 ? `${restText} ${untilLabel}` : untilLabel}
+          </Text>
+          <Text style={[styles.countdownDate, { color: tokens.textMuted }]}>{formatEventDate(date)}</Text>
         </View>
       ) : null}
       {headline !== null ? (
@@ -348,26 +354,28 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   countdownBody: {
-    gap: 10,
-  },
-  units: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  unit: {
-    flex: 1,
     alignItems: 'center',
-    borderRadius: 16,
-    paddingVertical: 12,
     gap: 2,
   },
-  unitValue: {
-    ...typography.title1,
+  leadRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  leadValue: {
+    fontFamily: typeface.display,
+    fontSize: 34,
+    lineHeight: 40,
     fontVariant: ['tabular-nums'],
   },
-  unitLabel: {
-    fontSize: 12,
+  leadUnit: {
+    fontSize: 15,
     fontWeight: '600',
+  },
+  countdownDate: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 2,
   },
   countdownTitle: {
     ...typography.title2,

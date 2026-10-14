@@ -28,16 +28,16 @@
                     android:startY="0"
                     android:endX="100"
                     android:endY="0"
-                    android:startColor="#F5C36B"
-                    android:centerColor="#E8779E"
-                    android:endColor="#7F77DD" />
+                    android:startColor="#F7C948"
+                    android:centerColor="#F0509E"
+                    android:endColor="#5E5EF2" />
             </aapt:attr>
         </path>
         <path
             android:pathData="M2 66a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z"
-            android:fillColor="#F5C36B" />
+            android:fillColor="#F7C948" />
         <path
             android:pathData="M86 66a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z"
-            android:fillColor="#7F77DD" />
+            android:fillColor="#5E5EF2" />
     </group>
 </vector>

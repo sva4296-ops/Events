@@ -73,7 +73,10 @@ export function ListRow({ icon, label, description, value, trailing, onPress, sh
       )}
       {trailing ??
         (value !== undefined ? (
-          <Text style={[styles.value, { color: tokens.textSecondary }]}>{value}</Text>
+          // simple + no shrink: Pixel devices measured this short text a few px narrow and clipped its last letter.
+          <Text style={[styles.value, { color: tokens.textSecondary }]} textBreakStrategy="simple" numberOfLines={1}>
+            {value}
+          </Text>
         ) : null)}
       {/* A row with its own trailing control (badge, switch) doesn't navigate anywhere. */}
       {onPress !== undefined && trailing === undefined ? (
@@ -133,6 +136,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 14,
-    flexShrink: 1,
+    flexShrink: 0,
+    maxWidth: '50%',
   },
 });

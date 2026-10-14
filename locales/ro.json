@@ -178,7 +178,10 @@
     "postedByAgo": "{{name}} · {{time}}",
     "cantEditOthersTitle": "Nu poți modifica acest moment",
     "cantEditOthersBody": "A fost postat de {{name}}. Co-organizatorii își pot modifica doar momentele lor; proprietarul evenimentului le poate modifica pe toate.",
-    "cantEditOthersBodyUnknown": "Co-organizatorii își pot modifica doar momentele lor; proprietarul evenimentului le poate modifica pe toate."
+    "cantEditOthersBodyUnknown": "Co-organizatorii își pot modifica doar momentele lor; proprietarul evenimentului le poate modifica pe toate.",
+    "unitShort_days_few": "zile",
+    "unitShort_hours_few": "ore",
+    "unitShort_minutes_few": "min"
   },
   "chat": {
     "sectionLabel": "GRUPUL NUNȚII",

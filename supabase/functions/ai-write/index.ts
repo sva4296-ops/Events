@@ -180,7 +180,11 @@ Deno.serve(async (req) => {
     p_user_id: userData.user.id,
     p_limit: limit,
   });
-  if (quotaError) return json({ error: 'server_error' }, 500);
+  if (quotaError) {
+    // Shows in Dashboard > Edge Functions > ai-write > Logs.
+    console.error('consume_ai_quota failed', quotaError.message);
+    return json({ error: 'server_error' }, 500);
+  }
   if (allowed !== true) return json({ error: 'quota' }, 429);
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -197,7 +201,12 @@ Deno.serve(async (req) => {
       messages: [{ role: 'user', content: buildPrompt(kind, ro, text, maxChars, context) }],
     }),
   });
-  if (!res.ok) return json({ error: 'ai_error' }, 502);
+  if (!res.ok) {
+    // Anthropic's reason (bad key, no credits, unknown model...) goes to the
+    // function logs; the app only gets the status code, never the body.
+    console.error('anthropic error', res.status, (await res.text()).slice(0, 500));
+    return json({ error: 'ai_error', upstream: res.status }, 502);
+  }
 
   const result = (await res.json()) as { content?: { type: string; text?: string }[] };
   const output = (result.content ?? [])

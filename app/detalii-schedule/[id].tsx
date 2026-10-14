@@ -17,6 +17,7 @@ import { confirmDelete } from '@/utils/confirm';
 import { gSpace } from '@/utils/guestTheme';
 import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 import { openInMaps } from '@/utils/maps';
+import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
 
 function cardStyle(tokens: ThemeTokens) {
   return {
@@ -45,6 +46,8 @@ export default function DetaliiScheduleScreen() {
   }
 
   const card = cardStyle(tokens);
+  // The event type's own color (same as the screen's cover), so the program reads as part of this event.
+  const typeColors = event !== undefined ? EVENT_TYPE_COLORS[event.type] : null;
 
   return (
     <GuestScreen coverType={event?.type} topInset>
@@ -102,8 +105,10 @@ export default function DetaliiScheduleScreen() {
                 },
               ]}
             >
-              <View style={[styles.scheduleCard, card]}>
-                <Text style={[styles.time, { color: tokens.accentText }]}>{item.time}</Text>
+              <View style={[styles.scheduleCard, card, typeColors !== null && { borderColor: typeColors.tint }]}>
+                <View style={[styles.timePill, { backgroundColor: typeColors?.fill ?? tokens.accentFill }]}>
+                  <Text style={[styles.time, { color: typeColors?.onFill ?? tokens.onAccent }]}>{item.time}</Text>
+                </View>
                 <View style={styles.scheduleBody}>
                   <Text style={[styles.scheduleTitle, { color: tokens.textPrimary }]}>{item.title}</Text>
                   <Text style={[styles.scheduleLocation, { color: tokens.textSecondary }]}>
@@ -160,11 +165,16 @@ const styles = StyleSheet.create({
     borderRadius: themeRadius.xl,
     padding: gSpace.xl,
   },
+  timePill: {
+    minWidth: 68,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: themeRadius.pill,
+    alignItems: 'center',
+  },
   time: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: '800',
-    width: 62,
-    flexShrink: 1,
   },
   scheduleBody: {
     flex: 1,

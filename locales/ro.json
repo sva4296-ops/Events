@@ -612,12 +612,15 @@
     "nameLabel": "Numele locației",
     "addressLabel": "Adresă",
     "notesLabel": "Note practice",
-    "notesHint": "O notă pe linie.",
+    "notesHint": "Ce e bine să știe invitații: parcare, intrare, ținută. Fiecare informație pe un rând nou. „Aranjează cu AI” le face o listă curată.",
     "mapLabel": "Punct pe hartă",
     "pickOnMap": "Alege pe hartă",
     "changeOnMap": "Schimbă",
     "removeFromMap": "Elimină",
-    "mapHint": "Invitații primesc buton de navigare direct către acest punct."
+    "mapHint": "Invitații primesc buton de navigare direct către acest punct.",
+    "namePlaceholder": "Casa Regală",
+    "addressPlaceholder": "Str. Republicii 12, Brașov",
+    "notesPlaceholder": "ex: parcare gratuită în spate"
   },
   "menuForm": {
     "coursePhotoAdd": "Adaugă o poză cu preparatul",

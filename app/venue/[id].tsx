@@ -101,11 +101,17 @@ export default function VenueScreen() {
           }
         />
 
-        <Field label={t('venueForm.nameLabel')} value={name} onChangeText={setName} />
+        <Field
+          label={t('venueForm.nameLabel')}
+          value={name}
+          onChangeText={setName}
+          placeholder={t('venueForm.namePlaceholder')}
+        />
         <LocationField
           label={t('venueForm.addressLabel')}
           value={address}
           onChangeText={setAddress}
+          placeholder={t('venueForm.addressPlaceholder')}
           coords={coords}
           onPick={onPick}
           onClearCoords={() => setCoords(null)}
@@ -115,6 +121,7 @@ export default function VenueScreen() {
           label={t('venueForm.notesLabel')}
           value={notes}
           onChangeText={setNotes}
+          placeholder={t('venueForm.notesPlaceholder')}
           hint={t('venueForm.notesHint')}
           multiline
           action={

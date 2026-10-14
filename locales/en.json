@@ -589,12 +589,15 @@
     "nameLabel": "Venue name",
     "addressLabel": "Address",
     "notesLabel": "Practical notes",
-    "notesHint": "One note per line.",
+    "notesHint": "What guests should know: parking, entrance, dress code. Each on a new line. “Tidy with AI” turns them into a clean list.",
     "mapLabel": "Map pin",
     "pickOnMap": "Pick on map",
     "changeOnMap": "Change",
     "removeFromMap": "Remove",
-    "mapHint": "Guests get a navigation button straight to this spot."
+    "mapHint": "Guests get a navigation button straight to this spot.",
+    "namePlaceholder": "Royal House",
+    "addressPlaceholder": "12 Republicii St, Brașov",
+    "notesPlaceholder": "e.g. free parking at the back"
   },
   "menuForm": {
     "coursePhotoAdd": "Add a photo of the dish",

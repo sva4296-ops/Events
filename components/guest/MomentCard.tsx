@@ -1,11 +1,13 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { MomentIcon, isMomentIconId } from '@/components/MomentIcon';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
 import type { Moment, ReactionType } from '@/types/guest';
+import { haptics } from '@/utils/haptics';
 import { timeAgo } from '@/utils/relativeTime';
 import { themeRadius, typeface } from '@/utils/themeTokens';
 
@@ -134,18 +136,34 @@ function ReactionPill({
 }) {
   const { tokens } = useTheme();
   const color = active ? tokens.statusDeclined : tokens.textSecondary;
+  const scale = useSharedValue(1);
+  const iconStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+
+  // Pop only when adding a reaction; taking it back stays quiet.
+  const press = () => {
+    if (!active) {
+      scale.set(withSequence(withTiming(1.35, { duration: 110 }), withSpring(1, { damping: 7, stiffness: 220 })));
+      haptics.tap();
+    }
+    onPress();
+  };
 
   return (
     <TouchableOpacity
       style={[styles.pill, { backgroundColor: active ? tokens.statusDeclinedSoft : tokens.surface2 }]}
-      onPress={onPress}
+      onPress={press}
       activeOpacity={0.75}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected: active }}
     >
-      <Feather name={icon} size={18} color={color} />
-      <Text style={[styles.pillCount, { color }]}>{count}</Text>
+      <Animated.View style={iconStyle}>
+        <Feather name={icon} size={18} color={color} />
+      </Animated.View>
+      {/* Keyed by the count, so a new number slides up into place. */}
+      <Animated.Text key={count} entering={FadeInUp.duration(180)} style={[styles.pillCount, { color }]}>
+        {count}
+      </Animated.Text>
     </TouchableOpacity>
   );
 }

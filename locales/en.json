@@ -605,6 +605,7 @@
     "coursePhotoChange": "Change photo",
     "coursePhotoRemove": "Remove photo",
     "addCourse": "Add a course",
+    "addSameCourse": "Add another {{name}}",
     "removeCourse": "Remove {{name}}",
     "courseNamePlaceholder": "Course {{n}}",
     "courseNameA11y": "Name of course {{n}}",

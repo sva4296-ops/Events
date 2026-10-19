@@ -631,6 +631,7 @@
     "coursePhotoChange": "Schimbă poza",
     "coursePhotoRemove": "Șterge poza",
     "addCourse": "Adaugă un fel",
+    "addSameCourse": "Adaugă încă un fel la {{name}}",
     "removeCourse": "Șterge {{name}}",
     "courseNamePlaceholder": "Felul {{n}}",
     "courseNameA11y": "Numele felului {{n}}",

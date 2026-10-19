@@ -40,6 +40,8 @@ interface CourseDraft {
   photo: MenuCoursePhotoInput;
   /** What the thumbnail shows: the signed URL of a saved photo, or the picked local file. */
   previewUri: string | null;
+  /** Example dish for the three default rows of a new menu; null = generic placeholder. */
+  placeholder: string | null;
 }
 
 /** Owner: add or edit one menu option (`?itemId=` for edit). */
@@ -62,11 +64,33 @@ export default function MenuScreen() {
           dish: course.dish,
           photo: course.photo_path !== null ? { kind: 'keep' as const, path: course.photo_path } : null,
           previewUri: course.photo_url,
+          placeholder: null,
         }))
       : [
-          { key: generateId(), name: t('detalii.courseStarter'), dish: '', photo: null, previewUri: null },
-          { key: generateId(), name: t('detalii.courseMain'), dish: '', photo: null, previewUri: null },
-          { key: generateId(), name: t('detalii.courseDessert'), dish: '', photo: null, previewUri: null },
+          {
+            key: generateId(),
+            name: t('detalii.courseStarter'),
+            dish: '',
+            photo: null,
+            previewUri: null,
+            placeholder: t('menuForm.starterPlaceholder'),
+          },
+          {
+            key: generateId(),
+            name: t('detalii.courseMain'),
+            dish: '',
+            photo: null,
+            previewUri: null,
+            placeholder: t('menuForm.mainPlaceholder'),
+          },
+          {
+            key: generateId(),
+            name: t('detalii.courseDessert'),
+            dish: '',
+            photo: null,
+            previewUri: null,
+            placeholder: t('menuForm.dessertPlaceholder'),
+          },
         ],
   );
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
@@ -91,8 +115,27 @@ export default function MenuScreen() {
     setCourses((current) =>
       current.length >= MAX_COURSES
         ? current
-        : [...current, { key: generateId(), name: '', dish: '', photo: null, previewUri: null }],
+        : [...current, { key: generateId(), name: '', dish: '', photo: null, previewUri: null, placeholder: null }],
     );
+  };
+
+  // "+" on a course: a new empty row of the same kind right below it (e.g. a second Antreu).
+  const addCourseAfter = (key: string) => {
+    haptics.tap();
+    setCourses((current) => {
+      const index = current.findIndex((course) => course.key === key);
+      const source = current[index];
+      if (current.length >= MAX_COURSES || source === undefined) return current;
+      const next: CourseDraft = {
+        key: generateId(),
+        name: source.name,
+        dish: '',
+        photo: null,
+        previewUri: null,
+        placeholder: null,
+      };
+      return [...current.slice(0, index + 1), next, ...current.slice(index + 1)];
+    });
   };
 
   const removeCourse = (key: string) => {
@@ -131,11 +174,6 @@ export default function MenuScreen() {
     });
   };
 
-  // Placeholders for the three default rows of a new menu; anything else gets a generic one.
-  const dishPlaceholder = (index: number) =>
-    existing === null && index < 3
-      ? [t('menuForm.starterPlaceholder'), t('menuForm.mainPlaceholder'), t('menuForm.dessertPlaceholder')][index]
-      : t('menuForm.dishPlaceholder');
 
   const save = () => {
     saveMenuOption({
@@ -202,6 +240,18 @@ export default function MenuScreen() {
               />
               <Feather name="edit-3" size={12} color={tokens.textMuted} />
               <View style={styles.spacer} />
+              {courses.length < MAX_COURSES ? (
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => addCourseAfter(course.key)}
+                  activeOpacity={0.7}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('menuForm.addSameCourse', { name: course.name || index + 1 })}
+                >
+                  <Feather name="plus" size={16} color={tokens.textSecondary} />
+                </TouchableOpacity>
+              ) : null}
               {courses.length > 1 ? (
                 <TouchableOpacity
                   style={styles.removeButton}
@@ -232,7 +282,7 @@ export default function MenuScreen() {
                     onChangeText={(value) => updateCourse(course.key, { dish: value })}
                     onFocus={() => setFocusedKey(course.key)}
                     onBlur={() => setFocusedKey((current) => (current === course.key ? null : current))}
-                    placeholder={dishPlaceholder(index)}
+                    placeholder={course.placeholder ?? t('menuForm.dishPlaceholder')}
                     placeholderTextColor={tokens.textMuted}
                     accessibilityLabel={course.name || t('menuForm.courseNamePlaceholder', { n: index + 1 })}
                   />

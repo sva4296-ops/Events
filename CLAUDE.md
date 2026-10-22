@@ -262,6 +262,10 @@
 >   `app/venue-send/[id].tsx` (share link + WhatsApp to followers), `app/venue-setup/[id].tsx` +
 >   `app/create/venue.tsx` (shared `VenueSetupForm`). The invite screen redirects venue events to `/book`.
 >   No payments (price is a text line), no web booking page yet (povestea-web), no consent register/QR for tables.
+> - **Fonts (2026-10-22).** Only Bricolage Grotesque 600 (display/titles/numbers) and Instrument
+>   Sans 400/500/600 are loaded, per-weight in `app/_layout.tsx`; Playfair, Fraunces, Space Grotesk and
+>   Unbounded are uninstalled. `typeface`/`typography`/`fonts` map to the new files (`bodyBold` = 600,
+>   no 700 file). Nothing else about the design changed.
 > - **Sentry still does not exist** in this codebase; `console.warn`/`reportSupabaseError` remain the
 >   substitutes documented below.
 

@@ -1,23 +1,13 @@
 // Side-effect import — initializes i18next before anything below renders.
 import "@/utils/i18n";
 
-import {
-  PlayfairDisplay_400Regular,
-  PlayfairDisplay_500Medium_Italic,
-  PlayfairDisplay_600SemiBold,
-  useFonts,
-} from "@expo-google-fonts/playfair-display";
-import {
-  SpaceGrotesk_400Regular,
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_600SemiBold,
-  SpaceGrotesk_700Bold,
-} from "@expo-google-fonts/space-grotesk";
-import {
-  Fraunces_500Medium,
-  Fraunces_600SemiBold,
-} from "@expo-google-fonts/fraunces";
+// Per-weight subpaths, so only these four font files are bundled.
+import { BricolageGrotesque_600SemiBold } from "@expo-google-fonts/bricolage-grotesque/600SemiBold";
+import { InstrumentSans_400Regular } from "@expo-google-fonts/instrument-sans/400Regular";
+import { InstrumentSans_500Medium } from "@expo-google-fonts/instrument-sans/500Medium";
+import { InstrumentSans_600SemiBold } from "@expo-google-fonts/instrument-sans/600SemiBold";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -77,15 +67,10 @@ function createQueryClient(): QueryClient {
 
 function RootLayout() {
   const [fontsLoaded] = useFonts({
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_500Medium_Italic,
-    PlayfairDisplay_600SemiBold,
-    Fraunces_500Medium,
-    Fraunces_600SemiBold,
-    SpaceGrotesk_400Regular,
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
+    BricolageGrotesque_600SemiBold,
+    InstrumentSans_400Regular,
+    InstrumentSans_500Medium,
+    InstrumentSans_600SemiBold,
   });
 
   const [queryClient] = useState(createQueryClient);

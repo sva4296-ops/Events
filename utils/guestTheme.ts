@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 import type { Gradient } from '@/types/event';
 
 /**
@@ -38,14 +36,13 @@ export const brand = {
 } as const;
 
 /**
- * Playfair Display loads in app/_layout.tsx; these platform serifs keep the
- * layout stable during the first frame and if loading ever fails.
+ * Loaded in app/_layout.tsx. The serif was dropped: every display slot is
+ * Bricolage Grotesque 600 now (see typeface in utils/themeTokens.ts).
  */
 export const fonts = {
-  displayRegular: 'PlayfairDisplay_400Regular',
-  displayItalic: 'PlayfairDisplay_500Medium_Italic',
-  displayBold: 'PlayfairDisplay_600SemiBold',
-  serifFallback: Platform.select({ ios: 'Georgia', default: 'serif' }),
+  displayRegular: 'BricolageGrotesque_600SemiBold',
+  displayItalic: 'InstrumentSans_400Regular',
+  displayBold: 'BricolageGrotesque_600SemiBold',
 } as const;
 
 export const gRadius = {

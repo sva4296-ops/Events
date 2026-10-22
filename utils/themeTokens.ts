@@ -191,22 +191,21 @@ export const accentButtonShadow = {
 /** Warm Story 2.0 WhatsApp button fill (AA with white text). */
 export const whatsappFill = "#1F7A51";
 
-const serifItalic = "PlayfairDisplay_500Medium_Italic";
-
 /**
  * Loaded in app/_layout.tsx. A custom font's weight is its family, so pick
  * the family instead of setting fontWeight on these.
  */
 export const typeface = {
-  // Fraunces (warm serif, "story" feel) replaced Unbounded, which read heavy
-  // and sprawling on small screens even at Medium.
-  display: "Fraunces_600SemiBold",
-  title: "Fraunces_600SemiBold",
-  titleMedium: "Fraunces_500Medium",
-  body: "SpaceGrotesk_400Regular",
-  bodyMedium: "SpaceGrotesk_500Medium",
-  bodySemiBold: "SpaceGrotesk_600SemiBold",
-  bodyBold: "SpaceGrotesk_700Bold",
+  // Exactly four font files: Bricolage Grotesque 600 for display text,
+  // titles and big numbers; Instrument Sans 400/500/600 for everything else.
+  display: "BricolageGrotesque_600SemiBold",
+  title: "BricolageGrotesque_600SemiBold",
+  titleMedium: "BricolageGrotesque_600SemiBold",
+  body: "InstrumentSans_400Regular",
+  bodyMedium: "InstrumentSans_500Medium",
+  bodySemiBold: "InstrumentSans_600SemiBold",
+  // No 700 file is loaded; the old bold slot maps to 600.
+  bodyBold: "InstrumentSans_600SemiBold",
 } as const;
 
 /** GeneratedAvatar colors (same in both modes) and the face drawn on them. */
@@ -227,10 +226,9 @@ export const imageScrim = ["rgba(15,18,32,0)", "rgba(15,18,32,0.78)"] as const;
 export const pastCoverShade = "rgba(15,18,32,0.6)";
 
 /**
- * Type scale: Fraunces for titles and big numbers, Space Grotesk for
- * everything read quickly,
- * Playfair italic kept only for quotes. Colors are not part of the scale;
- * screens pair these with a token.
+ * Type scale: Bricolage Grotesque for titles and big
+ * numbers, Instrument Sans for everything read quickly. Colors are not part
+ * of the scale; screens pair these with a token.
  */
 export const typography = {
   display: {
@@ -251,7 +249,7 @@ export const typography = {
     lineHeight: 25,
     letterSpacing: -0.1,
   },
-  quote: { fontFamily: serifItalic, fontSize: 17, lineHeight: 25 },
+  quote: { fontFamily: typeface.body, fontSize: 17, lineHeight: 25 },
   subtitle: { fontFamily: typeface.bodyBold, fontSize: 17, lineHeight: 24 },
   body: { fontFamily: typeface.body, fontSize: 16, lineHeight: 24 },
   bodySmall: { fontFamily: typeface.body, fontSize: 14, lineHeight: 21 },

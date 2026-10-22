@@ -61,6 +61,7 @@ export default function EditEventScreen() {
         date,
         location,
         welcomeMessage,
+        ...(event.type === 'venue' ? { startTime: startTime.trim().length > 0 ? startTime : null } : {}),
         ...(event.type === 'spontaneous'
           ? {
               startTime: startTime.trim().length > 0 ? startTime : null,
@@ -134,15 +135,17 @@ export default function EditEventScreen() {
           displayValue={date.trim().length === 0 ? t('editEventForm.selectDate') : formatEventDate(date)}
           onChange={(selected) => setDate(toIsoDate(selected))}
         />
+        {event.type === 'spontaneous' || event.type === 'venue' ? (
+          <DateTimeField
+            label={t('spontaneous.wizard.timeLabel')}
+            mode="time"
+            value={parseTimeString(startTime.trim().length > 0 ? startTime : '21:00')}
+            displayValue={startTime.trim().length > 0 ? startTime : t('spontaneous.wizard.timePlaceholder')}
+            onChange={(selected) => setStartTime(toTimeString(selected))}
+          />
+        ) : null}
         {event.type === 'spontaneous' ? (
           <>
-            <DateTimeField
-              label={t('spontaneous.wizard.timeLabel')}
-              mode="time"
-              value={parseTimeString(startTime.trim().length > 0 ? startTime : '21:00')}
-              displayValue={startTime.trim().length > 0 ? startTime : t('spontaneous.wizard.timePlaceholder')}
-              onChange={(selected) => setStartTime(toTimeString(selected))}
-            />
             <DateTimeField
               label={t('spontaneous.wizard.replyByLabel')}
               mode="date"

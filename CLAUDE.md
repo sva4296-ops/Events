@@ -248,6 +248,20 @@
 >   invites are the same per-guest flow with a per-template message. 'maybe' is only offered on
 >   spontaneous events. Not built: add-to-calendar, reminders for "maybe", web (povestea-web) support
 >   for 'maybe'/'spontaneous', the "Local" (venue/HoReCa) type.
+> - **Venue events ("Local", 2026-10-23).** `event_type` `'venue'` (`20261023000001`), business accounts
+>   only (wizard hides the tile without an `agencies` row; trigger `guard_venue_event_owner`).
+>   `20261023000002_venue_events.sql`: `events.host_name/price_info/booking_times/max_party_size/public_token`,
+>   `venue_zones` (capacity per area), `event_guests.party_size/zone_id/booking_time/booking_code/checked_in_at`
+>   (a booking IS an event_guests row, confirmed = booked, declined = cancelled), `venue_followers` (per
+>   agency, consent to get invitations; name/phone snapshotted), RPCs `resolve_venue_token` (anon),
+>   `get_venue_booking`, `book_venue_event` (capacity check under a zone row lock, raises `zone_full`).
+>   `enforce_guest_cap` skips venue events. The public link reuses `/i/<token>`: `app/i/[token].tsx` tries
+>   the personal invite token first, then `resolve_venue_token` → `/book/<id>?t=<token>`. App:
+>   `data/venueRepository.ts`, `hooks/useVenue.tsx` (`['venue', eventId]`, polls 20s), `app/book/[id].tsx`
+>   (booking + `VenueTicket` with QR of the code), `app/venue-bookings/[id].tsx` (occupancy, check-in),
+>   `app/venue-send/[id].tsx` (share link + WhatsApp to followers), `app/venue-setup/[id].tsx` +
+>   `app/create/venue.tsx` (shared `VenueSetupForm`). The invite screen redirects venue events to `/book`.
+>   No payments (price is a text line), no web booking page yet (povestea-web), no consent register/QR for tables.
 > - **Sentry still does not exist** in this codebase; `console.warn`/`reportSupabaseError` remain the
 >   substitutes documented below.
 

@@ -37,6 +37,13 @@ const SPONTANEOUS_TAB_OVERRIDES: Record<string, { labelKey: string; icon: TabIco
   fond: { labelKey: 'guestTabs.bill', icon: 'bill' },
 };
 
+/** Venue nights: Acasă is Tonight, Detalii is Book, Fond is the Ticket. */
+const VENUE_TAB_OVERRIDES: Record<string, { labelKey: string; icon: TabIconId }> = {
+  index: { labelKey: 'guestTabs.tonight', icon: 'tonight' },
+  detalii: { labelKey: 'guestTabs.book', icon: 'book' },
+  fond: { labelKey: 'guestTabs.ticket', icon: 'ticket' },
+};
+
 /** Derived from the pathname rather than the tab bar's own state, since this
  * bar is mounted once above <Tabs> and needs to know which tab is active. */
 type ActiveTab = 'acasa' | 'detalii' | 'fond' | 'chat' | 'live' | 'album';
@@ -67,6 +74,7 @@ export default function GuestEventLayout() {
   const event = getEvent(id);
   const owner = isOwner(event);
   const spontaneous = event?.type === 'spontaneous';
+  const venueEvent = event?.type === 'venue';
   const activeTab = getActiveTab(pathname);
   // The restaurant gets only Detalii (venue, menu, seating): no tab bar, and
   // any other tab (e.g. a push opening /guest/<id>) lands back on Detalii.
@@ -79,7 +87,8 @@ export default function GuestEventLayout() {
   const past = event !== undefined && !restaurant && isEventPast(event.date);
   // Fund hidden for now (utils/features.ts): an old link to it lands on Acasă.
   // A spontaneous event's Fond tab is the bill split, not the fund, so it stays.
-  if (!FUND_ENABLED && !spontaneous && activeTab === 'fond') {
+  // Spontaneous (bill split) and venue (ticket) nights reuse the Fond tab for something else.
+  if (!FUND_ENABLED && !spontaneous && !venueEvent && activeTab === 'fond') {
     return <Redirect href={`/guest/${id}`} />;
   }
   // Finished events keep only Acasă and Album; any other tab lands on Acasă.
@@ -105,7 +114,15 @@ export default function GuestEventLayout() {
   // Finished events get no header actions: deleting one is a long press on
   // its Home card, like every other event.
   if (!past && owner) {
-    if (activeTab === 'acasa') {
+    if (activeTab === 'acasa' && venueEvent) {
+      // A venue night: its bookings instead of the wedding-shaped guide.
+      actions.push({
+        key: 'bookings',
+        icon: 'clipboard',
+        accessibilityLabel: t('venue.bookings.title'),
+        onPress: () => router.push(`/venue-bookings/${id}`),
+      });
+    } else if (activeTab === 'acasa') {
       actions.push({
         key: 'help',
         icon: 'help-circle',
@@ -118,6 +135,23 @@ export default function GuestEventLayout() {
         accessibilityLabel: 'Lista de invitați și statistici',
         onPress: () => router.push(`/event/${id}`),
       });
+    } else if (activeTab === 'detalii' && venueEvent) {
+      // The Book tab replaces the Detalii hub: the programme and the event
+      // editor are reached from here instead.
+      actions.push(
+        {
+          key: 'programme',
+          icon: 'clock',
+          accessibilityLabel: t('venue.tabs.editProgramme'),
+          onPress: () => router.push(`/detalii-schedule/${id}`),
+        },
+        {
+          key: 'edit-event',
+          icon: 'edit-2',
+          accessibilityLabel: t('event.editEvent'),
+          onPress: () => router.push(`/edit-event/${id}`),
+        },
+      );
     } else if (activeTab === 'detalii' && spontaneous) {
       // The spontaneous Plan tab has no Detalii hub to reach the event editor from.
       actions.push({
@@ -200,7 +234,11 @@ export default function GuestEventLayout() {
           screenListeners={{ tabPress: () => haptics.tap() }}
         >
           {TABS.map((base) => {
-            const tab = { ...base, ...(spontaneous ? SPONTANEOUS_TAB_OVERRIDES[base.name] : undefined) };
+            const tab = {
+              ...base,
+              ...(spontaneous ? SPONTANEOUS_TAB_OVERRIDES[base.name] : undefined),
+              ...(venueEvent ? VENUE_TAB_OVERRIDES[base.name] : undefined),
+            };
             return (
               <Tabs.Screen
                 key={tab.name}
@@ -211,7 +249,7 @@ export default function GuestEventLayout() {
                   // doesn't hide it.
                   href:
                     (past && tab.name !== 'index' && tab.name !== 'album' && !(spontaneous && tab.name === 'fond')) ||
-                    (!FUND_ENABLED && !spontaneous && tab.name === 'fond')
+                    (!FUND_ENABLED && !spontaneous && !venueEvent && tab.name === 'fond')
                       ? null
                       : undefined,
                   title: t(tab.labelKey),
@@ -234,7 +272,7 @@ export default function GuestEventLayout() {
             );
           })}
         </Tabs>
-        {!past && owner && !restaurant ? <GettingStartedSheet eventId={id} /> : null}
+        {!past && owner && !restaurant && !venueEvent ? <GettingStartedSheet eventId={id} /> : null}
       </LinearGradient>
       </EventAccentProvider>
     </GuestEventProvider>

@@ -10,6 +10,7 @@ import {
 } from "@/components/guest/DetaliiHubCard";
 import { GuestScreen } from "@/components/guest/GuestScreen";
 import { SpontaneousPlan } from "@/components/spontaneous/SpontaneousPlan";
+import { VenueBookTab } from "@/components/venue/VenueTabs";
 import { useEventContent } from "@/hooks/useEventContent";
 import { useEvents } from "@/hooks/useEvents";
 import { useEventTasks } from "@/hooks/useEventTasks";
@@ -58,6 +59,7 @@ export default function DetaliiScreen() {
   const { event } = useGuestEvent();
   const { isOwner } = useEvents();
   if (event?.type === 'spontaneous') return <SpontaneousPlan event={event} owner={isOwner(event)} />;
+  if (event?.type === 'venue') return <VenueBookTab event={event} owner={isOwner(event)} />;
   return <DetaliiHub />;
 }
 

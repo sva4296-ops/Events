@@ -36,6 +36,7 @@ const TYPE_COPY: Record<EventTypeId, { emoji: string; line: string }> = {
   memorial: { emoji: '', line: 'Prezența ta ne-ar fi de mare sprijin.' },
   other: { emoji: '✨', line: 'Ne-ar bucura să fii alături de noi.' },
   spontaneous: { emoji: '⚡', line: 'Hai și tu!' },
+  venue: { emoji: '🎟️', line: 'Rezervă-ți locul din timp.' },
 };
 
 /** Spontaneous events: casual tone, per template. */
@@ -259,4 +260,45 @@ export async function sendPhoneMessage(phone: string, message: string, channel: 
       reportSupabaseError(err);
     }
   }
+}
+
+/** The venue's public booking link — same /i/ path as personal invites (app/i/[token].tsx tells them apart). */
+export function buildVenueLink(publicToken: string): string {
+  return `${INVITE_SITE_URL}/i/${publicToken}`;
+}
+
+/**
+ * Venue event ("Local") message for customers and for a status/story:
+ *
+ * 🎤 Karaoke Night — Bar Microfon
+ * 📅 vineri, 30 octombrie · 21:00
+ * 📍 Centrul Vechi, București
+ * 🎟️ Intrare liberă
+ *
+ * Rezervă-ți locul dintr-un tap 👇
+ * https://…/i/<publicToken>
+ *
+ * (direct messages add the opt-out line)
+ */
+export function buildVenueMessage(
+  event: Pick<AppEvent, 'name' | 'date' | 'location' | 'startTime' | 'hostName' | 'priceInfo' | 'publicToken'>,
+  direct: boolean,
+): string {
+  const date = formatInviteDate(event.date);
+  const time = event.startTime?.trim() ?? '';
+  const host = event.hostName?.trim() ?? '';
+  const location = event.location.trim();
+  const lines = [
+    `🎟️ ${event.name.trim()}${host.length > 0 ? ` — ${host}` : ''}`,
+    date !== null ? `📅 ${date}${time.length > 0 ? ` · ${time}` : ''}` : null,
+    location.length > 0 ? `📍 ${location}` : null,
+    `💳 ${event.priceInfo?.trim() || 'Intrare liberă'}`,
+    '',
+    'Rezervă-ți locul dintr-un tap 👇',
+    buildVenueLink(event.publicToken),
+    ...(direct
+      ? ['', `Primești mesajul pentru că ai ales să primești invitații${host.length > 0 ? ` de la ${host}` : ''}. Poți renunța oricând din aplicație.`]
+      : []),
+  ];
+  return lines.filter((line): line is string => line !== null).join('\n');
 }

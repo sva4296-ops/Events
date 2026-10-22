@@ -12,7 +12,8 @@ export type EventTypeRow =
   | 'corporate'
   | 'memorial'
   | 'other'
-  | 'spontaneous';
+  | 'spontaneous'
+  | 'venue';
 
 export type RsvpStatusRow = 'pending' | 'confirmed' | 'declined' | 'maybe';
 
@@ -43,6 +44,12 @@ export interface EventRow {
   start_time: string | null;
   reply_by: string | null;
   spot_limit: number | null;
+  /** Venue events — 20261023000002_venue_events.sql. */
+  host_name: string | null;
+  price_info: string | null;
+  booking_times: string[] | null;
+  max_party_size: number | null;
+  public_token: string;
 }
 
 export interface EventGuestRow {
@@ -71,6 +78,11 @@ export interface EventGuestRow {
   plus_one: boolean;
   bill_sent_at: string | null;
   bill_confirmed_at: string | null;
+  party_size: number | null;
+  zone_id: string | null;
+  booking_time: string | null;
+  booking_code: string | null;
+  checked_in_at: string | null;
 }
 
 /** Row shape returned by the get_invite_preview(uuid) RPC — see

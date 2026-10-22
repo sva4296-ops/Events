@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
@@ -201,6 +201,11 @@ export default function InviteScreen() {
     staleTime: 30_000,
   });
   const preview = previewQuery.data ?? null;
+
+  // Venue events have a booking page instead of an RSVP.
+  if (event?.type === 'venue' || preview?.type === 'venue') {
+    return <Redirect href={`/book/${event?.id ?? preview?.eventId ?? id}`} />;
+  }
 
   if (event === undefined) {
     if (needsPreview && previewQuery.isLoading) {

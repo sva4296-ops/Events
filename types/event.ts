@@ -6,7 +6,9 @@ export type EventTypeId =
   | 'corporate'
   | 'memorial'
   | 'other'
-  | 'spontaneous';
+  | 'spontaneous'
+  /** A bar/restaurant night customers book (business accounts only). */
+  | 'venue';
 
 /** 'maybe' is only offered on spontaneous events (see 20261022000001_spontaneous_enums.sql). */
 export type RsvpStatus = 'confirmed' | 'pending' | 'declined' | 'maybe';
@@ -54,6 +56,12 @@ export interface Guest {
   billSentAt: string | null;
   /** Spontaneous bill split: the organizer ticked the payment off. */
   billConfirmedAt: string | null;
+  /** Venue events: the booking (null otherwise). */
+  partySize: number | null;
+  zoneId: string | null;
+  bookingTime: string | null;
+  bookingCode: string | null;
+  checkedInAt: string | null;
   /** Personal link token for the web RSVP page (https://events-web-henna.vercel.app/i/<token>, see INVITE_SITE_URL). */
   inviteToken: string;
 }
@@ -112,6 +120,27 @@ export interface AppEvent {
   replyBy: string | null;
   /** People, guests' +1 included; null = no limit. Enforced by guard_spot_limit. */
   spotLimit: number | null;
+  /** Venue events: the venue's name guests see (agency company name at creation). */
+  hostName: string | null;
+  /** Free text, e.g. "Intrare liberă" or "Bilet 30 lei la intrare, include o băutură". */
+  priceInfo: string | null;
+  /** 'HH:MM' arrival slots a customer picks from; empty = any. */
+  bookingTimes: string[];
+  maxPartySize: number;
+  /** The venue's public booking link token (…/i/<publicToken>). */
+  publicToken: string;
+}
+
+/** A bookable area of a venue event (venue_zones). */
+export interface VenueZoneDraft {
+  /** Stable React key while editing. */
+  key: string;
+  /** venue_zones.id when editing an existing zone; null = new. */
+  id: string | null;
+  name: string;
+  detail: string;
+  /** Typed digits. */
+  capacity: string;
 }
 
 /** Work-in-progress event inside the 4-step creation wizard. */
@@ -127,6 +156,11 @@ export interface EventDraft {
   replyBy: string;
   /** Typed digits; empty = no limit. */
   spotLimit: string;
+  /** Venue only. */
+  zones: VenueZoneDraft[];
+  bookingTimes: string[];
+  priceInfo: string;
+  maxPartySize: string;
 }
 
 export interface RsvpCounts {

@@ -866,6 +866,13 @@
       "countdownUntil": "until we meet",
       "countdownToday": "It's today!",
       "stageDay": "The night"
+    },
+    "venue": {
+      "label": "Venue",
+      "description": "For bars and restaurants: customers book",
+      "countdownUntil": "until the night",
+      "countdownToday": "It's tonight!",
+      "stageDay": "The night"
     }
   },
   "mapPicker": {
@@ -886,7 +893,10 @@
     "live": "Live",
     "album": "Album",
     "plan": "Plan",
-    "bill": "Bill"
+    "bill": "Bill",
+    "tonight": "Tonight",
+    "book": "Book",
+    "ticket": "Ticket"
   },
   "coOrganizers": {
     "title": "Co-organizers",
@@ -1356,6 +1366,145 @@
       "plusOnes_other": "{{count}} +1s",
       "spots": "{{taken}}/{{limit}} spots",
       "withPlusOne": "Bringing someone (+1)"
+    }
+  },
+  "venue": {
+    "wizard": {
+      "stepSetup": "Spots",
+      "setupTitle": "Spots & bookings",
+      "setupSubtitle": "Areas people can book, arrival times and entry.",
+      "namePlaceholder": "Karaoke Night",
+      "messagePlaceholder": "The biggest karaoke night in the Old Town: 2 stages, 4,000 songs and a DJ in between. Book your table early! 🎤",
+      "businessTitle": "You need a business account",
+      "businessBody": "Venue nights are created by bars and restaurants. Add your company details (name and tax ID), then carry on from here.",
+      "businessCta": "Create business account"
+    },
+    "setup": {
+      "zonesTitle": "Areas",
+      "zonesSub": "Where customers can sit and how many people fit in each area.",
+      "zoneLabel": "Area {{number}}",
+      "zoneName": "Name",
+      "zoneNamePlaceholder": "By the stage",
+      "zoneDetail": "Details",
+      "zoneDetailPlaceholder": "tables for 4-6",
+      "zoneCapacity": "People",
+      "addZone": "+ Add an area",
+      "removeZone": "Remove area",
+      "defaultZone": "Main room",
+      "totalCapacity_one": "Total capacity: {{count}} person",
+      "totalCapacity_other": "Total capacity: {{count}} people",
+      "timesTitle": "Arrival times",
+      "timesSub": "The customer picks one when booking. With none selected, they can come anytime.",
+      "addTime": "Add a time",
+      "pickTime": "Pick a time",
+      "priceLabel": "Entry",
+      "pricePlaceholder": "Free entry",
+      "priceHint": "E.g. “30 lei at the door, includes a drink”. Paid at the venue.",
+      "maxPartyLabel": "Max people per booking",
+      "maxPartyHint": "Bigger groups call the venue.",
+      "tooSmall": "“{{zone}}” already has more people booked than the new capacity.",
+      "nameRequired": "Give this area a name (the grey text is just an example).",
+      "capacityRequired": "How many?"
+    },
+    "book": {
+      "cta": "Book your spot",
+      "booking": "Booking...",
+      "saveChange": "Save the change",
+      "freeEntry": "Free entry",
+      "howMany": "How many people?",
+      "people_one": "{{count}} person",
+      "people_other": "{{count}} people",
+      "where": "Where would you like to sit?",
+      "full": "full",
+      "free_one": "{{count}} spot free",
+      "free_other": "{{count}} spots free",
+      "tooMany_one": "Only {{count}} spot left in this area.",
+      "tooMany_other": "Only {{count}} spots left in this area.",
+      "arrival": "Arrival time",
+      "optIn": "I want invitations from {{venue}} (I can stop anytime)",
+      "thisVenue": "this venue",
+      "follow": "Follow {{venue}}",
+      "followNote": "You'll get invitations to the next nights. Stop anytime.",
+      "lineup": "Tonight's programme",
+      "openNight": "Open the night's page",
+      "change": "Change",
+      "cancel": "Cancel booking",
+      "cancelTitle": "Cancel your booking?",
+      "cancelBody": "Your spots go back to other customers.",
+      "zoneFullTitle": "That area just filled up",
+      "zoneFullBody": "The spots were taken meanwhile. Pick another area or fewer people.",
+      "organizerTitle": "You're the organizer: you can't book your own night.",
+      "ownerPreview": "This is the booking page your customers see.",
+      "peopleShort": "ppl",
+      "entry": "Entry",
+      "payAtVenue": "Nothing to pay now. Entry is paid at the venue."
+    },
+    "ticket": {
+      "title": "My ticket",
+      "showAtDoor": "Show the code at the door",
+      "checkedIn": "You're in ✓",
+      "people": "People",
+      "zone": "Area",
+      "arrival": "Arrival",
+      "entry": "Entry"
+    },
+    "home": {
+      "bookingsTitle": "Bookings",
+      "occupancy": "{{booked}} of {{capacity}} spots",
+      "bookingsCount_one": "{{count}} booking",
+      "bookingsCount_other": "{{count}} bookings",
+      "seeBookings": "See bookings",
+      "send": "Send",
+      "yourBooking": "Your booking",
+      "notBooked": "You don't have a booking",
+      "seeTicket": "See ticket"
+    },
+    "bookings": {
+      "title": "Bookings",
+      "editSetup": "Edit areas and times",
+      "statBookings": "bookings",
+      "statPeople": "people",
+      "statInside": "checked in",
+      "byZone": "Occupancy by area",
+      "send": "Send to customers",
+      "list": "All bookings",
+      "search": "Search by name or code",
+      "empty": "No bookings yet. Send the link to your customers.",
+      "noMatch": "Nothing found.",
+      "checkIn": "Check in",
+      "inside": "In"
+    },
+    "send": {
+      "title": "Send to customers",
+      "subtitle": "The booking link, on a status or straight on WhatsApp.",
+      "linkTitle": "Tonight's link",
+      "linkSub": "Post it on your WhatsApp status, Instagram or the venue's group. Anyone who opens it can book.",
+      "share": "Share the link",
+      "customersTitle": "Customers who want invitations",
+      "customersCount_one": "{{count}} customer agreed to get messages.",
+      "customersCount_other": "{{count}} customers agreed to get messages.",
+      "noCustomers": "The list grows on its own: customers who book can tick that they want invitations, and others follow the venue from the night's page.",
+      "sourceBooking": "ticked when booking",
+      "sourceFollow": "follows the venue",
+      "sendTo": "Send {{name}} a WhatsApp",
+      "sent": "Sent",
+      "rule": "Direct messages only to customers who agreed. Status, story and the venue's group are fine anytime."
+    },
+    "tonight": {
+      "invites": "{{venue}} invites you",
+      "tonight": "tonight",
+      "alreadyBooked": "Already booked",
+      "beFirst": "Be the first to book.",
+      "follow": "Follow",
+      "following": "Following",
+      "comingUp": "Coming up at {{venue}}",
+      "bookShort": "Book"
+    },
+    "tabs": {
+      "yourBooking": "Your booking",
+      "noTicket": "No booking yet",
+      "noTicketSub": "Book in seconds and your ticket shows up here.",
+      "editProgramme": "Edit tonight's programme"
     }
   }
 }

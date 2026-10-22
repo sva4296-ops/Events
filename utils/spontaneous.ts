@@ -44,14 +44,17 @@ export function templateMeta(template: SpontaneousTemplate | null): TemplateMeta
  * Create-wizard step numbers. Spontaneous events get one extra step (the
  * template) right after the type: type, template, details, preview, plan, share.
  */
-type WizardStep = 'type' | 'template' | 'details' | 'preview' | 'plan';
+type WizardStep = 'type' | 'template' | 'details' | 'venue' | 'preview' | 'plan';
 
+/** Venue events get an extra step too (zones, times, price) right after the details. */
 export function wizardStep(type: EventTypeId | null, step: WizardStep): { step: number; total: number } {
-  const spontaneous = type === 'spontaneous';
-  const order: WizardStep[] = spontaneous
-    ? ['type', 'template', 'details', 'preview', 'plan']
-    : ['type', 'details', 'preview', 'plan'];
-  return { step: order.indexOf(step) + 1, total: spontaneous ? 6 : 5 };
+  const order: WizardStep[] =
+    type === 'spontaneous'
+      ? ['type', 'template', 'details', 'preview', 'plan']
+      : type === 'venue'
+        ? ['type', 'details', 'venue', 'preview', 'plan']
+        : ['type', 'details', 'preview', 'plan'];
+  return { step: order.indexOf(step) + 1, total: order.length + 1 };
 }
 
 /** "vineri, 30 octombrie · 21:00" in the app language; no year (the event is days away). */

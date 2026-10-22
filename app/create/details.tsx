@@ -43,6 +43,7 @@ export default function EventDetailsScreen() {
   const cancel = useCancelCreate();
   const [dateError, setDateError] = useState<string | null>(null);
   const spontaneous = draft.type === "spontaneous";
+  const venue = draft.type === "venue";
   const step = wizardStep(draft.type, "details");
   const canContinue =
     draft.name.trim().length > 0 && draft.date.trim().length > 0;
@@ -65,7 +66,7 @@ export default function EventDetailsScreen() {
       setDateError(t('spontaneous.wizard.replyByAfterDate'));
       return;
     }
-    router.push('/create/preview');
+    router.push(venue ? '/create/venue' : '/create/preview');
   };
 
   return (
@@ -101,7 +102,9 @@ export default function EventDetailsScreen() {
           placeholder={
             spontaneous && draft.template !== null
               ? t(`spontaneous.templates.${draft.template}.namePlaceholder`)
-              : t('createWizard.namePlaceholder')
+              : venue
+                ? t('venue.wizard.namePlaceholder')
+                : t('createWizard.namePlaceholder')
           }
         />
         <DateTimeField
@@ -119,15 +122,17 @@ export default function EventDetailsScreen() {
           }}
           minimumDate={todayAtLocalMidnight()}
         />
+        {spontaneous || venue ? (
+          <DateTimeField
+            label={t('spontaneous.wizard.timeLabel')}
+            mode="time"
+            value={parseTimeString(draft.startTime.trim().length > 0 ? draft.startTime : '21:00')}
+            displayValue={draft.startTime.trim().length > 0 ? draft.startTime : t('spontaneous.wizard.timePlaceholder')}
+            onChange={(selected) => updateDraft({ startTime: toTimeString(selected) })}
+          />
+        ) : null}
         {spontaneous ? (
           <>
-            <DateTimeField
-              label={t('spontaneous.wizard.timeLabel')}
-              mode="time"
-              value={parseTimeString(draft.startTime.trim().length > 0 ? draft.startTime : '21:00')}
-              displayValue={draft.startTime.trim().length > 0 ? draft.startTime : t('spontaneous.wizard.timePlaceholder')}
-              onChange={(selected) => updateDraft({ startTime: toTimeString(selected) })}
-            />
             <DateTimeField
               label={t('spontaneous.wizard.replyByLabel')}
               mode="date"
@@ -173,7 +178,9 @@ export default function EventDetailsScreen() {
           placeholder={
             spontaneous && draft.template !== null
               ? t(`spontaneous.templates.${draft.template}.messagePlaceholder`)
-              : t('createWizard.welcomeMessagePlaceholder')
+              : venue
+                ? t('venue.wizard.messagePlaceholder')
+                : t('createWizard.welcomeMessagePlaceholder')
           }
           multiline
           maxLength={WELCOME_MAX}

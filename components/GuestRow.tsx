@@ -42,6 +42,10 @@ export function GuestRow({ guest, showDivider = false }: { guest: Guest; showDiv
         : guest.whatsappSentAt !== null
           ? t('event.inviteSent')
           : t('event.inviteNotSent')
+      : guest.status === 'confirmed' && guest.partySize !== null
+        ? [t('venue.book.people', { count: guest.partySize }), guest.bookingTime, guest.bookingCode]
+            .filter((part): part is string => part !== null && part.length > 0)
+            .join(' · ')
       : guest.status !== 'declined' && guest.plusOne
         ? t('spontaneous.dashboard.withPlusOne')
         : guest.status === 'confirmed' && guest.dietaryPreferences.length > 0

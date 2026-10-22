@@ -30,6 +30,11 @@ function mapGuestRow(row: EventGuestRow): Guest {
     plusOne: row.plus_one ?? false,
     billSentAt: row.bill_sent_at ?? null,
     billConfirmedAt: row.bill_confirmed_at ?? null,
+    partySize: row.party_size ?? null,
+    zoneId: row.zone_id ?? null,
+    bookingTime: row.booking_time ?? null,
+    bookingCode: row.booking_code ?? null,
+    checkedInAt: row.checked_in_at ?? null,
   };
 }
 
@@ -78,6 +83,11 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     startTime: row.start_time ?? null,
     replyBy: row.reply_by ?? null,
     spotLimit: row.spot_limit ?? null,
+    hostName: row.host_name ?? null,
+    priceInfo: row.price_info ?? null,
+    bookingTimes: row.booking_times ?? [],
+    maxPartySize: row.max_party_size ?? 8,
+    publicToken: row.public_token ?? '',
   };
 }
 
@@ -111,6 +121,8 @@ export async function insertEvent(
   draft: EventDraft,
   organizerId: string,
   agencyId: string | null,
+  /** Venue events: the business name guests see. */
+  hostName: string | null = null,
 ): Promise<AppEvent> {
   const client = supabase;
   const { data, error } = await client
@@ -131,11 +143,37 @@ export async function insertEvent(
             spot_limit: parseSpotLimit(draft.spotLimit),
           }
         : {}),
+      ...(draft.type === 'venue'
+        ? {
+            host_name: hostName,
+            start_time: draft.startTime.trim().length > 0 ? draft.startTime.trim() : null,
+            price_info: draft.priceInfo.trim().length > 0 ? draft.priceInfo.trim() : null,
+            booking_times: draft.bookingTimes,
+            max_party_size: parseSpotLimit(draft.maxPartySize) ?? 8,
+          }
+        : {}),
     })
     .select(SELECT_WITH_GUESTS)
     .single();
   if (error) throw error;
-  return mapEventRow(data as EventWithGuestsRow);
+  const event = mapEventRow(data as EventWithGuestsRow);
+
+  if (draft.type === 'venue') {
+    const zones = draft.zones
+      .map((zone, index) => ({
+        event_id: event.id,
+        name: zone.name.trim(),
+        detail: zone.detail.trim(),
+        capacity: parseSpotLimit(zone.capacity),
+        sort_order: index,
+      }))
+      .filter((zone): zone is typeof zone & { capacity: number } => zone.name.length > 0 && zone.capacity !== null);
+    if (zones.length > 0) {
+      const { error: zonesError } = await client.from('venue_zones').insert(zones);
+      if (zonesError) throw zonesError;
+    }
+  }
+  return event;
 }
 
 export async function updateEventRow(
@@ -157,6 +195,9 @@ export async function updateEventRow(
   if (patch.startTime !== undefined) columns.start_time = patch.startTime;
   if (patch.replyBy !== undefined) columns.reply_by = patch.replyBy;
   if (patch.spotLimit !== undefined) columns.spot_limit = patch.spotLimit;
+  if (patch.priceInfo !== undefined) columns.price_info = patch.priceInfo;
+  if (patch.bookingTimes !== undefined) columns.booking_times = patch.bookingTimes;
+  if (patch.maxPartySize !== undefined) columns.max_party_size = patch.maxPartySize;
   if (Object.keys(columns).length === 0) return;
 
   const { error } = await client.from('events').update(columns).eq('id', eventId);

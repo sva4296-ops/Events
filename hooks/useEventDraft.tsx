@@ -12,6 +12,10 @@ const EMPTY_DRAFT: EventDraft = {
   startTime: '',
   replyBy: '',
   spotLimit: '',
+  zones: [],
+  bookingTimes: [],
+  priceInfo: '',
+  maxPartySize: '8',
 };
 
 interface EventDraftContextValue {

@@ -3,11 +3,13 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
+import { showDialog } from '@/components/ActionSheet';
 import { Button } from '@/components/Button';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { TypeTile } from '@/components/TypeTile';
 import { useCancelCreate } from '@/hooks/useCancelCreate';
+import { useAgency } from '@/hooks/useAgency';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { EVENT_TYPES } from '@/utils/eventTypes';
 import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
@@ -19,6 +21,24 @@ export default function PickTypeScreen() {
   const { t } = useTranslation();
   const { draft, updateDraft, resetDraft } = useEventDraft();
   const cancel = useCancelCreate();
+  // Venue events ("Local") need a business account (guard_venue_event_owner).
+  // Everyone sees the tile; picking it without one offers to create it first.
+  const { isAgencyOwner, hydrated: agencyHydrated } = useAgency();
+
+  const next = () => {
+    if (draft.type === 'venue' && agencyHydrated && !isAgencyOwner) {
+      showDialog({
+        title: t('venue.wizard.businessTitle'),
+        message: t('venue.wizard.businessBody'),
+        buttons: [
+          { label: t('common.cancel'), style: 'cancel' },
+          { label: t('venue.wizard.businessCta'), onPress: () => router.push('/agency-signup') },
+        ],
+      });
+      return;
+    }
+    router.push(draft.type === 'spontaneous' ? '/create/template' : '/create/details');
+  };
 
   // This is the wizard's first screen: it unmounts only when the wizard is
   // left (back arrow, Android back, X, or the end of the flow). Start the next
@@ -31,7 +51,7 @@ export default function PickTypeScreen() {
         <Button
           label={t('createWizard.continue')}
           disabled={draft.type === null}
-          onPress={() => router.push(draft.type === 'spontaneous' ? '/create/template' : '/create/details')}
+          onPress={next}
         />
       }
     >

@@ -61,6 +61,20 @@ export const TAB_ICONS = {
     { type: 'path', d: 'M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8' },
     { type: 'path', d: 'M12 17.5v-11' },
   ],
+  // Venue nights: moon (Tonight), armchair (Book), ticket.
+  tonight: [{ type: 'path', d: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z' }],
+  book: [
+    { type: 'path', d: 'M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3' },
+    { type: 'path', d: 'M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z' },
+    { type: 'path', d: 'M5 18v2' },
+    { type: 'path', d: 'M19 18v2' },
+  ],
+  ticket: [
+    { type: 'path', d: 'M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z' },
+    { type: 'path', d: 'M13 5v2' },
+    { type: 'path', d: 'M13 17v2' },
+    { type: 'path', d: 'M13 11v2' },
+  ],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type TabIconId = keyof typeof TAB_ICONS;

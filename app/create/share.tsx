@@ -50,7 +50,8 @@ export default function ShareScreen() {
       | "/"
       | `/guest/${string}`
       | `/add-guest/${string}`
-      | `/send-invites/${string}`,
+      | `/send-invites/${string}`
+      | `/venue-send/${string}`,
   ) => {
     resetDraft();
     router.dismissTo("/");
@@ -76,24 +77,29 @@ export default function ShareScreen() {
             }
             onPress={() =>
               leave(
-                hasGuestsToMessage
-                  ? `/send-invites/${event.id}`
-                  : `/add-guest/${event.id}`,
+                // A venue sends its public booking link to its customers.
+                event.type === "venue"
+                  ? `/venue-send/${event.id}`
+                  : hasGuestsToMessage
+                    ? `/send-invites/${event.id}`
+                    : `/add-guest/${event.id}`,
               )
             }
           />
-          <Button
-            label={t("createWizard.shareAddGuests")}
-            variant="secondary"
-            icon={
-              <Feather
-                name="users"
-                size={20}
-                color={buttonLabelColor("secondary", tokens)}
-              />
-            }
-            onPress={() => leave(`/add-guest/${event.id}`)}
-          />
+          {event.type !== "venue" ? (
+            <Button
+              label={t("createWizard.shareAddGuests")}
+              variant="secondary"
+              icon={
+                <Feather
+                  name="users"
+                  size={20}
+                  color={buttonLabelColor("secondary", tokens)}
+                />
+              }
+              onPress={() => leave(`/add-guest/${event.id}`)}
+            />
+          ) : null}
           <Button
             label={t("createWizard.shareGoToEvent")}
             variant="ghost"

@@ -133,7 +133,7 @@ export function useEvents(): EventsResult {
     // supabase/migrations/20260813000001_agencies.sql's note on why this is
     // just a dashboard-filtering tag, not a new access-control boundary; an
     // individual user (no agency row) passes null, unaffected.
-    mutationFn: (draft: EventDraft) => insertEvent(draft, user?.id ?? '', agency?.id ?? null),
+    mutationFn: (draft: EventDraft) => insertEvent(draft, user?.id ?? '', agency?.id ?? null, agency?.companyName ?? null),
     onSuccess: (event) => {
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) => [event, ...current]);
       void queryClient.invalidateQueries({ queryKey });

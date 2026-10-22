@@ -892,6 +892,13 @@
       "countdownUntil": "până ne vedem",
       "countdownToday": "E azi!",
       "stageDay": "Seara"
+    },
+    "venue": {
+      "label": "Local",
+      "description": "Pentru baruri și restaurante: clienții rezervă",
+      "countdownUntil": "până la seară",
+      "countdownToday": "E diseară!",
+      "stageDay": "Seara"
     }
   },
   "mapPicker": {
@@ -912,7 +919,10 @@
     "live": "Live",
     "album": "Album",
     "plan": "Plan",
-    "bill": "Notă"
+    "bill": "Notă",
+    "tonight": "Seara",
+    "book": "Rezervă",
+    "ticket": "Bilet"
   },
   "coOrganizers": {
     "title": "Co-organizatori",
@@ -1395,6 +1405,151 @@
       "plusOnes_other": "{{count}} +1",
       "spots": "{{taken}}/{{limit}} locuri",
       "withPlusOne": "Vine cu cineva (+1)"
+    }
+  },
+  "venue": {
+    "wizard": {
+      "stepSetup": "Locuri",
+      "setupTitle": "Locuri și rezervări",
+      "setupSubtitle": "Zonele în care se poate rezerva, orele de sosire și intrarea.",
+      "namePlaceholder": "Seară de karaoke",
+      "messagePlaceholder": "Cea mai mare seară de karaoke din Centrul Vechi: 2 scene, 4.000 de melodii și DJ între ele. Rezervă-ți masa din timp! 🎤",
+      "businessTitle": "Ai nevoie de un cont de firmă",
+      "businessBody": "Serile la local le creează barurile și restaurantele. Adaugă datele firmei (nume și CUI), apoi continui de aici.",
+      "businessCta": "Creează cont de firmă"
+    },
+    "setup": {
+      "zonesTitle": "Zone",
+      "zonesSub": "Unde pot sta clienții și câte persoane încap în fiecare zonă.",
+      "zoneLabel": "Zona {{number}}",
+      "zoneName": "Nume",
+      "zoneNamePlaceholder": "Lângă scenă",
+      "zoneDetail": "Detalii",
+      "zoneDetailPlaceholder": "mese de 4-6",
+      "zoneCapacity": "Persoane",
+      "addZone": "+ Adaugă o zonă",
+      "removeZone": "Șterge zona",
+      "defaultZone": "Sală",
+      "totalCapacity_one": "Capacitate totală: {{count}} persoană",
+      "totalCapacity_few": "Capacitate totală: {{count}} persoane",
+      "totalCapacity_other": "Capacitate totală: {{count}} de persoane",
+      "timesTitle": "Ore de sosire",
+      "timesSub": "Clientul alege una la rezervare. Fără nicio oră aleasă, poate veni oricând.",
+      "addTime": "Adaugă o oră",
+      "pickTime": "Alege ora",
+      "priceLabel": "Intrare",
+      "pricePlaceholder": "Intrare liberă",
+      "priceHint": "Ex.: „Bilet 30 lei la intrare, include o băutură”. Plata se face la local.",
+      "maxPartyLabel": "Maxim persoane pe o rezervare",
+      "maxPartyHint": "Grupurile mai mari sună la local.",
+      "tooSmall": "Zona „{{zone}}” are deja mai multe persoane rezervate decât noua capacitate.",
+      "nameRequired": "Dă un nume zonei (textul gri e doar un exemplu).",
+      "capacityRequired": "Câte persoane?"
+    },
+    "book": {
+      "cta": "Rezervă-ți locul",
+      "booking": "Se rezervă...",
+      "saveChange": "Salvează modificarea",
+      "freeEntry": "Intrare liberă",
+      "howMany": "Câte persoane?",
+      "people_one": "{{count}} persoană",
+      "people_few": "{{count}} persoane",
+      "people_other": "{{count}} de persoane",
+      "where": "Unde vreți să stați?",
+      "full": "plin",
+      "free_one": "{{count}} loc liber",
+      "free_few": "{{count}} locuri libere",
+      "free_other": "{{count}} de locuri libere",
+      "tooMany_one": "Mai e doar {{count}} loc în zona asta.",
+      "tooMany_few": "Mai sunt doar {{count}} locuri în zona asta.",
+      "tooMany_other": "Mai sunt doar {{count}} de locuri în zona asta.",
+      "arrival": "Ora de sosire",
+      "optIn": "Vreau să primesc invitații de la {{venue}} (pot renunța oricând)",
+      "thisVenue": "acest local",
+      "follow": "Urmărește {{venue}}",
+      "followNote": "Primești invitații la serile următoare. Poți renunța oricând.",
+      "lineup": "Programul serii",
+      "openNight": "Deschide pagina serii",
+      "change": "Modifică",
+      "cancel": "Anulează rezervarea",
+      "cancelTitle": "Anulezi rezervarea?",
+      "cancelBody": "Locurile tale se eliberează pentru alți clienți.",
+      "zoneFullTitle": "Zona s-a umplut",
+      "zoneFullBody": "Între timp s-au ocupat locurile. Alege altă zonă sau mai puține persoane.",
+      "organizerTitle": "Ești organizatorul: nu poți rezerva la propria seară.",
+      "ownerPreview": "Așa văd clienții pagina de rezervare.",
+      "peopleShort": "pers.",
+      "entry": "Intrare",
+      "payAtVenue": "Nu plătești nimic acum. Intrarea se achită la local."
+    },
+    "ticket": {
+      "title": "Biletul meu",
+      "showAtDoor": "Arată codul la intrare",
+      "checkedIn": "Ai intrat ✓",
+      "people": "Persoane",
+      "zone": "Zona",
+      "arrival": "Sosire",
+      "entry": "Intrare"
+    },
+    "home": {
+      "bookingsTitle": "Rezervări",
+      "occupancy": "{{booked}} din {{capacity}} locuri",
+      "bookingsCount_one": "{{count}} rezervare",
+      "bookingsCount_few": "{{count}} rezervări",
+      "bookingsCount_other": "{{count}} de rezervări",
+      "seeBookings": "Vezi rezervările",
+      "send": "Trimite",
+      "yourBooking": "Rezervarea ta",
+      "notBooked": "Nu ai o rezervare",
+      "seeTicket": "Vezi biletul"
+    },
+    "bookings": {
+      "title": "Rezervări",
+      "editSetup": "Editează zonele și orele",
+      "statBookings": "rezervări",
+      "statPeople": "persoane",
+      "statInside": "au intrat",
+      "byZone": "Ocupare pe zone",
+      "send": "Trimite clienților",
+      "list": "Toate rezervările",
+      "search": "Caută după nume sau cod",
+      "empty": "Încă nicio rezervare. Trimite linkul clienților.",
+      "noMatch": "Nimic găsit.",
+      "checkIn": "Intrare",
+      "inside": "A intrat"
+    },
+    "send": {
+      "title": "Trimite clienților",
+      "subtitle": "Linkul de rezervare, pe status sau direct pe WhatsApp.",
+      "linkTitle": "Linkul serii",
+      "linkSub": "Pune-l pe statusul de WhatsApp, pe Instagram sau în grupul localului. Oricine îl deschide poate rezerva.",
+      "share": "Distribuie linkul",
+      "customersTitle": "Clienți care vor invitații",
+      "customersCount_one": "{{count}} client a acceptat să primească mesaje.",
+      "customersCount_few": "{{count}} clienți au acceptat să primească mesaje.",
+      "customersCount_other": "{{count}} de clienți au acceptat să primească mesaje.",
+      "noCustomers": "Lista crește singură: clienții care rezervă pot bifa că vor invitații, iar alții urmăresc localul din pagina serii.",
+      "sourceBooking": "a bifat la rezervare",
+      "sourceFollow": "urmărește localul",
+      "sendTo": "Trimite pe WhatsApp lui {{name}}",
+      "sent": "Trimis",
+      "rule": "Mesaje directe doar clienților care au acceptat. Statusul, story-ul și grupul localului se pot folosi oricând."
+    },
+    "tonight": {
+      "invites": "{{venue}} te invită",
+      "tonight": "diseară",
+      "alreadyBooked": "Au rezervat deja",
+      "beFirst": "Fii primul care rezervă.",
+      "follow": "Urmărește",
+      "following": "Urmărești",
+      "comingUp": "Urmează la {{venue}}",
+      "bookShort": "Rezervă"
+    },
+    "tabs": {
+      "yourBooking": "Rezervarea ta",
+      "noTicket": "Încă nu ai o rezervare",
+      "noTicketSub": "Rezervi în câteva secunde și biletul apare aici.",
+      "editProgramme": "Editează programul serii"
     }
   }
 }

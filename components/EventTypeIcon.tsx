@@ -11,7 +11,7 @@ export type Shape =
  * Line icons for the event types, replacing the emoji. Geometry is from
  * Lucide (ISC license, https://lucide.dev) — the same set povestea-web uses
  * through lucide-react — so app and web show identical icons:
- * gem, baby, cake, hand-heart, building, flower, sparkles, zap.
+ * gem, baby, cake, hand-heart, building, flower, sparkles, zap, store.
  */
 const ICONS: Record<EventTypeId, readonly Shape[]> = {
   wedding: [
@@ -75,6 +75,13 @@ const ICONS: Record<EventTypeId, readonly Shape[]> = {
   ],
   spontaneous: [
     { type: 'path', d: 'M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z' },
+  ],
+  venue: [
+    { type: 'path', d: 'm2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7' },
+    { type: 'path', d: 'M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8' },
+    { type: 'path', d: 'M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4' },
+    { type: 'path', d: 'M2 7h20' },
+    { type: 'path', d: 'M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7' },
   ],
 };
 

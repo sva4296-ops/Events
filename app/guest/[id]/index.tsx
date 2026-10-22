@@ -17,6 +17,7 @@ import { MomentCard, MomentCardSkeleton } from '@/components/guest/MomentCard';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { useTourTarget } from '@/components/tour/Tour';
 import { SpontaneousHome } from '@/components/spontaneous/SpontaneousHome';
+import { VenueTonight } from '@/components/venue/VenueTonight';
 import { confirmDelete } from '@/utils/confirm';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -200,6 +201,7 @@ export default function AcasaScreen() {
   const { event } = useGuestEvent();
   const { isOwner } = useEvents();
   if (event?.type === 'spontaneous') return <SpontaneousHome event={event} owner={isOwner(event)} />;
+  if (event?.type === 'venue') return <VenueTonight event={event} owner={isOwner(event)} />;
   return <StoryAcasa />;
 }
 

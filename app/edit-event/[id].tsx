@@ -16,8 +16,9 @@ import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import { confirmDelete } from '@/utils/confirm';
 import { formatEventDate } from '@/utils/format';
-import { parseIsoDate, toIsoDate } from '@/utils/dateInput';
+import { parseIsoDate, parseTimeString, toIsoDate, toTimeString } from '@/utils/dateInput';
 import { reportSupabaseError } from '@/utils/reportError';
+import { parseSpotLimit } from '@/utils/spontaneous';
 import { themeRadius } from '@/utils/themeTokens';
 
 export default function EditEventScreen() {
@@ -32,6 +33,10 @@ export default function EditEventScreen() {
   const [location, setLocation] = useState(event?.location ?? '');
   const [welcomeMessage, setWelcomeMessage] = useState(event?.welcomeMessage ?? '');
   const [deleting, setDeleting] = useState(false);
+  // Spontaneous events only.
+  const [startTime, setStartTime] = useState(event?.startTime ?? '');
+  const [replyBy, setReplyBy] = useState(event?.replyBy ?? '');
+  const [spotLimit, setSpotLimit] = useState(event?.spotLimit != null ? String(event.spotLimit) : '');
 
   // The event leaves the cache the moment the delete succeeds, a frame before
   // navigation lands; render nothing then instead of "not available".
@@ -51,7 +56,19 @@ export default function EditEventScreen() {
 
   const save = async () => {
     try {
-      await updateEvent(event.id, { name, date, location, welcomeMessage });
+      await updateEvent(event.id, {
+        name,
+        date,
+        location,
+        welcomeMessage,
+        ...(event.type === 'spontaneous'
+          ? {
+              startTime: startTime.trim().length > 0 ? startTime : null,
+              replyBy: replyBy.trim().length > 0 ? replyBy : null,
+              spotLimit: parseSpotLimit(spotLimit),
+            }
+          : {}),
+      });
       router.back();
     } catch (error) {
       reportSupabaseError(error);
@@ -117,6 +134,32 @@ export default function EditEventScreen() {
           displayValue={date.trim().length === 0 ? t('editEventForm.selectDate') : formatEventDate(date)}
           onChange={(selected) => setDate(toIsoDate(selected))}
         />
+        {event.type === 'spontaneous' ? (
+          <>
+            <DateTimeField
+              label={t('spontaneous.wizard.timeLabel')}
+              mode="time"
+              value={parseTimeString(startTime.trim().length > 0 ? startTime : '21:00')}
+              displayValue={startTime.trim().length > 0 ? startTime : t('spontaneous.wizard.timePlaceholder')}
+              onChange={(selected) => setStartTime(toTimeString(selected))}
+            />
+            <DateTimeField
+              label={t('spontaneous.wizard.replyByLabel')}
+              mode="date"
+              value={parseIsoDate(replyBy.trim().length > 0 ? replyBy : date)}
+              displayValue={replyBy.trim().length === 0 ? t('spontaneous.wizard.replyByNone') : formatEventDate(replyBy)}
+              onChange={(selected) => setReplyBy(toIsoDate(selected))}
+            />
+            <Field
+              label={t('spontaneous.wizard.spotLimitLabel')}
+              value={spotLimit}
+              onChangeText={(value) => setSpotLimit(value.replace(/[^0-9]/g, ''))}
+              placeholder={t('spontaneous.wizard.spotLimitPlaceholder')}
+              keyboardType="numeric"
+              hint={t('spontaneous.wizard.spotLimitHint')}
+            />
+          </>
+        ) : null}
         <LocationField
           label={t('editEventForm.locationLabel')}
           value={location}

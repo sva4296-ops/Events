@@ -5,7 +5,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { useTheme } from '@/hooks/useTheme';
-import type { EventDraft } from '@/types/event';
+import type { EventDraft, SpontaneousTemplate } from '@/types/event';
 import { EVENT_COVERS } from '@/utils/eventCovers';
 import { getEventType } from '@/utils/eventTypes';
 import { formatEventDate } from '@/utils/format';
@@ -23,18 +23,29 @@ const RADIUS = 28;
  * Accepts both a wizard draft and a saved event — the shapes overlap.
  * `coverPhoto` swaps the gradient band for the type's cover photo.
  */
-export function InviteCard({ event, coverPhoto = false }: { event: EventDraft; coverPhoto?: boolean }) {
+export type InviteCardEvent = Pick<EventDraft, 'type' | 'name' | 'date' | 'location' | 'welcomeMessage'> & {
+  /** Spontaneous events: the template names the chip, the time follows the date. */
+  template?: SpontaneousTemplate | null;
+  startTime?: string | null;
+};
+
+export function InviteCard({ event, coverPhoto = false }: { event: InviteCardEvent; coverPhoto?: boolean }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const type = getEventType(event.type);
   const name = event.name.trim();
   const location = event.location.trim();
   const message = event.welcomeMessage.trim();
+  const time = event.startTime?.trim() ?? '';
+  const chipLabel =
+    type.id === 'spontaneous' && event.template != null
+      ? t(`spontaneous.templates.${event.template}.name`)
+      : t(`eventTypes.${type.id}.label`);
 
   const coverContent = (
     <>
       <View style={styles.chip}>
-        <Text style={styles.chipText}>{t(`eventTypes.${type.id}.label`)}</Text>
+        <Text style={styles.chipText}>{chipLabel}</Text>
       </View>
       <View style={styles.emojiCircle}>
         <EventTypeIcon type={type.id} size={36} color={CHIP_TEXT} strokeWidth={1.6} />
@@ -79,7 +90,9 @@ export function InviteCard({ event, coverPhoto = false }: { event: EventDraft; c
 
         <View style={styles.metaRow}>
           <Feather name="calendar" size={16} color={tokens.textSecondary} />
-          <Text style={[styles.meta, { color: tokens.textSecondary }]}>{formatEventDate(event.date)}</Text>
+          <Text style={[styles.meta, { color: tokens.textSecondary }]}>{formatEventDate(event.date)}
+            {time.length > 0 ? ` · ${time}` : ''}
+          </Text>
         </View>
         {location.length > 0 ? (
           <View style={styles.metaRow}>

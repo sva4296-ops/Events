@@ -9,6 +9,7 @@ import {
   DetaliiHubCardSkeleton,
 } from "@/components/guest/DetaliiHubCard";
 import { GuestScreen } from "@/components/guest/GuestScreen";
+import { SpontaneousPlan } from "@/components/spontaneous/SpontaneousPlan";
 import { useEventContent } from "@/hooks/useEventContent";
 import { useEvents } from "@/hooks/useEvents";
 import { useEventTasks } from "@/hooks/useEventTasks";
@@ -54,6 +55,13 @@ function DetaliiSkeleton() {
 const RESTAURANT_CARDS = ["location", "menu", "seating"];
 
 export default function DetaliiScreen() {
+  const { event } = useGuestEvent();
+  const { isOwner } = useEvents();
+  if (event?.type === 'spontaneous') return <SpontaneousPlan event={event} owner={isOwner(event)} />;
+  return <DetaliiHub />;
+}
+
+function DetaliiHub() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { content } = useEventContent(id);

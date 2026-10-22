@@ -1,6 +1,6 @@
 import { Linking, Platform, Share } from 'react-native';
 
-import type { AppEvent, EventTypeId } from '@/types/event';
+import type { AppEvent, EventTypeId, SpontaneousTemplate } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
 
 /**
@@ -17,7 +17,8 @@ export const INVITE_SITE_URL = 'https://events-web-henna.vercel.app';
 export interface GuestInviteMessageInput {
   /** Empty string when the organizer didn't type a name. */
   guestName: string;
-  event: Pick<AppEvent, 'type' | 'name' | 'date' | 'location'> & { inviteIntro?: string };
+  event: Pick<AppEvent, 'type' | 'name' | 'date' | 'location'> & { inviteIntro?: string } &
+    Partial<Pick<AppEvent, 'template' | 'startTime' | 'replyBy'>>;
   inviteToken: string;
 }
 
@@ -34,6 +35,14 @@ const TYPE_COPY: Record<EventTypeId, { emoji: string; line: string }> = {
   corporate: { emoji: '🏢', line: 'Ne-ar bucura să fii prezent.' },
   memorial: { emoji: '', line: 'Prezența ta ne-ar fi de mare sprijin.' },
   other: { emoji: '✨', line: 'Ne-ar bucura să fii alături de noi.' },
+  spontaneous: { emoji: '⚡', line: 'Hai și tu!' },
+};
+
+/** Spontaneous events: casual tone, per template. */
+const TEMPLATE_COPY: Record<SpontaneousTemplate, { emoji: string; line: string }> = {
+  karaoke: { emoji: '🎤', line: 'Microfoanele sunt pregătite, scuzele nu se acceptă.' },
+  party: { emoji: '🎉', line: 'Hai să ne vedem, o să fie fain!' },
+  tasting: { emoji: '🍷', line: 'Locurile sunt limitate, spune-mi repede dacă vii.' },
 };
 
 /** The message is always Romanian, so the date is too, regardless of the
@@ -57,6 +66,7 @@ function formatInviteDate(value: string): string | null {
  * https://…/i/<token>
  */
 export function buildGuestInviteMessage({ guestName, event, inviteToken }: GuestInviteMessageInput): string {
+  if (event.type === 'spontaneous') return buildSpontaneousMessage({ guestName, event, inviteToken });
   const copy = TYPE_COPY[event.type];
   const name = guestName.trim();
   const memorial = event.type === 'memorial';
@@ -84,6 +94,53 @@ export function buildGuestInviteMessage({ guestName, event, inviteToken }: Guest
     ...(details.length > 0 ? ['', ...details] : []),
     '',
     'Invitația ta personală, unde poți confirma dacă ajungi:',
+    buildGuestInviteLink(inviteToken),
+  ].join('\n');
+}
+
+/** "vineri, 30 octombrie" — no year for an event a week or two away. */
+function formatShortInviteDate(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return trimmed;
+  return parsed.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+/**
+ * Bună Ana! 🎤
+ * Te chem la „Karaoke cu Mihai”. Microfoanele sunt pregătite, scuzele nu se acceptă.
+ *
+ * 📅 vineri, 30 octombrie · 21:00
+ * 📍 Sing Sing Bar, Centrul Vechi
+ * ⏳ Răspunde până marți, 27 octombrie
+ *
+ * Spune-mi dacă vii, dintr-un tap:
+ * https://…/i/<token>
+ */
+function buildSpontaneousMessage({ guestName, event, inviteToken }: GuestInviteMessageInput): string {
+  const copy = event.template != null ? TEMPLATE_COPY[event.template] : TYPE_COPY.spontaneous;
+  const name = guestName.trim();
+  const date = formatShortInviteDate(event.date);
+  const time = event.startTime?.trim() ?? '';
+  const when = date !== null ? `📅 ${date}${time.length > 0 ? ` · ${time}` : ''}` : null;
+  const location = event.location.trim();
+  const replyBy = event.replyBy != null ? formatShortInviteDate(event.replyBy) : null;
+  const details = [
+    when,
+    location.length > 0 ? `📍 ${location}` : null,
+    replyBy !== null ? `⏳ Răspunde până ${replyBy}` : null,
+  ].filter((line): line is string => line !== null);
+
+  return [
+    `${name.length > 0 ? `Bună ${name}!` : 'Bună!'} ${copy.emoji}`,
+    // The organizer's own line (send-invites screen) replaces the default one.
+    (event.inviteIntro?.trim() ?? '').length > 0
+      ? (event.inviteIntro?.trim() ?? '')
+      : `Te chem la „${event.name.trim()}”. ${copy.line}`,
+    ...(details.length > 0 ? ['', ...details] : []),
+    '',
+    'Spune-mi dacă vii, dintr-un tap:',
     buildGuestInviteLink(inviteToken),
   ].join('\n');
 }

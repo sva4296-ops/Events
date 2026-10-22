@@ -13,6 +13,8 @@ function tones(tokens: ThemeTokens): Record<RsvpStatus, { text: string; backgrou
     // Warm Story 2.0 gives declined its own rose tone (tokens.statusDeclined),
     // still separate from tokens.destructive, which stays reserved for delete.
     declined: { text: tokens.statusDeclined, background: tokens.statusDeclinedSoft },
+    // Spontaneous events only.
+    maybe: { text: tokens.accentText, background: tokens.accentTint },
   };
 }
 

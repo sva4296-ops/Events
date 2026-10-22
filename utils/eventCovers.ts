@@ -16,6 +16,8 @@ export const EVENT_COVERS: Record<EventTypeId, ImageSourcePropType> = {
   corporate: require('../assets/event-covers/corporate.jpg'),
   memorial: require('../assets/event-covers/memorial.jpg'),
   other: require('../assets/event-covers/other.jpg'),
+  // No art of its own yet: the birthday cover reads as "party".
+  spontaneous: require('../assets/event-covers/birthday.jpg'),
 };
 
 /**
@@ -35,4 +37,5 @@ export const EVENT_TYPE_COLORS: Record<
   corporate: { fill: '#5B6BB8', onFill: '#FFFFFF', gradient: ['#7CC4FF', '#5B6BB8', '#3A4180'], tint: 'rgba(91,107,184,0.3)' },
   memorial: { fill: '#8F88A6', onFill: '#FFFFFF', gradient: ['#D6D2DC', '#8F88A6', '#4A4560'], tint: 'rgba(143,136,166,0.3)' },
   other: { fill: '#B39DFF', onFill: '#1E1A30', gradient: ['#FF8A65', '#B39DFF', '#7CC4FF'], tint: 'rgba(179,157,255,0.28)' },
+  spontaneous: { fill: '#E8457A', onFill: '#FFFFFF', gradient: ['#FFB547', '#E8457A', '#7A2E8E'], tint: 'rgba(232,69,122,0.25)' },
 };

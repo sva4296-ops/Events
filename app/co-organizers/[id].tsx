@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, Vie
 
 import { Button, buttonLabelColor } from '@/components/Button';
 import { Field } from '@/components/Field';
+import { GuestPickModal } from '@/components/GuestPickModal';
 import { Header } from '@/components/Header';
 import { ListGroup, ListRow } from '@/components/ListGroup';
 import { PhoneField } from '@/components/PhoneField';
@@ -13,9 +14,9 @@ import { Screen } from '@/components/Screen';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
-import { CO_ORGANIZER_RELATIONS, type CoOrganizer, type CoOrganizerRelation } from '@/types/event';
+import type { CoOrganizer, Guest } from '@/types/event';
 import { confirmDelete } from '@/utils/confirm';
-import { DEFAULT_COUNTRY_CODE, toStoredPhone } from '@/utils/countryCodes';
+import { DEFAULT_COUNTRY_CODE, splitStoredPhone, toStoredPhone } from '@/utils/countryCodes';
 import { reportSupabaseError } from '@/utils/reportError';
 import { typography } from '@/utils/themeTokens';
 import { buildCoOrganizerMessage, sendPhoneMessage } from '@/utils/whatsappInvite';
@@ -38,7 +39,11 @@ export default function CoOrganizersScreen() {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [relation, setRelation] = useState<CoOrganizerRelation | 'restaurant' | null>(null);
+  const [relation, setRelation] = useState<'co_organizer' | 'restaurant' | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // True while the form holds a guest picked from the list: they already got the
+  // invitation, so we just add them, no WhatsApp/SMS. Editing the phone clears it.
+  const [fromGuest, setFromGuest] = useState(false);
 
   if (event === undefined || !isPrimaryOwner(event)) {
     return (
@@ -59,7 +64,8 @@ export default function CoOrganizersScreen() {
           : t('home.coOrganizer')
     }`;
 
-  const submit = async (channel: 'whatsapp' | 'sms') => {
+  /** `channel` null = just add the row (picked guest), no message. */
+  const submit = async (channel: 'whatsapp' | 'sms' | null) => {
     setError(null);
     if (relation === null) return;
 
@@ -83,10 +89,13 @@ export default function CoOrganizersScreen() {
     try {
       await addCoOrganizer(event.id, phone, name.trim(), relation);
       // The row is saved; opening WhatsApp/SMS is best-effort.
-      await sendPhoneMessage(phone, buildCoOrganizerMessage(name, event.name, relation === 'restaurant'), channel);
+      if (channel !== null) {
+        await sendPhoneMessage(phone, buildCoOrganizerMessage(name, event.name, relation === 'restaurant'), channel);
+      }
       setName('');
       setLocalNumber('');
       setRelation(null);
+      setFromGuest(false);
     } catch (err) {
       reportSupabaseError(err);
     } finally {
@@ -108,6 +117,21 @@ export default function CoOrganizersScreen() {
       removeCoOrganizer(event.id, member.id).catch((err: unknown) => reportSupabaseError(err)),
     );
 
+  // Invited guests with a phone who aren't co-organizers yet: picking one fills name + phone.
+  const pickableGuests = event.guests.filter(
+    (guest) => guest.phone !== null && !event.coOrganizers.some((member) => member.phone === guest.phone),
+  );
+  const pickGuest = (guest: Guest) => {
+    if (guest.phone === null) return;
+    const split = splitStoredPhone(guest.phone);
+    setDialCode(split.dialCode);
+    setLocalNumber(split.localNumber);
+    // mapGuestRow falls back to the phone as the name: don't copy that into the name field.
+    setName(guest.name === guest.phone ? '' : guest.name);
+    setError(null);
+    setFromGuest(true);
+  };
+
   const disabled = localNumber.trim().length === 0 || relation === null || busy;
   const hasPending = event.coOrganizers.some((member) => member.userId === null);
 
@@ -118,6 +142,14 @@ export default function CoOrganizersScreen() {
         contentStyle={styles.content}
         footer={
           <View style={styles.footer}>
+            {fromGuest ? (
+              <Button
+                label={busy ? t('coOrganizers.adding') : t('coOrganizers.addOnly')}
+                disabled={disabled}
+                onPress={() => void submit(null)}
+              />
+            ) : (
+              <>
             <Button
               label={busy ? t('coOrganizers.adding') : t('coOrganizers.addWhatsApp')}
               variant="whatsapp"
@@ -131,6 +163,8 @@ export default function CoOrganizersScreen() {
               disabled={disabled}
               onPress={() => void submit('sms')}
             />
+              </>
+            )}
           </View>
         }
       >
@@ -175,7 +209,7 @@ export default function CoOrganizersScreen() {
             {t('coOrganizers.relationLabel')}
           </Text>
           <View style={styles.relationRow}>
-            {[...CO_ORGANIZER_RELATIONS, 'restaurant' as const].map((value) => {
+            {(['co_organizer', 'restaurant'] as const).map((value) => {
               const selected = relation === value;
               return (
                 <TouchableOpacity
@@ -185,21 +219,47 @@ export default function CoOrganizersScreen() {
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
                   style={[
-                    styles.relationChip,
+                    styles.roleCard,
                     {
                       backgroundColor: selected ? tokens.accentTint : tokens.surface,
                       borderColor: selected ? tokens.accentText : tokens.border,
                     },
                   ]}
                 >
-                  <Text style={[styles.relationText, { color: selected ? tokens.accentText : tokens.textPrimary }]}>
-                    {t(`coOrganizers.relation.${value}`)}
-                  </Text>
+                  <View style={[styles.roleIcon, { backgroundColor: selected ? tokens.surface : tokens.surface2 }]}>
+                    <Feather
+                      name={value === 'restaurant' ? 'coffee' : 'users'}
+                      size={18}
+                      color={selected ? tokens.accentText : tokens.textSecondary}
+                    />
+                  </View>
+                  <View style={styles.roleText}>
+                    <Text style={[styles.relationText, { color: selected ? tokens.accentText : tokens.textPrimary }]}>
+                      {t(`coOrganizers.relation.${value}`)}
+                    </Text>
+                    <Text style={[styles.roleInfo, { color: tokens.textSecondary }]}>
+                      {t(`coOrganizers.roleInfo.${value}`)}
+                    </Text>
+                  </View>
+                  <Feather
+                    name={selected ? 'check-circle' : 'circle'}
+                    size={20}
+                    color={selected ? tokens.accentText : tokens.textMuted}
+                  />
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
+
+        {pickableGuests.length > 0 ? (
+          <Button
+            label={t('coOrganizers.pickGuest')}
+            variant="tonal"
+            icon={<Feather name="users" size={20} color={buttonLabelColor('tonal', tokens)} />}
+            onPress={() => setPickerOpen(true)}
+          />
+        ) : null}
 
         <Field
           label={t('coOrganizers.nameLabel')}
@@ -211,16 +271,26 @@ export default function CoOrganizersScreen() {
         <PhoneField
           label={t('phoneAuth.phoneLabel')}
           dialCode={dialCode}
-          onChangeDialCode={setDialCode}
+          onChangeDialCode={(value) => {
+            setDialCode(value);
+            setFromGuest(false);
+          }}
           localNumber={localNumber}
           onChangeLocalNumber={(value) => {
             setLocalNumber(value);
             setError(null);
+            setFromGuest(false);
           }}
           placeholder={t('phoneAuth.phonePlaceholder')}
           error={error}
         />
       </Screen>
+      <GuestPickModal
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        guests={pickableGuests}
+        onPick={pickGuest}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -254,17 +324,30 @@ const styles = StyleSheet.create({
     ...typography.label,
   },
   relationRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
-  relationChip: {
-    minHeight: 40,
-    paddingHorizontal: 16,
-    borderRadius: 999,
+  roleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 18,
     borderWidth: 1,
+  },
+  roleIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+  },
+  roleText: {
+    flex: 1,
+    gap: 2,
+  },
+  roleInfo: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   relationText: {
     fontSize: 14,

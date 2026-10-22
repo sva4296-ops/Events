@@ -11,9 +11,10 @@ export type EventTypeRow =
   | 'cause'
   | 'corporate'
   | 'memorial'
-  | 'other';
+  | 'other'
+  | 'spontaneous';
 
-export type RsvpStatusRow = 'pending' | 'confirmed' | 'declined';
+export type RsvpStatusRow = 'pending' | 'confirmed' | 'declined' | 'maybe';
 
 export type ReactionTypeRow = 'love' | 'celebrate';
 
@@ -37,6 +38,11 @@ export interface EventRow {
   /** Flipped to 'ready' by the advance_album_status() pg_cron job ~72h after
    * event_date — see 20260812000003_album_status_cron.sql. */
   album_status: 'not_started' | 'generating' | 'ready';
+  /** Spontaneous events — 20261022000002_spontaneous_events.sql. */
+  template: 'karaoke' | 'party' | 'tasting' | null;
+  start_time: string | null;
+  reply_by: string | null;
+  spot_limit: number | null;
 }
 
 export interface EventGuestRow {
@@ -62,6 +68,9 @@ export interface EventGuestRow {
   /** Per-guest secret for the web RSVP page (povestea-web, /i/[token]) — see
    * 20260929000001_guest_invite_tokens.sql. */
   invite_token: string;
+  plus_one: boolean;
+  bill_sent_at: string | null;
+  bill_confirmed_at: string | null;
 }
 
 /** Row shape returned by the get_invite_preview(uuid) RPC — see

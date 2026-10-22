@@ -22,8 +22,9 @@ import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/utils/theme";
 import { EVENT_TYPE_COLORS } from "@/utils/eventCovers";
 
-import { parseIsoDate, toIsoDate } from "@/utils/dateInput";
+import { parseIsoDate, parseTimeString, toIsoDate, toTimeString } from "@/utils/dateInput";
 import { formatEventDate } from "@/utils/format";
+import { wizardStep } from "@/utils/spontaneous";
 
 /** Soft cap for the invitation quote — keeps it readable on the invitation card. */
 const WELCOME_MAX = 280;
@@ -41,6 +42,8 @@ export default function EventDetailsScreen() {
   const { draft, updateDraft } = useEventDraft();
   const cancel = useCancelCreate();
   const [dateError, setDateError] = useState<string | null>(null);
+  const spontaneous = draft.type === "spontaneous";
+  const step = wizardStep(draft.type, "details");
   const canContinue =
     draft.name.trim().length > 0 && draft.date.trim().length > 0;
 
@@ -58,7 +61,11 @@ export default function EventDetailsScreen() {
       setDateError(t("createWizard.pastDateError"));
       return;
     }
-    router.push("/create/preview");
+    if (spontaneous && draft.replyBy.trim().length > 0 && draft.replyBy > draft.date) {
+      setDateError(t('spontaneous.wizard.replyByAfterDate'));
+      return;
+    }
+    router.push('/create/preview');
   };
 
   return (
@@ -81,13 +88,9 @@ export default function EventDetailsScreen() {
           showBack
           onClose={cancel}
           flowTitle={t("createWizard.flowTitle")}
-          stepLabel={t("createWizard.stepLabel", {
-            step: 2,
-            total: 5,
-            name: t("createWizard.stepDetails"),
-          })}
-          step={2}
-          totalSteps={5}
+          stepLabel={t("createWizard.stepLabel", { ...step, name: t("createWizard.stepDetails") })}
+          step={step.step}
+          totalSteps={step.total}
           progressColors={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].gradient : undefined}
         />
 
@@ -95,7 +98,11 @@ export default function EventDetailsScreen() {
           label={t("editEventForm.nameLabel")}
           value={draft.name}
           onChangeText={(name) => updateDraft({ name })}
-          placeholder={t("createWizard.namePlaceholder")}
+          placeholder={
+            spontaneous && draft.template !== null
+              ? t(`spontaneous.templates.${draft.template}.namePlaceholder`)
+              : t('createWizard.namePlaceholder')
+          }
         />
         <DateTimeField
           label={t("editEventForm.dateLabel")}
@@ -112,6 +119,31 @@ export default function EventDetailsScreen() {
           }}
           minimumDate={todayAtLocalMidnight()}
         />
+        {spontaneous ? (
+          <>
+            <DateTimeField
+              label={t('spontaneous.wizard.timeLabel')}
+              mode="time"
+              value={parseTimeString(draft.startTime.trim().length > 0 ? draft.startTime : '21:00')}
+              displayValue={draft.startTime.trim().length > 0 ? draft.startTime : t('spontaneous.wizard.timePlaceholder')}
+              onChange={(selected) => updateDraft({ startTime: toTimeString(selected) })}
+            />
+            <DateTimeField
+              label={t('spontaneous.wizard.replyByLabel')}
+              mode="date"
+              value={parseIsoDate(draft.replyBy.trim().length > 0 ? draft.replyBy : draft.date)}
+              displayValue={
+                draft.replyBy.trim().length === 0 ? t('spontaneous.wizard.replyByNone') : formatEventDate(draft.replyBy)
+              }
+              onChange={(selected) => {
+                updateDraft({ replyBy: toIsoDate(selected) });
+                setDateError(null);
+              }}
+              minimumDate={todayAtLocalMidnight()}
+              hint={t('spontaneous.wizard.replyByHint')}
+            />
+          </>
+        ) : null}
         {dateError !== null ? (
           <Text style={[styles.error, { color: tokens.destructive }]}>
             {dateError}
@@ -124,11 +156,25 @@ export default function EventDetailsScreen() {
           placeholder={t("createWizard.locationPlaceholder")}
           onPick={onPickLocation}
         />
+        {spontaneous ? (
+          <Field
+            label={t('spontaneous.wizard.spotLimitLabel')}
+            value={draft.spotLimit}
+            onChangeText={(spotLimit) => updateDraft({ spotLimit: spotLimit.replace(/[^0-9]/g, '') })}
+            placeholder={t('spontaneous.wizard.spotLimitPlaceholder')}
+            keyboardType="numeric"
+            hint={t('spontaneous.wizard.spotLimitHint')}
+          />
+        ) : null}
         <Field
           label={t("editEventForm.welcomeMessageLabel")}
           value={draft.welcomeMessage}
           onChangeText={(welcomeMessage) => updateDraft({ welcomeMessage })}
-          placeholder={t("createWizard.welcomeMessagePlaceholder")}
+          placeholder={
+            spontaneous && draft.template !== null
+              ? t(`spontaneous.templates.${draft.template}.messagePlaceholder`)
+              : t('createWizard.welcomeMessagePlaceholder')
+          }
           multiline
           maxLength={WELCOME_MAX}
           action={

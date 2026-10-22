@@ -25,7 +25,7 @@ interface Sheet {
 }
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const STATUS_ORDER: Record<RsvpStatus, number> = { confirmed: 0, pending: 1, declined: 2 };
+const STATUS_ORDER: Record<RsvpStatus, number> = { confirmed: 0, maybe: 1, pending: 2, declined: 3 };
 
 const byName = (a: string, b: string) => a.localeCompare(b, 'ro', { numeric: true, sensitivity: 'base' });
 
@@ -60,6 +60,7 @@ function guestSheets(event: AppEvent, details: DetailsContent, t: TFunction): Sh
     confirmed: t('export.statusConfirmed'),
     pending: t('export.statusPending'),
     declined: t('export.statusDeclined'),
+    maybe: t('export.statusMaybe'),
   };
   const tableOf = (guest: Guest) => (guest.tableId !== null ? tableName.get(guest.tableId) ?? null : null);
   const menuOf = (guest: Guest) => (guest.menuOptionId !== null ? optionName.get(guest.menuOptionId) ?? null : null);

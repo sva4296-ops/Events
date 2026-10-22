@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import type { EventTypeId } from '@/types/event';
+import type { EventTypeId, SpontaneousTemplate } from '@/types/event';
 
 export type Shape =
   | { type: 'path'; d: string }
@@ -11,7 +11,7 @@ export type Shape =
  * Line icons for the event types, replacing the emoji. Geometry is from
  * Lucide (ISC license, https://lucide.dev) — the same set povestea-web uses
  * through lucide-react — so app and web show identical icons:
- * gem, baby, cake, hand-heart, building, flower, sparkles.
+ * gem, baby, cake, hand-heart, building, flower, sparkles, zap.
  */
 const ICONS: Record<EventTypeId, readonly Shape[]> = {
   wedding: [
@@ -73,6 +73,9 @@ const ICONS: Record<EventTypeId, readonly Shape[]> = {
     { type: 'path', d: 'M22 4h-4' },
     { type: 'circle', cx: 4, cy: 20, r: 2 },
   ],
+  spontaneous: [
+    { type: 'path', d: 'M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z' },
+  ],
 };
 
 export function EventTypeIcon({
@@ -131,4 +134,44 @@ export function LineIcon({
       )}
     </Svg>
   );
+}
+
+/** Spontaneous templates, same Lucide set: mic, party-popper, wine. */
+const TEMPLATE_ICONS: Record<SpontaneousTemplate, readonly Shape[]> = {
+  karaoke: [
+    { type: 'path', d: 'M12 19v3' },
+    { type: 'path', d: 'M19 10v2a7 7 0 0 1-14 0v-2' },
+    { type: 'rect', x: 9, y: 2, width: 6, height: 13, rx: 3 },
+  ],
+  party: [
+    { type: 'path', d: 'M5.8 11.3 2 22l10.7-3.79' },
+    { type: 'path', d: 'M4 3h.01' },
+    { type: 'path', d: 'M22 8h.01' },
+    { type: 'path', d: 'M15 2h.01' },
+    { type: 'path', d: 'M22 20h.01' },
+    { type: 'path', d: 'm22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10' },
+    { type: 'path', d: 'm22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17' },
+    { type: 'path', d: 'm11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7' },
+    { type: 'path', d: 'M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z' },
+  ],
+  tasting: [
+    { type: 'path', d: 'M8 22h8' },
+    { type: 'path', d: 'M7 10h10' },
+    { type: 'path', d: 'M12 15v7' },
+    { type: 'path', d: 'M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z' },
+  ],
+};
+
+export function TemplateIcon({
+  template,
+  size = 22,
+  color,
+  strokeWidth = 1.8,
+}: {
+  template: SpontaneousTemplate;
+  size?: number;
+  color: string;
+  strokeWidth?: number;
+}) {
+  return <LineIcon shapes={TEMPLATE_ICONS[template]} size={size} color={color} strokeWidth={strokeWidth} />;
 }

@@ -1,5 +1,6 @@
 import { supabase } from '@/data/supabaseClient';
-import type { AppEvent, CoOrganizer, CoOrganizerRelation, EventDraft, Guest, InvitePreview, RsvpStatus } from '@/types/event';
+import type { AppEvent, CoOrganizer, EventDraft, Guest, InvitePreview, RsvpStatus } from '@/types/event';
+import { parseSpotLimit } from '@/utils/spontaneous';
 import type {
   EventGuestRow,
   EventMemberRow,
@@ -26,6 +27,9 @@ function mapGuestRow(row: EventGuestRow): Guest {
     tableId: row.table_id,
     menuOptionId: row.menu_option_id ?? null,
     inviteToken: row.invite_token,
+    plusOne: row.plus_one ?? false,
+    billSentAt: row.bill_sent_at ?? null,
+    billConfirmedAt: row.bill_confirmed_at ?? null,
   };
 }
 
@@ -70,6 +74,10 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     planTier: row.plan_tier,
     planPurchasedAt: row.plan_purchased_at,
     albumStatus: row.album_status,
+    template: row.template ?? null,
+    startTime: row.start_time ?? null,
+    replyBy: row.reply_by ?? null,
+    spotLimit: row.spot_limit ?? null,
   };
 }
 
@@ -115,6 +123,14 @@ export async function insertEvent(
       event_date: draft.date.trim().length > 0 ? draft.date.trim() : null,
       location: draft.location.trim(),
       welcome_message: draft.welcomeMessage.trim(),
+      ...(draft.type === 'spontaneous'
+        ? {
+            template: draft.template ?? 'party',
+            start_time: draft.startTime.trim().length > 0 ? draft.startTime.trim() : null,
+            reply_by: draft.replyBy.trim().length > 0 ? draft.replyBy.trim() : null,
+            spot_limit: parseSpotLimit(draft.spotLimit),
+          }
+        : {}),
     })
     .select(SELECT_WITH_GUESTS)
     .single();
@@ -138,6 +154,9 @@ export async function updateEventRow(
     columns.invite_intro = patch.inviteIntro.trim().length > 0 ? patch.inviteIntro.trim() : null;
   }
   if (patch.type !== undefined) columns.type = patch.type;
+  if (patch.startTime !== undefined) columns.start_time = patch.startTime;
+  if (patch.replyBy !== undefined) columns.reply_by = patch.replyBy;
+  if (patch.spotLimit !== undefined) columns.spot_limit = patch.spotLimit;
   if (Object.keys(columns).length === 0) return;
 
   const { error } = await client.from('events').update(columns).eq('id', eventId);
@@ -172,8 +191,10 @@ export async function respondToInviteRow(
   guestUserId: string,
   guestName: string,
   status: Exclude<RsvpStatus, 'pending'>,
+  plusOne?: boolean,
 ): Promise<void> {
   const client = supabase;
+  const extra = plusOne !== undefined ? { plus_one: plusOne } : {};
   const { data: existing, error: selectError } = await client
     .from('event_guests')
     .select('id')
@@ -191,6 +212,7 @@ export async function respondToInviteRow(
       guest_name: guestName,
       rsvp_status: status,
       responded_at: respondedAt,
+      ...extra,
     });
     if (error) throw error;
     return;
@@ -198,7 +220,7 @@ export async function respondToInviteRow(
 
   const { error } = await client
     .from('event_guests')
-    .update({ rsvp_status: status, responded_at: respondedAt, guest_name: guestName })
+    .update({ rsvp_status: status, responded_at: respondedAt, guest_name: guestName, ...extra })
     .eq('id', existing.id);
   if (error) throw error;
 }
@@ -254,16 +276,17 @@ export async function insertCoOrganizer(
   eventId: string,
   phone: string,
   name: string,
-  relation: CoOrganizerRelation | 'restaurant',
+  role: 'co_organizer' | 'restaurant',
 ): Promise<void> {
-  const restaurant = relation === 'restaurant';
+  const restaurant = role === 'restaurant';
   const client = supabase;
   const { error } = await client.from('event_members').insert({
     event_id: eventId,
     role: restaurant ? 'restaurant' : 'co_organizer',
     invited_phone: phone,
     invited_name: name.length > 0 ? name : null,
-    relation: restaurant ? null : relation,
+    // Labels (Mire, Nașă...) are retired: every co-organizer is just a co-organizer.
+    relation: null,
   });
   if (error) throw error;
 }

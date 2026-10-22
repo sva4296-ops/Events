@@ -8,6 +8,10 @@ const EMPTY_DRAFT: EventDraft = {
   date: '',
   location: '',
   welcomeMessage: '',
+  template: null,
+  startTime: '',
+  replyBy: '',
+  spotLimit: '',
 };
 
 interface EventDraftContextValue {

@@ -31,7 +31,9 @@ export function GuestRow({ guest, showDivider = false }: { guest: Guest; showDiv
       ? { bg: tokens.statusConfirmedSoft, fg: tokens.statusConfirmed }
       : guest.status === 'pending'
         ? { bg: tokens.statusPendingSoft, fg: tokens.statusPending }
-        : { bg: tokens.statusDeclinedSoft, fg: tokens.statusDeclined };
+        : guest.status === 'maybe'
+          ? { bg: tokens.accentTint, fg: tokens.accentText }
+          : { bg: tokens.statusDeclinedSoft, fg: tokens.statusDeclined };
 
   const detail =
     guest.status === 'pending'
@@ -40,9 +42,11 @@ export function GuestRow({ guest, showDivider = false }: { guest: Guest; showDiv
         : guest.whatsappSentAt !== null
           ? t('event.inviteSent')
           : t('event.inviteNotSent')
-      : guest.status === 'confirmed' && guest.dietaryPreferences.length > 0
-        ? guest.dietaryPreferences.join(', ')
-        : null;
+      : guest.status !== 'declined' && guest.plusOne
+        ? t('spontaneous.dashboard.withPlusOne')
+        : guest.status === 'confirmed' && guest.dietaryPreferences.length > 0
+          ? guest.dietaryPreferences.join(', ')
+          : null;
 
   // A guest with no real name falls back to their phone number as `name`.
   const initials = guest.name === guest.phone ? '#' : initialsOf(guest.name);

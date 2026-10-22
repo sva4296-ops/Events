@@ -230,6 +230,24 @@
 >   `20260929000002_invite_token_event_id.sql` makes `get_invite_by_token` also return `event_id`
 >   (drop + recreate, return type changed). If you change a data contract here (tables, RPCs, Storage
 >   paths, plan gating), check povestea-web too.
+> - **Spontaneous events (2026-10-22, branch `claude/add-whatsapp-invite-options-63ac3b`).** New
+>   `event_type` `'spontaneous'` (karaoke / party / wine tasting, 1-2 weeks away) and `rsvp_status`
+>   `'maybe'`, in their own migration (`20261022000001`). `20261022000002_spontaneous_events.sql`:
+>   `events.template/start_time/reply_by/spot_limit`, `event_guests.plus_one/bill_sent_at/bill_confirmed_at`,
+>   `event_polls` + `event_poll_votes` (one group vote per event), `plan_items` (+ `plan_item_votes`,
+>   `plan_item_ratings`; kind song/bring/wine; guests add songs, claim "bring" items via
+>   `claim_plan_item`), `bill_splits`, `get_event_attendees()` (yes + maybe with names/payment status,
+>   since guests only see their own `event_guests` row), triggers `guard_spot_limit` (raises
+>   `event_full`, counts +1) and `guard_bill_confirmation` (only organizers tick payments off). App:
+>   `data/spontaneousRepository.ts` + `hooks/useSpontaneous.tsx` (`['spontaneous', eventId]`, polls every
+>   20s, no Realtime), `components/spontaneous/*`. The guest tabs branch on `event.type`: Acasă →
+>   `SpontaneousHome`, Detalii → `SpontaneousPlan` (tab label "Plan"), Fond → `SpontaneousBill` (tab
+>   "Notă", not plan-gated). Wizard: type → `create/template` → details (+ time, reply-by, spot limit) →
+>   preview → pricing → share (6 steps, `utils/spontaneous.ts` `wizardStep`). RSVP screen offers Vin /
+>   Poate / Nu pot + a +1 switch; "maybe" guests can open the event tabs (`canOpenEventPage`). WhatsApp
+>   invites are the same per-guest flow with a per-template message. 'maybe' is only offered on
+>   spontaneous events. Not built: add-to-calendar, reminders for "maybe", web (povestea-web) support
+>   for 'maybe'/'spontaneous', the "Local" (venue/HoReCa) type.
 > - **Sentry still does not exist** in this codebase; `console.warn`/`reportSupabaseError` remain the
 >   substitutes documented below.
 

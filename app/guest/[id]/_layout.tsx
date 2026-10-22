@@ -31,6 +31,12 @@ const TABS: readonly { name: string; labelKey: string; icon: TabIconId }[] = [
   { name: 'album', labelKey: 'guestTabs.album', icon: 'album' },
 ];
 
+/** Spontaneous events: Detalii is the Plan, Fond is the bill split. */
+const SPONTANEOUS_TAB_OVERRIDES: Record<string, { labelKey: string; icon: TabIconId }> = {
+  detalii: { labelKey: 'guestTabs.plan', icon: 'plan' },
+  fond: { labelKey: 'guestTabs.bill', icon: 'bill' },
+};
+
 /** Derived from the pathname rather than the tab bar's own state, since this
  * bar is mounted once above <Tabs> and needs to know which tab is active. */
 type ActiveTab = 'acasa' | 'detalii' | 'fond' | 'chat' | 'live' | 'album';
@@ -60,6 +66,7 @@ export default function GuestEventLayout() {
 
   const event = getEvent(id);
   const owner = isOwner(event);
+  const spontaneous = event?.type === 'spontaneous';
   const activeTab = getActiveTab(pathname);
   // The restaurant gets only Detalii (venue, menu, seating): no tab bar, and
   // any other tab (e.g. a push opening /guest/<id>) lands back on Detalii.
@@ -71,11 +78,13 @@ export default function GuestEventLayout() {
   // stay; no guest list, details, fund, chat or live, and nothing to edit.
   const past = event !== undefined && !restaurant && isEventPast(event.date);
   // Fund hidden for now (utils/features.ts): an old link to it lands on Acasă.
-  if (!FUND_ENABLED && activeTab === 'fond') {
+  // A spontaneous event's Fond tab is the bill split, not the fund, so it stays.
+  if (!FUND_ENABLED && !spontaneous && activeTab === 'fond') {
     return <Redirect href={`/guest/${id}`} />;
   }
   // Finished events keep only Acasă and Album; any other tab lands on Acasă.
-  if (past && activeTab !== 'acasa' && activeTab !== 'album') {
+  // A spontaneous event's bill is usually settled after the night, so it stays too.
+  if (past && activeTab !== 'acasa' && activeTab !== 'album' && !(spontaneous && activeTab === 'fond')) {
     return <Redirect href={`/guest/${id}`} />;
   }
   const headerSubtitle =
@@ -108,6 +117,21 @@ export default function GuestEventLayout() {
         icon: 'users',
         accessibilityLabel: 'Lista de invitați și statistici',
         onPress: () => router.push(`/event/${id}`),
+      });
+    } else if (activeTab === 'detalii' && spontaneous) {
+      // The spontaneous Plan tab has no Detalii hub to reach the event editor from.
+      actions.push({
+        key: 'edit-event',
+        icon: 'edit-2',
+        accessibilityLabel: t('event.editEvent'),
+        onPress: () => router.push(`/edit-event/${id}`),
+      });
+    } else if (activeTab === 'fond' && spontaneous) {
+      actions.push({
+        key: 'edit-bill',
+        icon: 'edit-2',
+        accessibilityLabel: t('spontaneous.bill.edit'),
+        onPress: () => router.push(`/bill/${id}`),
       });
     } else if (activeTab === 'fond' && isPrimaryOwner(event) && content !== null && content.fund !== null) {
       const fund = content.fund;
@@ -175,34 +199,40 @@ export default function GuestEventLayout() {
           }}
           screenListeners={{ tabPress: () => haptics.tap() }}
         >
-          {TABS.map((tab) => (
-            <Tabs.Screen
-              key={tab.name}
-              name={tab.name}
-              options={{
-                // Past events hide every tab but Acasă and Album.
-                href:
-                  (past && tab.name !== 'index' && tab.name !== 'album') || (!FUND_ENABLED && tab.name === 'fond')
-                    ? null
-                    : undefined,
-                title: t(tab.labelKey),
-                tabBarLabel: ({ color, focused }) => (
-                  <Text style={[styles.label, { color, fontWeight: focused ? '700' : '500' }]}>
-                    {t(tab.labelKey)}
-                  </Text>
-                ),
-                // Warm Story 2.0: accentTint pill behind the active icon.
-                tabBarIcon: ({ color, focused }) => (
-                  <TabBarIcon
-                    name={tab.icon}
-                    color={color}
-                    focused={focused}
-                    badge={tab.name === 'chat' && !focused && content !== null && hasUnread(content.messages)}
-                  />
-                ),
-              }}
-            />
-          ))}
+          {TABS.map((base) => {
+            const tab = { ...base, ...(spontaneous ? SPONTANEOUS_TAB_OVERRIDES[base.name] : undefined) };
+            return (
+              <Tabs.Screen
+                key={tab.name}
+                name={tab.name}
+                options={{
+                  // Past events hide every tab but Acasă and Album. The bill
+                  // split (spontaneous Fond) isn't the fund, so FUND_ENABLED
+                  // doesn't hide it.
+                  href:
+                    (past && tab.name !== 'index' && tab.name !== 'album' && !(spontaneous && tab.name === 'fond')) ||
+                    (!FUND_ENABLED && !spontaneous && tab.name === 'fond')
+                      ? null
+                      : undefined,
+                  title: t(tab.labelKey),
+                  tabBarLabel: ({ color, focused }) => (
+                    <Text style={[styles.label, { color, fontWeight: focused ? '700' : '500' }]}>
+                      {t(tab.labelKey)}
+                    </Text>
+                  ),
+                  // Warm Story 2.0: accentTint pill behind the active icon.
+                  tabBarIcon: ({ color, focused }) => (
+                    <TabBarIcon
+                      name={tab.icon}
+                      color={color}
+                      focused={focused}
+                      badge={tab.name === 'chat' && !focused && content !== null && hasUnread(content.messages)}
+                    />
+                  ),
+                }}
+              />
+            );
+          })}
         </Tabs>
         {!past && owner && !restaurant ? <GettingStartedSheet eventId={id} /> : null}
       </LinearGradient>

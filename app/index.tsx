@@ -35,6 +35,7 @@ import { haptics } from '@/utils/haptics';
 import { reportSupabaseError } from '@/utils/reportError';
 import { myInvitations } from '@/utils/invitations';
 import { staggerIn } from '@/utils/motion';
+import { canOpenEventPage } from '@/utils/spontaneous';
 import { spacing } from '@/utils/theme';
 import { themeRadius, typeface, typography } from '@/utils/themeTokens';
 
@@ -284,12 +285,12 @@ export default function DashboardScreen() {
                       showDivider={index > 0}
                       unreadMessages={invitation.guest.status === 'confirmed' ? unreadFor(invitation.event.id) : 0}
                       onPress={() =>
-                        // Only a confirmed guest enters the event. Pending and
-                        // declined both land on the RSVP screen, which for a
-                        // declined guest shows no event-access button, only
-                        // "Change my answer".
+                        // Only a confirmed guest enters the event (or "maybe", on a
+                        // spontaneous one). Pending and declined both land on
+                        // the RSVP screen, which for a declined guest shows no
+                        // event-access button, only "Change my answer".
                         router.push(
-                          invitation.guest.status === 'confirmed'
+                          canOpenEventPage(invitation.event.type, invitation.guest.status)
                             ? `/guest/${invitation.event.id}`
                             : `/invite/${invitation.event.id}`,
                         )

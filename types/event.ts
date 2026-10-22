@@ -5,9 +5,15 @@ export type EventTypeId =
   | 'cause'
   | 'corporate'
   | 'memorial'
-  | 'other';
+  | 'other'
+  | 'spontaneous';
 
-export type RsvpStatus = 'confirmed' | 'pending' | 'declined';
+/** 'maybe' is only offered on spontaneous events (see 20261022000001_spontaneous_enums.sql). */
+export type RsvpStatus = 'confirmed' | 'pending' | 'declined' | 'maybe';
+
+/** events.template — which tool a spontaneous event's Plan tab uses. */
+export const SPONTANEOUS_TEMPLATES = ['karaoke', 'party', 'tasting'] as const;
+export type SpontaneousTemplate = (typeof SPONTANEOUS_TEMPLATES)[number];
 
 export type Gradient = readonly [string, string];
 
@@ -42,6 +48,12 @@ export interface Guest {
   tableId: string | null;
   /** Picked menu option, if any (app/detalii-menu/[id].tsx). */
   menuOptionId: string | null;
+  /** Spontaneous events: bringing one more person. */
+  plusOne: boolean;
+  /** Spontaneous bill split: guest tapped "I've sent my share". */
+  billSentAt: string | null;
+  /** Spontaneous bill split: the organizer ticked the payment off. */
+  billConfirmedAt: string | null;
   /** Personal link token for the web RSVP page (https://events-web-henna.vercel.app/i/<token>, see INVITE_SITE_URL). */
   inviteToken: string;
 }
@@ -92,6 +104,14 @@ export interface AppEvent {
   planPurchasedAt: string | null;
   /** events.album_status — 'ready' ~72h after the event date (server cron). */
   albumStatus: 'not_started' | 'generating' | 'ready';
+  /** Spontaneous events only (null otherwise). */
+  template: SpontaneousTemplate | null;
+  /** 'HH:MM', set by the spontaneous wizard. */
+  startTime: string | null;
+  /** 'YYYY-MM-DD' — "Reply by". */
+  replyBy: string | null;
+  /** People, guests' +1 included; null = no limit. Enforced by guard_spot_limit. */
+  spotLimit: number | null;
 }
 
 /** Work-in-progress event inside the 4-step creation wizard. */
@@ -101,12 +121,19 @@ export interface EventDraft {
   date: string;
   location: string;
   welcomeMessage: string;
+  /** Spontaneous only; ignored for every other type. */
+  template: SpontaneousTemplate | null;
+  startTime: string;
+  replyBy: string;
+  /** Typed digits; empty = no limit. */
+  spotLimit: string;
 }
 
 export interface RsvpCounts {
   confirmed: number;
   pending: number;
   declined: number;
+  maybe: number;
   total: number;
 }
 

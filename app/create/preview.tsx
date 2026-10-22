@@ -14,12 +14,14 @@ import { spacing } from "@/utils/theme";
 import { EVENT_TYPE_COLORS } from "@/utils/eventCovers";
 
 import { reportSupabaseError } from "@/utils/reportError";
+import { wizardStep } from "@/utils/spontaneous";
 
 export default function PreviewScreen() {
   const { t } = useTranslation();
   const { draft } = useEventDraft();
   const { createEvent } = useEvents();
   const cancel = useCancelCreate();
+  const step = wizardStep(draft.type, 'preview');
 
   const handleGenerate = async () => {
     try {
@@ -65,18 +67,17 @@ export default function PreviewScreen() {
         showBack
         onClose={cancel}
         flowTitle={t("createWizard.flowTitle")}
-        stepLabel={t("createWizard.stepLabel", {
-          step: 3,
-          total: 5,
-          name: t("createWizard.stepPreview"),
-        })}
-        step={3}
-        totalSteps={5}
+        stepLabel={t("createWizard.stepLabel", { ...step, name: t("createWizard.stepPreview") })}
+        step={step.step}
+        totalSteps={step.total}
           progressColors={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].gradient : undefined}
       />
 
       <InviteReveal type={draft.type}>
-        <InviteCard event={draft} coverPhoto />
+        <InviteCard
+          event={draft.type === "spontaneous" ? draft : { ...draft, template: null, startTime: null }}
+          coverPhoto
+        />
       </InviteReveal>
     </Screen>
   );

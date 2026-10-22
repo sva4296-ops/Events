@@ -28,6 +28,7 @@ import { brandGradient, themeRadius, typography } from "@/utils/themeTokens";
 import { reportSupabaseError } from "@/utils/reportError";
 import { fetchOfferingPackages } from "@/utils/revenueCat";
 import { FUND_ENABLED, PAID_PLANS_FOR_TESTING } from "@/utils/features";
+import { wizardStep } from "@/utils/spontaneous";
 
 /** The only plan_key the client may write (see the lock_paid_plan_tier migration). */
 const FREE_PLAN_KEY = "esential";
@@ -252,12 +253,11 @@ export default function PricingScreen() {
           subtitle={t("pricing.subtitle", { eventName: event.name })}
           flowTitle={t("createWizard.flowTitle")}
           stepLabel={t("createWizard.stepLabel", {
-            step: 4,
-            total: 5,
+            ...wizardStep(event.type, "plan"),
             name: t("createWizard.stepPlan"),
           })}
-          step={4}
-          totalSteps={5}
+          step={wizardStep(event.type, "plan").step}
+          totalSteps={wizardStep(event.type, "plan").total}
           progressColors={EVENT_TYPE_COLORS[event.type].gradient}
         />
       ) : (

@@ -18,7 +18,8 @@
     "viewPlans": "Vezi planurile",
     "close": "Închide",
     "somethingWentWrong": "Ceva nu a mers",
-    "tryAgain": "Te rugăm să încerci din nou."
+    "tryAgain": "Te rugăm să încerci din nou.",
+    "maybe": "Poate"
   },
   "home": {
     "tagline": "Mai mult decât o invitație — întreaga poveste.",
@@ -528,7 +529,8 @@
     "noMatches": "Niciun invitat nu se potrivește.",
     "inviteSent": "Invitație trimisă pe WhatsApp",
     "inviteNotSent": "Invitația nu a fost trimisă încă",
-    "noPhone": "Fără telefon"
+    "noPhone": "Fără telefon",
+    "filterMaybe": "Poate"
   },
   "export": {
     "button": "Exportă lista pentru restaurant",
@@ -558,7 +560,8 @@
     "total": "Total",
     "statusConfirmed": "Confirmat",
     "statusPending": "În așteptare",
-    "statusDeclined": "Refuzat"
+    "statusDeclined": "Refuzat",
+    "statusMaybe": "Poate"
   },
   "bulkInviteForm": {
     "title": "Adaugă mai mulți invitați",
@@ -882,6 +885,13 @@
       "countdownUntil": "până la eveniment",
       "countdownToday": "Azi e ziua cea mare!",
       "stageDay": "Evenimentul"
+    },
+    "spontaneous": {
+      "label": "Spontan",
+      "description": "Karaoke, petrecere, degustare",
+      "countdownUntil": "până ne vedem",
+      "countdownToday": "E azi!",
+      "stageDay": "Seara"
     }
   },
   "mapPicker": {
@@ -900,11 +910,13 @@
     "fund": "Fond",
     "chat": "Chat",
     "live": "Live",
-    "album": "Album"
+    "album": "Album",
+    "plan": "Plan",
+    "bill": "Notă"
   },
   "coOrganizers": {
     "title": "Co-organizatori",
-    "subtitle": "Partenerul sau nașii gestionează evenimentul din telefonul lor. Restaurantul gestionează doar locația, meniul și așezarea la mese. Doar tu poți șterge evenimentul, alege pachetul și vedea fondul.",
+    "subtitle": "Oameni care te ajută să organizezi evenimentul, fiecare din telefonul lui.",
     "notAvailableSubtitle": "Doar organizatorul principal poate gestiona co-organizatorii.",
     "listTitle": "Adăugați",
     "statusActive": "Activ",
@@ -921,13 +933,21 @@
     "removeBody": "{{name}} nu va mai vedea și nu va mai gestiona evenimentul.",
     "removeLabel": "Scoate",
     "relation": {
+      "co_organizer": "Co-organizator",
       "groom": "Mire",
       "bride": "Mireasă",
       "godfather": "Naș",
       "godmother": "Nașă",
       "restaurant": "Restaurant"
     },
-    "relationLabel": "Rol"
+    "relationLabel": "Rol",
+    "pickGuest": "Alege din invitați",
+    "addOnly": "Adaugă",
+    "pickGuestTitle": "Alege un invitat",
+    "roleInfo": {
+      "co_organizer": "Gestionează evenimentul alături de tine: invitați, program, momente, detalii și chat. Nu poate șterge evenimentul, alege pachetul sau vedea fondul.",
+      "restaurant": "Vede doar tab-ul Plan și gestionează locația, meniurile și așezarea la mese. Nu are acces la chat, live, album sau la restul evenimentului."
+    }
   },
   "liveVideo": {
     "start": "Pornește live video",
@@ -1168,5 +1188,213 @@
     "tomorrow": "Mâine",
     "hubStatusEmpty": "Nimic pe listă",
     "hubStatus": "{{done}} din {{total}} bifate"
+  },
+  "spontaneous": {
+    "fullTitle": "Nu mai sunt locuri",
+    "fullBody": "Toate locurile sunt ocupate. Poți răspunde „Poate” și organizatorul vede că ai vrea să vii.",
+    "templates": {
+      "karaoke": {
+        "name": "Karaoke",
+        "description": "O seară cu microfoane și curaj.",
+        "includes": [
+          "Coadă de melodii cu vot",
+          "Vot pe oră",
+          "Împărțirea costului"
+        ],
+        "namePlaceholder": "Karaoke cu Mihai",
+        "messagePlaceholder": "Am rezervat camera, microfoanele sunt pregătite, scuzele nu se acceptă. 🎤",
+        "planTitle": "Coada de melodii",
+        "planSub": "Votează ce cântăm primele. Cele mai votate deschid seara.",
+        "planCta": "Ce cântăm? Votează coada de melodii.",
+        "pollQuestion": "La ce oră ne vedem?",
+        "pollOptions": [
+          "20:00",
+          "21:00",
+          "22:00"
+        ],
+        "billTitle": "Camera privată + consumația minimă"
+      },
+      "party": {
+        "name": "Petrecere",
+        "description": "Acasă, într-un bar sau în parc, oricând.",
+        "includes": [
+          "Lista „cine ce aduce”",
+          "Vot pe temă",
+          "Împărțirea costurilor"
+        ],
+        "namePlaceholder": "Housewarming la Ioana",
+        "messagePlaceholder": "M-am mutat în sfârșit! Hai să sfințim casa cu pizza, muzică și oameni faini. 🏠",
+        "planTitle": "Cine ce aduce",
+        "planSub": "Alege ce aduci. Lista se actualizează pentru toți.",
+        "planCta": "Ce aduci? Alege din listă, ca să nu venim toți cu chipsuri.",
+        "pollQuestion": "Facem temă de costume?",
+        "pollOptions": [
+          "Da, costume!",
+          "Nu, relaxat"
+        ],
+        "billTitle": "Mâncare și băuturi"
+      },
+      "tasting": {
+        "name": "Degustare de vin",
+        "description": "Locuri limitate, bilet fix, transport comun.",
+        "includes": [
+          "Locuri limitate",
+          "Fișă de note pentru vinuri",
+          "Bilet + transport împărțit"
+        ],
+        "namePlaceholder": "Degustare la Dealu Mare",
+        "messagePlaceholder": "Am rezervat crama pentru grupul nostru: 6 vinuri, platou de brânzeturi și un somelier. Locuri limitate! 🍷",
+        "planTitle": "Vinurile serii",
+        "planSub": "Dă note în timpul degustării. La final vezi favoritul grupului.",
+        "planCta": "Dă note vinurilor în timpul degustării.",
+        "pollQuestion": "Cum ajungem acolo?",
+        "pollOptions": [
+          "Microbuz",
+          "Cu mașinile"
+        ],
+        "billTitle": "Biletul la degustare"
+      }
+    },
+    "wizard": {
+      "stepTemplate": "Șablon",
+      "templateTitle": "Ce fel de ieșire?",
+      "templateSubtitle": "Fiecare șablon vine cu unealta potrivită în tab-ul Plan.",
+      "timeLabel": "Ora",
+      "timePlaceholder": "Alege ora",
+      "replyByLabel": "Răspunde până la",
+      "replyByNone": "Fără termen",
+      "replyByHint": "Apare în invitație.",
+      "replyByAfterDate": "Termenul de răspuns trebuie să fie înainte de eveniment.",
+      "spotLimitLabel": "Limită de locuri (opțional)",
+      "spotLimitPlaceholder": "Fără limită",
+      "spotLimitHint": "Persoane, cu tot cu +1."
+    },
+    "rsvp": {
+      "question": "Vii?",
+      "yes": "Vin",
+      "maybe": "Poate",
+      "no": "Nu pot",
+      "plusOne": "Vin cu cineva (+1)",
+      "spotsTaken": "Locuri ocupate",
+      "full": "Nu mai sunt locuri libere.",
+      "replyBy": "Răspunde până {{date}}",
+      "alreadyYes_one": "{{count}} a zis deja da",
+      "alreadyYes_few": "{{count}} au zis deja da",
+      "alreadyYes_other": "{{count}} au zis deja da",
+      "maybeTitle": "Ai zis „poate”",
+      "maybeBody": "Organizatorul vede că încă te gândești la „{{eventName}}”. Poți schimba răspunsul oricând."
+    },
+    "home": {
+      "daysLeft_one": "zi rămasă",
+      "daysLeft_few": "zile rămase",
+      "daysLeft_other": "de zile rămase",
+      "today": "azi",
+      "whoComes": "Cine vine",
+      "counts": "{{yes}} vin · {{maybe}} poate",
+      "nobodyYet": "Încă n-a răspuns nimeni.",
+      "fromHost": "Noutăți de la organizator",
+      "noUpdates": "Încă nicio noutate.",
+      "noUpdatesOwner": "Apasă + ca să anunți ceva grupului.",
+      "postUpdate": "Anunță ceva grupului",
+      "seePlan": "Vezi planul",
+      "seeBill": "Vezi nota"
+    },
+    "poll": {
+      "eyebrow": "Votul grupului",
+      "hint": "Apasă ca să votezi.",
+      "voted": "Ai votat ✓ Poți schimba oricând.",
+      "edit": "Editează votul",
+      "create": "Creează un vot",
+      "emptyOwner": "Ora, tema, transportul: întreabă grupul și decide fără 200 de mesaje.",
+      "formTitle": "Votul grupului",
+      "formSubtitle": "O întrebare, 2-6 variante. Toți invitații votează.",
+      "questionLabel": "Întrebarea",
+      "questionPlaceholder": "La ce oră ne vedem?",
+      "optionLabel": "Varianta {{number}}",
+      "optionPlaceholder": "21:00",
+      "addOption": "+ Adaugă o variantă",
+      "removeOption": "Șterge varianta",
+      "delete": "Șterge votul",
+      "deleteTitle": "Ștergi votul?",
+      "deleteBody": "Se pierd și voturile date până acum."
+    },
+    "plan": {
+      "logistics": "Unde și cum ajungi",
+      "noPlace": "Locul va fi anunțat",
+      "openMap": "Deschide în hărți",
+      "editPlace": "Editează locația",
+      "add": "Adaugă",
+      "you": "Tu",
+      "iBring": "Aduc eu",
+      "youBring": "Aduci tu",
+      "bringsBy": "Aduce {{name}}",
+      "nobody": "Încă nimeni. Îl iei tu?",
+      "covered": "{{covered}} din {{total}} lucruri acoperite",
+      "alreadyClaimed": "Între timp l-a luat altcineva.",
+      "bringEmpty": "Organizatorul n-a pus încă lista.",
+      "bringEmptyOwner": "Adaugă ce e de adus: pizza, băuturi, desert...",
+      "bringPlaceholder": "Ex.: Băuturi răcoritoare și gheață",
+      "songsEmpty": "Încă nicio melodie. Propune tu prima!",
+      "songPlaceholder": "Melodia",
+      "artistPlaceholder": "Artistul (opțional)",
+      "suggestedBy": "propusă de {{name}}",
+      "upvote_one": "Votează, {{count}} vot",
+      "upvote_few": "Votează, {{count}} voturi",
+      "upvote_other": "Votează, {{count}} de voturi",
+      "winesEmpty": "Organizatorul n-a pus încă vinurile.",
+      "winesEmptyOwner": "Adaugă vinurile din degustare.",
+      "winePlaceholder": "Vinul (ex.: Fetească Neagră 2021)",
+      "wineStylePlaceholder": "Stilul (ex.: roșu sec)",
+      "groupAverage": "media grupului {{value}}",
+      "rateStars_one": "{{count}} stea",
+      "rateStars_few": "{{count}} stele",
+      "rateStars_other": "{{count}} de stele",
+      "rateHint": "Apasă pe stele ca să dai note.",
+      "yourFav": "Favoritul tău până acum: {{name}}"
+    },
+    "bill": {
+      "eyebrow": "Împărțirea notei",
+      "edit": "Editează nota",
+      "total": "total",
+      "people": "persoane",
+      "perPerson": "de persoană",
+      "whoPaid": "Cine a plătit",
+      "host": "Organizatorul",
+      "paid": "plătit",
+      "sent": "trimis",
+      "due": "de plătit",
+      "confirm": "Confirmă",
+      "undoHint": "Apasă ca să anulezi confirmarea",
+      "howPay": "Cum plătești",
+      "noMethod": "Organizatorul îți spune cum.",
+      "iPaid": "Am trimis partea mea ({{amount}})",
+      "youSent": "✓ Ai trimis partea ta. Organizatorul confirmă.",
+      "youPaidConfirmed": "✓ Plătit. Mersi!",
+      "undo": "Anulează",
+      "maybeNote": "Partea ta apare după ce confirmi că vii.",
+      "noMoney": "PovesteaNoastra nu ține banii, doar evidența. Fiecare plătește direct organizatorului.",
+      "emptyOwner": "Împarte costul (camera, mâncarea, biletul) și vezi cine a plătit, fără să alergi după nimeni.",
+      "emptyGuest": "Organizatorul n-a adăugat încă nota.",
+      "create": "Împarte costul",
+      "formTitle": "Împărțirea notei",
+      "formSubtitle": "Totalul se împarte la numărul de persoane.",
+      "titleLabel": "Pentru ce",
+      "totalLabel": "Total (lei)",
+      "peopleLabel": "Câte persoane împart",
+      "peopleHint": "Cu tot cu tine.",
+      "methodLabel": "Cum se plătește",
+      "methodPlaceholder": "Revolut @nume · sau cash la sosire",
+      "preview": "{{amount}} de persoană",
+      "delete": "Șterge nota",
+      "deleteTitle": "Ștergi nota?",
+      "deleteBody": "Se pierde și evidența plăților."
+    },
+    "dashboard": {
+      "plusOnes_one": "{{count}} +1",
+      "plusOnes_few": "{{count}} +1",
+      "plusOnes_other": "{{count}} +1",
+      "spots": "{{taken}}/{{limit}} locuri",
+      "withPlusOne": "Vine cu cineva (+1)"
+    }
   }
 }

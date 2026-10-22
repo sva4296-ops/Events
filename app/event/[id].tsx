@@ -94,6 +94,9 @@ export default function EventDetailScreen() {
   }
 
   const counts = countRsvps(event.guests);
+  const spontaneous = event.type === "spontaneous";
+  // Spontaneous: +1s take a spot too, so the header counts people, not rows.
+  const plusOnes = event.guests.filter((guest) => guest.status === "confirmed" && guest.plusOne).length;
   const planName =
     event.planTier !== null
       ? plans.find((plan) => plan.planKey === event.planTier)?.displayName ?? event.planTier
@@ -139,12 +142,16 @@ export default function EventDetailScreen() {
     { key: "all", label: t("event.filterAll"), count: counts.total },
     { key: "confirmed", label: t("event.filterConfirmed"), count: counts.confirmed },
     { key: "pending", label: t("event.filterPending"), count: counts.pending },
+    ...(spontaneous ? [{ key: "maybe" as const, label: t("event.filterMaybe"), count: counts.maybe }] : []),
     { key: "declined", label: t("event.filterDeclined"), count: counts.declined },
   ];
 
   const stats: { key: RsvpStatus; label: string; value: number; fg: string; bg: string }[] = [
     { key: "confirmed", label: t("event.filterConfirmed"), value: counts.confirmed, fg: tokens.statusConfirmed, bg: tokens.statusConfirmedSoft },
     { key: "pending", label: t("event.filterPending"), value: counts.pending, fg: tokens.statusPending, bg: tokens.statusPendingSoft },
+    ...(spontaneous
+      ? [{ key: "maybe" as const, label: t("event.filterMaybe"), value: counts.maybe, fg: tokens.accentText, bg: tokens.accentTint }]
+      : []),
     { key: "declined", label: t("event.filterDeclined"), value: counts.declined, fg: tokens.statusDeclined, bg: tokens.statusDeclinedSoft },
   ];
 
@@ -188,6 +195,10 @@ export default function EventDetailScreen() {
           </Text>
           <Text style={[styles.summaryMeta, { color: tokens.textSecondary }]}>
             {t("event.guestsTotal", { count: counts.total })}
+            {spontaneous && plusOnes > 0 ? ` · ${t("spontaneous.dashboard.plusOnes", { count: plusOnes })}` : ""}
+            {spontaneous && event.spotLimit !== null
+              ? ` · ${t("spontaneous.dashboard.spots", { taken: counts.confirmed + plusOnes, limit: event.spotLimit })}`
+              : ""}
           </Text>
         </View>
         <View style={styles.stats}>
@@ -205,6 +216,9 @@ export default function EventDetailScreen() {
             <GrowFromLeft style={styles.barFill}>
               {counts.confirmed > 0 ? (
                 <View style={{ width: `${share(counts.confirmed)}%`, backgroundColor: tokens.statusConfirmed }} />
+              ) : null}
+              {counts.maybe > 0 ? (
+                <View style={{ width: `${share(counts.maybe)}%`, backgroundColor: tokens.accentPrimary }} />
               ) : null}
               {counts.pending > 0 ? (
                 <View style={{ width: `${share(counts.pending)}%`, backgroundColor: tokens.accentGold }} />

@@ -24,7 +24,7 @@ export function formatEventDate(value: string): string {
 }
 
 export function countRsvps(guests: readonly Guest[]): RsvpCounts {
-  const counts: RsvpCounts = { confirmed: 0, pending: 0, declined: 0, total: guests.length };
+  const counts: RsvpCounts = { confirmed: 0, pending: 0, declined: 0, maybe: 0, total: guests.length };
   for (const guest of guests) {
     counts[guest.status] += 1;
   }

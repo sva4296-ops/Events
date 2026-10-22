@@ -16,6 +16,7 @@ import { StoryEntryCard } from '@/components/guest/StoryEntryCard';
 import { MomentCard, MomentCardSkeleton } from '@/components/guest/MomentCard';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { useTourTarget } from '@/components/tour/Tour';
+import { SpontaneousHome } from '@/components/spontaneous/SpontaneousHome';
 import { confirmDelete } from '@/utils/confirm';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -196,6 +197,13 @@ function UpNextCard({ eventId, date, schedule }: { eventId: string; date: string
 }
 
 export default function AcasaScreen() {
+  const { event } = useGuestEvent();
+  const { isOwner } = useEvents();
+  if (event?.type === 'spontaneous') return <SpontaneousHome event={event} owner={isOwner(event)} />;
+  return <StoryAcasa />;
+}
+
+function StoryAcasa() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { isOwner, isPrimaryOwner } = useEvents();

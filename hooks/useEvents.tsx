@@ -20,11 +20,13 @@ import {
   upsertGuestInvitesBatch,
   type BulkGuestEntry,
 } from '@/data/eventsRepository';
+import { showDialog } from '@/components/ActionSheet';
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { AppEvent, CoOrganizerRelation, EventDraft, Guest, RsvpStatus } from '@/types/event';
-import { reportSupabaseError } from '@/utils/reportError';
+import i18n from '@/utils/i18n';
+import { reportSupabaseError, supabaseErrorMessage } from '@/utils/reportError';
 
 interface EventsResult {
   events: AppEvent[];
@@ -33,7 +35,8 @@ interface EventsResult {
   getEvent: (id: string | undefined) => AppEvent | undefined;
   createEvent: (draft: EventDraft) => Promise<AppEvent>;
   updateEvent: (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt' | 'planTier' | 'planPurchasedAt'>>) => Promise<void>;
-  respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => void;
+  /** `plusOne` is only sent for spontaneous events (undefined leaves the column alone). */
+  respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>, plusOne?: boolean) => void;
   removeGuest: (eventId: string, guestId: string) => Promise<void>;
   /** Deletes the event and everything under it (rows cascade, photos removed from Storage). */
   deleteEvent: (eventId: string) => Promise<void>;
@@ -70,7 +73,7 @@ interface EventsResult {
     eventId: string,
     phone: string,
     name: string,
-    relation: CoOrganizerRelation | 'restaurant',
+    role: 'co_organizer' | 'restaurant',
   ) => Promise<void>;
   /** The signed-in user's event_members row on this event, if any. */
   myCoOrganizerRole: (event: AppEvent | undefined) => CoOrganizerRelation | 'co_organizer' | 'restaurant' | null;
@@ -340,9 +343,9 @@ export function useEvents(): EventsResult {
       eventId: string;
       phone: string;
       name: string;
-      relation: CoOrganizerRelation | 'restaurant';
+      role: 'co_organizer' | 'restaurant';
     }) => {
-      await insertCoOrganizer(vars.eventId, vars.phone, vars.name, vars.relation);
+      await insertCoOrganizer(vars.eventId, vars.phone, vars.name, vars.role);
       return fetchEventById(vars.eventId);
     },
     onSuccess: (fresh) => {
@@ -355,8 +358,8 @@ export function useEvents(): EventsResult {
     },
   });
   const addCoOrganizer = useCallback(
-    async (eventId: string, phone: string, name: string, relation: CoOrganizerRelation | 'restaurant'): Promise<void> => {
-      await addCoOrganizerMutation.mutateAsync({ eventId, phone, name, relation });
+    async (eventId: string, phone: string, name: string, role: 'co_organizer' | 'restaurant'): Promise<void> => {
+      await addCoOrganizerMutation.mutateAsync({ eventId, phone, name, role });
     },
     [addCoOrganizerMutation],
   );
@@ -393,16 +396,26 @@ export function useEvents(): EventsResult {
   );
 
   const respondToInviteMutation = useMutation({
-    mutationFn: (vars: { eventId: string; status: Exclude<RsvpStatus, 'pending'> }) => {
+    mutationFn: (vars: { eventId: string; status: Exclude<RsvpStatus, 'pending'>; plusOne?: boolean }) => {
       if (user === null) throw new Error('Not signed in.');
-      return respondToInviteRow(vars.eventId, user.id, displayName ?? user.label, vars.status);
+      return respondToInviteRow(vars.eventId, user.id, displayName ?? user.label, vars.status, vars.plusOne);
     },
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
-    onError: (error) => reportSupabaseError(error),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey });
+      void queryClient.invalidateQueries({ queryKey: ['spontaneous', vars.eventId] });
+    },
+    onError: (error) => {
+      // guard_spot_limit (20261022000002_spontaneous_events.sql): no spots left.
+      if (supabaseErrorMessage(error).includes('event_full')) {
+        showDialog({ title: i18n.t('spontaneous.fullTitle'), message: i18n.t('spontaneous.fullBody') });
+        return;
+      }
+      reportSupabaseError(error);
+    },
   });
   const respondToInvite = useCallback(
-    (eventId: string, status: Exclude<RsvpStatus, 'pending'>) =>
-      respondToInviteMutation.mutate({ eventId, status }),
+    (eventId: string, status: Exclude<RsvpStatus, 'pending'>, plusOne?: boolean) =>
+      respondToInviteMutation.mutate({ eventId, status, plusOne }),
     [respondToInviteMutation],
   );
 

@@ -11,6 +11,7 @@ import { useCancelCreate } from '@/hooks/useCancelCreate';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { EVENT_TYPES } from '@/utils/eventTypes';
 import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
+import { wizardStep } from '@/utils/spontaneous';
 
 import { spacing } from '@/utils/theme';
 
@@ -30,7 +31,7 @@ export default function PickTypeScreen() {
         <Button
           label={t('createWizard.continue')}
           disabled={draft.type === null}
-          onPress={() => router.push('/create/details')}
+          onPress={() => router.push(draft.type === 'spontaneous' ? '/create/template' : '/create/details')}
         />
       }
     >
@@ -40,9 +41,9 @@ export default function PickTypeScreen() {
         showBack
         onClose={cancel}
         flowTitle={t('createWizard.flowTitle')}
-        stepLabel={t('createWizard.stepLabel', { step: 1, total: 5, name: t('createWizard.stepType') })}
+        stepLabel={t('createWizard.stepLabel', { step: 1, total: wizardStep(draft.type, 'type').total, name: t('createWizard.stepType') })}
         step={1}
-        totalSteps={5}
+        totalSteps={wizardStep(draft.type, 'type').total}
           progressColors={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].gradient : undefined}
       />
 

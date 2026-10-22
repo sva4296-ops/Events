@@ -18,7 +18,8 @@
     "viewPlans": "View plans",
     "close": "Close",
     "somethingWentWrong": "Something went wrong",
-    "tryAgain": "Please try again."
+    "tryAgain": "Please try again.",
+    "maybe": "Maybe"
   },
   "home": {
     "tagline": "More than an invitation — the whole story.",
@@ -502,7 +503,8 @@
     "noMatches": "No guest matches.",
     "inviteSent": "Invite sent on WhatsApp",
     "inviteNotSent": "Invite not sent yet",
-    "noPhone": "No phone"
+    "noPhone": "No phone",
+    "filterMaybe": "Maybe"
   },
   "export": {
     "button": "Export list for the venue",
@@ -532,7 +534,8 @@
     "total": "Total",
     "statusConfirmed": "Confirmed",
     "statusPending": "Pending",
-    "statusDeclined": "Declined"
+    "statusDeclined": "Declined",
+    "statusMaybe": "Maybe"
   },
   "bulkInviteForm": {
     "title": "Add multiple guests",
@@ -856,6 +859,13 @@
       "countdownUntil": "until the event",
       "countdownToday": "Today's the big day!",
       "stageDay": "The event"
+    },
+    "spontaneous": {
+      "label": "Spontaneous",
+      "description": "Karaoke, a party, a tasting",
+      "countdownUntil": "until we meet",
+      "countdownToday": "It's today!",
+      "stageDay": "The night"
     }
   },
   "mapPicker": {
@@ -874,11 +884,13 @@
     "fund": "Fund",
     "chat": "Chat",
     "live": "Live",
-    "album": "Album"
+    "album": "Album",
+    "plan": "Plan",
+    "bill": "Bill"
   },
   "coOrganizers": {
     "title": "Co-organizers",
-    "subtitle": "Your partner or godparents manage the event from their own phone. The restaurant only manages the venue, menu and seating. Only you can delete the event, choose the plan and see the fund.",
+    "subtitle": "People who help you run the event, each from their own phone.",
     "notAvailableSubtitle": "Only the main organizer can manage co-organizers.",
     "listTitle": "Added",
     "statusActive": "Active",
@@ -895,13 +907,21 @@
     "removeBody": "{{name}} will no longer see or manage this event.",
     "removeLabel": "Remove",
     "relation": {
+      "co_organizer": "Co-organizer",
       "groom": "Groom",
       "bride": "Bride",
       "godfather": "Godfather",
       "godmother": "Godmother",
       "restaurant": "Restaurant"
     },
-    "relationLabel": "Role"
+    "relationLabel": "Role",
+    "pickGuest": "Pick from guests",
+    "addOnly": "Add",
+    "pickGuestTitle": "Pick a guest",
+    "roleInfo": {
+      "co_organizer": "Runs the event with you: guests, schedule, moments, details and chat. Can't delete the event, choose the plan or see the fund.",
+      "restaurant": "Sees only the Plan tab and manages the venue, menus and seating. No access to chat, live, album or the rest of the event."
+    }
   },
   "liveVideo": {
     "start": "Go live with video",
@@ -1134,5 +1154,208 @@
     "tomorrow": "Tomorrow",
     "hubStatusEmpty": "Nothing on the list",
     "hubStatus": "{{done}} of {{total}} done"
+  },
+  "spontaneous": {
+    "fullTitle": "No spots left",
+    "fullBody": "Every spot is taken. You can answer “Maybe” so the host knows you'd like to come.",
+    "templates": {
+      "karaoke": {
+        "name": "Karaoke",
+        "description": "For a night of mics and courage.",
+        "includes": [
+          "Song queue with voting",
+          "Vote on the time",
+          "Split the cost"
+        ],
+        "namePlaceholder": "Karaoke with Mihai",
+        "messagePlaceholder": "Private room booked, mics ready, no excuses accepted. 🎤",
+        "planTitle": "Song queue",
+        "planSub": "Vote on what we sing first. The top songs open the night.",
+        "planCta": "What are we singing? Vote on the queue.",
+        "pollQuestion": "What time do we meet?",
+        "pollOptions": [
+          "8 pm",
+          "9 pm",
+          "10 pm"
+        ],
+        "billTitle": "Private room + minimum spend"
+      },
+      "party": {
+        "name": "Party",
+        "description": "At home, at a bar or in the park, anytime.",
+        "includes": [
+          "“Who brings what” list",
+          "Vote on the theme",
+          "Split the costs"
+        ],
+        "namePlaceholder": "Housewarming at Ioana's",
+        "messagePlaceholder": "I finally moved! Let's christen the flat with pizza, music and lovely people. 🏠",
+        "planTitle": "Who brings what",
+        "planSub": "Pick what you'll bring. The list updates for everyone.",
+        "planCta": "What are you bringing? Pick from the list so we don't all show up with crisps.",
+        "pollQuestion": "Costume theme?",
+        "pollOptions": [
+          "Yes, costumes!",
+          "No, keep it chill"
+        ],
+        "billTitle": "Food & drinks"
+      },
+      "tasting": {
+        "name": "Wine tasting",
+        "description": "Limited spots, fixed ticket, shared transport.",
+        "includes": [
+          "Limited spots",
+          "Wine rating sheet",
+          "Split ticket + transport"
+        ],
+        "namePlaceholder": "Tasting at Dealu Mare",
+        "messagePlaceholder": "Winery booked for our group: 6 wines, a cheese platter and a sommelier. Limited spots! 🍷",
+        "planTitle": "Tonight's wines",
+        "planSub": "Rate them during the tasting. At the end you'll see the group's favourite.",
+        "planCta": "Rate the wines during the tasting.",
+        "pollQuestion": "How do we get there?",
+        "pollOptions": [
+          "Minibus",
+          "Car-pooling"
+        ],
+        "billTitle": "Tasting ticket"
+      }
+    },
+    "wizard": {
+      "stepTemplate": "Template",
+      "templateTitle": "What kind of night out?",
+      "templateSubtitle": "Each template comes with the right tool in the Plan tab.",
+      "timeLabel": "Time",
+      "timePlaceholder": "Pick a time",
+      "replyByLabel": "Reply by",
+      "replyByNone": "No deadline",
+      "replyByHint": "Shown on the invitation.",
+      "replyByAfterDate": "The reply deadline has to be before the event.",
+      "spotLimitLabel": "Spot limit (optional)",
+      "spotLimitPlaceholder": "No limit",
+      "spotLimitHint": "People, +1s included."
+    },
+    "rsvp": {
+      "question": "Are you coming?",
+      "yes": "I'm in",
+      "maybe": "Maybe",
+      "no": "Can't",
+      "plusOne": "Bringing someone (+1)",
+      "spotsTaken": "Spots taken",
+      "full": "No spots left.",
+      "replyBy": "Reply by {{date}}",
+      "alreadyYes_one": "{{count}} already said yes",
+      "alreadyYes_other": "{{count}} already said yes",
+      "maybeTitle": "You said “maybe”",
+      "maybeBody": "The host can see you're still thinking about “{{eventName}}”. You can change your answer anytime."
+    },
+    "home": {
+      "daysLeft_one": "day left",
+      "daysLeft_other": "days left",
+      "today": "today",
+      "whoComes": "Who's coming",
+      "counts": "{{yes}} in · {{maybe}} maybe",
+      "nobodyYet": "Nobody has replied yet.",
+      "fromHost": "Updates from the host",
+      "noUpdates": "No updates yet.",
+      "noUpdatesOwner": "Tap + to tell the group something.",
+      "postUpdate": "Post an update",
+      "seePlan": "See the plan",
+      "seeBill": "See the bill"
+    },
+    "poll": {
+      "eyebrow": "Group vote",
+      "hint": "Tap to vote.",
+      "voted": "Your vote is in ✓ You can change it anytime.",
+      "edit": "Edit the vote",
+      "create": "Create a vote",
+      "emptyOwner": "Time, theme, transport: ask the group and decide without 200 messages.",
+      "formTitle": "Group vote",
+      "formSubtitle": "One question, 2–6 options. Every guest votes.",
+      "questionLabel": "Question",
+      "questionPlaceholder": "What time do we meet?",
+      "optionLabel": "Option {{number}}",
+      "optionPlaceholder": "9 pm",
+      "addOption": "+ Add an option",
+      "removeOption": "Remove option",
+      "delete": "Delete the vote",
+      "deleteTitle": "Delete the vote?",
+      "deleteBody": "The votes cast so far are lost too."
+    },
+    "plan": {
+      "logistics": "Where & how to get there",
+      "noPlace": "Place to be announced",
+      "openMap": "Open in maps",
+      "editPlace": "Edit location",
+      "add": "Add",
+      "you": "You",
+      "iBring": "I'll bring it",
+      "youBring": "You're bringing it",
+      "bringsBy": "{{name}} brings it",
+      "nobody": "Nobody yet. Want to take it?",
+      "covered": "{{covered}} of {{total}} items covered",
+      "alreadyClaimed": "Someone else just took it.",
+      "bringEmpty": "The host hasn't added the list yet.",
+      "bringEmptyOwner": "Add what's needed: pizza, drinks, dessert...",
+      "bringPlaceholder": "E.g. Soft drinks & ice",
+      "songsEmpty": "No songs yet. Suggest the first one!",
+      "songPlaceholder": "Song",
+      "artistPlaceholder": "Artist (optional)",
+      "suggestedBy": "suggested by {{name}}",
+      "upvote_one": "Upvote, {{count}} vote",
+      "upvote_other": "Upvote, {{count}} votes",
+      "winesEmpty": "The host hasn't added the wines yet.",
+      "winesEmptyOwner": "Add the wines from the tasting.",
+      "winePlaceholder": "Wine (e.g. Fetească Neagră 2021)",
+      "wineStylePlaceholder": "Style (e.g. dry red)",
+      "groupAverage": "group average {{value}}",
+      "rateStars_one": "{{count}} star",
+      "rateStars_other": "{{count}} stars",
+      "rateHint": "Tap the stars to rate each wine.",
+      "yourFav": "Your favourite so far: {{name}}"
+    },
+    "bill": {
+      "eyebrow": "Splitting the bill",
+      "edit": "Edit the bill",
+      "total": "total",
+      "people": "people",
+      "perPerson": "per person",
+      "whoPaid": "Who's paid",
+      "host": "The host",
+      "paid": "paid",
+      "sent": "sent",
+      "due": "to pay",
+      "confirm": "Confirm",
+      "undoHint": "Tap to undo the confirmation",
+      "howPay": "How to pay",
+      "noMethod": "The host will tell you.",
+      "iPaid": "I've sent my share ({{amount}})",
+      "youSent": "✓ You've sent your share. The host confirms.",
+      "youPaidConfirmed": "✓ Paid. Thanks!",
+      "undo": "Undo",
+      "maybeNote": "Your share shows up once you confirm you're coming.",
+      "noMoney": "PovesteaNoastra doesn't hold the money, only the tally. Everyone pays the host directly.",
+      "emptyOwner": "Split the cost (room, food, ticket) and see who's paid, without chasing anyone.",
+      "emptyGuest": "The host hasn't added the bill yet.",
+      "create": "Split the cost",
+      "formTitle": "Split the bill",
+      "formSubtitle": "The total is divided by the number of people.",
+      "titleLabel": "What for",
+      "totalLabel": "Total (lei)",
+      "peopleLabel": "How many people split it",
+      "peopleHint": "Including you.",
+      "methodLabel": "How to pay",
+      "methodPlaceholder": "Revolut @name · or cash on arrival",
+      "preview": "{{amount}} per person",
+      "delete": "Delete the bill",
+      "deleteTitle": "Delete the bill?",
+      "deleteBody": "The payment tally is lost too."
+    },
+    "dashboard": {
+      "plusOnes_one": "{{count}} +1",
+      "plusOnes_other": "{{count}} +1s",
+      "spots": "{{taken}}/{{limit}} spots",
+      "withPlusOne": "Bringing someone (+1)"
+    }
   }
 }

@@ -70,7 +70,7 @@ export default function PreviewScreen() {
         stepLabel={t("createWizard.stepLabel", { ...step, name: t("createWizard.stepPreview") })}
         step={step.step}
         totalSteps={step.total}
-          progressColors={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].gradient : undefined}
+          progressColor={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].fill : undefined}
       />
 
       <InviteReveal type={draft.type}>

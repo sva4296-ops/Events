@@ -258,7 +258,7 @@ export default function PricingScreen() {
           })}
           step={wizardStep(event.type, "plan").step}
           totalSteps={wizardStep(event.type, "plan").total}
-          progressColors={EVENT_TYPE_COLORS[event.type].gradient}
+          progressColor={EVENT_TYPE_COLORS[event.type].fill}
         />
       ) : (
         <Header

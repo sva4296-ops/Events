@@ -17,8 +17,8 @@ interface HeaderProps {
   /** 1-based wizard step, rendered as a progress bar when `totalSteps` is set. */
   step?: number;
   totalSteps?: number;
-  /** Gradient for the filled progress bars (default: the brand's). */
-  progressColors?: readonly [string, string, ...string[]];
+  /** Solid color for the filled progress bars (default: the accent). */
+  progressColor?: string;
   /** Warm Story 2.0 wizard chrome: centered flow name between the controls, e.g. "Eveniment nou". */
   flowTitle?: string;
   /** Line under `flowTitle`, e.g. "Pasul 1 din 5 · Tipul". */
@@ -34,7 +34,7 @@ export function Header({
   onClose,
   step,
   totalSteps,
-  progressColors,
+  progressColor,
   flowTitle,
   stepLabel,
   right,
@@ -83,7 +83,7 @@ export function Header({
 
       {step !== undefined && totalSteps !== undefined ? (
         <View style={styles.progress}>
-          <SegmentedProgress total={totalSteps} current={step - 1} colors={progressColors} />
+          <SegmentedProgress total={totalSteps} current={step - 1} color={progressColor} />
         </View>
       ) : null}
 

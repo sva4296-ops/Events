@@ -92,7 +92,7 @@ export default function EventDetailsScreen() {
           stepLabel={t("createWizard.stepLabel", { ...step, name: t("createWizard.stepDetails") })}
           step={step.step}
           totalSteps={step.total}
-          progressColors={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].gradient : undefined}
+          progressColor={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].fill : undefined}
         />
 
         <Field

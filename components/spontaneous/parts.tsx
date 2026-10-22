@@ -66,12 +66,12 @@ export function DeletableRow({
   );
 }
 
-/** Small uppercase label, accent-colored ("WHO'S COMING"). */
+/** Small uppercase label in secondary text ("WHO'S COMING"). */
 export function Eyebrow({ children, right }: { children: string; right?: string }) {
   const { tokens } = useTheme();
   return (
     <View style={styles.eyebrowRow}>
-      <Text style={[styles.eyebrow, { color: tokens.accentText }]}>{children.toUpperCase()}</Text>
+      <Text style={[styles.eyebrow, { color: tokens.textSecondary }]}>{children.toUpperCase()}</Text>
       {right !== undefined ? <Text style={[styles.eyebrowRight, { color: tokens.textSecondary }]}>{right}</Text> : null}
     </View>
   );

@@ -49,7 +49,7 @@ export default function VenueSetupStep() {
           stepLabel={t('createWizard.stepLabel', { ...step, name: t('venue.wizard.stepSetup') })}
           step={step.step}
           totalSteps={step.total}
-          progressColors={EVENT_TYPE_COLORS.venue.gradient}
+          progressColor={EVENT_TYPE_COLORS.venue.fill}
         />
         <VenueSetupForm value={draft} onChange={updateDraft} startTime={draft.startTime} />
       </Screen>

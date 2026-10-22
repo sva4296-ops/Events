@@ -1,5 +1,4 @@
 import Feather from '@expo/vector-icons/Feather';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -19,13 +18,13 @@ import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { haptics } from '@/utils/haptics';
 import { staggerIn } from '@/utils/motion';
 import { timeAgo } from '@/utils/relativeTime';
-import { formatSpontaneousWhen, templateMeta } from '@/utils/spontaneous';
-import { accentButtonShadow, bandGradientLocations, themeRadius, typography } from '@/utils/themeTokens';
+import { formatSpontaneousWhen } from '@/utils/spontaneous';
+import { accentButtonShadow, themeRadius, typography } from '@/utils/themeTokens';
 
 const MAX_AVATARS = 6;
 
 /**
- * Acasă for a spontaneous event: countdown on the template's band, who's
+ * Acasă for a spontaneous event: countdown card, who's
  * coming, the group vote, the host's updates (moments without a photo, same
  * table and composer as every other type), then a nudge to the Plan tab.
  */
@@ -35,7 +34,6 @@ export function SpontaneousHome({ event, owner }: { event: AppEvent; owner: bool
   const insets = useSafeAreaInsets();
   const { content, myPollVote, vote } = useSpontaneous(event.id);
   const { content: social, deleteMoment } = useEventContent(event.id);
-  const meta = templateMeta(event.template);
   const days = daysUntilEvent(event.date);
   const tabBarClearance = tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height;
 
@@ -53,35 +51,29 @@ export function SpontaneousHome({ event, owner }: { event: AppEvent; owner: bool
         contentStyle={owner ? { paddingBottom: tabBarClearance + gSpace.xxl + 56 } : undefined}
         transparent
       >
-        <LinearGradient
-          colors={meta.band}
-          locations={bandGradientLocations}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.countdown}
-        >
+        <SpCard style={styles.countdown}>
           {days !== null && days >= 0 ? (
             <View style={styles.daysBox}>
-              <Text style={[styles.daysValue, { color: meta.bandInk }]}>{days}</Text>
-              <Text style={[styles.daysLabel, { color: meta.bandInk }]}>
+              <Text style={[styles.daysValue, { color: tokens.accentText }]}>{days}</Text>
+              <Text style={[styles.daysLabel, { color: tokens.textSecondary }]}>
                 {days === 0 ? t('spontaneous.home.today') : t('spontaneous.home.daysLeft', { count: days })}
               </Text>
             </View>
           ) : null}
           <View style={styles.countdownText}>
-            <Text style={[styles.countdownTitle, { color: meta.bandInk }]} numberOfLines={2}>
+            <Text style={[styles.countdownTitle, { color: tokens.textPrimary }]} numberOfLines={2}>
               {event.name}
             </Text>
-            <Text style={[styles.countdownWhen, { color: meta.bandInk }]}>
+            <Text style={[styles.countdownWhen, { color: tokens.textSecondary }]}>
               {formatSpontaneousWhen(event.date, event.startTime)}
             </Text>
             {event.location.trim().length > 0 ? (
-              <Text style={[styles.countdownWhen, { color: meta.bandInk }]} numberOfLines={1}>
+              <Text style={[styles.countdownWhen, { color: tokens.textSecondary }]} numberOfLines={1}>
                 {event.location}
               </Text>
             ) : null}
           </View>
-        </LinearGradient>
+        </SpCard>
 
         <SpCard>
           <Eyebrow right={t('spontaneous.home.counts', { yes: goingPeople, maybe: maybe.length })}>
@@ -185,8 +177,8 @@ export function SpontaneousHome({ event, owner }: { event: AppEvent; owner: bool
                 onDelete={() => deleteMoment(moment.id)}
               >
                 <View style={[styles.update, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-                  <View style={[styles.updateDot, { backgroundColor: meta.accent }]}>
-                    <Feather name="bell" size={15} color="#FFFFFF" />
+                  <View style={[styles.updateDot, { backgroundColor: tokens.accentTint }]}>
+                    <Feather name="bell" size={15} color={tokens.accentText} />
                   </View>
                   <View style={styles.updateText}>
                     <Text style={[styles.updateTitle, { color: tokens.textPrimary }]}>{moment.title}</Text>
@@ -238,8 +230,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   countdown: {
-    borderRadius: 24,
-    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 18,

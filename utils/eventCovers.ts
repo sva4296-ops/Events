@@ -5,8 +5,9 @@ import type { EventTypeId } from '@/types/event';
 
 /**
  * Default cover photo per event type, shown on Home's event cards and as the
- * invitation thumbnail. Replace a file in assets/event-covers/ with a real
- * photo (same name, landscape, ~1200x675 JPG) and it shows up everywhere.
+ * invitation thumbnail: a flat muted tone per type with its large, faint
+ * icon. Replace a file in assets/event-covers/ (same name, landscape,
+ * ~1200x675 JPG) and it shows up everywhere.
  */
 export const EVENT_COVERS: Record<EventTypeId, ImageSourcePropType> = {
   wedding: require('../assets/event-covers/wedding.jpg'),
@@ -16,10 +17,8 @@ export const EVENT_COVERS: Record<EventTypeId, ImageSourcePropType> = {
   corporate: require('../assets/event-covers/corporate.jpg'),
   memorial: require('../assets/event-covers/memorial.jpg'),
   other: require('../assets/event-covers/other.jpg'),
-  // No art of its own yet: the birthday cover reads as "party".
-  spontaneous: require('../assets/event-covers/birthday.jpg'),
-  // No art of its own yet.
-  venue: require('../assets/event-covers/other.jpg'),
+  spontaneous: require('../assets/event-covers/spontaneous.jpg'),
+  venue: require('../assets/event-covers/venue.jpg'),
 };
 
 /**
@@ -39,6 +38,6 @@ export const EVENT_TYPE_COLORS: Record<
   corporate: { fill: '#5B6BB8', onFill: '#FFFFFF', gradient: ['#7CC4FF', '#5B6BB8', '#3A4180'], tint: 'rgba(91,107,184,0.3)' },
   memorial: { fill: '#8F88A6', onFill: '#FFFFFF', gradient: ['#D6D2DC', '#8F88A6', '#4A4560'], tint: 'rgba(143,136,166,0.3)' },
   other: { fill: '#B39DFF', onFill: '#1E1A30', gradient: ['#FF8A65', '#B39DFF', '#7CC4FF'], tint: 'rgba(179,157,255,0.28)' },
-  spontaneous: { fill: '#E8457A', onFill: '#FFFFFF', gradient: ['#FFB547', '#E8457A', '#7A2E8E'], tint: 'rgba(232,69,122,0.25)' },
+  spontaneous: { fill: '#A8638B', onFill: '#FFFFFF', gradient: ['#C48DAE', '#A8638B', '#7A4A6A'], tint: 'rgba(168,99,139,0.25)' },
   venue: { fill: '#D6336C', onFill: '#FFFFFF', gradient: ['#5F2B84', '#A61E4D', '#D6336C'], tint: 'rgba(214,51,108,0.25)' },
 };

@@ -22,6 +22,8 @@ interface ShadowStyle {
 
 export interface ThemeTokens {
   mode: "light" | "dark";
+  /** Font family for display text (greeting, event names, big numbers). Per theme. */
+  displayFont: string;
   background: Gradient;
   surface: string;
   surfaceElevated: string;
@@ -84,6 +86,7 @@ export const themeRadius = {
 
 export const lightTheme: ThemeTokens = {
   mode: "light",
+  displayFont: "BricolageGrotesque_600SemiBold",
   // Sand beige (was cream to peach #FFF8F1 -> #FBEAE0): neutral, so each
   // event's own colors (cover, accent) stand out.
   background: ["#F7F3EC", "#ECE4D7"],
@@ -138,6 +141,7 @@ export const lightTheme: ThemeTokens = {
 
 export const darkTheme: ThemeTokens = {
   mode: "dark",
+  displayFont: "BricolageGrotesque_600SemiBold",
   background: ["#1E1A30", "#1E1A30"],
   surface: "#2A2440",
   surfaceElevated: "#2A2440",
@@ -171,6 +175,99 @@ export const darkTheme: ThemeTokens = {
     active: "#BDB7F7",
     inactive: "#B4ADC7",
   },
+};
+
+/** The six themes the user picks from in Profile. */
+export type ThemeId = "hartie" | "sampanie" | "minimal" | "bleumarin" | "teracota" | "visina";
+export const THEME_IDS: readonly ThemeId[] = ["hartie", "sampanie", "minimal", "bleumarin", "teracota", "visina"];
+export const DEFAULT_THEME: ThemeId = "teracota";
+
+interface Palette {
+  mode: "light" | "dark";
+  displayFont: string;
+  background: string;
+  surface: string;
+  surface2: string;
+  border: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  accent: string;
+  onAccent: string;
+  accentTint: string;
+  accentText: string;
+}
+
+/** Builds a full token set from a small palette; status tones come from the light/dark base. */
+function makeTheme(p: Palette): ThemeTokens {
+  const base = p.mode === "dark" ? darkTheme : lightTheme;
+  return {
+    ...base,
+    mode: p.mode,
+    displayFont: p.displayFont,
+    background: [p.background, p.background],
+    surface: p.surface,
+    surfaceElevated: p.surface,
+    surfaceMuted: p.surface2,
+    surfaceBorder: p.border,
+    surfaceElevatedShadow: p.mode === "light" ? { ...lightTheme.surfaceElevatedShadow!, shadowOpacity: 0.05 } : null,
+    textPrimary: p.textPrimary,
+    textSecondary: p.textSecondary,
+    textMuted: p.textMuted,
+    border: p.border,
+    surface2: p.surface2,
+    accentPrimary: p.accent,
+    accentFill: p.accent,
+    onAccent: p.onAccent,
+    accentTint: p.accentTint,
+    accentText: p.accentText,
+    tabBar: { background: p.surface, active: p.accentText, inactive: p.textSecondary },
+  };
+}
+
+export const THEMES: Record<ThemeId, ThemeTokens> = {
+  // A1 · Hârtie: paper, ink, burgundy.
+  hartie: makeTheme({
+    mode: "light", displayFont: "Newsreader_400Regular",
+    background: "#F3EEE4", surface: "#FAF7F0", surface2: "#E8E0D2", border: "#DCD3C3",
+    textPrimary: "#1E1B18", textSecondary: "#5F584E", textMuted: "#8A8276",
+    accent: "#6E2430", onAccent: "#FFFFFF", accentTint: "#EFE0DF", accentText: "#6E2430",
+  }),
+  // A2 · Șampanie: near-black with champagne gold.
+  sampanie: makeTheme({
+    mode: "dark", displayFont: "CormorantGaramond_500Medium",
+    background: "#121211", surface: "#1B1A18", surface2: "#252320", border: "#2F2C27",
+    textPrimary: "#EEE7D9", textSecondary: "#A39C8F", textMuted: "#7A7469",
+    accent: "#C9A55C", onAccent: "#121211", accentTint: "#2E281C", accentText: "#D9B972",
+  }),
+  // A3 · Minimal: white, grey, forest green.
+  minimal: makeTheme({
+    mode: "light", displayFont: "InstrumentSans_600SemiBold",
+    background: "#FFFFFF", surface: "#F3F3F1", surface2: "#E4E4E1", border: "#E4E4E1",
+    textPrimary: "#141414", textSecondary: "#5E5E5E", textMuted: "#8C8C8C",
+    accent: "#2D4A3E", onAccent: "#FFFFFF", accentTint: "#E3ECE7", accentText: "#2D4A3E",
+  }),
+  // B1 · Bleumarin & coral.
+  bleumarin: makeTheme({
+    mode: "dark", displayFont: "Lora_400Regular",
+    background: "#111827", surface: "#18223A", surface2: "#202C46", border: "#26324D",
+    textPrimary: "#EEF1F6", textSecondary: "#A3ADC1", textMuted: "#78839A",
+    accent: "#E07A62", onAccent: "#1A1210", accentTint: "#3A2A2E", accentText: "#EE927C",
+  }),
+  // B2 · Teracotă: warm and bright.
+  teracota: makeTheme({
+    mode: "light", displayFont: "Lora_400Regular",
+    background: "#EEE5D9", surface: "#FFFFFF", surface2: "#E2D5C3", border: "#E0D4C4",
+    textPrimary: "#2A211C", textSecondary: "#6A5E54", textMuted: "#958879",
+    accent: "#A54E36", onAccent: "#FFFFFF", accentTint: "#F3E2DA", accentText: "#9A462F",
+  }),
+  // B3 · Vișină & roz pudrat.
+  visina: makeTheme({
+    mode: "dark", displayFont: "Lora_700Bold",
+    background: "#221316", surface: "#2E1A1F", surface2: "#3D2329", border: "#45272E",
+    textPrimary: "#F6E7E9", textSecondary: "#C3A7AC", textMuted: "#937A7F",
+    accent: "#E8B4B8", onAccent: "#2A1418", accentTint: "#4A2A31", accentText: "#EFC3C6",
+  }),
 };
 
 /** Warm Story 2.0 "story thread": gold → pink → purple. Same in both modes. */

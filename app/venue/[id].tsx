@@ -23,7 +23,14 @@ export default function VenueScreen() {
   const { content, updateVenue, deleteVenue } = useEventContent(id ?? '');
 
   const [name, setName] = useState(content?.venue.name ?? '');
-  const [address, setAddress] = useState(content?.venue.address ?? '');
+  // No venue yet: start from the location typed when the event was created.
+  const [address, setAddress] = useState(
+    content !== null && content.venue.address.trim().length > 0
+      ? content.venue.address
+      : content !== null && content.venue.name.trim().length > 0
+        ? ''
+        : (event?.location.trim() ?? ''),
+  );
   const [notes, setNotes] = useState((content?.venue.notes ?? []).join('\n'));
   const [coords, setCoords] = useState<{
     latitude: number;

@@ -47,6 +47,8 @@ export default function DetaliiLocationScreen() {
   }
 
   const hasVenue = content.venue.name.trim().length > 0 || content.venue.address.trim().length > 0;
+  // The free-text location typed when the event was created: shown until a venue is set.
+  const eventLocation = event?.location.trim() ?? '';
   const card = cardStyle(tokens);
 
   return (
@@ -65,7 +67,38 @@ export default function DetaliiLocationScreen() {
         }
       />
 
-      {!hasVenue ? (
+      {!hasVenue && eventLocation.length > 0 ? (
+        <View style={[styles.mapCard, card]}>
+          <View style={styles.venueBody}>
+            <Text style={[styles.venueName, { color: tokens.textPrimary }]}>{eventLocation}</Text>
+            <Text style={[styles.venueAddress, { color: tokens.textSecondary }]}>
+              {t('detalii.venueFromEvent')}
+            </Text>
+            <View style={styles.navRow}>
+              <Button
+                label={t('detalii.openInMaps')}
+                onPress={() => openInMaps({ name: '', address: eventLocation, latitude: null, longitude: null })}
+                icon={<Feather name="navigation" size={18} color={buttonLabelColor('primary', tokens)} />}
+                style={styles.navPrimary}
+              />
+              <Button
+                label={t('detalii.openInWaze')}
+                variant="secondary"
+                onPress={() => openInWaze({ name: '', address: eventLocation, latitude: null, longitude: null })}
+              />
+            </View>
+            {owner ? (
+              <Button
+                label={t('detalii.addExactVenue')}
+                variant="tonal"
+                icon={<Feather name="map-pin" size={18} color={buttonLabelColor('tonal', tokens)} />}
+                onPress={() => router.push(`/venue/${id}`)}
+                style={styles.addExact}
+              />
+            ) : null}
+          </View>
+        </View>
+      ) : !hasVenue ? (
         <EmptyState
           message={owner ? t('detalii.venueEmptyOwner') : t('detalii.venueEmptyGuest')}
           action={
@@ -194,5 +227,8 @@ const styles = StyleSheet.create({
   },
   navPrimary: {
     flex: 1,
+  },
+  addExact: {
+    marginTop: gSpace.sm,
   },
 });

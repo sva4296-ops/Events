@@ -48,7 +48,18 @@
     "tabInvited": "Invited",
     "tabAll": "All",
     "unreadMessages_one": "{{count}} new message",
-    "unreadMessages_other": "{{count}} new messages"
+    "unreadMessages_other": "{{count}} new messages",
+    "dashboard": {
+      "next": "Up next",
+      "upNext": "Coming up",
+      "seeAll": "All",
+      "daysShort_one": "day",
+      "daysShort_other": "days",
+      "stageOf": "Stage {{stage}} of 4 · {{name}}",
+      "noGuestsYet": "No guests yet",
+      "sendInvites": "Send invitations",
+      "today": "Today"
+    }
   },
   "auth": {
     "headline": "Step into the story",
@@ -355,7 +366,9 @@
     "openInMaps": "Open in Maps",
     "openInWaze": "Waze",
     "deleteVenueTitle": "Delete the location?",
-    "deleteVenueBody": "\"{{name}}\" will be removed from the event, with its address, map and notes. Guests won't see it anymore."
+    "deleteVenueBody": "\"{{name}}\" will be removed from the event, with its address, map and notes. Guests won't see it anymore.",
+    "venueFromEvent": "From the event details",
+    "addExactVenue": "Add the exact place on the map"
   },
   "fond": {
     "emptyOwner": "No fund yet. Open one so guests can contribute to something that matters to you.",
@@ -388,8 +401,6 @@
     "languageEnglish": "English",
     "languageRomanian": "Română",
     "theme": "Appearance",
-    "themeLight": "Light",
-    "themeDark": "Dark",
     "personalData": "Personal details",
     "groupAccount": "Account",
     "groupEvents": "Events and plans",
@@ -406,7 +417,15 @@
     "notifications": "Notifications",
     "notificationsBlockedTitle": "Notifications are blocked",
     "notificationsBlockedMessage": "You can turn them on in your phone's settings, under PovesteaNoastra → Notifications.",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "themes": {
+      "hartie": "Paper",
+      "sampanie": "Champagne",
+      "minimal": "Minimal",
+      "bleumarin": "Navy & coral",
+      "teracota": "Terracotta",
+      "visina": "Cherry & powder pink"
+    }
   },
   "pricing": {
     "title": "Plans & pricing",

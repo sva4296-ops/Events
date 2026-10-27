@@ -14,7 +14,8 @@ import { Screen } from '@/components/Screen';
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { GeneratedAvatar } from '@/components/GeneratedAvatar';
-import { useTheme, type ThemeMode } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { THEME_IDS, THEMES } from '@/utils/themeTokens';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { formatPhoneDisplay } from '@/utils/countryCodes';
 import { processAvatarPhoto } from '@/utils/imageProcessing';
@@ -30,19 +31,12 @@ const LANGUAGE_LABEL_KEY: Record<SupportedLanguage, string> = {
   ro: 'profile.languageRomanian',
 };
 
-const THEME_MODES: readonly ThemeMode[] = ['light', 'dark'];
-
-const THEME_LABEL_KEY: Record<ThemeMode, string> = {
-  light: 'profile.themeLight',
-  dark: 'profile.themeDark',
-};
-
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const { user, signOut, deleteAccount } = useAuth();
   const { displayName, avatarUrl, uploadAvatar } = useUserProfile();
   const { isAgencyOwner, hydrated: agencyHydrated } = useAgency();
-  const { tokens, mode, setThemeMode } = useTheme();
+  const { tokens, themeId, setThemeId } = useTheme();
   const activeLanguage = i18n.language;
   const contact = user?.email ?? user?.phone ?? null;
   const phoneDisplay = user?.phone != null ? formatPhoneDisplay(user.phone) : null;
@@ -138,11 +132,11 @@ export default function ProfileScreen() {
   const chooseTheme = () => {
     showActionSheet({
       title: t('profile.theme'),
-      actions: THEME_MODES.map((themeMode) => ({
-        label: t(THEME_LABEL_KEY[themeMode]),
-        icon: themeMode === 'dark' ? ('moon' as const) : ('sun' as const),
-        selected: mode === themeMode,
-        onPress: () => setThemeMode(themeMode),
+      actions: THEME_IDS.map((id) => ({
+        label: t(`profile.themes.${id}`),
+        icon: THEMES[id].mode === 'dark' ? ('moon' as const) : ('sun' as const),
+        selected: themeId === id,
+        onPress: () => setThemeId(id),
       })),
     });
   };
@@ -156,15 +150,6 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <BackButton />
         <Text style={[styles.title, { color: tokens.textPrimary }]}>{t('profile.title')}</Text>
-        <TouchableOpacity
-          style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
-          onPress={() => router.push('/edit-profile')}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={t('profile.editProfile')}
-        >
-          <Feather name="edit-2" size={20} color={tokens.textPrimary} />
-        </TouchableOpacity>
       </View>
 
       <View style={styles.identity}>
@@ -203,7 +188,7 @@ export default function ProfileScreen() {
       <ListGroup title={t('profile.groupAccount')}>
         <ListRow icon="user" label={t('profile.personalData')} onPress={() => router.push('/edit-profile')} />
         <ListRow icon="globe" label={t('profile.language')} value={languageLabel} onPress={chooseLanguage} />
-        <ListRow icon="moon" label={t('profile.theme')} value={t(THEME_LABEL_KEY[mode])} onPress={chooseTheme} />
+        <ListRow icon="moon" label={t('profile.theme')} value={t(`profile.themes.${themeId}`)} onPress={chooseTheme} />
         <ListRow icon="bell" label={t('profile.notifications')} onPress={() => router.push('/notifications')} />
       </ListGroup>
 
@@ -281,14 +266,6 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     flex: 1,
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: themeRadius.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   identity: {
     flexDirection: 'row',

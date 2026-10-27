@@ -1,53 +1,57 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
 
 import type { EventTypeId } from '@/types/event';
 import { eventAccentTokens } from '@/utils/eventAccent';
-import { darkTheme, lightTheme, type ThemeTokens } from '@/utils/themeTokens';
+import { DEFAULT_THEME, THEME_IDS, THEMES, type ThemeId, type ThemeTokens } from '@/utils/themeTokens';
 
 export type ThemeMode = 'light' | 'dark';
 
-const THEME_KEY = 'povesteanoastra:theme:v1';
+const THEME_KEY = 'povesteanoastra:theme:v2';
+/** v1 stored 'light'/'dark'; mapped onto the closest new theme once. */
+const LEGACY_THEME_KEY = 'povesteanoastra:theme:v1';
 
 interface ThemeContextValue {
-  /** The resolved mode actually in effect — system scheme unless overridden. */
+  /** Whether the active theme is light or dark (status bar, pickers, maps). */
   mode: ThemeMode;
-  /** Null means "follow system"; the Profile toggle always sets an explicit value. */
-  override: ThemeMode | null;
+  themeId: ThemeId;
   tokens: ThemeTokens;
-  setThemeMode: (mode: ThemeMode) => void;
+  setThemeId: (id: ThemeId) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const systemScheme = useColorScheme();
-  const [override, setOverride] = useState<ThemeMode | null>(null);
+function isThemeId(value: string | null): value is ThemeId {
+  return value !== null && (THEME_IDS as readonly string[]).includes(value);
+}
 
-  // Same "read cached preference once at startup" shape as utils/i18n.ts's
-  // language restore — renders with the system-scheme guess for one frame,
-  // then reconciles once AsyncStorage resolves. A saved choice wins once it
-  // arrives, not before.
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [themeId, setThemeIdState] = useState<ThemeId>(DEFAULT_THEME);
+
+  // Read the saved choice once at startup (same shape as the language restore).
   useEffect(() => {
-    void AsyncStorage.getItem(THEME_KEY).then((stored) => {
-      if (stored === 'light' || stored === 'dark') {
-        setOverride(stored);
-      }
+    void AsyncStorage.multiGet([THEME_KEY, LEGACY_THEME_KEY]).then((pairs) => {
+      const stored = pairs[0]?.[1] ?? null;
+      const legacy = pairs[1]?.[1] ?? null;
+      if (isThemeId(stored)) setThemeIdState(stored);
+      else if (legacy === 'dark') setThemeIdState('bleumarin');
     });
   }, []);
 
-  const mode: ThemeMode = override ?? (systemScheme === 'dark' ? 'dark' : 'light');
-  const tokens = mode === 'dark' ? darkTheme : lightTheme;
-
-  const setThemeMode = (next: ThemeMode) => {
-    setOverride(next);
-    void AsyncStorage.setItem(THEME_KEY, next);
-  };
+  const tokens = THEMES[themeId];
+  const mode: ThemeMode = tokens.mode;
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ mode, override, tokens, setThemeMode }),
-    [mode, override, tokens],
+    () => ({
+      mode,
+      themeId,
+      tokens,
+      setThemeId: (next: ThemeId) => {
+        setThemeIdState(next);
+        void AsyncStorage.setItem(THEME_KEY, next);
+      },
+    }),
+    [mode, themeId, tokens],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

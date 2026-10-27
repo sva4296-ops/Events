@@ -50,7 +50,19 @@
     "tabAll": "Toate",
     "unreadMessages_one": "{{count}} mesaj nou",
     "unreadMessages_few": "{{count}} mesaje noi",
-    "unreadMessages_other": "{{count}} mesaje noi"
+    "unreadMessages_other": "{{count}} mesaje noi",
+    "dashboard": {
+      "next": "Următorul",
+      "upNext": "Urmează",
+      "seeAll": "Toate",
+      "daysShort_one": "zi",
+      "daysShort_few": "zile",
+      "daysShort_other": "zile",
+      "stageOf": "Etapa {{stage}} din 4 · {{name}}",
+      "noGuestsYet": "Niciun invitat încă",
+      "sendInvites": "Trimite invitațiile",
+      "today": "Azi"
+    }
   },
   "auth": {
     "headline": "Intră în poveste",
@@ -376,7 +388,9 @@
     "openInMaps": "Deschide în Maps",
     "openInWaze": "Waze",
     "deleteVenueTitle": "Ștergi locația?",
-    "deleteVenueBody": "„{{name}}” va fi scoasă din eveniment, cu adresa, harta și notițele. Invitații nu o vor mai vedea."
+    "deleteVenueBody": "„{{name}}” va fi scoasă din eveniment, cu adresa, harta și notițele. Invitații nu o vor mai vedea.",
+    "venueFromEvent": "Din detaliile evenimentului",
+    "addExactVenue": "Adaugă locul exact pe hartă"
   },
   "fond": {
     "emptyOwner": "Niciun fond încă. Deschide unul ca invitații să poată contribui la ceva ce contează pentru voi.",
@@ -411,8 +425,6 @@
     "languageEnglish": "English",
     "languageRomanian": "Română",
     "theme": "Aspect",
-    "themeLight": "Luminos",
-    "themeDark": "Întunecat",
     "personalData": "Date personale",
     "groupAccount": "Cont",
     "groupEvents": "Evenimente și planuri",
@@ -429,7 +441,15 @@
     "notifications": "Notificări",
     "notificationsBlockedTitle": "Notificările sunt blocate",
     "notificationsBlockedMessage": "Le poți activa din setările telefonului, la PovesteaNoastra → Notificări.",
-    "openSettings": "Deschide setările"
+    "openSettings": "Deschide setările",
+    "themes": {
+      "hartie": "Hârtie",
+      "sampanie": "Șampanie",
+      "minimal": "Minimal",
+      "bleumarin": "Bleumarin & coral",
+      "teracota": "Teracotă",
+      "visina": "Vișină & roz pudrat"
+    }
   },
   "pricing": {
     "title": "Planuri și prețuri",

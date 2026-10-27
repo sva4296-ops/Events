@@ -653,15 +653,30 @@
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/bricolage-grotesque/-/bricolage-grotesque-0.4.1.tgz#6fcdf1211601034dda9656ad090e52fd15f517d0"
   integrity sha512-uijLLg+thOrFgw+gXtYA3dQJTBqqqleabcNFpamaYXqUUcbFe0J18C+4nfL0CyGzSJUicxUBLY4Zv7jdHmTGMA==
 
+"@expo-google-fonts/cormorant-garamond@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@expo-google-fonts/cormorant-garamond/-/cormorant-garamond-0.4.1.tgz#b748835a4c36e2ebe4ac042441d37feefc3affb6"
+  integrity sha512-e8J4Cn13K1txygamg50n3odLUsYP7Ck28XOGobMi7uDsWvFmp/jgK0qcALqJTlmi9NczSWUNdERxcLauHCBa/Q==
+
 "@expo-google-fonts/instrument-sans@^0.4.2":
   version "0.4.2"
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/instrument-sans/-/instrument-sans-0.4.2.tgz#22e2f42d38687fb0c2b3966f72fe02897307b373"
   integrity sha512-YR0jemCJ/eUlknOfxxxiLnJWpFDaT0KgLiB1q333jIDPlRAERfuMpOislkWA1A7HGX85N9LCsjWLlB3QOZo1wg==
 
+"@expo-google-fonts/lora@^0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@expo-google-fonts/lora/-/lora-0.4.2.tgz#cf4464ab37fcbcd3131cba173874690fa3077dc8"
+  integrity sha512-Bnofh2mIOUKp4KUS48VjaBgug4lQOcw/ftU0NFv5OPtiutL422//G1v63xDZEMUEL6ft4fi5q94/uKcpDjbPag==
+
 "@expo-google-fonts/material-symbols@^0.4.1":
   version "0.4.49"
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/material-symbols/-/material-symbols-0.4.49.tgz#29bed0101d23e4f63b50994092fb892ff862e7de"
   integrity sha512-HtoaXYCk7A9kOjwoxrjq6i0iDtAoQnOPm31zUn+TgmKlHVUU+yyqvQDxN830MvGmBQV8eINv/SK7JRtWhB2xcg==
+
+"@expo-google-fonts/newsreader@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@expo-google-fonts/newsreader/-/newsreader-0.4.1.tgz#db0d1554fa1f523909c571f168759352b22a7132"
+  integrity sha512-j96W112+mj/VYP06DCq00w+twyw42w0MY7eHB/XXioNK80BcG0cIk/zogjOENZSY7qejzIFbHE/PZYqlh/6VKQ==
 
 "@expo/cli@^57.0.28":
   version "57.0.28"

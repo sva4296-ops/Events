@@ -81,6 +81,8 @@ function DetaliiHub() {
   const hasVenue =
     content.venue.name.trim().length > 0 ||
     content.venue.address.trim().length > 0;
+  // The free-text location typed when the event was created, shown until a venue is set.
+  const eventLocation = event?.location.trim() ?? "";
   const seatedCount = content.seatingTables.reduce(
     (sum, table) => sum + table.seat_count,
     0,
@@ -113,8 +115,10 @@ function DetaliiHub() {
         ? content.venue.address.trim().length > 0
           ? content.venue.address
           : content.venue.name
-        : t("detalii.hub.locationUnset"),
-      complete: hasVenue,
+        : eventLocation.length > 0
+          ? eventLocation
+          : t("detalii.hub.locationUnset"),
+      complete: hasVenue || eventLocation.length > 0,
       route: `/detalii-location/${id}`,
     },
     {

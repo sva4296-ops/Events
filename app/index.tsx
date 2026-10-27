@@ -7,8 +7,7 @@ import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showActionSheet } from '@/components/ActionSheet';
-import { Button } from '@/components/Button';
-import { EventListItem, EventListItemSkeleton } from '@/components/EventListItem';
+import { DashboardHero, DashboardHeroSkeleton, DashboardRow } from '@/components/DashboardCards';
 import { GeneratedAvatar } from '@/components/GeneratedAvatar';
 import { HomeEmptyState } from '@/components/HomeEmptyState';
 import {
@@ -22,7 +21,6 @@ import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
-import { usePlanFeatures } from '@/hooks/usePlanFeatures';
 import { useChatActivity } from '@/hooks/useChatActivity';
 import { useUnreadChats } from '@/hooks/useUnreadChats';
 import { useTheme } from '@/hooks/useTheme';
@@ -67,11 +65,10 @@ export default function DashboardScreen() {
   );
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { events, hydrated, isOwner, isPrimaryOwner, isRestaurant, myCoOrganizerRole, deleteEvent } = useEvents();
+  const { events, hydrated, isOwner, isPrimaryOwner, isRestaurant, deleteEvent } = useEvents();
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
   const { isAgencyOwner } = useAgency();
-  const { plans } = usePlanFeatures();
   const { firstName, lastName, avatarUrl } = useUserProfile();
   const { user } = useAuth();
 
@@ -79,9 +76,6 @@ export default function DashboardScreen() {
   // RLS shows it the whole guest list, so guests[0] wouldn't be "its" row.
   const managesEvent = (event: (typeof events)[number]) => isOwner(event) || isRestaurant(event);
   const ownedEvents = events.filter(managesEvent).sort(compareEventsByDate);
-  // Null for events you own; your label ("Naș", "Mireasă"…) where you're a co-organizer.
-  const coOrganizerLabel = (role: ReturnType<typeof myCoOrganizerRole>) =>
-    role === null ? null : role === 'co_organizer' ? t('home.coOrganizer') : t(`coOrganizers.relation.${role}`);
   const invitations = myInvitations(events, managesEvent).sort((a, b) => compareEventsByDate(a.event, b.event));
   const avatarInitials = initials(firstName, lastName);
 
@@ -98,17 +92,6 @@ export default function DashboardScreen() {
     { key: 'invited', label: t('home.tabInvited'), count: hydrated ? invitations.length : null },
     { key: 'all', label: t('home.tabAll'), count: null },
   ];
-
-  // plan_features.display_name is the single source of truth for a tier's
-  // label (the exact same string the pricing screen's own card shows) —
-  // looked up here rather than duplicated as a second set of tier-name
-  // strings, so a card's badge can't drift from what the pricing screen
-  // itself calls that plan. Falls back to the raw plan_tier value only if
-  // plan_features doesn't (yet, or anymore) have a matching row.
-  const planLabelFor = (planTier: string | null): string | null => {
-    if (planTier === null) return null;
-    return plans.find((plan) => plan.planKey === planTier)?.displayName ?? planTier;
-  };
 
   // Long press on one of your event cards: edit it (until it's over) and, for
   // its creator, delete it after a confirmation. Replaces Detalii's pencil.
@@ -141,6 +124,10 @@ export default function DashboardScreen() {
     });
   };
 
+  // The restaurant only has the Detalii tab; everyone else lands on Acasă.
+  const openEvent = (event: (typeof events)[number]) =>
+    router.push(isRestaurant(event) ? `/guest/${event.id}/detalii` : `/guest/${event.id}`);
+
   const startCreating = () => {
     resetDraft();
     router.push('/create/type');
@@ -157,7 +144,7 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.greeting}>
             <Text style={[styles.date, { color: tokens.textSecondary }]}>{todayLabel()}</Text>
-            <Text style={[styles.hello, { color: tokens.textPrimary }]} numberOfLines={1}>
+            <Text style={[styles.hello, { color: tokens.textPrimary, fontFamily: tokens.displayFont }]} numberOfLines={1}>
               {firstName !== null && firstName.trim().length > 0
                 ? t('home.greeting', { name: firstName.trim() })
                 : t('home.greetingNoName')}
@@ -222,7 +209,7 @@ export default function DashboardScreen() {
           ) : null}
 
           {!hydrated ? (
-            <EventListItemSkeleton />
+            <DashboardHeroSkeleton />
           ) : ownedEvents.length === 0 ? (
             <HomeEmptyState
               icon="calendar"
@@ -232,23 +219,34 @@ export default function DashboardScreen() {
               onPressCta={startCreating}
             />
           ) : (
-            ownedEvents.map((event, index) => (
-              <Animated.View key={event.id} entering={staggerIn(index)}>
-                <EventListItem
-                  event={event}
-                  onPress={() =>
-                    // The restaurant only has the Detalii tab. Everyone else
-                    // lands on Acasă, finished events too (the story card is there).
-                    router.push(isRestaurant(event) ? `/guest/${event.id}/detalii` : `/guest/${event.id}`)
-                  }
-                  planLabel={planLabelFor(event.planTier)}
-                  onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
-                  coOrganizerLabel={coOrganizerLabel(myCoOrganizerRole(event))}
-                  onLongPress={isRestaurant(event) ? undefined : () => openEventMenu(event)}
-                  unreadMessages={isRestaurant(event) ? 0 : unreadFor(event.id)}
+            <>
+              {/* The soonest event gets the big card; the rest are compact rows. */}
+              <Animated.View entering={staggerIn(0)}>
+                <DashboardHero
+                  event={ownedEvents[0]!}
+                  onPress={() => openEvent(ownedEvents[0]!)}
+                  onLongPress={isRestaurant(ownedEvents[0]!) ? undefined : () => openEventMenu(ownedEvents[0]!)}
+                  onPressInvite={() => router.push(`/event/${ownedEvents[0]!.id}`)}
                 />
               </Animated.View>
-            ))
+              {ownedEvents.length > 1 ? (
+                <View>
+                  <Text style={[styles.overline, { color: tokens.textSecondary, borderBottomColor: tokens.border }]}>
+                    {t('home.dashboard.upNext')}
+                  </Text>
+                  {ownedEvents.slice(1).map((event, index) => (
+                    <Animated.View key={event.id} entering={staggerIn(index + 1)}>
+                      <DashboardRow
+                        event={event}
+                        showDivider={index > 0}
+                        onPress={() => openEvent(event)}
+                        onLongPress={isRestaurant(event) ? undefined : () => openEventMenu(event)}
+                      />
+                    </Animated.View>
+                  ))}
+                </View>
+              ) : null}
+            </>
           )}
         </View>
         ) : null}
@@ -304,18 +302,15 @@ export default function DashboardScreen() {
         )}
       </Screen>
 
-      {/* Down into the home-indicator area (it's a floating pill), but never on
-          the edge itself (some Androids report a 0 inset). */}
-      <View
-        style={[styles.createBar, { bottom: Math.max(insets.bottom - 10, spacing.sm) }]}
-        pointerEvents="box-none"
+      <TouchableOpacity
+        onPress={startCreating}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={t('home.createEvent')}
+        style={[styles.fab, { backgroundColor: tokens.accentFill, bottom: Math.max(insets.bottom, spacing.md) + 8 }]}
       >
-        <Button
-          label={t('home.createEvent')}
-          onPress={startCreating}
-          icon={<Feather name="plus" size={20} color={tokens.onAccent} />}
-        />
-      </View>
+        <Feather name="plus" size={26} color={tokens.onAccent} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -389,10 +384,26 @@ const styles = StyleSheet.create({
     ...typography.subtitle,
     fontSize: 18,
   },
-  createBar: {
+  overline: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  fab: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    right: 20,
+    width: 58,
+    height: 58,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
 });

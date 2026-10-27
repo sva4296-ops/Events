@@ -3,9 +3,8 @@ import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { EventCoverBackground } from "@/components/EventCoverBackground";
 import { EventAccentProvider, useTheme } from "@/hooks/useTheme";
-import type { EventTypeId, Gradient } from "@/types/event";
+import type { Gradient } from "@/types/event";
 import { spacing } from "@/utils/theme";
 
 interface ScreenProps {
@@ -19,8 +18,8 @@ interface ScreenProps {
   contentStyle?: ViewStyle;
   /** Skips the gradient so a ScreenBackground behind it shows through. */
   transparent?: boolean;
-  /** Screens opened from an event: its type's cover behind the content, same as the event tabs. */
-  coverType?: EventTypeId | null;
+  /** Screens opened from an event: its cover theme's accent (null = the app's). */
+  coverTheme?: string | null;
   /** False = content scrolls all the way under the home indicator / nav bar
    * (no bottom safe-area edge); the screen adds that inset to its own padding. */
   bottomSafeArea?: boolean;
@@ -33,7 +32,7 @@ export function Screen({
   scroll = true,
   contentStyle,
   transparent = false,
-  coverType = null,
+  coverTheme = null,
   bottomSafeArea = true,
 }: ScreenProps) {
   const { tokens } = useTheme();
@@ -42,8 +41,7 @@ export function Screen({
 
   return (
     <Wrapper colors={resolvedGradient} style={styles.fill}>
-      {coverType !== null ? <EventCoverBackground type={coverType} /> : null}
-      <EventAccentProvider type={coverType}>
+      <EventAccentProvider coverTheme={coverTheme}>
         <SafeAreaView
           style={styles.fill}
           edges={bottomSafeArea ? ["top", "bottom"] : ["top"]}

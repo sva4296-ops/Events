@@ -75,7 +75,7 @@ export default function LiveBroadcastScreen() {
 
   if (!allowed || id === undefined) {
     return (
-      <Screen coverType={event?.type}>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('common.notAvailable')} subtitle={t('liveVideo.notAvailable')} showBack />
       </Screen>
     );

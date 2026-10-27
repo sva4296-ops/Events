@@ -11,7 +11,6 @@ import { Screen } from "@/components/Screen";
 import { useEventDraft } from "@/hooks/useEventDraft";
 import { useEvents } from "@/hooks/useEvents";
 import { useTheme } from "@/hooks/useTheme";
-import { EVENT_TYPE_COLORS } from "@/utils/eventCovers";
 import { spacing } from "@/utils/theme";
 import { themeRadius, typography } from "@/utils/themeTokens";
 
@@ -62,7 +61,7 @@ export default function ShareScreen() {
 
   return (
     <Screen
-      coverType={event.type}
+      coverTheme={event.coverTheme}
       footer={
         <>
           <Button
@@ -126,23 +125,23 @@ export default function ShareScreen() {
       <View style={styles.hero}>
         {/* The logo in this event type's colors: its gradient on the heart,
             its tint as a halo, and the type's icon in a corner badge. */}
-        <View style={[styles.halo, { backgroundColor: EVENT_TYPE_COLORS[event.type].tint }]}>
+        <View style={[styles.halo, { backgroundColor: tokens.accentTint }]}>
           <View
             style={[
               styles.markCircle,
-              { backgroundColor: tokens.surface, borderColor: EVENT_TYPE_COLORS[event.type].fill },
+              { backgroundColor: tokens.surface, borderColor: tokens.accentFill },
               tokens.surfaceElevatedShadow ?? undefined,
             ]}
           >
-            <BrandMark width={76} colors={EVENT_TYPE_COLORS[event.type].gradient} />
+            <BrandMark width={76} colors={[tokens.accentFill, tokens.accentPrimary, tokens.accentText]} />
           </View>
           <View
             style={[
               styles.typeBadge,
-              { backgroundColor: EVENT_TYPE_COLORS[event.type].fill, borderColor: tokens.surface },
+              { backgroundColor: tokens.accentFill, borderColor: tokens.surface },
             ]}
           >
-            <EventTypeIcon type={event.type} size={20} color={EVENT_TYPE_COLORS[event.type].onFill} />
+            <EventTypeIcon type={event.type} size={20} color={tokens.onAccent} />
           </View>
         </View>
 

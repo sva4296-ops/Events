@@ -56,7 +56,7 @@ export default function VenueBookingsScreen() {
   const card = [styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }];
 
   return (
-    <Screen coverType={event.type} contentStyle={styles.content}>
+    <Screen coverTheme={event.coverTheme} contentStyle={styles.content}>
       <Header
         title={t('venue.bookings.title')}
         subtitle={event.name}

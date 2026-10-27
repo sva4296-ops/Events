@@ -12,7 +12,6 @@ import { useCancelCreate } from '@/hooks/useCancelCreate';
 import { useAgency } from '@/hooks/useAgency';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { EVENT_TYPES } from '@/utils/eventTypes';
-import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
 import { wizardStep } from '@/utils/spontaneous';
 
 import { spacing } from '@/utils/theme';
@@ -37,7 +36,8 @@ export default function PickTypeScreen() {
       });
       return;
     }
-    router.push(draft.type === 'spontaneous' ? '/create/template' : '/create/details');
+    if (draft.type === 'spontaneous') router.push('/create/template');
+    else router.push({ pathname: '/pricing/[id]', params: { id: 'draft', context: 'create' } });
   };
 
   // This is the wizard's first screen: it unmounts only when the wizard is
@@ -64,7 +64,6 @@ export default function PickTypeScreen() {
         stepLabel={t('createWizard.stepLabel', { step: 1, total: wizardStep(draft.type, 'type').total, name: t('createWizard.stepType') })}
         step={1}
         totalSteps={wizardStep(draft.type, 'type').total}
-          progressColor={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].fill : undefined}
       />
 
       <View style={styles.grid}>

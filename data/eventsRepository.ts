@@ -78,6 +78,7 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     coOrganizers: (row.event_members ?? []).map(mapMemberRow),
     planTier: row.plan_tier,
     planPurchasedAt: row.plan_purchased_at,
+    coverTheme: row.cover_theme ?? null,
     albumStatus: row.album_status,
     template: row.template ?? null,
     startTime: row.start_time ?? null,
@@ -135,6 +136,7 @@ export async function insertEvent(
       event_date: draft.date.trim().length > 0 ? draft.date.trim() : null,
       location: draft.location.trim(),
       welcome_message: draft.welcomeMessage.trim(),
+      cover_theme: draft.coverTheme,
       ...(draft.type === 'spontaneous'
         ? {
             template: draft.template ?? 'party',
@@ -188,6 +190,7 @@ export async function updateEventRow(
   }
   if (patch.location !== undefined) columns.location = patch.location;
   if (patch.welcomeMessage !== undefined) columns.welcome_message = patch.welcomeMessage;
+  if (patch.coverTheme !== undefined) columns.cover_theme = patch.coverTheme;
   if (patch.inviteIntro !== undefined) {
     columns.invite_intro = patch.inviteIntro.trim().length > 0 ? patch.inviteIntro.trim() : null;
   }

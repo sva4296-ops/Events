@@ -455,7 +455,10 @@
     "flowTitle": "Plans",
     "ownerOnly": "Only the main organizer can choose the plan.",
     "paymentsSoonTitle": "Payments coming soon",
-    "paymentsSoonBody": "Paid plans will be available to buy right in the app soon. Until then you can use the Esențial plan."
+    "paymentsSoonBody": "Paid plans will be available to buy right in the app soon. Until then you can use the Esențial plan.",
+    "subtitleDraft": "Pick now so you know what you unlock. You can upgrade anytime.",
+    "subtitleUpgrade": "Upgrade to unlock picking the theme with AI.",
+    "featureAiTheme": "Theme picked by AI"
   },
   "planGate": {
     "chatLocked": "Group chat isn't included in this event's current plan.",
@@ -827,7 +830,8 @@
     "discardTitle": "Discard this event?",
     "discardBody": "Everything you entered will be lost.",
     "keepEditing": "Keep editing",
-    "discard": "Discard"
+    "discard": "Discard",
+    "stepTheme": "Theme"
   },
   "eventTypes": {
     "wedding": {
@@ -1146,7 +1150,11 @@
     "undo": "Undo",
     "quotaTitle": "You've reached today's limit",
     "quotaBody": "You can use AI writing again tomorrow. Until then you can write the text yourself.",
-    "errorBody": "We couldn't write the text right now. Please try again in a moment."
+    "errorBody": "We couldn't write the text right now. Please try again in a moment.",
+    "eventQuotaTitle": "You've used this event's AI suggestions",
+    "eventQuotaBody": "This event's plan includes a limited number of AI suggestions. Upgrade to get more.",
+    "upgrade": "Upgrade",
+    "withLeft": "{{label}} · {{count}}"
   },
   "locationField": {
     "pointSet": "Map point set"
@@ -1525,5 +1533,48 @@
       "noTicketSub": "Book in seconds and your ticket shows up here.",
       "editProgramme": "Edit tonight's programme"
     }
+  },
+  "coverTheme": {
+    "title": "Pick a theme",
+    "subtitle": "Shown on the invitation, in the link and in the feed.",
+    "untitled": "Your event",
+    "back": "Back",
+    "tab": {
+      "invite": "Invitation",
+      "feed": "Feed",
+      "link": "Link"
+    },
+    "suggestedFor": "Suggested for {{category}}",
+    "aiTitle": "Pick with AI",
+    "aiBusy": "AI is picking…",
+    "aiBody": "Matches the theme to your event's title.",
+    "aiLocked": "Available on Complet and Premium. Tap to upgrade.",
+    "aiQuotaTitle": "You've used AI today",
+    "aiQuotaBody": "Try again tomorrow or pick the theme yourself.",
+    "names": {
+      "petrecere": "Party",
+      "aniversare": "Birthday",
+      "local": "Night out",
+      "karaoke": "Karaoke",
+      "disco": "Disco",
+      "neon": "Neon",
+      "revelion": "New Year",
+      "craciun": "Christmas",
+      "halloween": "Halloween",
+      "nunta": "Wedding",
+      "elegant": "Elegant",
+      "botez": "Baptism",
+      "copii": "Kids",
+      "gradina": "Garden",
+      "plaja": "Beach",
+      "aurora": "Aurora",
+      "corporate": "Corporate",
+      "absolvire": "Graduation",
+      "cina": "Dinner",
+      "minimal": "Minimal"
+    },
+    "linkInvited": "You're invited",
+    "linkCaption": "Chat preview · the link image is still",
+    "classic": "Classic"
   }
 }

@@ -16,7 +16,7 @@ import {
 /**
  * The story-thread heart logo, drawn statically. The splash animates its own copy.
  * `colors` swaps the brand gold -> pink -> purple for another three-stop
- * gradient (e.g. an event type's, EVENT_TYPE_COLORS[type].gradient).
+ * gradient (e.g. the current accent).
  */
 export function BrandMark({
   width = 52,

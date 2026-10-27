@@ -36,6 +36,8 @@ export interface EventRow {
    * CLAUDE.md's "Pricing screen". Null until the organizer picks a plan. */
   plan_tier: string | null;
   plan_purchased_at: string | null;
+  /** utils/coverThemes.ts id (20261027000002); null = the static per-type cover. */
+  cover_theme?: string | null;
   /** Flipped to 'ready' by the advance_album_status() pg_cron job ~72h after
    * event_date — see 20260812000003_album_status_cron.sql. */
   album_status: 'not_started' | 'generating' | 'ready';

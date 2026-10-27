@@ -110,6 +110,8 @@ export interface AppEvent {
    * app/pricing/[id].tsx and hooks/useEvents.tsx's setPlanTier. */
   planTier: string | null;
   planPurchasedAt: string | null;
+  /** utils/coverThemes.ts id, or null for the static per-type cover. */
+  coverTheme: string | null;
   /** events.album_status — 'ready' ~72h after the event date (server cron). */
   albumStatus: 'not_started' | 'generating' | 'ready';
   /** Spontaneous events only (null otherwise). */
@@ -161,6 +163,10 @@ export interface EventDraft {
   bookingTimes: string[];
   priceInfo: string;
   maxPartySize: string;
+  /** Picked first in the wizard; written to the event right after it's created. Null = skipped. */
+  planTier: string | null;
+  /** utils/coverThemes.ts id; null = static per-type cover. */
+  coverTheme: string | null;
 }
 
 export interface RsvpCounts {

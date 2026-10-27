@@ -58,7 +58,7 @@ export default function DetaliiVendorsScreen() {
 
   if (content === null) {
     return (
-      <Screen coverType={event?.type}>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('detalii.hub.vendorsTitle')} showBack />
       </Screen>
     );
@@ -69,7 +69,7 @@ export default function DetaliiVendorsScreen() {
   // vendors inserts (see the plan-feature-gating migration).
   if (planHydrated && !capabilities.vendorTaggingEnabled) {
     return (
-      <GuestScreen coverType={event?.type} topInset>
+      <GuestScreen coverTheme={event?.coverTheme} topInset>
         <Header title={t('detalii.hub.vendorsTitle')} showBack />
         <EmptyState
           icon="lock"
@@ -90,7 +90,7 @@ export default function DetaliiVendorsScreen() {
   const card = cardStyle(tokens);
 
   return (
-    <GuestScreen coverType={event?.type} topInset>
+    <GuestScreen coverTheme={event?.coverTheme} topInset>
       <Header
         title={t('detalii.hub.vendorsTitle')}
         subtitle={t('detalii.vendorsDescription')}

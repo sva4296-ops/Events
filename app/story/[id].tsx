@@ -1,18 +1,11 @@
 import Feather from "@expo/vector-icons/Feather";
+import { EventCover } from '@/components/EventCover';
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  Image,
-  ImageBackground,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -32,7 +25,6 @@ import { useEventContent } from "@/hooks/useEventContent";
 import { useEvents } from "@/hooks/useEvents";
 import { useTheme } from "@/hooks/useTheme";
 import type { AppEvent } from "@/types/event";
-import { EVENT_COVERS, EVENT_TYPE_COLORS } from "@/utils/eventCovers";
 import {
   buildEventStory,
   type JourneyItem,
@@ -89,13 +81,9 @@ export default function EventStoryScreen() {
         options={{ presentation: "fullScreenModal", animation: "fade" }}
       />
       {event !== undefined ? (
-        <ImageBackground
-          source={EVENT_COVERS[event.type]}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-        >
+        <EventCover type={event.type} coverTheme={event.coverTheme} style={StyleSheet.absoluteFill}>
           <LinearGradient colors={VEIL} style={StyleSheet.absoluteFill} />
-        </ImageBackground>
+        </EventCover>
       ) : null}
 
       {slides === null || event === undefined ? (
@@ -285,7 +273,7 @@ function ProgressSegment({
 function SlideView({ event, slide }: { event: AppEvent; slide: StorySlide }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
-  const accent = EVENT_TYPE_COLORS[event.type].fill;
+  const accent = tokens.accentFill;
 
   switch (slide.kind) {
     case "cover":
@@ -295,7 +283,7 @@ function SlideView({ event, slide }: { event: AppEvent; slide: StorySlide }) {
             <Text
               style={[
                 styles.chipText,
-                { color: EVENT_TYPE_COLORS[event.type].onFill },
+                { color: tokens.onAccent },
               ]}
             >
               {t(`eventTypes.${event.type}.label`)}

@@ -1,11 +1,11 @@
-import type { EventTypeId } from '@/types/event';
-import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
+import { getCoverTheme } from '@/utils/coverThemes';
 import type { ThemeTokens } from '@/utils/themeTokens';
 
 /**
- * Accent tokens in the event type's color (from its cover art), so buttons,
- * switches, the + button and the active tab match the cover behind them.
- * Cards and text stay neutral. Applied by EventAccentProvider (hooks/useTheme.tsx).
+ * Accent tokens in the event's picked cover theme's color, so buttons,
+ * switches, the + button and the active tab match its cover. Background,
+ * cards and text stay the app theme's. No picked theme = no override (null):
+ * the event looks like the rest of the app. Applied by EventAccentProvider.
  */
 type AccentTokens = Pick<ThemeTokens, 'accentPrimary' | 'accentFill' | 'onAccent' | 'accentTint' | 'accentText'>;
 
@@ -40,8 +40,13 @@ function onFill(fill: string): string {
   return contrast(fill, WHITE) >= contrast(fill, DARK_INK) ? WHITE : DARK_INK;
 }
 
-export function eventAccentTokens(type: EventTypeId, base: ThemeTokens): AccentTokens & { tabBar: ThemeTokens['tabBar'] } {
-  const fill = EVENT_TYPE_COLORS[type].fill;
+export function eventAccentTokens(
+  coverTheme: string | null | undefined,
+  base: ThemeTokens,
+): (AccentTokens & { tabBar: ThemeTokens['tabBar'] }) | null {
+  const theme = getCoverTheme(coverTheme);
+  if (theme === null) return null;
+  const fill = theme.accent;
   const dark = base.mode === 'dark';
   const accentText = dark ? mix(fill, WHITE, 0.35) : mix(fill, '#000000', 0.35);
   return {

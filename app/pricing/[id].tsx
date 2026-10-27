@@ -14,6 +14,7 @@ import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import { Skeleton } from "@/components/Skeleton";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
+import { useEventDraft } from "@/hooks/useEventDraft";
 import { useEvents } from "@/hooks/useEvents";
 import { useTheme } from "@/hooks/useTheme";
 import type {
@@ -22,12 +23,12 @@ import type {
   ResolvedPlan,
 } from "@/types/pricing";
 import { spacing } from "@/utils/theme";
-import { EVENT_TYPE_COLORS } from "@/utils/eventCovers";
 
 import { brandGradient, themeRadius, typography } from "@/utils/themeTokens";
 import { reportSupabaseError } from "@/utils/reportError";
 import { fetchOfferingPackages } from "@/utils/revenueCat";
 import { FUND_ENABLED, PAID_PLANS_FOR_TESTING } from "@/utils/features";
+import { AI_THEME_PLANS } from "@/utils/coverThemes";
 import { wizardStep } from "@/utils/spontaneous";
 
 /** The only plan_key the client may write (see the lock_paid_plan_tier migration). */
@@ -84,6 +85,7 @@ function buildFeatureBullets(plan: PlanFeature, t: Translate): string[] {
     bullets.push(t("pricing.featureContributions"));
   if (plan.liveScreenEnabled) bullets.push(t("pricing.featureLiveScreen"));
   if (plan.chatEnabled) bullets.push(t("pricing.featureChat"));
+  if (AI_THEME_PLANS.includes(plan.planKey)) bullets.push(t("pricing.featureAiTheme"));
   if (plan.lodgingTransportEnabled)
     bullets.push(t("pricing.featureLodgingTransport"));
   if (plan.vendorTaggingEnabled)
@@ -126,7 +128,13 @@ export default function PricingScreen() {
   const { plans, hydrated: plansHydrated } = usePlanFeatures();
   const [purchasingPlanId, setPurchasingPlanId] = useState<string | null>(null);
 
-  const event = getEvent(id);
+  const { draft, updateDraft } = useEventDraft();
+  // id "draft": the create wizard, before the event exists. The pick goes into
+  // the draft and is written to the event right after it's created
+  // (app/create/preview.tsx). context "upgrade" = opened from the theme step.
+  const draftMode = id === "draft";
+  const event = draftMode ? undefined : getEvent(id);
+  const eventType = draftMode ? draft.type : (event?.type ?? null);
 
   const offeringsQuery = useQuery({
     queryKey: ["revenueCatOfferings"],
@@ -177,7 +185,10 @@ export default function PricingScreen() {
   // "create the event" submit button that could fire a second time) vs.
   // returning to wherever a "no plan yet" badge tap came from.
   const continueAfterPricing = () => {
-    if (context === "create") {
+    if (draftMode) {
+      if (context === "upgrade") router.back();
+      else router.push("/create/details");
+    } else if (context === "create") {
       router.replace({ pathname: "/create/share", params: { id } });
     } else {
       router.back();
@@ -200,6 +211,12 @@ export default function PricingScreen() {
       return;
     }
 
+    if (draftMode) {
+      updateDraft({ planTier: plan.planKey });
+      continueAfterPricing();
+      return;
+    }
+
     setPurchasingPlanId(plan.id);
     try {
       // The free tier is the only plan the app may set itself.
@@ -212,7 +229,7 @@ export default function PricingScreen() {
     }
   };
 
-  if (event === undefined) {
+  if (!draftMode && event === undefined) {
     return (
       <Screen>
         <Header title={t("rsvp.notFoundTitle")} showBack />
@@ -222,9 +239,9 @@ export default function PricingScreen() {
 
   // Co-organizers reach this from locked features too; the plan is the
   // owner's call (guard_event_owner_columns enforces it server-side).
-  if (!isPrimaryOwner(event)) {
+  if (event !== undefined && !isPrimaryOwner(event)) {
     return (
-      <Screen coverType={event?.type}>
+      <Screen coverTheme={event?.coverTheme}>
         <Header
           title={t("pricing.title")}
           subtitle={t("pricing.ownerOnly")}
@@ -236,7 +253,7 @@ export default function PricingScreen() {
 
   return (
     <Screen
-      coverType={event?.type}
+      coverTheme={event?.coverTheme ?? draft.coverTheme}
       footer={
         context === "create" ? (
           <Button
@@ -250,20 +267,24 @@ export default function PricingScreen() {
       {context === "create" ? (
         <Header
           title={t("pricing.title")}
-          subtitle={t("pricing.subtitle", { eventName: event.name })}
+          subtitle={
+            event !== undefined ? t("pricing.subtitle", { eventName: event.name }) : t("pricing.subtitleDraft")
+          }
+          showBack={draftMode}
           flowTitle={t("createWizard.flowTitle")}
           stepLabel={t("createWizard.stepLabel", {
-            ...wizardStep(event.type, "plan"),
+            ...wizardStep(eventType, "plan"),
             name: t("createWizard.stepPlan"),
           })}
-          step={wizardStep(event.type, "plan").step}
-          totalSteps={wizardStep(event.type, "plan").total}
-          progressColor={EVENT_TYPE_COLORS[event.type].fill}
+          step={wizardStep(eventType, "plan").step}
+          totalSteps={wizardStep(eventType, "plan").total}
         />
       ) : (
         <Header
           title={t("pricing.headline")}
-          subtitle={t("pricing.subtitle", { eventName: event.name })}
+          subtitle={
+            event !== undefined ? t("pricing.subtitle", { eventName: event.name }) : t("pricing.subtitleUpgrade")
+          }
           flowTitle={t("pricing.flowTitle")}
           showBack
         />

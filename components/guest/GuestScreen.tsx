@@ -2,9 +2,7 @@ import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { EventCoverBackground } from '@/components/EventCoverBackground';
 import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
-import type { EventTypeId } from '@/types/event';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 
 interface GuestScreenProps {
@@ -15,8 +13,8 @@ interface GuestScreenProps {
   topInset?: boolean;
   /** Skips the solid cream fill so a ScreenBackground behind it shows through. */
   transparent?: boolean;
-  /** Screens opened from an event (outside the tabs): its type's cover behind the content. */
-  coverType?: EventTypeId | null;
+  /** Screens opened from an event (outside the tabs): its cover theme's accent (null = the app's). */
+  coverTheme?: string | null;
 }
 
 export function GuestScreen({
@@ -25,7 +23,7 @@ export function GuestScreen({
   contentStyle,
   topInset = false,
   transparent = false,
-  coverType = null,
+  coverTheme = null,
 }: GuestScreenProps) {
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
@@ -37,7 +35,7 @@ export function GuestScreen({
     paddingTop: (topInset ? insets.top : 0) + gSpace.lg,
     paddingBottom: tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height + gSpace.lg,
   };
-  const pageStyle = transparent || coverType !== null
+  const pageStyle = transparent
     ? styles.pageTransparent
     : [styles.page, { backgroundColor: tokens.background[0] }];
 
@@ -54,14 +52,7 @@ export function GuestScreen({
     </ScrollView>
   );
 
-  if (coverType === null) return body;
-
-  return (
-    <View style={[styles.page, { backgroundColor: tokens.background[0] }]}>
-      <EventCoverBackground type={coverType} />
-      <EventAccentProvider type={coverType}>{body}</EventAccentProvider>
-    </View>
-  );
+  return <EventAccentProvider coverTheme={coverTheme}>{body}</EventAccentProvider>;
 }
 
 const styles = StyleSheet.create({

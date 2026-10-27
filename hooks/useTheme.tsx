@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import type { EventTypeId } from '@/types/event';
 import { eventAccentTokens } from '@/utils/eventAccent';
 import { DEFAULT_THEME, THEME_IDS, THEMES, type ThemeId, type ThemeTokens } from '@/utils/themeTokens';
 
@@ -66,15 +65,15 @@ export function useTheme(): ThemeContextValue {
 }
 
 /**
- * Inside an event's screens: same theme, but the accent (buttons, switches,
- * + button, active tab) in the event type's color. Cards and text unchanged.
- * Pass null to keep the app's purple.
+ * Inside an event's screens: same app theme, but the accent (buttons,
+ * switches, + button, active tab) in the event's cover theme color.
+ * No cover theme (null) = the app theme's own accent.
  */
-export function EventAccentProvider({ type, children }: { type: EventTypeId | null; children: ReactNode }) {
+export function EventAccentProvider({ coverTheme, children }: { coverTheme: string | null; children: ReactNode }) {
   const parent = useTheme();
-  const value = useMemo<ThemeContextValue>(
-    () => (type === null ? parent : { ...parent, tokens: { ...parent.tokens, ...eventAccentTokens(type, parent.tokens) } }),
-    [parent, type],
-  );
+  const value = useMemo<ThemeContextValue>(() => {
+    const accent = eventAccentTokens(coverTheme, parent.tokens);
+    return accent === null ? parent : { ...parent, tokens: { ...parent.tokens, ...accent } };
+  }, [parent, coverTheme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

@@ -20,7 +20,6 @@ import { useCancelCreate } from "@/hooks/useCancelCreate";
 import { useEventDraft } from "@/hooks/useEventDraft";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/utils/theme";
-import { EVENT_TYPE_COLORS } from "@/utils/eventCovers";
 
 import { parseIsoDate, parseTimeString, toIsoDate, toTimeString } from "@/utils/dateInput";
 import { formatEventDate } from "@/utils/format";
@@ -66,7 +65,7 @@ export default function EventDetailsScreen() {
       setDateError(t('spontaneous.wizard.replyByAfterDate'));
       return;
     }
-    router.push(venue ? '/create/venue' : '/create/preview');
+    router.push(venue ? '/create/venue' : '/create/theme');
   };
 
   return (
@@ -75,7 +74,7 @@ export default function EventDetailsScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Screen
-        coverType={draft.type}
+        coverTheme={draft.coverTheme}
         footer={
           <Button
             label={t("createWizard.detailsButton")}
@@ -92,7 +91,6 @@ export default function EventDetailsScreen() {
           stepLabel={t("createWizard.stepLabel", { ...step, name: t("createWizard.stepDetails") })}
           step={step.step}
           totalSteps={step.total}
-          progressColor={draft.type !== null ? EVENT_TYPE_COLORS[draft.type].fill : undefined}
         />
 
         <Field

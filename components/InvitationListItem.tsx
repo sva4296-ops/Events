@@ -1,7 +1,8 @@
 import Feather from '@expo/vector-icons/Feather';
 import type { ReactNode } from 'react';
+import { EventCover } from '@/components/EventCover';
 import { useTranslation } from 'react-i18next';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { ScaleTouchable } from '@/components/ScaleTouchable';
 
@@ -9,7 +10,6 @@ import { RsvpBadge } from '@/components/RsvpBadge';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
 import type { Invitation } from '@/utils/invitations';
-import { EVENT_COVERS } from '@/utils/eventCovers';
 import { getEventType } from '@/utils/eventTypes';
 import { daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
@@ -54,7 +54,7 @@ export function InvitationListItem({
     >
       {/* Past event: dim the content, not the row, so the divider stays crisp. */}
       <View style={[styles.content, past && styles.past]}>
-      <Image source={EVENT_COVERS[type.id]} style={styles.badge} resizeMode="cover" />
+      <EventCover type={type.id} coverTheme={event.coverTheme} thumbnail style={styles.badge} />
 
       <View style={styles.info}>
         <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>

@@ -38,7 +38,7 @@ export default function PickTemplateScreen() {
         <Button
           label={t('createWizard.continue')}
           disabled={draft.template === null}
-          onPress={() => router.push('/create/details')}
+          onPress={() => router.push({ pathname: '/pricing/[id]', params: { id: 'draft', context: 'create' } })}
         />
       }
     >

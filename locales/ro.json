@@ -480,7 +480,10 @@
     "flowTitle": "Planuri",
     "ownerOnly": "Doar organizatorul principal poate alege pachetul.",
     "paymentsSoonTitle": "Plățile vin în curând",
-    "paymentsSoonBody": "Planurile plătite vor putea fi cumpărate direct din aplicație în curând. Până atunci poți folosi planul Esențial."
+    "paymentsSoonBody": "Planurile plătite vor putea fi cumpărate direct din aplicație în curând. Până atunci poți folosi planul Esențial.",
+    "subtitleDraft": "Alege acum ca să știi ce deblochezi. Poți face upgrade oricând.",
+    "subtitleUpgrade": "Fă upgrade ca să deblochezi alegerea temei cu AI.",
+    "featureAiTheme": "Temă aleasă cu AI"
   },
   "planGate": {
     "chatLocked": "Chatul de grup nu este inclus în planul curent al acestui eveniment.",
@@ -854,7 +857,8 @@
     "discardTitle": "Renunți la eveniment?",
     "discardBody": "Tot ce ai completat se va pierde.",
     "keepEditing": "Continuă editarea",
-    "discard": "Renunță"
+    "discard": "Renunță",
+    "stepTheme": "Tema"
   },
   "eventTypes": {
     "wedding": {
@@ -1181,7 +1185,11 @@
     "undo": "Anulează",
     "quotaTitle": "Ai atins limita de azi",
     "quotaBody": "Poți folosi din nou scrierea cu AI de mâine. Până atunci poți scrie textul de mână.",
-    "errorBody": "Nu am putut genera textul acum. Încearcă din nou în câteva momente."
+    "errorBody": "Nu am putut genera textul acum. Încearcă din nou în câteva momente.",
+    "eventQuotaTitle": "Ai folosit sugestiile AI ale evenimentului",
+    "eventQuotaBody": "Planul acestui eveniment include un număr limitat de sugestii AI. Fă upgrade ca să primești mai multe.",
+    "upgrade": "Fă upgrade",
+    "withLeft": "{{label}} · {{count}}"
   },
   "locationField": {
     "pointSet": "Punct ales pe hartă"
@@ -1571,5 +1579,48 @@
       "noTicketSub": "Rezervi în câteva secunde și biletul apare aici.",
       "editProgramme": "Editează programul serii"
     }
+  },
+  "coverTheme": {
+    "title": "Alege tema",
+    "subtitle": "Apare în invitație, în link și în feed.",
+    "untitled": "Evenimentul tău",
+    "back": "Înapoi",
+    "tab": {
+      "invite": "Invitație",
+      "feed": "Feed",
+      "link": "Link"
+    },
+    "suggestedFor": "Sugerată pentru categoria {{category}}",
+    "aiTitle": "Alege cu AI",
+    "aiBusy": "AI-ul alege…",
+    "aiBody": "Potrivește tema după titlul evenimentului.",
+    "aiLocked": "Disponibil în Complet și Premium. Atinge ca să faci upgrade.",
+    "aiQuotaTitle": "Ai folosit AI-ul azi",
+    "aiQuotaBody": "Încearcă din nou mâine sau alege tema singur.",
+    "names": {
+      "petrecere": "Petrecere",
+      "aniversare": "Aniversare",
+      "local": "Local",
+      "karaoke": "Karaoke",
+      "disco": "Disco",
+      "neon": "Neon",
+      "revelion": "Revelion",
+      "craciun": "Crăciun",
+      "halloween": "Halloween",
+      "nunta": "Nuntă",
+      "elegant": "Elegant",
+      "botez": "Botez",
+      "copii": "Copii",
+      "gradina": "Grădină",
+      "plaja": "Plajă",
+      "aurora": "Aurora",
+      "corporate": "Corporate",
+      "absolvire": "Absolvire",
+      "cina": "Cină",
+      "minimal": "Minimal"
+    },
+    "linkInvited": "Ești invitat",
+    "linkCaption": "Previzualizarea din chat · imaginea din link e statică",
+    "classic": "Clasic"
   }
 }

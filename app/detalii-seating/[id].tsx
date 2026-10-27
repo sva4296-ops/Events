@@ -64,7 +64,7 @@ export default function DetaliiSeatingScreen() {
 
   if (content === null) {
     return (
-      <Screen coverType={event?.type}>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('detalii.hub.seatingTitle')} showBack />
       </Screen>
     );
@@ -110,7 +110,7 @@ export default function DetaliiSeatingScreen() {
   ) : null;
 
   return (
-    <GuestScreen coverType={event?.type} topInset scroll={!showPlan} contentStyle={showPlan ? styles.planPage : undefined}>
+    <GuestScreen coverTheme={event?.coverTheme} topInset scroll={!showPlan} contentStyle={showPlan ? styles.planPage : undefined}>
       <Header
         title={t('detalii.hub.seatingTitle')}
         subtitle={t('detalii.seatingDescription')}

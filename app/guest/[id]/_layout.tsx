@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { EventCoverBackground } from '@/components/EventCoverBackground';
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
 import { TabBarIcon, type TabIconId } from '@/components/guest/TabBarIcon';
 import { GettingStartedSheet, openGettingStarted } from '@/components/tour/GettingStartedSheet';
@@ -13,10 +12,10 @@ import { currentStage, stageDayKey } from '@/components/StoryTimeline';
 import { useChatRead } from '@/hooks/useChatRead';
 import { useEventContent } from '@/hooks/useEventContent';
 import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
+import { eventAccentTokens } from '@/utils/eventAccent';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
 import { confirmDelete } from '@/utils/confirm';
-import { eventAccentTokens } from '@/utils/eventAccent';
 import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, formatShortDate, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
@@ -135,6 +134,14 @@ export default function GuestEventLayout() {
         accessibilityLabel: 'Lista de invitați și statistici',
         onPress: () => router.push(`/event/${id}`),
       });
+      // Straight to the event editor (name, date, place, co-organizers),
+      // instead of the long press on its Home card.
+      actions.push({
+        key: 'edit-event',
+        icon: 'edit-2',
+        accessibilityLabel: t('event.editEvent'),
+        onPress: () => router.push(`/edit-event/${id}`),
+      });
     } else if (activeTab === 'detalii' && venueEvent) {
       // The Book tab replaces the Detalii hub: the programme and the event
       // editor are reached from here instead.
@@ -196,11 +203,8 @@ export default function GuestEventLayout() {
 
   return (
     <GuestEventProvider id={id}>
-      <EventAccentProvider type={event?.type ?? null}>
+      <EventAccentProvider coverTheme={event?.coverTheme ?? null}>
       <LinearGradient colors={tokens.background} style={styles.shell}>
-        {/* The type's cover photo behind every tab, full screen, under a veil of
-            the page background so the header, chat and cards stay readable. */}
-        {event !== undefined ? <EventCoverBackground type={event.type} /> : null}
         <EventHeaderBar
           // Name and date only on Acasă; the other tabs keep just their actions.
           name={activeTab === 'acasa' || restaurant ? (event?.name ?? 'Evenimentul nostru') : ''}
@@ -225,8 +229,8 @@ export default function GuestEventLayout() {
                 shadowOpacity: tokens.mode === 'dark' ? 0.45 : 0.16,
               },
             ],
-            tabBarActiveTintColor:
-              event !== undefined ? eventAccentTokens(event.type, tokens).tabBar.active : tokens.tabBar.active,
+            // This component reads the theme outside its own EventAccentProvider.
+            tabBarActiveTintColor: eventAccentTokens(event?.coverTheme, tokens)?.tabBar.active ?? tokens.tabBar.active,
             tabBarInactiveTintColor: tokens.tabBar.inactive,
             tabBarItemStyle: styles.item,
             sceneStyle: { backgroundColor: 'transparent' },

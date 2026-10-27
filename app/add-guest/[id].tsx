@@ -167,7 +167,7 @@ export default function AddGuestScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Screen
-        coverType={event.type}
+        coverTheme={event.coverTheme}
         contentStyle={styles.content}
         footer={
           <Button

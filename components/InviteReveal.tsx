@@ -14,8 +14,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { InviteEnvelope } from '@/components/InviteEnvelope';
+import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
-import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
+
 import { haptics } from '@/utils/haptics';
 
 /** Must match InviteCard's radius, so the corporate shine is clipped to the card. */
@@ -124,11 +125,12 @@ function SimpleReveal({ type, children }: { type: EventTypeId; children: ReactNo
   const [size, setSize] = useState({ width: 0, height: 0 });
   const enter = useSharedValue(reduceMotion ? 1 : 0);
   const extra = useSharedValue(0);
-  const colors = EVENT_TYPE_COLORS[type];
+  // The current accent: the event's cover theme, else the app theme.
+  const { tokens } = useTheme();
   const measured = size.width > 0;
 
   const particles =
-    type === 'birthday' ? confetti([colors.fill, ...colors.gradient]) : type === 'baptism' ? bubbles(colors.fill) : [];
+    type === 'birthday' ? confetti([tokens.accentFill, tokens.accentPrimary, tokens.accentText, tokens.accentTint]) : type === 'baptism' ? bubbles(tokens.accentFill) : [];
 
   useEffect(() => {
     if (!measured || reduceMotion) return;

@@ -9,7 +9,6 @@ import { Screen } from '@/components/Screen';
 import { VenueSetupForm, isVenueSetupValid, newZone, suggestedTimes } from '@/components/venue/VenueSetupForm';
 import { useCancelCreate } from '@/hooks/useCancelCreate';
 import { useEventDraft } from '@/hooks/useEventDraft';
-import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
 import { wizardStep } from '@/utils/spontaneous';
 
 /** Venue events only: zones with capacity, arrival slots, price line. */
@@ -36,7 +35,7 @@ export default function VenueSetupStep() {
           <Button
             label={t('createWizard.continue')}
             disabled={!isVenueSetupValid(draft)}
-            onPress={() => router.push('/create/preview')}
+            onPress={() => router.push('/create/theme')}
           />
         }
       >
@@ -49,7 +48,6 @@ export default function VenueSetupStep() {
           stepLabel={t('createWizard.stepLabel', { ...step, name: t('venue.wizard.stepSetup') })}
           step={step.step}
           totalSteps={step.total}
-          progressColor={EVENT_TYPE_COLORS.venue.fill}
         />
         <VenueSetupForm value={draft} onChange={updateDraft} startTime={draft.startTime} />
       </Screen>

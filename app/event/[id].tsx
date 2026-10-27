@@ -70,7 +70,7 @@ export default function EventDetailScreen() {
   // from "no such event" — `hydrated` is what actually distinguishes them.
   if (!hydrated) {
     return (
-      <Screen coverType={event?.type} contentStyle={styles.content}>
+      <Screen coverTheme={event?.coverTheme} contentStyle={styles.content}>
         <View style={styles.headerSkeleton}>
           <Skeleton width={44} height={44} radius={themeRadius.pill} />
           <Skeleton height={17} width="55%" radius={4} />
@@ -156,7 +156,7 @@ export default function EventDetailScreen() {
   ];
 
   return (
-    <Screen coverType={event?.type} contentStyle={styles.content}>
+    <Screen coverTheme={event?.coverTheme} contentStyle={styles.content}>
       <Header
         title=""
         showBack

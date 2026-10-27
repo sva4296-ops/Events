@@ -7,8 +7,15 @@
 //
 // Secrets (never in the app or EAS):
 //   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-// Optional: AI_MODEL (default claude-haiku-5-5), AI_DAILY_LIMIT (default 20).
+// Optional: AI_MODEL (default claude-haiku-5-5), AI_DAILY_LIMIT (default 150).
+// Optional body.eventId: meters the call against that event's plan allowance
+// (Esențial 10, Complet 100, Premium/Agenție 300); see consumeQuota.
 // Deploy: supabase functions deploy ai-write
+//
+// kind 'theme': POST { kind: 'theme', language, context: { type, name, detail } }
+//   -> { theme: '<id>' }  one of THEME_IDS, picked for the title and type.
+// The app shows this only on Complet/Premium (the event may not exist yet,
+// it's the create wizard); the daily quota still applies.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -32,6 +39,75 @@ const EVENT_TYPES: Record<string, string> = {
   memorial: 'comemorare',
   other: 'eveniment',
 };
+
+/** AI calls per event, by plan; null plan = Esențial. Mirrored in utils/aiLimits.ts. */
+const EVENT_LIMITS: Record<string, number> = { esential: 10, complet: 100, premium: 300, agentie: 300 };
+/** Per-account daily abuse guard, whatever the plan. */
+const DAILY_LIMIT = Number(Deno.env.get('AI_DAILY_LIMIT') ?? '150');
+
+/**
+ * Counts one AI call: the account's daily cap, then (with an event) that
+ * event's plan allowance. Returns the error response to send, or null.
+ * 429 bodies say which limit: { error: 'quota', scope: 'daily' | 'event', limit }.
+ */
+// deno-lint-ignore no-explicit-any
+async function consumeQuota(admin: any, userId: string, eventId: string | null): Promise<Response | null> {
+  let eventLimit = 0;
+  if (eventId !== null) {
+    const { data: event } = await admin.from('events').select('organizer_id, plan_tier').eq('id', eventId).maybeSingle();
+    if (event === null) return json({ error: 'not_found' }, 404);
+    let organizer = event.organizer_id === userId;
+    if (!organizer) {
+      const { data: member } = await admin
+        .from('event_members')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      organizer = member !== null;
+    }
+    if (!organizer) return json({ error: 'forbidden' }, 403);
+    eventLimit = EVENT_LIMITS[event.plan_tier ?? 'esential'] ?? EVENT_LIMITS.esential;
+  }
+
+  const { data: dailyOk, error: dailyError } = await admin.rpc('consume_ai_quota', { p_user_id: userId, p_limit: DAILY_LIMIT });
+  if (dailyError) {
+    // Shows in Dashboard > Edge Functions > ai-write > Logs.
+    console.error('consume_ai_quota failed', dailyError.message);
+    return json({ error: 'server_error' }, 500);
+  }
+  if (dailyOk !== true) return json({ error: 'quota', scope: 'daily', limit: DAILY_LIMIT }, 429);
+
+  if (eventId !== null) {
+    const { data: eventOk, error: eventError } = await admin.rpc('consume_ai_event_quota', {
+      p_event_id: eventId,
+      p_limit: eventLimit,
+    });
+    if (eventError) {
+      console.error('consume_ai_event_quota failed', eventError.message);
+      await refund(admin, userId, null);
+      return json({ error: 'server_error' }, 500);
+    }
+    if (eventOk !== true) {
+      await refund(admin, userId, null);
+      return json({ error: 'quota', scope: 'event', limit: eventLimit }, 429);
+    }
+  }
+  return null;
+}
+
+/** Gives the call back when the AI request failed (best effort). */
+// deno-lint-ignore no-explicit-any
+async function refund(admin: any, userId: string, eventId: string | null): Promise<void> {
+  const { error } = await admin.rpc('refund_ai_quota', { p_user_id: userId, p_event_id: eventId });
+  if (error) console.error('refund_ai_quota failed', error.message);
+}
+
+/** Must match utils/coverThemes.ts COVER_THEMES ids. */
+const THEME_IDS = [
+  'petrecere', 'aniversare', 'local', 'karaoke', 'disco', 'neon', 'revelion', 'craciun', 'halloween', 'nunta',
+  'elegant', 'botez', 'copii', 'gradina', 'plaja', 'aurora', 'corporate', 'absolvire', 'cina', 'minimal',
+];
 
 function json(body: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -160,6 +236,8 @@ Deno.serve(async (req) => {
     return json({ error: 'bad_request' }, 400);
   }
 
+  if (body.kind === 'theme') return await handleTheme(admin, userData.user.id, apiKey, body);
+
   const kind = body.kind as Kind;
   if (!KINDS.includes(kind)) return json({ error: 'bad_request' }, 400);
   const ro = body.language !== 'en';
@@ -175,17 +253,10 @@ Deno.serve(async (req) => {
     detail: clean(rawContext.detail, 60),
   };
 
-  const limit = Number(Deno.env.get('AI_DAILY_LIMIT') ?? '20');
-  const { data: allowed, error: quotaError } = await admin.rpc('consume_ai_quota', {
-    p_user_id: userData.user.id,
-    p_limit: limit,
-  });
-  if (quotaError) {
-    // Shows in Dashboard > Edge Functions > ai-write > Logs.
-    console.error('consume_ai_quota failed', quotaError.message);
-    return json({ error: 'server_error' }, 500);
-  }
-  if (allowed !== true) return json({ error: 'quota' }, 429);
+  const userId = userData.user.id;
+  const eventId = clean(body.eventId, 40) || null;
+  const denied = await consumeQuota(admin, userId, eventId);
+  if (denied !== null) return denied;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -196,7 +267,7 @@ Deno.serve(async (req) => {
     },
     body: JSON.stringify({
       model: Deno.env.get('AI_MODEL') ?? 'claude-haiku-5-5',
-      max_tokens: 400,
+      max_tokens: 1024,
       system: ro ? RULES_RO : RULES_EN,
       messages: [{ role: 'user', content: buildPrompt(kind, ro, text, maxChars, context) }],
     }),
@@ -205,10 +276,11 @@ Deno.serve(async (req) => {
     // Anthropic's reason (bad key, no credits, unknown model...) goes to the
     // function logs; the app only gets the status code, never the body.
     console.error('anthropic error', res.status, (await res.text()).slice(0, 500));
+    await refund(admin, userId, eventId);
     return json({ error: 'ai_error', upstream: res.status }, 502);
   }
 
-  const result = (await res.json()) as { content?: { type: string; text?: string }[] };
+  const result = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string };
   const output = (result.content ?? [])
     .filter((block) => block.type === 'text')
     .map((block) => block.text ?? '')
@@ -216,7 +288,61 @@ Deno.serve(async (req) => {
     .trim()
     .replace(/^["„“]+|["”"]+$/g, '')
     .slice(0, maxChars);
-  if (output.length === 0) return json({ error: 'ai_error' }, 502);
+  if (output.length === 0) {
+    // Why the answer had no text (e.g. "refusal", "max_tokens", or only non-text blocks).
+    const reason = `${result.stop_reason ?? 'none'}:${(result.content ?? []).map((block) => block.type).join('+') || 'empty'}`;
+    console.error('empty AI answer', reason);
+    await refund(admin, userId, eventId);
+    return json({ error: 'ai_error', reason }, 502);
+  }
 
   return json({ text: output }, 200);
 });
+
+// deno-lint-ignore no-explicit-any
+async function handleTheme(admin: any, userId: string, apiKey: string, body: Record<string, unknown>): Promise<Response> {
+  const rawContext = (body.context ?? {}) as Record<string, unknown>;
+  const name = clean(rawContext.name, 120);
+  const type = clean(rawContext.type, 20);
+  const detail = clean(rawContext.detail, 40);
+  if (name.length === 0) return json({ error: 'bad_request' }, 400);
+
+  // The wizard's theme step: the event doesn't exist yet, only the daily cap applies.
+  const denied = await consumeQuota(admin, userId, null);
+  if (denied !== null) return denied;
+
+  const prompt = [
+    'Pick the best cover theme for this event in a mobile app, from this list:',
+    THEME_IDS.join(', '),
+    '(petrecere=party, aniversare=birthday, local=night out at a venue, craciun=Christmas, nunta=wedding, botez=baptism, copii=kids, gradina=garden, plaja=beach, absolvire=graduation, cina=dinner, revelion=New Year).',
+    'Reply ONLY with one id from the list.',
+    '',
+    `Event type: ${type || 'other'}${detail ? ` (${detail})` : ''}`,
+    `Title: ${name}`,
+  ].join('\n');
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: Deno.env.get('AI_MODEL') ?? 'claude-haiku-5-5',
+      max_tokens: 200,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) {
+    console.error('anthropic error', res.status, (await res.text()).slice(0, 500));
+    await refund(admin, userId, null);
+    return json({ error: 'ai_error', upstream: res.status }, 502);
+  }
+  const result = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string };
+  const raw = (result.content ?? []).map((block) => block.text ?? '').join('').toLowerCase();
+  const theme = THEME_IDS.find((id) => raw.includes(id));
+  if (theme === undefined) {
+    const reason = `${result.stop_reason ?? 'none'}:${raw.slice(0, 40) || 'empty'}`;
+    console.error('no theme in AI answer', reason);
+    await refund(admin, userId, null);
+    return json({ error: 'ai_error', reason }, 502);
+  }
+  return json({ theme }, 200);
+}

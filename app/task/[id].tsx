@@ -58,7 +58,7 @@ export default function TaskScreen() {
 
   if (!organizer) {
     return (
-      <Screen coverType={event?.type}>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('common.notAvailable')} subtitle={t('checklist.notAvailable')} showBack />
       </Screen>
     );
@@ -95,7 +95,7 @@ export default function TaskScreen() {
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen
-        coverType={event?.type}
+        coverTheme={event?.coverTheme}
         footer={
           <Button
             label={existing === null ? t('checklist.add') : t('common.saveChanges')}

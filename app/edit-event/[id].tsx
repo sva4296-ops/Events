@@ -93,7 +93,7 @@ export default function EditEventScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
-        coverType={event?.type}
+        coverTheme={event?.coverTheme}
         footer={
           <Button
             label={t('common.saveChanges')}
@@ -178,6 +178,7 @@ export default function EditEventScreen() {
           multiline
           action={
             <AiWriteButton
+              eventId={id}
               kind="welcome"
               value={welcomeMessage}
               onChange={setWelcomeMessage}

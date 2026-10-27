@@ -43,7 +43,7 @@ export default function VenueScreen() {
 
   if (!isVenueManager(event) || content === null) {
     return (
-      <Screen coverType={event?.type}>
+      <Screen coverTheme={event?.coverTheme}>
         <Header
           title={t('common.notAvailable')}
           subtitle={t('venueForm.notAvailableSubtitle')}
@@ -84,7 +84,7 @@ export default function VenueScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
-        coverType={event?.type}
+        coverTheme={event?.coverTheme}
         footer={<Button label={t('venueForm.saveButton')} disabled={name.trim().length === 0} onPress={save} />}
       >
         <Header
@@ -133,6 +133,7 @@ export default function VenueScreen() {
           multiline
           action={
             <AiWriteButton
+              eventId={id}
               kind="venueNotes"
               value={notes}
               onChange={setNotes}

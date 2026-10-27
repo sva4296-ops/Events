@@ -5,8 +5,6 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
-import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
-import { brandGradient } from '@/utils/themeTokens';
 
 /**
  * 0 Lansarea (always done once the event exists), 1 Parcursul (before the
@@ -25,8 +23,7 @@ export function stageDayKey(type?: EventTypeId): string {
   return type !== undefined ? `eventTypes.${type}.stageDay` : 'onboarding.stageDayX';
 }
 
-/** Four-stage story timeline: done stages checked, the current one haloed. With
- * an event type it takes that type's cover colors; without (onboarding) the brand's. */
+/** Four-stage story timeline: done stages checked, the current one haloed, in the current accent. */
 export function StoryTimeline({ stage, type }: { stage: number; type?: EventTypeId }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
@@ -36,11 +33,11 @@ export function StoryTimeline({ stage, type }: { stage: number; type?: EventType
     t(stageDayKey(type)),
     t('onboarding.stageRecap'),
   ];
-  const palette = type !== undefined ? EVENT_TYPE_COLORS[type] : null;
-  const gradient = palette?.gradient ?? brandGradient;
-  const doneFill = palette?.fill ?? tokens.accentFill;
-  const doneInk = palette?.onFill ?? tokens.onAccent;
-  const haloTint = palette?.tint ?? tokens.accentTint;
+  // The current accent (app theme, or the event's cover theme inside an event).
+  const gradient = [tokens.accentFill, tokens.accentFill] as const;
+  const doneFill = tokens.accentFill;
+  const doneInk = tokens.onAccent;
+  const haloTint = tokens.accentTint;
 
   return (
     <View style={styles.timeline}>

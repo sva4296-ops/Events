@@ -75,7 +75,7 @@ function BillForm({ event, content, existing }: { event: AppEvent; content: Spon
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen
-        coverType={event.type}
+        coverTheme={event.coverTheme}
         footer={
           <>
             <Button label={t('common.saveChanges')} disabled={!valid} onPress={() => void save()} />

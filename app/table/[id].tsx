@@ -128,7 +128,7 @@ export default function SeatingTableScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
-        coverType={event?.type}
+        coverTheme={event?.coverTheme}
         footer={
           <Button
             label={existing === null ? t('tableForm.addButton') : t('common.saveChanges')}

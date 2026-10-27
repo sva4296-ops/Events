@@ -13,8 +13,9 @@ import Svg, { Path, Rect } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { EventTypeIcon } from '@/components/EventTypeIcon';
+import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
-import { EVENT_TYPE_COLORS } from '@/utils/eventCovers';
+
 import { haptics } from '@/utils/haptics';
 
 /** Envelope paper, the same warm tones in both themes (it's an object, not UI chrome). */
@@ -54,7 +55,8 @@ export function InviteEnvelope({ type, children }: { type: EventTypeId | null; c
   const drop = useSharedValue(0);
 
   const measured = width > 0 && cardHeight > 0;
-  const colors = EVENT_TYPE_COLORS[type ?? 'other'];
+  // Seal in the current accent: the event's cover theme, else the app theme.
+  const { tokens } = useTheme();
 
   useEffect(() => {
     if (!measured || done) return;
@@ -142,11 +144,11 @@ export function InviteEnvelope({ type, children }: { type: EventTypeId | null; c
           <Animated.View
             style={[
               styles.seal,
-              { left: width / 2 - SEAL / 2, bottom: ENV_H - ENV_H * 0.58 - SEAL / 2, backgroundColor: colors.fill },
+              { left: width / 2 - SEAL / 2, bottom: ENV_H - ENV_H * 0.58 - SEAL / 2, backgroundColor: tokens.accentFill },
               sealStyle,
             ]}
           >
-            <EventTypeIcon type={type ?? 'other'} size={24} color={colors.onFill} strokeWidth={1.8} />
+            <EventTypeIcon type={type ?? 'other'} size={24} color={tokens.onAccent} strokeWidth={1.8} />
           </Animated.View>
         </Animated.View>
       ) : null}

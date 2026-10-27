@@ -89,7 +89,7 @@ function SetupForm({ event, venue }: { event: AppEvent; venue: VenueBooking }) {
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen
-        coverType={event.type}
+        coverTheme={event.coverTheme}
         footer={
           <Button
             label={t('common.saveChanges')}

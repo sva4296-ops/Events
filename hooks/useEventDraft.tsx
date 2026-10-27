@@ -16,6 +16,8 @@ const EMPTY_DRAFT: EventDraft = {
   bookingTimes: [],
   priceInfo: '',
   maxPartySize: '8',
+  planTier: null,
+  coverTheme: null,
 };
 
 interface EventDraftContextValue {

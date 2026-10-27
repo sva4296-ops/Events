@@ -118,7 +118,7 @@ export default function SendInvitesScreen() {
       : null;
 
   return (
-    <Screen coverType={event?.type} contentStyle={styles.content}>
+    <Screen coverTheme={event?.coverTheme} contentStyle={styles.content}>
       <Header
         title=""
         showBack
@@ -137,6 +137,7 @@ export default function SendInvitesScreen() {
           maxLength={400}
           action={
             <AiWriteButton
+              eventId={id}
               kind="invite"
               value={intro}
               onChange={setIntro}

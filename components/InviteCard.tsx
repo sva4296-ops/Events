@@ -1,12 +1,12 @@
 import Feather from '@expo/vector-icons/Feather';
+import { EventCover } from '@/components/EventCover';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventDraft, SpontaneousTemplate } from '@/types/event';
-import { EVENT_COVERS } from '@/utils/eventCovers';
 import { getEventType } from '@/utils/eventTypes';
 import { formatEventDate } from '@/utils/format';
 import { spacing } from '@/utils/theme';
@@ -27,6 +27,8 @@ export type InviteCardEvent = Pick<EventDraft, 'type' | 'name' | 'date' | 'locat
   /** Spontaneous events: the template names the chip, the time follows the date. */
   template?: SpontaneousTemplate | null;
   startTime?: string | null;
+  /** utils/coverThemes.ts id: drawn cover instead of the band/photo. */
+  coverTheme?: string | null;
 };
 
 export function InviteCard({ event, coverPhoto = false }: { event: InviteCardEvent; coverPhoto?: boolean }) {
@@ -37,6 +39,7 @@ export function InviteCard({ event, coverPhoto = false }: { event: InviteCardEve
   const location = event.location.trim();
   const message = event.welcomeMessage.trim();
   const time = event.startTime?.trim() ?? '';
+  const picked = event.coverTheme != null;
   const chipLabel =
     type.id === 'spontaneous' && event.template != null
       ? t(`spontaneous.templates.${event.template}.name`)
@@ -61,11 +64,10 @@ export function InviteCard({ event, coverPhoto = false }: { event: InviteCardEve
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      {coverPhoto ? (
-        <View style={styles.cover}>
-          <Image source={EVENT_COVERS[type.id]} style={styles.coverImage} resizeMode="cover" />
+      {picked || coverPhoto ? (
+        <EventCover type={type.id} coverTheme={event.coverTheme} style={styles.cover}>
           {coverContent}
-        </View>
+        </EventCover>
       ) : (
         <LinearGradient
           colors={type.band}

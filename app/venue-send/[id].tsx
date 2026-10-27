@@ -55,7 +55,7 @@ export default function VenueSendScreen() {
   };
 
   return (
-    <Screen coverType={event.type} contentStyle={styles.content}>
+    <Screen coverTheme={event.coverTheme} contentStyle={styles.content}>
       <Header title={t('venue.send.title')} subtitle={t('venue.send.subtitle')} showBack />
 
       <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>

@@ -1,11 +1,15 @@
 import Feather from '@expo/vector-icons/Feather';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
 import { showDialog } from '@/components/ActionSheet';
-import { aiWrite, AiQuotaError, type AiWriteContext, type AiWriteKind } from '@/data/aiRepository';
+import { aiWrite, AiQuotaError, fetchAiEventUsage, type AiWriteContext, type AiWriteKind } from '@/data/aiRepository';
+import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
+import { eventAiLimit, isUnlimitedAi } from '@/utils/aiLimits';
 import { haptics } from '@/utils/haptics';
 import { captureError } from '@/utils/sentry';
 import { themeRadius } from '@/utils/themeTokens';
@@ -18,6 +22,8 @@ interface AiWriteButtonProps {
   maxChars: number;
   /** Only works on existing text (e.g. venue notes: tidy, never invent). Hidden while empty. */
   requireText?: boolean;
+  /** Existing event: counts against its plan's AI allowance and shows what's left. */
+  eventId?: string;
 }
 
 /**
@@ -25,11 +31,25 @@ interface AiWriteButtonProps {
  * Empty field = write from the event's details; text = improve it. After a
  * replacement it turns into "Anulează" until the text is edited again.
  */
-export function AiWriteButton({ kind, value, onChange, context, maxChars, requireText = false }: AiWriteButtonProps) {
+export function AiWriteButton({ kind, value, onChange, context, maxChars, requireText = false, eventId }: AiWriteButtonProps) {
   const { t, i18n } = useTranslation();
   const { tokens } = useTheme();
   const [busy, setBusy] = useState(false);
   const [undo, setUndo] = useState<{ previous: string; applied: string } | null>(null);
+  const queryClient = useQueryClient();
+  const { getEvent } = useEvents();
+  const planTier = eventId !== undefined ? (getEvent(eventId)?.planTier ?? null) : null;
+  const usage = useQuery({
+    queryKey: ['aiEventUsage', eventId],
+    queryFn: () => fetchAiEventUsage(eventId!),
+    enabled: eventId !== undefined,
+    staleTime: 60_000,
+  });
+  // Shown only for metered plans; Premium reads as unlimited.
+  const left =
+    eventId !== undefined && usage.data !== undefined && !isUnlimitedAi(planTier)
+      ? Math.max(eventAiLimit(planTier) - usage.data, 0)
+      : null;
 
   const hasText = value.trim().length > 0;
   if (requireText && !hasText && undo === null) return null;
@@ -66,11 +86,21 @@ export function AiWriteButton({ kind, value, onChange, context, maxChars, requir
         text: value,
         maxChars,
         context,
+        eventId,
       });
       setUndo({ previous: value, applied: text });
       onChange(text);
     } catch (error) {
-      if (error instanceof AiQuotaError) {
+      if (error instanceof AiQuotaError && error.scope === 'event' && eventId !== undefined) {
+        showDialog({
+          title: t('ai.eventQuotaTitle'),
+          message: t('ai.eventQuotaBody'),
+          buttons: [
+            { label: t('common.cancel'), style: 'cancel' },
+            { label: t('ai.upgrade'), onPress: () => router.push(`/pricing/${eventId}`) },
+          ],
+        });
+      } else if (error instanceof AiQuotaError) {
         showDialog({ title: t('ai.quotaTitle'), message: t('ai.quotaBody') });
       } else {
         captureError(error, { where: 'AiWriteButton', kind });
@@ -80,6 +110,7 @@ export function AiWriteButton({ kind, value, onChange, context, maxChars, requir
       }
     } finally {
       setBusy(false);
+      if (eventId !== undefined) void queryClient.invalidateQueries({ queryKey: ['aiEventUsage', eventId] });
     }
   };
 
@@ -98,7 +129,7 @@ export function AiWriteButton({ kind, value, onChange, context, maxChars, requir
       ) : (
         <Feather name="feather" size={13} color={tokens.accentText} />
       )}
-      <Text style={[styles.label, { color: tokens.accentText }]}>{busy ? t('ai.writing') : label}</Text>
+      <Text style={[styles.label, { color: tokens.accentText }]}>{busy ? t('ai.writing') : left !== null ? t('ai.withLeft', { label, count: left }) : label}</Text>
     </TouchableOpacity>
   );
 }

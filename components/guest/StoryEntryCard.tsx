@@ -1,12 +1,12 @@
 import Feather from '@expo/vector-icons/Feather';
+import { EventCover } from '@/components/EventCover';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { ScaleTouchable } from '@/components/ScaleTouchable';
 import type { AppEvent } from '@/types/event';
-import { EVENT_COVERS } from '@/utils/eventCovers';
 import { themeRadius, typeface, typography } from '@/utils/themeTokens';
 
 /** "The story is ready" card: opens the post-event story (app/story/[id].tsx). */
@@ -22,7 +22,7 @@ export function StoryEntryCard({ event }: { event: AppEvent }) {
       accessibilityLabel={t('story.entryCta')}
       style={styles.card}
     >
-      <ImageBackground source={EVENT_COVERS[event.type]} style={styles.image} resizeMode="cover">
+      <EventCover type={event.type} coverTheme={event.coverTheme} style={styles.image}>
         <LinearGradient colors={['rgba(15,12,28,0.15)', 'rgba(15,12,28,0.82)']} style={styles.veil}>
           <View style={styles.badge}>
             <Feather name="play" size={14} color="#1E1A30" />
@@ -36,7 +36,7 @@ export function StoryEntryCard({ event }: { event: AppEvent }) {
             <Feather name="chevron-right" size={16} color="#FFFFFF" />
           </View>
         </LinearGradient>
-      </ImageBackground>
+      </EventCover>
     </ScaleTouchable>
   );
 }

@@ -51,7 +51,7 @@ export default function PostMomentScreen() {
 
   if (!isOwner(event) || (othersMoment && !isPrimaryOwner(event))) {
     return (
-      <Screen coverType={event?.type}>
+      <Screen coverTheme={event?.coverTheme}>
         <Header
           title={t('common.notAvailable')}
           subtitle={t('postMomentForm.notAvailableSubtitle')}
@@ -90,7 +90,7 @@ export default function PostMomentScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Screen
-        coverType={event?.type}
+        coverTheme={event?.coverTheme}
         contentStyle={styles.content}
         footer={
           <Button
@@ -151,6 +151,7 @@ export default function PostMomentScreen() {
           placeholder={t('postMomentForm.titlePlaceholder')}
           action={
             <AiWriteButton
+              eventId={id}
               kind="moment"
               value={title}
               onChange={setTitle}

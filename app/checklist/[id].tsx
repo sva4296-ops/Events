@@ -114,7 +114,7 @@ export default function ChecklistScreen() {
 
   if (!organizer) {
     return (
-      <Screen coverType={event?.type}>
+      <Screen coverTheme={event?.coverTheme}>
         <Header
           title={t("common.notAvailable")}
           subtitle={t("checklist.notAvailable")}
@@ -127,7 +127,7 @@ export default function ChecklistScreen() {
   const doneCount = tasks.filter((task) => task.done).length;
 
   return (
-    <GuestScreen coverType={event?.type} topInset>
+    <GuestScreen coverTheme={event?.coverTheme} topInset>
       <Header
         title={t("checklist.title")}
         subtitle={

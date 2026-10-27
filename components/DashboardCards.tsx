@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { EventCover } from '@/components/EventCover';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { ScaleTouchable } from '@/components/ScaleTouchable';
@@ -7,7 +8,6 @@ import { Skeleton } from '@/components/Skeleton';
 import { currentStage, stageDayKey } from '@/components/StoryTimeline';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent } from '@/types/event';
-import { EVENT_COVERS } from '@/utils/eventCovers';
 import { countRsvps, daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
 import { pastCoverShade, themeRadius, typeface } from '@/utils/themeTokens';
@@ -78,12 +78,12 @@ export function DashboardHero({
     >
       {/* ImageBackground, not a bare View + absolute Image: a style-less View gets
           flattened away and the image then fills the whole card. */}
-      <ImageBackground source={EVENT_COVERS[event.type]} style={styles.cover} resizeMode="cover">
+      <EventCover type={event.type} coverTheme={event.coverTheme} style={styles.cover}>
         {past ? <View style={[StyleSheet.absoluteFill, { backgroundColor: pastCoverShade }]} /> : null}
         <View style={[styles.nextLabel, { backgroundColor: tokens.surface }]}>
           <Text style={[styles.nextLabelText, { color: tokens.accentText }]}>{t('home.dashboard.next')}</Text>
         </View>
-      </ImageBackground>
+      </EventCover>
 
       <View style={styles.heroBody}>
         <View style={styles.titleRow}>
@@ -151,7 +151,11 @@ export function DashboardRow({
       accessibilityLabel={event.name}
       style={[styles.row, showDivider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tokens.border }]}
     >
-      <Image source={EVENT_COVERS[event.type]} style={[styles.thumb, days !== null && days < 0 && styles.pastThumb]} />
+      <EventCover
+        type={event.type}
+        coverTheme={event.coverTheme} thumbnail
+        style={[styles.thumb, days !== null && days < 0 && styles.pastThumb]}
+      />
       <View style={styles.rowText}>
         <Text style={[styles.rowName, { color: tokens.textPrimary, fontFamily: tokens.displayFont }]} numberOfLines={1}>
           {event.name}

@@ -16,7 +16,7 @@ import { AiWriteButton } from "@/components/AiWriteButton";
 import { Button } from "@/components/Button";
 import { CoverArt } from "@/components/CoverArt";
 import { DateTimeField } from "@/components/DateTimeField";
-import { defaultCover } from "@/components/EventCover";
+import { defaultCover, EventCover } from "@/components/EventCover";
 import { Field } from "@/components/Field";
 import { Header } from "@/components/Header";
 import { LocationField } from "@/components/LocationField";
@@ -25,7 +25,7 @@ import { Screen } from "@/components/Screen";
 import { useCancelCreate } from "@/hooks/useCancelCreate";
 import { useEventDraft } from "@/hooks/useEventDraft";
 import { useTheme } from "@/hooks/useTheme";
-import { COVER_THEMES, getCoverTheme, suggestedCoverTheme } from "@/utils/coverThemes";
+import { coverThemesFor, getCoverTheme, suggestedCoverTheme } from "@/utils/coverThemes";
 import { parseIsoDate, parseTimeString, toIsoDate, toTimeString } from "@/utils/dateInput";
 import { formatEventDate } from "@/utils/format";
 import { haptics } from "@/utils/haptics";
@@ -69,7 +69,8 @@ export default function ComposeInviteScreen() {
   const classic = defaultCover(draft.type ?? "other", tokens);
   const cover = getCoverTheme(draft.coverTheme) ?? classic;
   const suggested = suggestedCoverTheme(draft.type, draft.template);
-  const themes = [...COVER_THEMES].sort((a, b) => Number(b.id === suggested) - Number(a.id === suggested));
+  // Only the themes that suit this type (a corporate event gets no Birthday), suggested first.
+  const themes = coverThemesFor(draft.type).sort((a, b) => Number(b.id === suggested) - Number(a.id === suggested));
   const ink = cover.light ? ON_LIGHT_COVER : ON_COVER;
   const inkMuted = cover.light ? ON_LIGHT_COVER_MUTED : ON_COVER_MUTED;
 
@@ -228,7 +229,12 @@ export default function ComposeInviteScreen() {
                   style={styles.thumbWrap}
                 >
                   <View style={[styles.thumbFrame, { borderColor: selected ? tokens.textPrimary : "transparent" }]}>
-                    <CoverArt theme={theme} plain style={styles.thumb} />
+                    {id === null ? (
+                      // Classic: this type's own default, its icon on the app theme's color.
+                      <EventCover type={draft.type ?? "other"} thumbnail style={styles.thumb} />
+                    ) : (
+                      <CoverArt theme={theme} plain style={styles.thumb} />
+                    )}
                     {id === suggested ? <View style={[styles.suggestedDot, { backgroundColor: tokens.accentFill }]} /> : null}
                   </View>
                   <Text

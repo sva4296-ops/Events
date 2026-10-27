@@ -12,15 +12,15 @@ import type { ThemeTokens } from '@/utils/themeTokens';
 
 /** Decoration for an event type's default cover. */
 const TYPE_DECORATION: Record<EventTypeId, CoverDecoration> = {
-  wedding: 'hearts',
-  baptism: 'crescent',
+  wedding: 'wedrings',
+  baptism: 'drop',
   birthday: 'confetti',
-  cause: 'leaf',
+  cause: 'hearts',
   corporate: 'grid',
   memorial: 'line',
   other: 'sparkles',
-  spontaneous: 'rings',
-  venue: 'sparkles',
+  spontaneous: 'disco',
+  venue: 'table',
 };
 
 /**

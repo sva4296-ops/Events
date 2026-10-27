@@ -172,11 +172,34 @@ function Decoration({ kind, ink }: { kind: CoverDecoration; ink: string }) {
           <Circle cx={124} cy={26} r={12} fill="#2B1638" opacity={0.55} />
         </G>
       );
-    case 'hearts':
+    case 'wedrings':
+      // Two linked wedding rings.
       return (
         <G opacity={0.7}>
           <Circle cx={68} cy={50} r={20} {...stroke} strokeWidth={0.9} />
           <Circle cx={92} cy={50} r={20} {...stroke} strokeWidth={0.9} />
+        </G>
+      );
+    case 'hearts': {
+      const heart = (x: number, y: number, k: number) =>
+        `M${x} ${y + 6 * k} C${x - 10 * k} ${y - 2 * k} ${x - 6 * k} ${y - 10 * k} ${x} ${y - 4 * k} C${x + 6 * k} ${y - 10 * k} ${x + 10 * k} ${y - 2 * k} ${x} ${y + 6 * k} Z`;
+      return (
+        <G opacity={0.85}>
+          <Path d={heart(124, 34, 2)} {...stroke} strokeWidth={1} />
+          <Path d={heart(146, 60, 0.9)} fill={ink} opacity={0.6} />
+          <Path d={heart(98, 56, 0.7)} {...stroke} strokeWidth={0.8} />
+        </G>
+      );
+    }
+    case 'flags':
+      // Festival bunting: a string of little pennants.
+      return (
+        <G opacity={0.85}>
+          <Path d="M10 14 Q80 34 150 14" {...stroke} strokeWidth={0.7} />
+          {[22, 40, 58, 76, 94, 112, 130].map((x, i) => {
+            const y = 14 + 20 * Math.sin(((x - 10) / 140) * Math.PI) * 0.7;
+            return <Path key={x} d={`M${x - 5} ${y} L${x + 5} ${y} L${x} ${y + 9} Z`} fill={ink} opacity={i % 2 === 0 ? 0.9 : 0.5} />;
+          })}
         </G>
       );
     case 'gold':
@@ -252,6 +275,116 @@ function Decoration({ kind, ink }: { kind: CoverDecoration; ink: string }) {
           <Circle cx={124} cy={34} r={18} {...stroke} strokeWidth={0.9} />
           <Circle cx={124} cy={34} r={12} {...stroke} strokeWidth={0.6} />
           <Path d="M18 70 Q60 60 100 78" {...stroke} strokeWidth={0.6} />
+        </G>
+      );
+    case 'arch':
+      return (
+        <G opacity={0.75}>
+          <Path d="M104 86 V40 A24 24 0 0 1 152 40 V86" {...stroke} strokeWidth={1} />
+          <Path d="M112 86 V42 A16 16 0 0 1 144 42 V86" {...stroke} strokeWidth={0.6} />
+          <Circle cx={128} cy={22} r={1.4} fill={ink} />
+        </G>
+      );
+    case 'petals':
+      return (
+        <G opacity={0.8}>
+          {[0, 72, 144, 216, 288].map((angle) => (
+            <Path
+              key={angle}
+              d="M128 34 C122 24 122 16 128 10 C134 16 134 24 128 34 Z"
+              {...stroke}
+              strokeWidth={0.8}
+              transform={`rotate(${angle} 128 34)`}
+            />
+          ))}
+          <Circle cx={128} cy={34} r={2.2} fill={ink} />
+          <Path d="M30 70 C34 64 40 64 44 70 C40 76 34 76 30 70 Z" {...stroke} strokeWidth={0.7} />
+        </G>
+      );
+    case 'stars':
+      return (
+        <G>
+          {[[30, 18, 1.2], [52, 40, 0.8], [76, 14, 1], [104, 30, 1.4], [136, 16, 0.9], [148, 46, 1.1], [20, 52, 0.7], [120, 58, 0.8]].map(
+            ([x, y, r], i) => (
+              <Circle key={i} cx={x} cy={y} r={r} fill={ink} opacity={0.85} />
+            ),
+          )}
+          <Sparkle x={124} y={28} r={6} fill={ink} />
+        </G>
+      );
+    case 'waves':
+      return (
+        <G opacity={0.6}>
+          {[52, 62, 72, 82].map((y) => (
+            <Path key={y} d={`M0 ${y} Q20 ${y - 6} 40 ${y} T80 ${y} T120 ${y} T160 ${y}`} {...stroke} strokeWidth={0.8} />
+          ))}
+        </G>
+      );
+    case 'candle':
+      return (
+        <G>
+          <Rect x={122} y={40} width={12} height={36} rx={2} {...stroke} strokeWidth={1} />
+          <Path d="M128 38 C124 32 126 26 128 22 C130 26 132 32 128 38 Z" fill={ink} />
+          <Circle cx={128} cy={30} r={12} fill={ink} opacity={0.12} />
+        </G>
+      );
+    case 'dots':
+      return (
+        <G opacity={0.7}>
+          {Array.from({ length: 5 }, (_, row) =>
+            Array.from({ length: 6 }, (_, col) => (
+              <Circle key={`${row}-${col}`} cx={100 + col * 10} cy={14 + row * 10} r={1.4} fill={ink} />
+            )),
+          )}
+        </G>
+      );
+    case 'glass':
+      return (
+        <G opacity={0.85}>
+          <Path d="M118 18 H138 C138 32 134 40 128 40 C122 40 118 32 118 18 Z" {...stroke} strokeWidth={1} />
+          <Path d="M128 40 V62 M120 62 H136" {...stroke} strokeWidth={1} />
+          <Path d="M120 28 C124 30 132 30 136 28" {...stroke} strokeWidth={0.6} />
+        </G>
+      );
+    case 'drop':
+      return (
+        <G opacity={0.8}>
+          <Path d="M128 14 C136 28 142 36 142 46 A14 14 0 0 1 114 46 C114 36 120 28 128 14 Z" {...stroke} strokeWidth={1} />
+          <Path d="M122 46 A6 6 0 0 0 128 52" {...stroke} strokeWidth={0.7} />
+          <Circle cx={40} cy={60} r={1.2} fill={ink} />
+          <Circle cx={58} cy={30} r={0.9} fill={ink} />
+        </G>
+      );
+    case 'table':
+      // A bistro table with two chairs, side view, and a little lamp above.
+      return (
+        <G opacity={0.85}>
+          <Path d="M108 56 H148 M128 56 V80 M120 80 H136" {...stroke} strokeWidth={1.2} />
+          <Path d="M98 46 V80 M98 62 H108 V80" {...stroke} strokeWidth={1} />
+          <Path d="M158 46 V80 M158 62 H148 V80" {...stroke} strokeWidth={1} />
+          <Path d="M128 14 V28 M120 34 Q128 24 136 34 Z" {...stroke} strokeWidth={0.9} />
+          <Circle cx={128} cy={38} r={6} fill={ink} opacity={0.15} />
+          <Path d="M122 56 V50 H126 V56 M130 56 V48 H134 V56" {...stroke} strokeWidth={0.7} />
+        </G>
+      );
+    case 'rise':
+      // A sun on the horizon with a few rays: hope, dusk. No water (that's 'sun', the beach).
+      return (
+        <G opacity={0.85}>
+          <Path d="M100 70 A28 28 0 0 1 156 70 Z" fill={ink} opacity={0.35} />
+          <Path d="M88 70 H168" {...stroke} strokeWidth={1} />
+          {[-60, -30, 0, 30, 60].map((angle) => (
+            <Line
+              key={angle}
+              x1={128 + Math.sin((angle * Math.PI) / 180) * 34}
+              y1={70 - Math.cos((angle * Math.PI) / 180) * 34}
+              x2={128 + Math.sin((angle * Math.PI) / 180) * 42}
+              y2={70 - Math.cos((angle * Math.PI) / 180) * 42}
+              stroke={ink}
+              strokeWidth={1}
+              strokeLinecap="round"
+            />
+          ))}
         </G>
       );
     case 'line':

@@ -66,10 +66,9 @@ export default function PickTypeScreen() {
       />
 
       <View style={styles.grid}>
-        {EVENT_TYPES.map((type, index) => (
+        {EVENT_TYPES.map((type) => (
           <TypeTile
             key={type.id}
-            first={index === 0}
             type={type}
             selected={draft.type === type.id}
             onPress={() => updateDraft({ type: type.id })}
@@ -82,6 +81,9 @@ export default function PickTypeScreen() {
 
 const styles = StyleSheet.create({
   grid: {
-    marginTop: spacing.sm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: spacing.lg,
   },
 });

@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
+import { useTheme } from '@/hooks/useTheme';
 import {
   MARK_DOT_RADIUS,
   MARK_END,
@@ -15,8 +16,8 @@ import {
 
 /**
  * The story-thread heart logo, drawn statically. The splash animates its own copy.
- * `colors` swaps the brand gold -> pink -> purple for another three-stop
- * gradient (e.g. the current accent).
+ * Drawn in the app theme's accent by default (one color), so it fits every
+ * theme; `colors` overrides it with a three-stop gradient.
  */
 export function BrandMark({
   width = 52,
@@ -25,7 +26,9 @@ export function BrandMark({
   width?: number;
   colors?: readonly [string, string, string];
 }) {
-  const stops = MARK_STOPS.map((stop, index) => ({ offset: stop.offset, color: colors?.[index] ?? stop.color }));
+  const { tokens } = useTheme();
+  const palette = colors ?? [tokens.accentFill, tokens.accentFill, tokens.accentFill];
+  const stops = MARK_STOPS.map((stop, index) => ({ offset: stop.offset, color: palette[index]! }));
   // Unique per instance so multiple marks on one screen can't share a gradient id.
   const gradientId = `brandMark-${useId()}`;
 

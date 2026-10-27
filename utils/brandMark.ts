@@ -1,7 +1,6 @@
 /**
  * Warm Story 2.0 brand mark: the "story thread with a heart". A thread runs
- * from a gold dot (the beginning), loops into a heart, and ends at a purple
- * dot (the recap). Shared by BrandMark and the animated BrandSplash; the app
+ * from a dot (the beginning), loops into a heart, and ends at a dot (the recap). Shared by BrandMark and the animated BrandSplash; the app
  * icon and splash PNGs in assets/ are rendered from the same geometry.
  */
 export const MARK_PATH =
@@ -21,13 +20,15 @@ export const MARK_STROKE_WIDTH = 6.5;
 export const MARK_STROKE_LENGTH = 270;
 
 /**
- * Horizontal yellow → pink → blue-violet, the same stops as the app icon and
- * splash PNGs in assets/ (more vivid than the UI's brandGradient on purpose).
+ * Champagne gold, light to deep: the app icon, the native splash and the JS
+ * splash (assets/ are rendered from the same stops). Inside the app the mark
+ * is drawn in the theme's accent instead (BrandMark, BrandFlourish), so it
+ * sits with whichever of the app themes is picked.
  */
 export const MARK_STOPS = [
-  { offset: '0', color: '#F7C948' },
-  { offset: '0.5', color: '#F0509E' },
-  { offset: '1', color: '#5E5EF2' },
+  { offset: '0', color: '#EBCB8B' },
+  { offset: '0.5', color: '#D9B46A' },
+  { offset: '1', color: '#C99A4B' },
 ] as const;
 
 /**

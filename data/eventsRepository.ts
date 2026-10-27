@@ -81,6 +81,8 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     coverTheme: row.cover_theme ?? null,
     albumStatus: row.album_status,
     template: row.template ?? null,
+    outing: row.outing ?? null,
+    activity: row.activity ?? null,
     startTime: row.start_time ?? null,
     replyBy: row.reply_by ?? null,
     spotLimit: row.spot_limit ?? null,
@@ -140,6 +142,8 @@ export async function insertEvent(
       ...(draft.type === 'spontaneous'
         ? {
             template: draft.template ?? 'party',
+            outing: draft.outing,
+            activity: draft.activity,
             start_time: draft.startTime.trim().length > 0 ? draft.startTime.trim() : null,
             reply_by: draft.replyBy.trim().length > 0 ? draft.replyBy.trim() : null,
             spot_limit: parseSpotLimit(draft.spotLimit),

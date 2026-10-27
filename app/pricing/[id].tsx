@@ -28,7 +28,6 @@ import { brandGradient, themeRadius, typography } from "@/utils/themeTokens";
 import { reportSupabaseError } from "@/utils/reportError";
 import { fetchOfferingPackages } from "@/utils/revenueCat";
 import { FUND_ENABLED, PAID_PLANS_FOR_TESTING } from "@/utils/features";
-import { AI_THEME_PLANS } from "@/utils/coverThemes";
 import { wizardStep } from "@/utils/spontaneous";
 
 /** The only plan_key the client may write (see the lock_paid_plan_tier migration). */
@@ -36,7 +35,7 @@ const FREE_PLAN_KEY = "esential";
 
 /**
  * Per-event pricing screen — reached two ways, both event-scoped: right
- * after create-event finishes (app/create/preview.tsx, `?context=create`)
+ * as the create wizard's last step (`id=draft`, `?context=create`), which creates the event
  * and from a "no plan yet" badge on that event's own Home card
  * (components/EventListItem.tsx). There is no standalone, event-less
  * pricing route anymore, and no entry point from Profile — see CLAUDE.md's
@@ -85,7 +84,6 @@ function buildFeatureBullets(plan: PlanFeature, t: Translate): string[] {
     bullets.push(t("pricing.featureContributions"));
   if (plan.liveScreenEnabled) bullets.push(t("pricing.featureLiveScreen"));
   if (plan.chatEnabled) bullets.push(t("pricing.featureChat"));
-  if (AI_THEME_PLANS.includes(plan.planKey)) bullets.push(t("pricing.featureAiTheme"));
   if (plan.lodgingTransportEnabled)
     bullets.push(t("pricing.featureLodgingTransport"));
   if (plan.vendorTaggingEnabled)
@@ -124,14 +122,15 @@ export default function PricingScreen() {
     id: string;
     context?: string;
   }>();
-  const { getEvent, setPlanTier, isPrimaryOwner } = useEvents();
+  const { getEvent, setPlanTier, isPrimaryOwner, createEvent } = useEvents();
   const { plans, hydrated: plansHydrated } = usePlanFeatures();
   const [purchasingPlanId, setPurchasingPlanId] = useState<string | null>(null);
 
   const { draft, updateDraft } = useEventDraft();
   // id "draft": the create wizard, before the event exists. The pick goes into
   // the draft and is written to the event right after it's created
-  // (app/create/preview.tsx). context "upgrade" = opened from the theme step.
+  // (createFromDraft below). context "upgrade" = opened from the invitation's
+  // "Pick with AI" link: just records the plan and goes back.
   const draftMode = id === "draft";
   const event = draftMode ? undefined : getEvent(id);
   const eventType = draftMode ? draft.type : (event?.type ?? null);
@@ -184,10 +183,26 @@ export default function PricingScreen() {
   // replaced itself, so this always moves forward, never back into a
   // "create the event" submit button that could fire a second time) vs.
   // returning to wherever a "no plan yet" badge tap came from.
+  // The wizard's last step: create the event, then apply the plan picked here.
+  // Replace, not push: a back tap must never reach this submit again.
+  const [creating, setCreating] = useState(false);
+  const createFromDraft = async (planKey: string | null) => {
+    if (creating) return;
+    setCreating(true);
+    try {
+      const created = await createEvent(draft);
+      if (planKey !== null) await setPlanTier(created.id, planKey).catch(reportSupabaseError);
+      router.replace({ pathname: "/create/share", params: { id: created.id } });
+    } catch (err) {
+      reportSupabaseError(err);
+      setCreating(false);
+    }
+  };
+
   const continueAfterPricing = () => {
     if (draftMode) {
       if (context === "upgrade") router.back();
-      else router.push("/create/details");
+      else void createFromDraft(draft.planTier);
     } else if (context === "create") {
       router.replace({ pathname: "/create/share", params: { id } });
     } else {
@@ -213,7 +228,8 @@ export default function PricingScreen() {
 
     if (draftMode) {
       updateDraft({ planTier: plan.planKey });
-      continueAfterPricing();
+      if (context === "upgrade") router.back();
+      else void createFromDraft(plan.planKey);
       return;
     }
 

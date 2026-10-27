@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { showDialog } from '@/components/ActionSheet';
 import { aiWrite, AiQuotaError, fetchAiEventUsage, type AiWriteContext, type AiWriteKind } from '@/data/aiRepository';
@@ -54,25 +54,8 @@ export function AiWriteButton({ kind, value, onChange, context, maxChars, requir
   const hasText = value.trim().length > 0;
   if (requireText && !hasText && undo === null) return null;
 
-  // Still showing what the AI wrote: offer to go back to the organizer's text.
-  if (undo !== null && value === undo.applied) {
-    return (
-      <TouchableOpacity
-        style={[styles.pill, { borderColor: tokens.border, backgroundColor: tokens.surface }]}
-        onPress={() => {
-          onChange(undo.previous);
-          setUndo(null);
-        }}
-        activeOpacity={0.75}
-        accessibilityRole="button"
-        accessibilityLabel={t('ai.undo')}
-      >
-        <Feather name="rotate-ccw" size={13} color={tokens.textSecondary} />
-        <Text style={[styles.label, { color: tokens.textSecondary }]}>{t('ai.undo')}</Text>
-      </TouchableOpacity>
-    );
-  }
-
+  // Still showing what the AI wrote: offer to go back, next to "improve" again.
+  const showingAi = undo !== null && value === undo.applied;
   const label = requireText ? t('ai.tidy') : hasText ? t('ai.improve') : t('ai.write');
 
   const run = async () => {
@@ -88,7 +71,8 @@ export function AiWriteButton({ kind, value, onChange, context, maxChars, requir
         context,
         eventId,
       });
-      setUndo({ previous: value, applied: text });
+      // Undo always goes back to the organizer's own text, even after several rewrites.
+      setUndo((current) => ({ previous: current !== null && value === current.applied ? current.previous : value, applied: text }));
       onChange(text);
     } catch (error) {
       if (error instanceof AiQuotaError && error.scope === 'event' && eventId !== undefined) {
@@ -114,7 +98,7 @@ export function AiWriteButton({ kind, value, onChange, context, maxChars, requir
     }
   };
 
-  return (
+  const runButton = (
     <TouchableOpacity
       style={[styles.pill, { backgroundColor: tokens.accentTint, borderColor: tokens.accentTint }]}
       onPress={() => void run()}
@@ -132,9 +116,33 @@ export function AiWriteButton({ kind, value, onChange, context, maxChars, requir
       <Text style={[styles.label, { color: tokens.accentText }]}>{busy ? t('ai.writing') : left !== null ? t('ai.withLeft', { label, count: left }) : label}</Text>
     </TouchableOpacity>
   );
+
+  if (!showingAi) return runButton;
+  return (
+    <View style={styles.pair}>
+      <TouchableOpacity
+        style={[styles.pill, { borderColor: tokens.border, backgroundColor: tokens.surface }]}
+        onPress={() => {
+          onChange(undo.previous);
+          setUndo(null);
+        }}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel={t('ai.undo')}
+      >
+        <Feather name="rotate-ccw" size={13} color={tokens.textSecondary} />
+        <Text style={[styles.label, { color: tokens.textSecondary }]}>{t('ai.undo')}</Text>
+      </TouchableOpacity>
+      {runButton}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
+  pair: {
+    flexDirection: 'row',
+    gap: 6,
+  },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',

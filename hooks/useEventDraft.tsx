@@ -9,6 +9,8 @@ const EMPTY_DRAFT: EventDraft = {
   location: '',
   welcomeMessage: '',
   template: null,
+  outing: null,
+  activity: null,
   startTime: '',
   replyBy: '',
   spotLimit: '',

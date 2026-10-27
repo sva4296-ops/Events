@@ -53,9 +53,9 @@ export function SpontaneousPlan({ event, owner }: { event: AppEvent; owner: bool
         <SongQueue items={items} owner={owner} hook={spontaneous} />
       ) : kind === 'bring' ? (
         <BringList items={items} owner={owner} hook={spontaneous} />
-      ) : (
+      ) : kind === 'wine' ? (
         <WineSheet items={items} owner={owner} hook={spontaneous} content={content} />
-      )}
+      ) : null}
 
       <Eyebrow>{t('spontaneous.plan.logistics')}</Eyebrow>
       <SpCard>

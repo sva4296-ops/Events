@@ -35,7 +35,7 @@ export default function VenueSetupStep() {
           <Button
             label={t('createWizard.continue')}
             disabled={!isVenueSetupValid(draft)}
-            onPress={() => router.push('/create/theme')}
+            onPress={() => router.push({ pathname: '/pricing/[id]', params: { id: 'draft', context: 'create' } })}
           />
         }
       >

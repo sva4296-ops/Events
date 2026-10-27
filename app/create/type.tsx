@@ -36,8 +36,7 @@ export default function PickTypeScreen() {
       });
       return;
     }
-    if (draft.type === 'spontaneous') router.push('/create/template');
-    else router.push({ pathname: '/pricing/[id]', params: { id: 'draft', context: 'create' } });
+    router.push(draft.type === 'spontaneous' ? '/create/template' : '/create/invite');
   };
 
   // This is the wizard's first screen: it unmounts only when the wizard is
@@ -67,9 +66,10 @@ export default function PickTypeScreen() {
       />
 
       <View style={styles.grid}>
-        {EVENT_TYPES.map((type) => (
+        {EVENT_TYPES.map((type, index) => (
           <TypeTile
             key={type.id}
+            first={index === 0}
             type={type}
             selected={draft.type === type.id}
             onPress={() => updateDraft({ type: type.id })}
@@ -82,8 +82,6 @@ export default function PickTypeScreen() {
 
 const styles = StyleSheet.create({
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
+    marginTop: spacing.sm,
   },
 });

@@ -14,8 +14,11 @@ export type EventTypeId =
 export type RsvpStatus = 'confirmed' | 'pending' | 'declined' | 'maybe';
 
 /** events.template — which tool a spontaneous event's Plan tab uses. */
-export const SPONTANEOUS_TEMPLATES = ['karaoke', 'party', 'tasting'] as const;
+export const SPONTANEOUS_TEMPLATES = ['karaoke', 'party', 'tasting', 'trip', 'outing', 'limited'] as const;
 export type SpontaneousTemplate = (typeof SPONTANEOUS_TEMPLATES)[number];
+/** events.outing — the kind of outing picked first in the spontaneous wizard. */
+export const OUTING_KINDS = ['party', 'outing', 'limited', 'trip'] as const;
+export type OutingKind = (typeof OUTING_KINDS)[number];
 
 export type Gradient = readonly [string, string];
 
@@ -116,6 +119,9 @@ export interface AppEvent {
   albumStatus: 'not_started' | 'generating' | 'ready';
   /** Spontaneous events only (null otherwise). */
   template: SpontaneousTemplate | null;
+  outing: OutingKind | null;
+  /** utils/outings.ts activity id ('karaoke', 'mountain'…), 'other' or null. */
+  activity: string | null;
   /** 'HH:MM', set by the spontaneous wizard. */
   startTime: string | null;
   /** 'YYYY-MM-DD' — "Reply by". */
@@ -154,6 +160,8 @@ export interface EventDraft {
   welcomeMessage: string;
   /** Spontaneous only; ignored for every other type. */
   template: SpontaneousTemplate | null;
+  outing: OutingKind | null;
+  activity: string | null;
   startTime: string;
   replyBy: string;
   /** Typed digits; empty = no limit. */

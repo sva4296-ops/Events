@@ -44,6 +44,9 @@ const TEMPLATE_COPY: Record<SpontaneousTemplate, { emoji: string; line: string }
   karaoke: { emoji: '🎤', line: 'Microfoanele sunt pregătite, scuzele nu se acceptă.' },
   party: { emoji: '🎉', line: 'Hai să ne vedem, o să fie fain!' },
   tasting: { emoji: '🍷', line: 'Locurile sunt limitate, spune-mi repede dacă vii.' },
+  trip: { emoji: '🎒', line: 'Facem o ieșire din oraș, vino cu noi!' },
+  outing: { emoji: '📍', line: 'Ieșim în oraș, hai și tu!' },
+  limited: { emoji: '🎟️', line: 'Locurile sunt limitate, spune-mi repede dacă vii.' },
 };
 
 /** The message is always Romanian, so the date is too, regardless of the

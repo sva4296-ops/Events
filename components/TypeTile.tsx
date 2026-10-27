@@ -1,5 +1,3 @@
-import Feather from '@expo/vector-icons/Feather';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -8,7 +6,7 @@ import { ScaleTouchable } from '@/components/ScaleTouchable';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeMeta } from '@/types/event';
 import { haptics } from '@/utils/haptics';
-import { bandGradientLocations, themeRadius } from '@/utils/themeTokens';
+import { typeface } from '@/utils/themeTokens';
 
 interface TypeTileProps {
   type: EventTypeMeta;
@@ -16,94 +14,79 @@ interface TypeTileProps {
   onPress: () => void;
 }
 
-/** Warm Story 2.0 type tile: two per row, type band icon, name + one-line description, check when selected. */
-export function TypeTile({ type, selected, onPress }: TypeTileProps) {
+/**
+ * One row of the type list: the name in the theme's display font, a one-line
+ * description, a thin icon on the right, hairline dividers. A radio dot marks
+ * the pick. Deliberately not a card grid with icon boxes (read as generic).
+ */
+export function TypeTile({ type, selected, onPress, first = false }: TypeTileProps & { first?: boolean }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const label = t(`eventTypes.${type.id}.label`);
 
   return (
     <ScaleTouchable
-      scaleTo={0.97}
+      scaleTo={0.98}
       onPress={() => {
         haptics.tap();
         onPress();
       }}
-      activeOpacity={0.85}
+      activeOpacity={0.7}
       accessibilityRole="radio"
       accessibilityState={{ selected, checked: selected }}
       accessibilityLabel={label}
-      style={[
-        styles.tile,
-        {
-          backgroundColor: tokens.surface,
-          borderColor: selected ? tokens.accentPrimary : tokens.border,
-          borderWidth: selected ? 2 : 1.5,
-        },
-      ]}
+      style={[styles.row, !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tokens.border }]}
     >
-      <LinearGradient
-        colors={type.band}
-        locations={bandGradientLocations}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.icon}
-      >
-        <EventTypeIcon type={type.id} size={24} color={type.bandInk} />
-      </LinearGradient>
+      <View style={[styles.radio, { borderColor: selected ? tokens.accentFill : tokens.border }]}>
+        {selected ? <View style={[styles.radioDot, { backgroundColor: tokens.accentFill }]} /> : null}
+      </View>
 
       <View style={styles.text}>
-        <Text style={[styles.label, { color: tokens.textPrimary }]}>{label}</Text>
-        <Text style={[styles.description, { color: tokens.textSecondary }]} numberOfLines={2}>
+        <Text
+          style={[styles.label, { color: selected ? tokens.accentText : tokens.textPrimary, fontFamily: tokens.displayFont }]}
+        >
+          {label}
+        </Text>
+        <Text style={[styles.description, { color: tokens.textSecondary }]} numberOfLines={1}>
           {t(`eventTypes.${type.id}.description`)}
         </Text>
       </View>
 
-      {selected ? (
-        <View style={[styles.check, { backgroundColor: tokens.accentFill }]}>
-          <Feather name="check" size={15} color={tokens.onAccent} />
-        </View>
-      ) : null}
+      <EventTypeIcon type={type.id} size={22} color={selected ? tokens.accentText : tokens.textMuted} strokeWidth={1.4} />
     </ScaleTouchable>
   );
 }
 
 const styles = StyleSheet.create({
-  tile: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    minHeight: 132,
-    padding: 16,
-    borderRadius: themeRadius.xl,
-    justifyContent: 'space-between',
-    gap: 12,
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 16,
   },
-  icon: {
-    width: 48,
-    height: 48,
-    borderRadius: themeRadius.md,
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
   text: {
+    flex: 1,
     gap: 2,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 22,
+    lineHeight: 28,
   },
   description: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  check: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontFamily: typeface.body,
+    fontSize: 13,
   },
 });

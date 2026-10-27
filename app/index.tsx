@@ -6,7 +6,7 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { showActionSheet } from '@/components/ActionSheet';
+import { type EventMenuAction } from '@/components/EventMenu';
 import { DashboardHero, DashboardHeroSkeleton, DashboardRow } from '@/components/DashboardCards';
 import { GeneratedAvatar } from '@/components/GeneratedAvatar';
 import { HomeEmptyState } from '@/components/HomeEmptyState';
@@ -29,7 +29,6 @@ import i18n from '@/utils/i18n';
 import { compareEventsByDate } from '@/utils/eventOrder';
 import { confirmDelete } from '@/utils/confirm';
 import { isEventPast } from '@/utils/format';
-import { haptics } from '@/utils/haptics';
 import { reportSupabaseError } from '@/utils/reportError';
 import { myInvitations } from '@/utils/invitations';
 import { staggerIn } from '@/utils/motion';
@@ -93,35 +92,32 @@ export default function DashboardScreen() {
     { key: 'all', label: t('home.tabAll'), count: null },
   ];
 
-  // Long press on one of your event cards: edit it (until it's over) and, for
-  // its creator, delete it after a confirmation. Replaces Detalii's pencil.
-  const openEventMenu = (event: (typeof events)[number]) => {
-    const canEdit = isOwner(event) && !isEventPast(event.date);
-    const canDelete = isPrimaryOwner(event);
-    if (!canEdit && !canDelete) return;
-    haptics.press();
-    showActionSheet({
-      title: event.name,
-      actions: [
-        ...(canEdit
-          ? [{ label: t('common.edit'), tone: 'edit' as const, onPress: () => router.push(`/edit-event/${event.id}`) }]
-          : []),
-        ...(canDelete
-          ? [
-              {
-                label: t('common.delete'),
-                tone: 'delete' as const,
-                onPress: () =>
-                  confirmDelete(
-                    t('editEventForm.deleteTitle'),
-                    t('editEventForm.deleteBody', { name: event.name }),
-                    () => deleteEvent(event.id).catch(reportSupabaseError),
-                  ),
-              },
-            ]
-          : []),
-      ],
-    });
+  // Edit (until it's over) and, for its creator, Delete after a confirmation:
+  // a bottom sheet on a long press of the card.
+  const menuFor = (event: (typeof events)[number]): EventMenuAction[] => {
+    if (isRestaurant(event)) return [];
+    const actions: EventMenuAction[] = [];
+    if (isOwner(event) && !isEventPast(event.date)) {
+      actions.push({
+        id: 'edit',
+        title: t('common.edit'),
+        onPress: () => router.push(`/edit-event/${event.id}`),
+      });
+    }
+    if (isPrimaryOwner(event)) {
+      actions.push({
+        id: 'delete',
+        title: t('common.delete'),
+        destructive: true,
+        onPress: () =>
+          confirmDelete(
+            t('editEventForm.deleteTitle'),
+            t('editEventForm.deleteBody', { name: event.name }),
+            () => deleteEvent(event.id).catch(reportSupabaseError),
+          ),
+      });
+    }
+    return actions;
   };
 
   // The restaurant only has the Detalii tab; everyone else lands on Acasă.
@@ -225,7 +221,7 @@ export default function DashboardScreen() {
                 <DashboardHero
                   event={ownedEvents[0]!}
                   onPress={() => openEvent(ownedEvents[0]!)}
-                  onLongPress={isRestaurant(ownedEvents[0]!) ? undefined : () => openEventMenu(ownedEvents[0]!)}
+                  menuActions={menuFor(ownedEvents[0]!)}
                   onPressInvite={() => router.push(`/event/${ownedEvents[0]!.id}`)}
                 />
               </Animated.View>
@@ -240,7 +236,7 @@ export default function DashboardScreen() {
                         event={event}
                         showDivider={index > 0}
                         onPress={() => openEvent(event)}
-                        onLongPress={isRestaurant(event) ? undefined : () => openEventMenu(event)}
+                        menuActions={menuFor(event)}
                       />
                     </Animated.View>
                   ))}

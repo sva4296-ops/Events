@@ -2,7 +2,8 @@ import Feather from '@expo/vector-icons/Feather';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { ZoomIn } from 'react-native-reanimated';
+import Animated, { SlideInDown, ZoomIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/utils/theme';
@@ -79,6 +80,7 @@ const DEFAULT_ICON: Record<NonNullable<SheetAction['tone']>, FeatherName> = {
 export function ActionSheetHost() {
   const { t } = useTranslation();
   const { tokens } = useTheme();
+  const insets = useSafeAreaInsets();
   const [current, setCurrent] = useState<HostRequest | null>(null);
   const [visible, setVisible] = useState(false);
   // Run after the sheet is gone: an action that opens another dialog (the
@@ -163,53 +165,51 @@ export function ActionSheetHost() {
         </View>
       ) : null}
       {visible && current?.kind === 'sheet' ? (
-        <View style={styles.center} pointerEvents="box-none">
-        <Animated.View
-          entering={ZoomIn.duration(180)}
-          style={[styles.popup, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
-        >
-          {current.sheet.title !== undefined && current.sheet.title.length > 0 ? (
-            <Text style={[styles.title, { color: tokens.textPrimary }]} numberOfLines={2}>
-              {current.sheet.title}
-            </Text>
-          ) : null}
-
-          <View style={[styles.group, { backgroundColor: tokens.surface2 }]}>
-            {current.sheet.actions.map((action, index) => {
-              const tone = action.tone ?? 'default';
-              const color = tone === 'delete' ? tokens.destructive : tokens.textPrimary;
-              return (
-                <TouchableOpacity
-                  key={`${action.label}-${index}`}
-                  style={[styles.row, index > 0 && { borderTopWidth: 1, borderTopColor: tokens.border }]}
-                  onPress={() => close(action.onPress)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                >
-                  <View
-                    style={[
-                      styles.icon,
-                      { backgroundColor: tone === 'delete' ? tokens.destructiveSoft : tokens.surface },
-                    ]}
-                  >
-                    <Feather name={action.icon ?? DEFAULT_ICON[tone]} size={18} color={color} />
-                  </View>
-                  <Text style={[styles.label, { color }]}>{action.label}</Text>
-                  {action.selected === true ? <Feather name="check" size={20} color={tokens.accentText} /> : null}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <TouchableOpacity
-            style={[styles.cancel, { backgroundColor: tokens.surface2 }]}
-            onPress={() => close()}
-            activeOpacity={0.7}
-            accessibilityRole="button"
+        // A bottom sheet: grabber, title in the theme's display font, plain
+        // rows with hairlines (no icon boxes), Cancel as a quiet text button.
+        <View style={styles.bottom} pointerEvents="box-none">
+          <Animated.View
+            entering={SlideInDown.duration(240)}
+            style={[
+              styles.sheet,
+              { backgroundColor: tokens.surface, borderColor: tokens.border, paddingBottom: insets.bottom + spacing.md },
+            ]}
           >
-            <Text style={[styles.cancelLabel, { color: tokens.textPrimary }]}>{t('common.cancel')}</Text>
-          </TouchableOpacity>
-        </Animated.View>
+            <View style={[styles.grabber, { backgroundColor: tokens.border }]} />
+            {current.sheet.title !== undefined && current.sheet.title.length > 0 ? (
+              <Text style={[styles.title, { color: tokens.textPrimary, fontFamily: tokens.displayFont }]} numberOfLines={2}>
+                {current.sheet.title}
+              </Text>
+            ) : null}
+
+            <View>
+              {current.sheet.actions.map((action, index) => {
+                const tone = action.tone ?? 'default';
+                const color = tone === 'delete' ? tokens.destructive : tokens.textPrimary;
+                return (
+                  <TouchableOpacity
+                    key={`${action.label}-${index}`}
+                    style={[styles.row, { borderTopColor: tokens.border }, index === 0 && styles.firstRow]}
+                    onPress={() => close(action.onPress)}
+                    activeOpacity={0.6}
+                    accessibilityRole="button"
+                  >
+                    <Feather
+                      name={action.icon ?? DEFAULT_ICON[tone]}
+                      size={19}
+                      color={tone === 'delete' ? tokens.destructive : tokens.textSecondary}
+                    />
+                    <Text style={[styles.label, { color }]}>{action.label}</Text>
+                    {action.selected === true ? <Feather name="check" size={20} color={tokens.accentText} /> : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity style={styles.cancel} onPress={() => close()} activeOpacity={0.6} accessibilityRole="button">
+              <Text style={[styles.cancelLabel, { color: tokens.textSecondary }]}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       ) : null}
     </Modal>
@@ -272,39 +272,50 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     elevation: 12,
   },
-  title: {
-    ...typography.subtitle,
-    textAlign: 'center',
-    paddingHorizontal: spacing.md,
+  bottom: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
-  group: {
-    borderRadius: themeRadius.xl,
-    overflow: 'hidden',
+  sheet: {
+    borderTopLeftRadius: themeRadius.sheet,
+    borderTopRightRadius: themeRadius.sheet,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    paddingHorizontal: spacing.xl,
+    paddingTop: 10,
+  },
+  grabber: {
+    alignSelf: 'center',
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: spacing.lg,
+  },
+  title: {
+    fontSize: 24,
+    lineHeight: 30,
+    marginBottom: spacing.sm,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    minHeight: 56,
-    paddingHorizontal: 16,
+    gap: 14,
+    minHeight: 58,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  icon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+  firstRow: {
+    borderTopWidth: 0,
   },
   label: {
     flex: 1,
-    fontFamily: typeface.bodySemiBold,
-    fontSize: 16,
+    fontFamily: typeface.bodyMedium,
+    fontSize: 17,
   },
   cancel: {
     minHeight: 52,
-    borderRadius: themeRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: spacing.xs,
   },
   cancelLabel: {
     fontFamily: typeface.bodySemiBold,

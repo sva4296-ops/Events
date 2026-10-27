@@ -16,7 +16,7 @@ import type { Attendee } from '@/types/spontaneous';
 import { haptics } from '@/utils/haptics';
 import { formatMoney } from '@/utils/money';
 import { billPaidCount, billPerPerson, templateMeta } from '@/utils/spontaneous';
-import { bandGradientLocations, themeRadius, typography } from '@/utils/themeTokens';
+import { themeRadius, typography } from '@/utils/themeTokens';
 
 /**
  * Fond for a spontaneous event: total ÷ people, who has paid, how to pay.
@@ -62,19 +62,18 @@ export function SpontaneousBill({ event, owner }: { event: AppEvent; owner: bool
   return (
     <GuestScreen transparent>
       <LinearGradient
-        colors={meta.band}
-        locations={bandGradientLocations}
+        colors={[tokens.accentFill, tokens.accentPrimary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.hero}
       >
-        <Text style={[styles.heroEyebrow, { color: meta.bandInk }]}>{t('spontaneous.bill.eyebrow').toUpperCase()}</Text>
-        <Text style={[styles.heroTitle, { color: meta.bandInk }]}>{bill.title}</Text>
+        <Text style={[styles.heroEyebrow, { color: tokens.onAccent }]}>{t('spontaneous.bill.eyebrow').toUpperCase()}</Text>
+        <Text style={[styles.heroTitle, { color: tokens.onAccent }]}>{bill.title}</Text>
         <View style={styles.math}>
           <MathCell value={formatMoney(bill.totalAmount, 'lei')} label={t('spontaneous.bill.total')} ink={meta.bandInk} />
-          <Text style={[styles.op, { color: meta.bandInk }]}>÷</Text>
+          <Text style={[styles.op, { color: tokens.onAccent }]}>÷</Text>
           <MathCell value={String(bill.peopleCount)} label={t('spontaneous.bill.people')} ink={meta.bandInk} />
-          <Text style={[styles.op, { color: meta.bandInk }]}>=</Text>
+          <Text style={[styles.op, { color: tokens.onAccent }]}>=</Text>
           <MathCell value={formatMoney(per, 'lei')} label={t('spontaneous.bill.perPerson')} ink={meta.bandInk} strong />
         </View>
       </LinearGradient>

@@ -424,7 +424,10 @@
       "minimal": "Minimal",
       "bleumarin": "Navy & coral",
       "teracota": "Terracotta",
-      "visina": "Cherry & powder pink"
+      "visina": "Cherry & powder pink",
+      "sepia": "Sepia (vintage)",
+      "retro": "Retro '70s (vintage)",
+      "cinema": "Old cinema (vintage)"
     }
   },
   "pricing": {
@@ -456,9 +459,8 @@
     "ownerOnly": "Only the main organizer can choose the plan.",
     "paymentsSoonTitle": "Payments coming soon",
     "paymentsSoonBody": "Paid plans will be available to buy right in the app soon. Until then you can use the Esențial plan.",
-    "subtitleDraft": "Pick now so you know what you unlock. You can upgrade anytime.",
-    "subtitleUpgrade": "Upgrade to unlock picking the theme with AI.",
-    "featureAiTheme": "Theme picked by AI"
+    "subtitleDraft": "Last step: pick a plan and your event is ready. You can upgrade anytime.",
+    "subtitleUpgrade": "Upgrade to unlock picking the theme with AI."
   },
   "planGate": {
     "chatLocked": "Group chat isn't included in this event's current plan.",
@@ -797,7 +799,7 @@
   "createWizard": {
     "continue": "Continue",
     "typeTitle": "What are we celebrating?",
-    "typeSubtitle": "Pick the type of event. Each one has its own colors.",
+    "typeSubtitle": "Pick the type of event.",
     "detailsButton": "Preview invitation",
     "detailsTitle": "The story's details",
     "detailsSubtitle": "Everything your guests need to know.",
@@ -823,15 +825,15 @@
     "stepShare": "Share",
     "timeLabel": "Time",
     "previewEdit": "Edit",
-    "shareWhatsApp": "Send on WhatsApp",
-    "shareAddGuests": "Add guests",
-    "shareGoToEvent": "Go to the event",
     "pickOnMap": "Pick on the map",
     "discardTitle": "Discard this event?",
     "discardBody": "Everything you entered will be lost.",
     "keepEditing": "Keep editing",
     "discard": "Discard",
-    "stepTheme": "Theme"
+    "stepTheme": "Theme",
+    "shareInvite": "Invite guests",
+    "shareVenue": "Send the booking link",
+    "shareLater": "Later"
   },
   "eventTypes": {
     "wedding": {
@@ -1256,12 +1258,72 @@
           "Car-pooling"
         ],
         "billTitle": "Tasting ticket"
+      },
+      "trip": {
+        "name": "Trip",
+        "description": "A day or a whole weekend.",
+        "includes": [
+          "Gear list",
+          "Vote",
+          "Shared costs"
+        ],
+        "namePlaceholder": "Mountain weekend",
+        "messagePlaceholder": "Leaving Friday night, back Sunday. Come with us! 🏔️",
+        "planTitle": "Gear to bring",
+        "planSub": "Pick what you'll bring so nothing gets forgotten.",
+        "planCta": "What are you bringing? Pick from the list.",
+        "pollQuestion": "How do we get there?",
+        "pollOptions": [
+          "By car",
+          "By train"
+        ],
+        "billTitle": "Lodging and transport"
+      },
+      "outing": {
+        "name": "Night out",
+        "description": "Restaurant, bar, karaoke, bowling.",
+        "includes": [
+          "Vote",
+          "Bill"
+        ],
+        "namePlaceholder": "Bowling Thursday",
+        "messagePlaceholder": "Going out, join us! 🎳",
+        "planTitle": "The plan",
+        "planSub": "Where and when we meet.",
+        "planCta": "See the plan.",
+        "pollQuestion": "What time do we meet?",
+        "pollOptions": [
+          "19:00",
+          "20:00",
+          "21:00"
+        ],
+        "billTitle": "The bill"
+      },
+      "limited": {
+        "name": "Limited spots",
+        "description": "Tasting, concert, class, match.",
+        "includes": [
+          "Max spots",
+          "Vote",
+          "Bill"
+        ],
+        "namePlaceholder": "Concert night",
+        "messagePlaceholder": "Spots are limited, tell me quickly if you're in. 🎟️",
+        "planTitle": "The plan",
+        "planSub": "Where and when we meet.",
+        "planCta": "See the plan.",
+        "pollQuestion": "Meet before?",
+        "pollOptions": [
+          "Yes, for a coffee",
+          "Straight there"
+        ],
+        "billTitle": "Tickets"
       }
     },
     "wizard": {
       "stepTemplate": "Template",
       "templateTitle": "What kind of night out?",
-      "templateSubtitle": "Each template comes with the right tool in the Plan tab.",
+      "templateSubtitle": "Pick how it's organised. You choose the activity next.",
       "timeLabel": "Time",
       "timePlaceholder": "Pick a time",
       "replyByLabel": "Reply by",
@@ -1270,7 +1332,15 @@
       "replyByAfterDate": "The reply deadline has to be before the event.",
       "spotLimitLabel": "Spot limit (optional)",
       "spotLimitPlaceholder": "No limit",
-      "spotLimitHint": "People, +1s included."
+      "spotLimitHint": "People, +1s included.",
+      "stepActivity": "Activity",
+      "activityTitle": "What are you doing?",
+      "activitySubtitle": "For \"{{outing}}\". Adds the right tool and picks the theme.",
+      "adds": "Adds",
+      "tool": "Tool",
+      "theme": "Theme",
+      "title": "Title",
+      "skip": "Skip"
     },
     "rsvp": {
       "question": "Are you coming?",
@@ -1393,6 +1463,121 @@
       "plusOnes_other": "{{count}} +1s",
       "spots": "{{taken}}/{{limit}} spots",
       "withPlusOne": "Bringing someone (+1)"
+    },
+    "outings": {
+      "party": {
+        "name": "Party",
+        "description": "At home, in the park or at a friend's.",
+        "features": "Who brings what · Vote · Costs"
+      },
+      "outing": {
+        "name": "Night out",
+        "description": "Restaurant, bar, karaoke, bowling.",
+        "features": "Vote · Bill"
+      },
+      "limited": {
+        "name": "Limited spots",
+        "description": "Tasting, concert, class, match.",
+        "features": "Max spots · Vote · Bill"
+      },
+      "trip": {
+        "name": "Trip",
+        "description": "A day or a whole weekend.",
+        "features": "Gear list · Vote · Shared costs"
+      }
+    },
+    "activities": {
+      "home": {
+        "name": "At home",
+        "title": "Night at mine"
+      },
+      "grill": {
+        "name": "Barbecue",
+        "title": "Weekend barbecue"
+      },
+      "birthday": {
+        "name": "Someone's birthday",
+        "title": "My birthday"
+      },
+      "movie": {
+        "name": "Movie",
+        "title": "Movie night"
+      },
+      "games": {
+        "name": "Games",
+        "title": "Game night"
+      },
+      "karaoke": {
+        "name": "Karaoke",
+        "title": "Karaoke Friday"
+      },
+      "bowling": {
+        "name": "Bowling",
+        "title": "Bowling Thursday"
+      },
+      "dinner": {
+        "name": "Dinner",
+        "title": "Dinner out"
+      },
+      "bar": {
+        "name": "Bar",
+        "title": "Bar night"
+      },
+      "escape": {
+        "name": "Escape room",
+        "title": "Escape room"
+      },
+      "billiards": {
+        "name": "Billiards",
+        "title": "Billiards night"
+      },
+      "wine": {
+        "name": "Wine tasting",
+        "title": "Wine tasting"
+      },
+      "concert": {
+        "name": "Concert",
+        "title": "Concert night"
+      },
+      "workshop": {
+        "name": "Class or workshop",
+        "title": "Workshop"
+      },
+      "match": {
+        "name": "Match",
+        "title": "Going to the match"
+      },
+      "theatre": {
+        "name": "Theatre",
+        "title": "Theatre night"
+      },
+      "mountain": {
+        "name": "Mountains",
+        "title": "Mountain weekend"
+      },
+      "sea": {
+        "name": "Seaside",
+        "title": "Seaside weekend"
+      },
+      "citybreak": {
+        "name": "City break",
+        "title": "City break"
+      },
+      "camping": {
+        "name": "Camping",
+        "title": "Camping"
+      },
+      "other": {
+        "name": "Something else",
+        "title": ""
+      }
+    },
+    "tools": {
+      "song": "Song queue with votes",
+      "bring": "Who brings what",
+      "wine": "Wine tasting notes",
+      "gear": "Gear to bring",
+      "none": "Vote and bill split"
     }
   },
   "venue": {
@@ -1545,12 +1730,6 @@
       "link": "Link"
     },
     "suggestedFor": "Suggested for {{category}}",
-    "aiTitle": "Pick with AI",
-    "aiBusy": "AI is picking…",
-    "aiBody": "Matches the theme to your event's title.",
-    "aiLocked": "Available on Complet and Premium. Tap to upgrade.",
-    "aiQuotaTitle": "You've used AI today",
-    "aiQuotaBody": "Try again tomorrow or pick the theme yourself.",
     "names": {
       "petrecere": "Party",
       "aniversare": "Birthday",
@@ -1576,5 +1755,12 @@
     "linkInvited": "You're invited",
     "linkCaption": "Chat preview · the link image is still",
     "classic": "Classic"
+  },
+  "compose": {
+    "title": "Your invitation",
+    "stepName": "Invitation",
+    "whenPlaceholder": "Pick the date below",
+    "themeLabel": "Theme",
+    "detailsLabel": "Details"
   }
 }

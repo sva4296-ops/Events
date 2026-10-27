@@ -1,6 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
 import { EventCover } from '@/components/EventCover';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -10,7 +9,7 @@ import type { EventDraft, SpontaneousTemplate } from '@/types/event';
 import { getEventType } from '@/utils/eventTypes';
 import { formatEventDate } from '@/utils/format';
 import { spacing } from '@/utils/theme';
-import { bandGradientLocations, themeRadius, typography } from '@/utils/themeTokens';
+import { themeRadius, typography } from '@/utils/themeTokens';
 
 /** On-band chips: white 90% with dark text in both modes — text never sits on the gradient itself. */
 const CHIP_BG = 'rgba(255,255,255,0.9)';
@@ -31,7 +30,7 @@ export type InviteCardEvent = Pick<EventDraft, 'type' | 'name' | 'date' | 'locat
   coverTheme?: string | null;
 };
 
-export function InviteCard({ event, coverPhoto = false }: { event: InviteCardEvent; coverPhoto?: boolean }) {
+export function InviteCard({ event }: { event: InviteCardEvent; /** Kept for callers; every card now draws EventCover. */ coverPhoto?: boolean }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const type = getEventType(event.type);
@@ -39,7 +38,6 @@ export function InviteCard({ event, coverPhoto = false }: { event: InviteCardEve
   const location = event.location.trim();
   const message = event.welcomeMessage.trim();
   const time = event.startTime?.trim() ?? '';
-  const picked = event.coverTheme != null;
   const chipLabel =
     type.id === 'spontaneous' && event.template != null
       ? t(`spontaneous.templates.${event.template}.name`)
@@ -64,21 +62,9 @@ export function InviteCard({ event, coverPhoto = false }: { event: InviteCardEve
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      {picked || coverPhoto ? (
-        <EventCover type={type.id} coverTheme={event.coverTheme} style={styles.cover}>
-          {coverContent}
-        </EventCover>
-      ) : (
-        <LinearGradient
-          colors={type.band}
-          locations={bandGradientLocations}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.cover}
-        >
-          {coverContent}
-        </LinearGradient>
-      )}
+      <EventCover type={type.id} coverTheme={event.coverTheme} style={styles.cover}>
+        {coverContent}
+      </EventCover>
 
       <View style={styles.body}>
         <Text style={[styles.name, { color: tokens.textPrimary }]}>

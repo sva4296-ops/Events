@@ -2,7 +2,7 @@ import type { EventTypeId, SpontaneousTemplate } from '@/types/event';
 import type { ThemeTokens } from '@/utils/themeTokens';
 
 /**
- * Cover themes an organizer picks in the create wizard (app/create/theme.tsx).
+ * Cover themes an organizer picks in the create wizard (app/create/invite.tsx).
  * Drawn in code by components/CoverArt.tsx: a base gradient, two soft glows
  * and one decoration. Saved as events.cover_theme; null = the static
  * per-type cover photo (utils/eventCovers.ts).
@@ -77,7 +77,19 @@ export function getCoverTheme(id: string | null | undefined): CoverTheme | null 
 /** The theme that fits the category, shown first and marked "suggested". */
 export function suggestedCoverTheme(type: EventTypeId | null, template: SpontaneousTemplate | null): string {
   if (type === 'spontaneous') {
-    return template === 'karaoke' ? 'karaoke' : template === 'tasting' ? 'elegant' : 'petrecere';
+    switch (template) {
+      case 'karaoke':
+        return 'karaoke';
+      case 'tasting':
+      case 'limited':
+        return 'elegant';
+      case 'trip':
+        return 'aurora';
+      case 'outing':
+        return 'local';
+      default:
+        return 'petrecere';
+    }
   }
   switch (type) {
     case 'wedding':
@@ -99,8 +111,6 @@ export function suggestedCoverTheme(type: EventTypeId | null, template: Spontane
   }
 }
 
-/** Plans that unlock "Alege cu AI" on the theme step. */
-export const AI_THEME_PLANS: readonly string[] = ['complet', 'premium', 'agentie'];
 
 function mixHex(a: string, b: string, t: number): string {
   const channel = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);

@@ -5,7 +5,8 @@ import i18n from '@/utils/i18n';
 /** Per-template look and the Plan tab's tool. Colors follow the prototype. */
 export interface TemplateMeta {
   id: SpontaneousTemplate;
-  planKind: PlanItemKind;
+  /** The Plan tab's list tool; null = none (poll and bill only). */
+  planKind: PlanItemKind | null;
   /** Three-stop band, same role as EventTypeMeta.band. */
   band: readonly [string, string, string];
   bandInk: string;
@@ -34,6 +35,28 @@ export const TEMPLATES: Record<SpontaneousTemplate, TemplateMeta> = {
     bandInk: '#FFFFFF',
     accent: '#8E2C48',
   },
+  // A gear list: same claim-an-item mechanics as "who brings what".
+  trip: {
+    id: 'trip',
+    planKind: 'bring',
+    band: ['#3FB5C6', '#3A6BD6', '#2A3F8A'],
+    bandInk: '#FFFFFF',
+    accent: '#3A6BD6',
+  },
+  outing: {
+    id: 'outing',
+    planKind: null,
+    band: ['#B05CFF', '#E8457A', '#7A2E8E'],
+    bandInk: '#FFFFFF',
+    accent: '#B05CFF',
+  },
+  limited: {
+    id: 'limited',
+    planKind: null,
+    band: ['#C2738C', '#8E2C48', '#4A1A2E'],
+    bandInk: '#FFFFFF',
+    accent: '#8E2C48',
+  },
 };
 
 export function templateMeta(template: SpontaneousTemplate | null): TemplateMeta {
@@ -41,19 +64,19 @@ export function templateMeta(template: SpontaneousTemplate | null): TemplateMeta
 }
 
 /**
- * Create-wizard step numbers. The plan comes right after the type (and the
- * spontaneous template), so the organizer knows what they unlock before
- * filling anything in; the cover theme comes just before the preview.
+ * Create-wizard step numbers. The invitation is one screen (name, message,
+ * cover theme and details, app/create/invite.tsx); the plan comes last and
+ * creates the event.
  */
-type WizardStep = 'type' | 'template' | 'plan' | 'details' | 'venue' | 'theme' | 'preview';
+type WizardStep = 'type' | 'template' | 'activity' | 'invite' | 'venue' | 'plan';
 
 export function wizardStep(type: EventTypeId | null, step: WizardStep): { step: number; total: number } {
   const order: WizardStep[] =
     type === 'spontaneous'
-      ? ['type', 'template', 'plan', 'details', 'theme', 'preview']
+      ? ['type', 'template', 'activity', 'invite', 'plan']
       : type === 'venue'
-        ? ['type', 'plan', 'details', 'venue', 'theme', 'preview']
-        : ['type', 'plan', 'details', 'theme', 'preview'];
+        ? ['type', 'invite', 'venue', 'plan']
+        : ['type', 'invite', 'plan'];
   // +1: the share screen after the event is created.
   return { step: order.indexOf(step) + 1, total: order.length + 1 };
 }

@@ -448,7 +448,10 @@
       "minimal": "Minimal",
       "bleumarin": "Bleumarin & coral",
       "teracota": "Teracotă",
-      "visina": "Vișină & roz pudrat"
+      "visina": "Vișină & roz pudrat",
+      "sepia": "Sepia (vintage)",
+      "retro": "Retro '70 (vintage)",
+      "cinema": "Cinema vechi (vintage)"
     }
   },
   "pricing": {
@@ -481,9 +484,8 @@
     "ownerOnly": "Doar organizatorul principal poate alege pachetul.",
     "paymentsSoonTitle": "Plățile vin în curând",
     "paymentsSoonBody": "Planurile plătite vor putea fi cumpărate direct din aplicație în curând. Până atunci poți folosi planul Esențial.",
-    "subtitleDraft": "Alege acum ca să știi ce deblochezi. Poți face upgrade oricând.",
-    "subtitleUpgrade": "Fă upgrade ca să deblochezi alegerea temei cu AI.",
-    "featureAiTheme": "Temă aleasă cu AI"
+    "subtitleDraft": "Ultimul pas: alege planul și evenimentul e gata. Poți face upgrade oricând.",
+    "subtitleUpgrade": "Fă upgrade ca să deblochezi alegerea temei cu AI."
   },
   "planGate": {
     "chatLocked": "Chatul de grup nu este inclus în planul curent al acestui eveniment.",
@@ -824,7 +826,7 @@
   "createWizard": {
     "continue": "Continuă",
     "typeTitle": "Ce sărbătorim?",
-    "typeSubtitle": "Alege tipul evenimentului. Fiecare are culorile lui.",
+    "typeSubtitle": "Alege tipul evenimentului.",
     "detailsButton": "Previzualizează invitația",
     "detailsTitle": "Detaliile poveștii",
     "detailsSubtitle": "Tot ce trebuie să știe invitații tăi.",
@@ -850,15 +852,15 @@
     "stepShare": "Partajare",
     "timeLabel": "Ora",
     "previewEdit": "Editează",
-    "shareWhatsApp": "Trimite pe WhatsApp",
-    "shareAddGuests": "Adaugă invitați",
-    "shareGoToEvent": "Mergi la eveniment",
     "pickOnMap": "Alege pe hartă",
     "discardTitle": "Renunți la eveniment?",
     "discardBody": "Tot ce ai completat se va pierde.",
     "keepEditing": "Continuă editarea",
     "discard": "Renunță",
-    "stepTheme": "Tema"
+    "stepTheme": "Tema",
+    "shareInvite": "Invită oaspeți",
+    "shareVenue": "Trimite linkul de rezervare",
+    "shareLater": "Mai târziu"
   },
   "eventTypes": {
     "wedding": {
@@ -1291,12 +1293,72 @@
           "Cu mașinile"
         ],
         "billTitle": "Biletul la degustare"
+      },
+      "trip": {
+        "name": "Excursie",
+        "description": "O zi sau un weekend întreg.",
+        "includes": [
+          "Echipament de luat",
+          "Vot",
+          "Costuri comune"
+        ],
+        "namePlaceholder": "Weekend la munte",
+        "messagePlaceholder": "Plecăm vineri seara, ne întoarcem duminică. Hai cu noi! 🏔️",
+        "planTitle": "Echipament de luat",
+        "planSub": "Alege ce iei tu, ca să nu uităm nimic.",
+        "planCta": "Ce iei cu tine? Alege din listă.",
+        "pollQuestion": "Cu ce mergem?",
+        "pollOptions": [
+          "Cu mașinile",
+          "Cu trenul"
+        ],
+        "billTitle": "Cazare și transport"
+      },
+      "outing": {
+        "name": "Ieșire în oraș",
+        "description": "Restaurant, bar, karaoke, bowling.",
+        "includes": [
+          "Vot",
+          "Nota"
+        ],
+        "namePlaceholder": "Bowling joi",
+        "messagePlaceholder": "Ieșim în oraș, hai și tu! 🎳",
+        "planTitle": "Planul serii",
+        "planSub": "Unde și când ne vedem.",
+        "planCta": "Vezi planul serii.",
+        "pollQuestion": "La ce oră ne vedem?",
+        "pollOptions": [
+          "19:00",
+          "20:00",
+          "21:00"
+        ],
+        "billTitle": "Nota"
+      },
+      "limited": {
+        "name": "Cu locuri limitate",
+        "description": "Degustare, concert, curs, meci.",
+        "includes": [
+          "Locuri maxime",
+          "Vot",
+          "Nota"
+        ],
+        "namePlaceholder": "Mergem la concert",
+        "messagePlaceholder": "Locurile sunt limitate, spune-mi repede dacă vii. 🎟️",
+        "planTitle": "Planul",
+        "planSub": "Unde și când ne vedem.",
+        "planCta": "Vezi planul.",
+        "pollQuestion": "Ne vedem înainte?",
+        "pollOptions": [
+          "Da, la o cafea",
+          "Direct acolo"
+        ],
+        "billTitle": "Bilete"
       }
     },
     "wizard": {
       "stepTemplate": "Șablon",
       "templateTitle": "Ce fel de ieșire?",
-      "templateSubtitle": "Fiecare șablon vine cu unealta potrivită în tab-ul Plan.",
+      "templateSubtitle": "Alegi cum se organizează. Activitatea o alegi la pasul următor.",
       "timeLabel": "Ora",
       "timePlaceholder": "Alege ora",
       "replyByLabel": "Răspunde până la",
@@ -1305,7 +1367,15 @@
       "replyByAfterDate": "Termenul de răspuns trebuie să fie înainte de eveniment.",
       "spotLimitLabel": "Limită de locuri (opțional)",
       "spotLimitPlaceholder": "Fără limită",
-      "spotLimitHint": "Persoane, cu tot cu +1."
+      "spotLimitHint": "Persoane, cu tot cu +1.",
+      "stepActivity": "Activitate",
+      "activityTitle": "Ce faceți?",
+      "activitySubtitle": "Pentru „{{outing}}”. Adaugă unealta potrivită și alege tema.",
+      "adds": "Se adaugă",
+      "tool": "Unealtă",
+      "theme": "Temă",
+      "title": "Titlu",
+      "skip": "Sari peste"
     },
     "rsvp": {
       "question": "Vii?",
@@ -1433,6 +1503,121 @@
       "plusOnes_other": "{{count}} +1",
       "spots": "{{taken}}/{{limit}} locuri",
       "withPlusOne": "Vine cu cineva (+1)"
+    },
+    "outings": {
+      "party": {
+        "name": "Petrecere",
+        "description": "Acasă, în parc sau la cineva.",
+        "features": "Cine ce aduce · Vot · Costuri"
+      },
+      "outing": {
+        "name": "Ieșire în oraș",
+        "description": "Restaurant, bar, karaoke, bowling.",
+        "features": "Vot · Nota"
+      },
+      "limited": {
+        "name": "Cu locuri limitate",
+        "description": "Degustare, concert, curs, meci.",
+        "features": "Locuri maxime · Vot · Nota"
+      },
+      "trip": {
+        "name": "Excursie",
+        "description": "O zi sau un weekend întreg.",
+        "features": "Echipament de luat · Vot · Costuri comune"
+      }
+    },
+    "activities": {
+      "home": {
+        "name": "Acasă",
+        "title": "Seară la mine"
+      },
+      "grill": {
+        "name": "Grătar",
+        "title": "Grătar în weekend"
+      },
+      "birthday": {
+        "name": "Ziua cuiva",
+        "title": "Ziua mea"
+      },
+      "movie": {
+        "name": "Film",
+        "title": "Seară de film"
+      },
+      "games": {
+        "name": "Jocuri",
+        "title": "Seară de jocuri"
+      },
+      "karaoke": {
+        "name": "Karaoke",
+        "title": "Karaoke vineri"
+      },
+      "bowling": {
+        "name": "Bowling",
+        "title": "Bowling joi"
+      },
+      "dinner": {
+        "name": "Cină",
+        "title": "Cină în oraș"
+      },
+      "bar": {
+        "name": "Bar",
+        "title": "Seară la bar"
+      },
+      "escape": {
+        "name": "Escape room",
+        "title": "Escape room"
+      },
+      "billiards": {
+        "name": "Biliard",
+        "title": "Seară de biliard"
+      },
+      "wine": {
+        "name": "Degustare de vin",
+        "title": "Degustare de vin"
+      },
+      "concert": {
+        "name": "Concert",
+        "title": "Mergem la concert"
+      },
+      "workshop": {
+        "name": "Curs sau atelier",
+        "title": "Atelier"
+      },
+      "match": {
+        "name": "Meci",
+        "title": "Mergem la meci"
+      },
+      "theatre": {
+        "name": "Teatru",
+        "title": "Seară la teatru"
+      },
+      "mountain": {
+        "name": "Munte",
+        "title": "Weekend la munte"
+      },
+      "sea": {
+        "name": "Mare",
+        "title": "Weekend la mare"
+      },
+      "citybreak": {
+        "name": "City break",
+        "title": "City break"
+      },
+      "camping": {
+        "name": "Camping",
+        "title": "Camping"
+      },
+      "other": {
+        "name": "Altceva",
+        "title": ""
+      }
+    },
+    "tools": {
+      "song": "Coadă de melodii cu vot",
+      "bring": "Cine ce aduce",
+      "wine": "Fișă de note pentru vinuri",
+      "gear": "Echipament de luat",
+      "none": "Vot și nota de plată"
     }
   },
   "venue": {
@@ -1591,12 +1776,6 @@
       "link": "Link"
     },
     "suggestedFor": "Sugerată pentru categoria {{category}}",
-    "aiTitle": "Alege cu AI",
-    "aiBusy": "AI-ul alege…",
-    "aiBody": "Potrivește tema după titlul evenimentului.",
-    "aiLocked": "Disponibil în Complet și Premium. Atinge ca să faci upgrade.",
-    "aiQuotaTitle": "Ai folosit AI-ul azi",
-    "aiQuotaBody": "Încearcă din nou mâine sau alege tema singur.",
     "names": {
       "petrecere": "Petrecere",
       "aniversare": "Aniversare",
@@ -1622,5 +1801,12 @@
     "linkInvited": "Ești invitat",
     "linkCaption": "Previzualizarea din chat · imaginea din link e statică",
     "classic": "Clasic"
+  },
+  "compose": {
+    "title": "Invitația ta",
+    "stepName": "Invitația",
+    "whenPlaceholder": "Alege data mai jos",
+    "themeLabel": "Temă",
+    "detailsLabel": "Detalii"
   }
 }

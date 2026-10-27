@@ -1,25 +1,23 @@
-import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
+import Feather from '@expo/vector-icons/Feather';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { Button } from '@/components/Button';
-import { TemplateIcon } from '@/components/EventTypeIcon';
 import { Header } from '@/components/Header';
 import { ScaleTouchable } from '@/components/ScaleTouchable';
 import { Screen } from '@/components/Screen';
 import { useCancelCreate } from '@/hooks/useCancelCreate';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useTheme } from '@/hooks/useTheme';
-import { SPONTANEOUS_TEMPLATES } from '@/types/event';
 import { haptics } from '@/utils/haptics';
-import { TEMPLATES, wizardStep } from '@/utils/spontaneous';
+import { getOuting, OUTINGS } from '@/utils/outings';
+import { wizardStep } from '@/utils/spontaneous';
 import { spacing } from '@/utils/theme';
-import { bandGradientLocations, themeRadius } from '@/utils/themeTokens';
+import { typeface } from '@/utils/themeTokens';
 
-/** Spontaneous events only: karaoke, party or wine tasting. Decides the Plan tab's tool. */
+/** Spontaneous events only: the kind of outing. The activity (and with it the Plan tab's tool) comes next. */
 export default function PickTemplateScreen() {
   const { t } = useTranslation();
   const { tokens } = useTheme();
@@ -27,18 +25,21 @@ export default function PickTemplateScreen() {
   const cancel = useCancelCreate();
   const { step, total } = wizardStep('spontaneous', 'template');
 
-  // Preselect the first template so Continue is never a dead button here.
+  // Preselect the first kind so Continue is never a dead button here.
   useEffect(() => {
-    if (draft.template === null) updateDraft({ template: 'karaoke' });
-  }, [draft.template, updateDraft]);
+    if (draft.outing === null) {
+      const first = getOuting(null);
+      updateDraft({ outing: first.id, template: first.template });
+    }
+  }, [draft.outing, updateDraft]);
 
   return (
     <Screen
       footer={
         <Button
           label={t('createWizard.continue')}
-          disabled={draft.template === null}
-          onPress={() => router.push({ pathname: '/pricing/[id]', params: { id: 'draft', context: 'create' } })}
+          disabled={draft.outing === null}
+          onPress={() => router.push('/create/activity')}
         />
       }
     >
@@ -53,60 +54,46 @@ export default function PickTemplateScreen() {
         totalSteps={total}
       />
 
+      {/* Same list style as the type step: no cards, no icon boxes. */}
       <View style={styles.list}>
-        {SPONTANEOUS_TEMPLATES.map((id) => {
-          const meta = TEMPLATES[id];
-          const selected = draft.template === id;
-          const includes = t(`spontaneous.templates.${id}.includes`, { returnObjects: true }) as string[];
+        {OUTINGS.map((outing, index) => {
+          const id = outing.id;
+          const selected = draft.outing === id;
           return (
             <ScaleTouchable
               key={id}
               scaleTo={0.98}
               onPress={() => {
                 haptics.tap();
-                updateDraft({ template: id });
+                // A new kind resets the activity picked for the previous one.
+                if (draft.outing !== id) {
+                  updateDraft({ outing: id, template: outing.template, activity: null, coverTheme: null });
+                }
               }}
-              activeOpacity={0.85}
+              activeOpacity={0.7}
               accessibilityRole="radio"
               accessibilityState={{ selected, checked: selected }}
-              accessibilityLabel={t(`spontaneous.templates.${id}.name`)}
-              style={[
-                styles.card,
-                {
-                  backgroundColor: tokens.surface,
-                  borderColor: selected ? tokens.accentPrimary : tokens.border,
-                  borderWidth: selected ? 2 : 1.5,
-                },
-              ]}
+              accessibilityLabel={t(`spontaneous.outings.${id}.name`)}
+              style={[styles.row, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tokens.border }]}
             >
-              <LinearGradient
-                colors={meta.band}
-                locations={bandGradientLocations}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.icon}
-              >
-                <TemplateIcon template={id} size={26} color={meta.bandInk} />
-              </LinearGradient>
-              <View style={styles.text}>
-                <Text style={[styles.name, { color: tokens.textPrimary }]}>{t(`spontaneous.templates.${id}.name`)}</Text>
-                <Text style={[styles.description, { color: tokens.textSecondary }]}>
-                  {t(`spontaneous.templates.${id}.description`)}
-                </Text>
-                <View style={styles.includes}>
-                  {includes.map((line) => (
-                    <View key={line} style={styles.includeRow}>
-                      <Feather name="check" size={13} color={tokens.accentText} />
-                      <Text style={[styles.includeText, { color: tokens.textSecondary }]}>{line}</Text>
-                    </View>
-                  ))}
-                </View>
+              <View style={[styles.radio, { borderColor: selected ? tokens.accentFill : tokens.border }]}>
+                {selected ? <View style={[styles.radioDot, { backgroundColor: tokens.accentFill }]} /> : null}
               </View>
-              {selected ? (
-                <View style={[styles.check, { backgroundColor: tokens.accentFill }]}>
-                  <Feather name="check" size={15} color={tokens.onAccent} />
-                </View>
-              ) : null}
+              <View style={styles.text}>
+                <Text
+                  style={[
+                    styles.name,
+                    { color: selected ? tokens.accentText : tokens.textPrimary, fontFamily: tokens.displayFont },
+                  ]}
+                >
+                  {t(`spontaneous.outings.${id}.name`)}
+                </Text>
+                <Text style={[styles.description, { color: tokens.textSecondary }]}>
+                  {t(`spontaneous.outings.${id}.description`)}
+                </Text>
+                <Text style={[styles.includes, { color: tokens.textMuted }]}>{t(`spontaneous.outings.${id}.features`)}</Text>
+              </View>
+              <Feather name={outing.icon} size={20} color={selected ? tokens.accentText : tokens.textMuted} />
             </ScaleTouchable>
           );
         })}
@@ -117,54 +104,43 @@ export default function PickTemplateScreen() {
 
 const styles = StyleSheet.create({
   list: {
-    gap: spacing.md,
+    marginTop: spacing.sm,
   },
-  card: {
+  row: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
-    padding: 16,
-    borderRadius: themeRadius.xl,
+    paddingVertical: 16,
   },
-  icon: {
-    width: 52,
-    height: 52,
-    borderRadius: themeRadius.md,
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
   text: {
     flex: 1,
-    gap: 3,
-    paddingRight: 24,
+    gap: 2,
   },
   name: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 22,
+    lineHeight: 28,
   },
   description: {
+    fontFamily: typeface.body,
     fontSize: 13,
     lineHeight: 18,
   },
   includes: {
-    marginTop: 6,
-    gap: 3,
-  },
-  includeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  includeText: {
-    fontSize: 12.5,
-  },
-  check: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontFamily: typeface.body,
+    fontSize: 12,
+    marginTop: 2,
   },
 });

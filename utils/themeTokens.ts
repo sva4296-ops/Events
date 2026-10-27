@@ -178,8 +178,12 @@ export const darkTheme: ThemeTokens = {
 };
 
 /** The six themes the user picks from in Profile. */
-export type ThemeId = "hartie" | "sampanie" | "minimal" | "bleumarin" | "teracota" | "visina";
-export const THEME_IDS: readonly ThemeId[] = ["hartie", "sampanie", "minimal", "bleumarin", "teracota", "visina"];
+export type ThemeId =
+  | "hartie" | "sampanie" | "minimal" | "bleumarin" | "teracota" | "visina"
+  | "sepia" | "retro" | "cinema";
+export const THEME_IDS: readonly ThemeId[] = [
+  "hartie", "sampanie", "minimal", "bleumarin", "teracota", "visina", "sepia", "retro", "cinema",
+];
 export const DEFAULT_THEME: ThemeId = "teracota";
 
 interface Palette {
@@ -267,6 +271,27 @@ export const THEMES: Record<ThemeId, ThemeTokens> = {
     background: "#221316", surface: "#2E1A1F", surface2: "#3D2329", border: "#45272E",
     textPrimary: "#F6E7E9", textSecondary: "#C3A7AC", textMuted: "#937A7F",
     accent: "#E8B4B8", onAccent: "#2A1418", accentTint: "#4A2A31", accentText: "#EFC3C6",
+  }),
+  // Vintage · Sepia: an old photograph, faded browns.
+  sepia: makeTheme({
+    mode: "light", displayFont: "Newsreader_400Regular",
+    background: "#EADFCB", surface: "#F5EDDD", surface2: "#DCCDB2", border: "#D3C2A4",
+    textPrimary: "#3A2A1C", textSecondary: "#6B5640", textMuted: "#937D63",
+    accent: "#7A4E2D", onAccent: "#FFFFFF", accentTint: "#E8D7C0", accentText: "#6E4527",
+  }),
+  // Vintage · Retro '70s: mustard, burnt orange, brown.
+  retro: makeTheme({
+    mode: "light", displayFont: "Lora_700Bold",
+    background: "#F1E2C2", surface: "#FBF2DE", surface2: "#E7D2A8", border: "#DEC796",
+    textPrimary: "#3B2412", textSecondary: "#6A4A2E", textMuted: "#957552",
+    accent: "#B5541C", onAccent: "#FFFFFF", accentTint: "#F3DCC0", accentText: "#9E4513",
+  }),
+  // Vintage · Cinema: an old movie theatre, dark with brass.
+  cinema: makeTheme({
+    mode: "dark", displayFont: "CormorantGaramond_500Medium",
+    background: "#1C1712", surface: "#26201A", surface2: "#312920", border: "#3A3026",
+    textPrimary: "#ECDDC2", textSecondary: "#B3A286", textMuted: "#857660",
+    accent: "#C8984A", onAccent: "#1C1712", accentTint: "#3A2E1E", accentText: "#D9AE64",
   }),
 };
 

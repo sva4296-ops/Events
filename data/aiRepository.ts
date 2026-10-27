@@ -17,6 +17,12 @@ export interface AiWriteContext {
   location: string;
   /** Extra label for the field, e.g. the course name for a dish. */
   detail?: string;
+  /** 'HH:MM', spontaneous and venue events. */
+  time?: string;
+  /** Spontaneous activity name ("Karaoke"). */
+  activity?: string;
+  /** Cover theme name ("Neon", "Elegant"): sets the tone. */
+  theme?: string;
 }
 
 export interface AiWriteInput {
@@ -77,21 +83,6 @@ export async function aiWrite(input: AiWriteInput): Promise<string> {
   return text.trim();
 }
 
-/** Asks ai-write to pick one of the cover themes for this title and type. */
-export async function suggestCoverTheme(context: { type: string | null; name: string; detail?: string }): Promise<string> {
-  const { data, error } = await supabase.functions.invoke('ai-write', {
-    method: 'POST',
-    body: { kind: 'theme', context },
-  });
-  if (error) {
-    const response = httpResponse(error);
-    if (response?.status === 429) throw new AiQuotaError(await quotaScope(response));
-    throw error;
-  }
-  const theme = (data as { theme?: unknown } | null)?.theme;
-  if (typeof theme !== 'string') throw new Error('ai_empty');
-  return theme;
-}
 
 /** AI calls this event has used so far (organizers only; 0 otherwise). */
 export async function fetchAiEventUsage(eventId: string): Promise<number> {

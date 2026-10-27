@@ -3,14 +3,15 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { BrandMark } from "@/components/BrandMark";
-import { EventTypeIcon } from "@/components/EventTypeIcon";
+import { EventCover } from "@/components/EventCover";
 import { Button, buttonLabelColor } from "@/components/Button";
 import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import { useEventDraft } from "@/hooks/useEventDraft";
 import { useEvents } from "@/hooks/useEvents";
 import { useTheme } from "@/hooks/useTheme";
+import { getCoverTheme } from "@/utils/coverThemes";
+import { eventShortSubtitle } from "@/utils/format";
 import { spacing } from "@/utils/theme";
 import { themeRadius, typography } from "@/utils/themeTokens";
 
@@ -59,21 +60,19 @@ export default function ShareScreen() {
     if (path !== `/guest/${event.id}`) router.push(path);
   };
 
+  // Text over the cover: dark on light themes (and on Classic in a light app theme).
+  const coverInk = (getCoverTheme(event.coverTheme)?.light ?? tokens.mode === "light") ? "#2B2740" : "#FFFFFF";
+
   return (
     <Screen
       coverTheme={event.coverTheme}
       footer={
+        // One way forward: invite (WhatsApp is offered right on that screen),
+        // or a quiet "later" into the event.
         <>
           <Button
-            label={t("createWizard.shareWhatsApp")}
-            variant="whatsapp"
-            icon={
-              <Feather
-                name="message-circle"
-                size={20}
-                color={buttonLabelColor("whatsapp", tokens)}
-              />
-            }
+            label={event.type === "venue" ? t("createWizard.shareVenue") : t("createWizard.shareInvite")}
+            icon={<Feather name="send" size={19} color={buttonLabelColor("primary", tokens)} />}
             onPress={() =>
               leave(
                 // A venue sends its public booking link to its customers.
@@ -85,25 +84,7 @@ export default function ShareScreen() {
               )
             }
           />
-          {event.type !== "venue" ? (
-            <Button
-              label={t("createWizard.shareAddGuests")}
-              variant="secondary"
-              icon={
-                <Feather
-                  name="users"
-                  size={20}
-                  color={buttonLabelColor("secondary", tokens)}
-                />
-              }
-              onPress={() => leave(`/add-guest/${event.id}`)}
-            />
-          ) : null}
-          <Button
-            label={t("createWizard.shareGoToEvent")}
-            variant="ghost"
-            onPress={() => leave(`/guest/${event.id}`)}
-          />
+          <Button label={t("createWizard.shareLater")} variant="ghost" onPress={() => leave(`/guest/${event.id}`)} />
         </>
       }
     >
@@ -123,27 +104,21 @@ export default function ShareScreen() {
       </View>
 
       <View style={styles.hero}>
-        {/* The logo in this event type's colors: its gradient on the heart,
-            its tint as a halo, and the type's icon in a corner badge. */}
-        <View style={[styles.halo, { backgroundColor: tokens.accentTint }]}>
-          <View
-            style={[
-              styles.markCircle,
-              { backgroundColor: tokens.surface, borderColor: tokens.accentFill },
-              tokens.surfaceElevatedShadow ?? undefined,
-            ]}
-          >
-            <BrandMark width={76} colors={[tokens.accentFill, tokens.accentPrimary, tokens.accentText]} />
+        {/* The invitation as guests will get it: its cover theme, name and date. */}
+        <EventCover
+          type={event.type}
+          coverTheme={event.coverTheme}
+          style={[styles.invite, { borderColor: tokens.border }, tokens.surfaceElevatedShadow ?? undefined]}
+        >
+          <View style={styles.inviteText}>
+            <Text style={[styles.inviteName, { color: coverInk, fontFamily: tokens.displayFont }]} numberOfLines={2}>
+              {event.name}
+            </Text>
+            <Text style={[styles.inviteMeta, { color: coverInk }]} numberOfLines={1}>
+              {eventShortSubtitle(event)}
+            </Text>
           </View>
-          <View
-            style={[
-              styles.typeBadge,
-              { backgroundColor: tokens.accentFill, borderColor: tokens.surface },
-            ]}
-          >
-            <EventTypeIcon type={event.type} size={20} color={tokens.onAccent} />
-          </View>
-        </View>
+        </EventCover>
 
         <View style={styles.copy}>
           <Text style={[styles.title, { color: tokens.textPrimary }]}>
@@ -177,31 +152,24 @@ const styles = StyleSheet.create({
     gap: 22,
     paddingTop: spacing.md,
   },
-  halo: {
-    width: 164,
-    height: 164,
-    borderRadius: 82,
-    alignItems: "center",
-    justifyContent: "center",
+  invite: {
+    width: "88%",
+    aspectRatio: 1.35,
+    borderRadius: themeRadius.xl,
+    borderWidth: 1,
+    justifyContent: "flex-end",
   },
-  markCircle: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
+  inviteText: {
+    padding: spacing.lg,
+    gap: 4,
   },
-  typeBadge: {
-    position: "absolute",
-    right: 14,
-    bottom: 14,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 3,
-    alignItems: "center",
-    justifyContent: "center",
+  inviteName: {
+    fontSize: 28,
+    lineHeight: 34,
+  },
+  inviteMeta: {
+    fontSize: 14,
+    opacity: 0.85,
   },
   copy: {
     gap: 10,

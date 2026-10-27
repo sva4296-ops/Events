@@ -42,7 +42,10 @@ export interface EventRow {
    * event_date — see 20260812000003_album_status_cron.sql. */
   album_status: 'not_started' | 'generating' | 'ready';
   /** Spontaneous events — 20261022000002_spontaneous_events.sql. */
-  template: 'karaoke' | 'party' | 'tasting' | null;
+  template: 'karaoke' | 'party' | 'tasting' | 'trip' | 'outing' | 'limited' | null;
+  /** 20261027000004 */
+  outing?: 'party' | 'outing' | 'limited' | 'trip' | null;
+  activity?: string | null;
   start_time: string | null;
   reply_by: string | null;
   spot_limit: number | null;

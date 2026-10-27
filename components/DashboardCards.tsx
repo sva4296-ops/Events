@@ -3,6 +3,7 @@ import { EventCover } from '@/components/EventCover';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { openEventMenu, type EventMenuAction } from '@/components/EventMenu';
 import { ScaleTouchable } from '@/components/ScaleTouchable';
 import { Skeleton } from '@/components/Skeleton';
 import { currentStage, stageDayKey } from '@/components/StoryTimeline';
@@ -28,7 +29,12 @@ function DaysBadge({ days, size }: { days: number | null; size: 'big' | 'small' 
   }
   return (
     <View style={styles.daysBig}>
-      <Text style={[styles.daysNumber, { color: tokens.accentText, fontFamily: tokens.displayFont }]}>
+      <Text
+        style={[
+          days === 0 ? styles.daysWord : styles.daysNumber,
+          { color: tokens.accentText, fontFamily: tokens.displayFont },
+        ]}
+      >
         {days === 0 ? t('home.dashboard.today') : days}
       </Text>
       {days > 0 ? (
@@ -44,12 +50,13 @@ function DaysBadge({ days, size }: { days: number | null; size: 'big' | 'small' 
 export function DashboardHero({
   event,
   onPress,
-  onLongPress,
+  menuActions = [],
   onPressInvite,
 }: {
   event: AppEvent;
   onPress: () => void;
-  onLongPress?: () => void;
+  /** Edit / Delete, in a bottom sheet on long press. */
+  menuActions?: readonly EventMenuAction[];
   onPressInvite: () => void;
 }) {
   const { t } = useTranslation();
@@ -65,7 +72,7 @@ export function DashboardHero({
     <ScaleTouchable
       scaleTo={0.98}
       onPress={onPress}
-      onLongPress={onLongPress}
+      onLongPress={() => openEventMenu(event.name, menuActions)}
       delayLongPress={350}
       activeOpacity={0.92}
       accessibilityRole="button"
@@ -131,12 +138,12 @@ export function DashboardHero({
 export function DashboardRow({
   event,
   onPress,
-  onLongPress,
+  menuActions = [],
   showDivider,
 }: {
   event: AppEvent;
   onPress: () => void;
-  onLongPress?: () => void;
+  menuActions?: readonly EventMenuAction[];
   showDivider: boolean;
 }) {
   const { tokens } = useTheme();
@@ -144,7 +151,7 @@ export function DashboardRow({
   return (
     <TouchableOpacity
       onPress={onPress}
-      onLongPress={onLongPress}
+      onLongPress={() => openEventMenu(event.name, menuActions)}
       delayLongPress={350}
       activeOpacity={0.75}
       accessibilityRole="button"
@@ -234,6 +241,10 @@ const styles = StyleSheet.create({
   daysNumber: {
     fontSize: 38,
     lineHeight: 42,
+  },
+  daysWord: {
+    fontSize: 22,
+    lineHeight: 28,
   },
   daysUnit: {
     fontFamily: typeface.body,

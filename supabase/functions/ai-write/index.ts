@@ -11,11 +11,7 @@
 // Optional body.eventId: meters the call against that event's plan allowance
 // (Esențial 10, Complet 100, Premium/Agenție 300); see consumeQuota.
 // Deploy: supabase functions deploy ai-write
-//
-// kind 'theme': POST { kind: 'theme', language, context: { type, name, detail } }
-//   -> { theme: '<id>' }  one of THEME_IDS, picked for the title and type.
-// The app shows this only on Complet/Premium (the event may not exist yet,
-// it's the create wizard); the daily quota still applies.
+
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -38,6 +34,8 @@ const EVENT_TYPES: Record<string, string> = {
   corporate: 'eveniment corporate',
   memorial: 'comemorare',
   other: 'eveniment',
+  spontaneous: 'ieșire cu prietenii',
+  venue: 'seară la un local',
 };
 
 /** AI calls per event, by plan; null plan = Esențial. Mirrored in utils/aiLimits.ts. */
@@ -103,12 +101,6 @@ async function refund(admin: any, userId: string, eventId: string | null): Promi
   if (error) console.error('refund_ai_quota failed', error.message);
 }
 
-/** Must match utils/coverThemes.ts COVER_THEMES ids. */
-const THEME_IDS = [
-  'petrecere', 'aniversare', 'local', 'karaoke', 'disco', 'neon', 'revelion', 'craciun', 'halloween', 'nunta',
-  'elegant', 'botez', 'copii', 'gradina', 'plaja', 'aurora', 'corporate', 'absolvire', 'cina', 'minimal',
-];
-
 function json(body: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -146,6 +138,10 @@ function buildPrompt(kind: Kind, ro: boolean, text: string, maxChars: number, co
     context.name ? `${label.name}: ${context.name}` : '',
     context.date ? `${label.date}: ${context.date}` : '',
     context.location ? `${label.location}: ${context.location}` : '',
+    context.time ? `${ro ? 'Ora' : 'Time'}: ${context.time}` : '',
+    context.activity ? `${ro ? 'Activitate' : 'Activity'}: ${context.activity}` : '',
+    // The cover theme sets the mood (e.g. "Neon", "Elegant", "Crăciun").
+    context.theme ? `${ro ? 'Tema vizuală (stare, ton)' : 'Visual theme (mood, tone)'}: ${context.theme}` : '',
   ].filter(Boolean);
   const data = lines.join('\n');
   const draft = text.length > 0 ? `\n\n${label.draft}:\n${text}` : '';
@@ -156,12 +152,16 @@ function buildPrompt(kind: Kind, ro: boolean, text: string, maxChars: number, co
     const task =
       text.length > 0
         ? ro
-          ? `Îmbunătățește mesajul de bun venit al organizatorului pentru invitați, păstrând ce a vrut să spună.`
-          : `Improve the organizer's welcome message for guests, keeping what they meant.`
+          ? `Îmbunătățește mesajul scurt al organizatorului de pe invitație, păstrând ce a vrut să spună. Fă-l mai cald și mai concis.`
+          : `Improve the organizer's short invitation message, keeping what they meant. Make it warmer and tighter.`
         : ro
-          ? `Scrie un mesaj de bun venit pentru invitați, din partea organizatorilor, pentru pagina evenimentului.`
-          : `Write a welcome message for guests, from the organizers, for the event page.`;
-    return `${task}\n${limitLine(ro ? ', 2-4 propoziții' : ', 2-4 sentences')}\n\n${data}${draft}`;
+          ? `Scrie mesajul scurt de pe invitație, din partea organizatorilor, potrivit cu numele, tipul și tema vizuală a evenimentului.`
+          : `Write the short message on the invitation, from the organizers, matching the event's name, type and visual theme.`;
+    // Shown on the invitation card under the name: short, no date or place (already on the card).
+    const constraints = ro
+      ? `1-2 propoziții scurte. Fără dată, oră sau locație: apar deja pe invitație. Tonul după tema vizuală și tipul evenimentului.`
+      : `1-2 short sentences. No date, time or place: they're already on the invitation. Tone follows the visual theme and event type.`;
+    return `${task}\n${constraints}\n${limitLine('')}\n\n${data}${draft}`;
   }
 
   if (kind === 'moment') {
@@ -236,8 +236,6 @@ Deno.serve(async (req) => {
     return json({ error: 'bad_request' }, 400);
   }
 
-  if (body.kind === 'theme') return await handleTheme(admin, userData.user.id, apiKey, body);
-
   const kind = body.kind as Kind;
   if (!KINDS.includes(kind)) return json({ error: 'bad_request' }, 400);
   const ro = body.language !== 'en';
@@ -251,6 +249,9 @@ Deno.serve(async (req) => {
     date: clean(rawContext.date, 40),
     location: clean(rawContext.location, 160),
     detail: clean(rawContext.detail, 60),
+    time: clean(rawContext.time, 10),
+    activity: clean(rawContext.activity, 40),
+    theme: clean(rawContext.theme, 40),
   };
 
   const userId = userData.user.id;
@@ -298,51 +299,3 @@ Deno.serve(async (req) => {
 
   return json({ text: output }, 200);
 });
-
-// deno-lint-ignore no-explicit-any
-async function handleTheme(admin: any, userId: string, apiKey: string, body: Record<string, unknown>): Promise<Response> {
-  const rawContext = (body.context ?? {}) as Record<string, unknown>;
-  const name = clean(rawContext.name, 120);
-  const type = clean(rawContext.type, 20);
-  const detail = clean(rawContext.detail, 40);
-  if (name.length === 0) return json({ error: 'bad_request' }, 400);
-
-  // The wizard's theme step: the event doesn't exist yet, only the daily cap applies.
-  const denied = await consumeQuota(admin, userId, null);
-  if (denied !== null) return denied;
-
-  const prompt = [
-    'Pick the best cover theme for this event in a mobile app, from this list:',
-    THEME_IDS.join(', '),
-    '(petrecere=party, aniversare=birthday, local=night out at a venue, craciun=Christmas, nunta=wedding, botez=baptism, copii=kids, gradina=garden, plaja=beach, absolvire=graduation, cina=dinner, revelion=New Year).',
-    'Reply ONLY with one id from the list.',
-    '',
-    `Event type: ${type || 'other'}${detail ? ` (${detail})` : ''}`,
-    `Title: ${name}`,
-  ].join('\n');
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: Deno.env.get('AI_MODEL') ?? 'claude-haiku-5-5',
-      max_tokens: 200,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-  if (!res.ok) {
-    console.error('anthropic error', res.status, (await res.text()).slice(0, 500));
-    await refund(admin, userId, null);
-    return json({ error: 'ai_error', upstream: res.status }, 502);
-  }
-  const result = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string };
-  const raw = (result.content ?? []).map((block) => block.text ?? '').join('').toLowerCase();
-  const theme = THEME_IDS.find((id) => raw.includes(id));
-  if (theme === undefined) {
-    const reason = `${result.stop_reason ?? 'none'}:${raw.slice(0, 40) || 'empty'}`;
-    console.error('no theme in AI answer', reason);
-    await refund(admin, userId, null);
-    return json({ error: 'ai_error', reason }, 502);
-  }
-  return json({ theme }, 200);
-}

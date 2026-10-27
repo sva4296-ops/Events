@@ -13,10 +13,9 @@ import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import { useVenue } from '@/hooks/useVenue';
 import type { VenueBooking } from '@/types/venue';
-import { getEventType } from '@/utils/eventTypes';
 import { formatSpontaneousWhen } from '@/utils/spontaneous';
 import { spacing } from '@/utils/theme';
-import { bandGradientLocations, themeRadius, typography } from '@/utils/themeTokens';
+import { themeRadius, typography } from '@/utils/themeTokens';
 
 /**
  * A venue event's public booking page ("Local"). Reached from the venue's
@@ -44,7 +43,6 @@ function BookingPage({ venue, token, canGoBack }: { venue: VenueBooking; token: 
   const { t } = useTranslation();
   const { getEvent, isOwner } = useEvents();
   const { tokens } = useTheme();
-  const type = getEventType('venue');
   const owner = isOwner(getEvent(venue.eventId));
   const booked = venue.myBooking?.status === 'confirmed';
 
@@ -59,12 +57,12 @@ function BookingPage({ venue, token, canGoBack }: { venue: VenueBooking; token: 
     >
       <View style={styles.top}>{canGoBack ? <BackButton /> : null}</View>
 
-      <LinearGradient colors={type.band} locations={bandGradientLocations} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cover}>
+      <LinearGradient colors={[tokens.accentFill, tokens.accentPrimary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cover}>
         {venue.hostName !== null ? (
-          <Text style={[styles.coverEyebrow, { color: type.bandInk }]}>{t('venue.tonight.invites', { venue: venue.hostName }).toUpperCase()}</Text>
+          <Text style={[styles.coverEyebrow, { color: tokens.onAccent }]}>{t('venue.tonight.invites', { venue: venue.hostName }).toUpperCase()}</Text>
         ) : null}
-        <Text style={[styles.coverTitle, { color: type.bandInk }]}>{venue.name}</Text>
-        <Text style={[styles.coverMeta, { color: type.bandInk }]}>{formatSpontaneousWhen(venue.date, venue.startTime)}</Text>
+        <Text style={[styles.coverTitle, { color: tokens.onAccent }]}>{venue.name}</Text>
+        <Text style={[styles.coverMeta, { color: tokens.onAccent }]}>{formatSpontaneousWhen(venue.date, venue.startTime)}</Text>
         <View style={styles.coverChip}>
           <Text style={styles.coverChipText}>{venue.priceInfo ?? t('venue.book.freeEntry')}</Text>
         </View>

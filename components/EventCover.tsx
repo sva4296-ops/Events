@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { CoverArt } from '@/components/CoverArt';
 import { EventTypeIcon } from '@/components/EventTypeIcon';
@@ -61,19 +61,22 @@ export function EventCover({
   const { tokens } = useTheme();
   const picked = getCoverTheme(coverTheme);
   if (thumbnail) {
-    if (picked === null) {
-      return (
-        <View style={[style, { backgroundColor: tokens.accentTint, alignItems: 'center', justifyContent: 'center' }]}>
-          <EventTypeIcon type={type} size={22} color={tokens.accentText} />
-        </View>
-      );
-    }
+    // One look for every list square: a soft tint of the event's accent (its
+    // theme's, or the app's for Classic) with the type's icon in that accent.
+    // Mixing full gradients with plain tiles read as inconsistent.
+    const accent = picked?.accent ?? tokens.accentFill;
     return (
-      <CoverArt theme={picked} plain style={style}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <EventTypeIcon type={type} size={22} color={picked.light ? '#2B2740' : '#FFFFFF'} />
+      <View
+        style={[
+          style,
+          { backgroundColor: tokens.surface, borderWidth: 1, borderColor: tokens.border, overflow: 'hidden' },
+        ]}
+      >
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: accent, opacity: tokens.mode === 'dark' ? 0.28 : 0.16 }]} />
+        <View style={styles.center}>
+          <EventTypeIcon type={type} size={22} color={tokens.mode === 'dark' ? tokens.textPrimary : accent} />
         </View>
-      </CoverArt>
+      </View>
     );
   }
   return (
@@ -82,3 +85,11 @@ export function EventCover({
     </CoverArt>
   );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

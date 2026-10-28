@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, BackHandler, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { SlideInDown, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -110,15 +110,19 @@ export function ActionSheetHost() {
     if (Platform.OS !== 'ios') runPending();
   };
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={() => close()}
-      onDismiss={runPending}
-    >
+  // Android: hardware back closes the overlay (the Modal's onRequestClose on iOS).
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      pending.current = null;
+      setVisible(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [visible]);
+
+  const content = (
+    <>
       <TouchableOpacity
         style={[styles.backdrop, { backgroundColor: 'rgba(10,8,20,0.55)' }]}
         activeOpacity={1}
@@ -212,11 +216,42 @@ export function ActionSheetHost() {
           </Animated.View>
         </View>
       ) : null}
+    </>
+  );
+
+  // Android draws it as a plain overlay over the root, not a Modal: a Modal is
+  // a separate window, and on some devices (Galaxy Fold, edge-to-edge) taps
+  // inside it never reach the buttons, so the menu opened but did nothing.
+  // The host is mounted last in app/_layout.tsx, so it sits above every screen.
+  if (Platform.OS === 'android') {
+    if (!visible) return null;
+    return <View style={styles.overlay}>{content}</View>;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={() => close()}
+      onDismiss={runPending}
+    >
+      {content}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 1000,
+    elevation: 1000,
+  },
   dialogText: {
     gap: 8,
     paddingHorizontal: 4,

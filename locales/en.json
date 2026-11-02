@@ -159,10 +159,6 @@
     "nextStepsTitle": "What's left to do",
     "seeAll": "See all",
     "momentsTitle": "Along the way",
-    "stageHint_0": "Your event is ready to set off.",
-    "stageHint_1": "You're on the Journey: share moments with your guests until the big day.",
-    "stageHint_2": "The big day is here. Enjoy it!",
-    "stageHint_3": "The story continues in the album, with everyone's memories.",
     "sectionLabel": "OUR STORY",
     "emptyOwner": "No moments posted yet. Start the story with a first photo.",
     "emptyGuest": "The organizers haven't posted any moments yet.",
@@ -934,6 +930,8 @@
     }
   },
   "mapPicker": {
+    "searchPlaceholder": "Type the address",
+    "addressNotFound": "We couldn't find that address. Try adding the city, or move the map.",
     "title": "Pick the location",
     "hint": "Move the map until the pin is on the spot.",
     "myLocation": "My location",

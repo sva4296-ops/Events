@@ -162,10 +162,6 @@
     "nextStepsTitle": "Ce mai ai de făcut",
     "seeAll": "Vezi tot",
     "momentsTitle": "Din parcurs",
-    "stageHint_0": "Evenimentul tău e gata să pornească la drum.",
-    "stageHint_1": "Ești în Parcurs: împărtășește momente cu invitații până la ziua cea mare.",
-    "stageHint_2": "A sosit ziua cea mare. Bucură-te de ea!",
-    "stageHint_3": "Povestea continuă în album, cu amintirile tuturor.",
     "sectionLabel": "POVESTEA NOASTRĂ",
     "emptyOwner": "Niciun moment postat încă. Începe povestea cu o primă poză.",
     "emptyGuest": "Organizatorii nu au postat încă niciun moment.",
@@ -964,6 +960,8 @@
     }
   },
   "mapPicker": {
+    "searchPlaceholder": "Scrie adresa",
+    "addressNotFound": "Nu am găsit adresa. Încearcă și cu orașul, sau mută harta.",
     "title": "Alege locația",
     "hint": "Mută harta până când pinul e pe locație.",
     "myLocation": "Locația mea",

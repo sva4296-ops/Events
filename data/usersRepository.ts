@@ -66,6 +66,22 @@ export async function fetchMyProfile(userId: string): Promise<UserProfile | null
   return data === null ? null : { ...mapUserProfileRow(data as UserProfileRow), avatarUrl };
 }
 
+/** userId -> signed URL for those who have an avatar and whose avatar the caller may
+ * see; everyone else is simply missing, and gets initials. */
+export async function fetchAvatarUrls(userIds: string[], ttlSeconds: number): Promise<Record<string, string>> {
+  if (userIds.length === 0) return {};
+  const { data, error } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .createSignedUrls(userIds.map(avatarStoragePath), ttlSeconds);
+  if (error) throw error;
+  const urls: Record<string, string> = {};
+  (data ?? []).forEach((entry, index) => {
+    const userId = userIds[index];
+    if (userId !== undefined && entry.signedUrl) urls[userId] = entry.signedUrl;
+  });
+  return urls;
+}
+
 /**
  * Overwrites the user's one avatar object (`upsert: true` — same path every
  * time, so a re-upload just replaces it in place, no old-file cleanup step

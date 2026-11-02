@@ -1,5 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -26,6 +26,7 @@ import { MessageActionsBar, MessageBubble, MessageBubbleSkeleton } from '@/compo
 import { LongPressRow } from '@/components/LongPressRow';
 import { remoteRepository } from '@/data/remoteEventContentRepository';
 import { supabase } from '@/data/supabaseClient';
+import { fetchAvatarUrls } from '@/data/usersRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useChatRead } from '@/hooks/useChatRead';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -44,6 +45,8 @@ import { generateId } from '@/utils/uuid';
 
 /** Per send, to keep the chat readable and the storage bill small. */
 const MAX_PHOTOS_PER_SEND = 5;
+
+const AVATAR_URL_TTL_SECONDS = 24 * 60 * 60;
 
 const REACTION_EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'] as const;
 
@@ -105,18 +108,27 @@ export default function ChatScreen() {
     }, [id, markRead]),
   );
 
-  /**
-   * Organizer mark in the chat: undefined for a guest, null for the event's
-   * owner (chip reads "Organizator"), or a co-organizer's label ("Naș"…).
-   */
-  const organizerLabelFor = (senderId: string): string | null | undefined => {
-    if (event === undefined) return undefined;
-    if (event.owner_id !== undefined && senderId === event.owner_id) return null;
-    const member = event.coOrganizers.find(
-      (candidate) => candidate.role === 'co_organizer' && candidate.userId === senderId,
-    );
-    if (member === undefined) return undefined;
-    return member.relation !== null ? t(`coOrganizers.relation.${member.relation}`) : t('home.coOrganizer');
+  /** The event's owner or a co-organizer: gets the crown in the chat. */
+  const isOrganizer = (senderId: string): boolean =>
+    event !== undefined &&
+    (senderId === event.owner_id ||
+      event.coOrganizers.some((member) => member.role === 'co_organizer' && member.userId === senderId));
+
+  // Other people's profile photos. The URLs last a day; the day in the cache key
+  // keeps the file on disk across restarts, and picks up a new photo by tomorrow.
+  const senderIds = [...new Set((content?.messages ?? []).map((message) => message.sender_id))]
+    .filter((senderId) => senderId !== user?.id)
+    .sort();
+  const { data: avatarUrls } = useQuery({
+    queryKey: ['chatAvatars', senderIds],
+    queryFn: () => fetchAvatarUrls(senderIds, AVATAR_URL_TTL_SECONDS),
+    enabled: senderIds.length > 0,
+    staleTime: 23 * 60 * 60_000,
+  });
+  const avatarDay = new Date().toISOString().slice(0, 10);
+  const avatarFor = (senderId: string) => {
+    const uri = avatarUrls?.[senderId];
+    return uri !== undefined ? { uri, cacheKey: `avatar-${senderId}-${avatarDay}` } : null;
   };
 
   /**
@@ -398,8 +410,8 @@ export default function ChatScreen() {
                 >
                   <MessageBubble
                     message={message}
-                    fromOrganizer={organizerLabelFor(message.sender_id) !== undefined}
-                    organizerLabel={organizerLabelFor(message.sender_id) ?? null}
+                    fromOrganizer={isOrganizer(message.sender_id)}
+                    avatar={avatarFor(message.sender_id)}
                     isOwn={message.sender_id === user?.id}
                     showSender={!continuesRun}
                     showAvatar={endsRun}

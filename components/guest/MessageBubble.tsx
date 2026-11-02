@@ -283,14 +283,14 @@ export function MessageActionsBar({
 /**
  * Warm Story 2.0 chat bubble. Your own messages sit right on the accent fill
  * with no avatar; everyone else's sit left on a bordered surface with an
- * initials avatar, and the organizer gets the brand-gradient avatar plus an
- * "Organizator" chip. In a run of messages from the same person, only the
+ * avatar (profile photo, or initials), and organizers get a crown on the avatar
+ * and next to their name. In a run of messages from the same person, only the
  * first shows the name and only the last the avatar.
  */
 export function MessageBubble({
   message,
   fromOrganizer,
-  organizerLabel = null,
+  avatar = null,
   isOwn,
   showSender = true,
   showAvatar = true,
@@ -300,8 +300,8 @@ export function MessageBubble({
   message: Message;
   /** Owner or co-organizer: crown on the avatar and a crown chip. */
   fromOrganizer: boolean;
-  /** Co-organizer's label ("Naș", "Mireasă"…); null shows "Organizator". */
-  organizerLabel?: string | null;
+  /** The sender's profile photo; null shows their initials. */
+  avatar?: { uri: string; cacheKey: string } | null;
   isOwn: boolean;
   /** False when the previous message is from the same person. */
   showSender?: boolean;
@@ -348,18 +348,24 @@ export function MessageBubble({
         <View style={styles.avatarSpacer} />
       ) : fromOrganizer ? (
         <View>
-          <LinearGradient
-            colors={brandGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.avatar}
-          >
-            <Text maxFontSizeMultiplier={1.2} style={[styles.avatarText, { color: '#FFFFFF' }]}>{initials}</Text>
-          </LinearGradient>
+          {avatar !== null ? (
+            <Image source={avatar} cachePolicy="disk" contentFit="cover" style={styles.avatar} />
+          ) : (
+            <LinearGradient
+              colors={brandGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.avatar}
+            >
+              <Text maxFontSizeMultiplier={1.2} style={[styles.avatarText, { color: '#FFFFFF' }]}>{initials}</Text>
+            </LinearGradient>
+          )}
           <View style={[styles.crownBadge, { backgroundColor: tokens.accentFill, borderColor: tokens.surface }]}>
             <LineIcon shapes={CROWN} size={9} color={tokens.onAccent} strokeWidth={2.6} />
           </View>
         </View>
+      ) : avatar !== null ? (
+        <Image source={avatar} cachePolicy="disk" contentFit="cover" style={styles.avatar} />
       ) : (
         <View style={[styles.avatar, { backgroundColor: tokens.accentTint }]}>
           <Text maxFontSizeMultiplier={1.2} style={[styles.avatarText, { color: tokens.accentText }]}>{initials}</Text>
@@ -372,11 +378,8 @@ export function MessageBubble({
               {message.sender_label}
             </Text>
             {fromOrganizer ? (
-              <View style={[styles.chip, { backgroundColor: tokens.accentTint }]}>
-                <LineIcon shapes={CROWN} size={11} color={tokens.accentText} strokeWidth={2.2} />
-                <Text style={[styles.chipText, { color: tokens.accentText }]}>
-                  {organizerLabel ?? t('chat.organizerBadge')}
-                </Text>
+              <View accessible accessibilityLabel={t('chat.organizerBadge')}>
+                <LineIcon shapes={CROWN} size={13} color={tokens.accentText} strokeWidth={2.2} />
               </View>
             ) : null}
           </View>
@@ -469,22 +472,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    minHeight: 22,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    justifyContent: 'center',
-    paddingVertical: 4,
-    flexShrink: 1,
-  },
-  chipText: {
-    fontSize: 10,
-    fontWeight: '600',
-    flexShrink: 1,
   },
   bubble: {
     paddingHorizontal: 14,

@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -87,7 +88,6 @@ function CountdownCard({ date, type, scheduleTimes }: { date: string; type: Even
     nextUnit !== undefined
       ? `${t('acasa.countdownAnd')} ${nextUnit.value} ${t(`acasa.unitShort_${nextUnit.key}`, { count: nextUnit.value })} ${untilLabel}`
       : untilLabel;
-  const stage = currentStage(days);
 
   return (
     <View style={styles.countdown}>
@@ -109,8 +109,7 @@ function CountdownCard({ date, type, scheduleTimes }: { date: string; type: Even
       {headline !== null ? (
         <Text style={[styles.countdownTitle, { color: tokens.textPrimary }]}>{headline}</Text>
       ) : null}
-      <StoryTimeline stage={stage} type={type} />
-      <Text style={[styles.stageHint, { color: tokens.textSecondary }]}>{t(`acasa.stageHint_${stage}`)}</Text>
+      <StoryTimeline stage={currentStage(days)} type={type} />
     </View>
   );
 }
@@ -192,14 +191,18 @@ function EventHero({ event, canEdit }: { event: AppEvent; canEdit: boolean }) {
             </View>
           ) : null}
         </View>
+        {/* A dark scrim so the white text reads on any photo or drawn cover. */}
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.72)']} style={styles.heroText}>
+          <Text style={styles.heroName} numberOfLines={2}>
+            {event.name}
+          </Text>
+          {meta.length > 0 ? (
+            <Text style={styles.heroMeta} numberOfLines={1}>
+              {meta}
+            </Text>
+          ) : null}
+        </LinearGradient>
       </EventCover>
-      <View style={styles.heroText}>
-        <Text style={[styles.heroType, { color: tokens.textSecondary }]}>
-          {t(`eventTypes.${event.type}.label`).toUpperCase()}
-        </Text>
-        <Text style={[styles.heroName, { color: tokens.textPrimary }]}>{event.name}</Text>
-        {meta.length > 0 ? <Text style={[styles.heroMeta, { color: tokens.textSecondary }]}>{meta}</Text> : null}
-      </View>
     </View>
   );
 }
@@ -518,10 +521,9 @@ const styles = StyleSheet.create({
   hero: {
     marginHorizontal: -gSpace.xl,
     marginTop: -gSpace.lg,
-    gap: gSpace.lg,
   },
   heroCover: {
-    height: 220,
+    height: 260,
   },
   heroActions: {
     flexDirection: 'row',
@@ -554,22 +556,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   heroText: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: gSpace.xl,
-    gap: 4,
-  },
-  heroType: {
-    fontFamily: typeface.bodySemiBold,
-    fontSize: 12,
-    letterSpacing: 1.2,
+    paddingTop: 48,
+    paddingBottom: 16,
+    gap: 2,
   },
   heroName: {
     fontFamily: typeface.display,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 28,
+    lineHeight: 34,
+    color: '#FFFFFF',
   },
   heroMeta: {
     fontSize: 13,
     lineHeight: 19,
+    color: 'rgba(255,255,255,0.85)',
   },
   countdown: {
     gap: 16,
@@ -580,9 +585,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   leadValue: {
-    fontFamily: typeface.display,
-    fontSize: 64,
-    lineHeight: 70,
+    fontFamily: typeface.bodyMedium,
+    fontSize: 44,
+    lineHeight: 50,
     fontVariant: ['tabular-nums'],
   },
   leadText: {
@@ -590,12 +595,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   leadUnit: {
-    fontFamily: typeface.display,
-    fontSize: 20,
-  },
-  stageHint: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontFamily: typeface.bodyMedium,
+    fontSize: 16,
   },
   section: {
     gap: 14,

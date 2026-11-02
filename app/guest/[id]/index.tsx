@@ -1,8 +1,9 @@
 import Feather from '@expo/vector-icons/Feather';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,7 +11,8 @@ import { showActionSheet, showDialog } from '@/components/ActionSheet';
 import { BrandFlourish } from '@/components/BrandFlourish';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
-import { GettingStartedCard } from '@/components/guest/GettingStartedCard';
+import { EventCover } from '@/components/EventCover';
+import { openGettingStarted } from '@/components/tour/GettingStartedSheet';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { StoryEntryCard } from '@/components/guest/StoryEntryCard';
 import { MomentCard, MomentCardSkeleton } from '@/components/guest/MomentCard';
@@ -21,11 +23,12 @@ import { VenueTonight } from '@/components/venue/VenueTonight';
 import { confirmDelete } from '@/utils/confirm';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
+import { useEventCoverPhoto } from '@/hooks/useEventCoverPhoto';
 import { useEvents } from '@/hooks/useEvents';
-import { TOUR_TARGETS } from '@/hooks/useGettingStarted';
+import { TOUR_TARGETS, useGettingStarted, type GettingStartedKey } from '@/hooks/useGettingStarted';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
-import type { EventTypeId } from '@/types/event';
+import type { AppEvent, EventTypeId } from '@/types/event';
 import type { ScheduleItem } from '@/types/guest';
 import { isStoryReady } from '@/utils/eventStory';
 import { FUND_ENABLED } from '@/utils/features';
@@ -64,45 +67,193 @@ function CountdownCard({ date, type, scheduleTimes }: { date: string; type: Even
     { key: 'minutes', value: totalMinutes % 60 },
   ] as const;
   const untilLabel = t(`eventTypes.${type}.countdownUntil`);
-  // The largest non-zero unit is the headline number; the smaller ones ride along in the line under it.
+  // The largest non-zero unit is the headline number.
   const leadIndex = Math.max(0, units.findIndex((unit) => unit.value > 0));
-  const lead = units[leadIndex] ?? units[2];
-  const restText = units
-    .slice(leadIndex + 1)
-    .map((unit) => `${unit.value} ${t(`acasa.unitShort_${unit.key}`, { count: unit.value })}`)
-    .join(' ');
+  // Whole days use the same calendar count as Home, so the two can't disagree;
+  // hours and minutes only take over on the day itself.
+  const showDays = days !== null && days > 0;
+  const lead = showDays ? { key: 'days' as const, value: days } : (units[leadIndex] ?? units[2]);
 
   const headline =
-    days === null || counting
+    days === null || counting || showDays
       ? null
       : days >= 0
         ? t(`eventTypes.${type}.countdownToday`)
         : t('acasa.countdownPast');
 
+  // On the day: the next unit along, as in "3 ore, și 20 min până la aniversare".
+  const nextUnit = showDays ? undefined : units[leadIndex + 1];
+  const subLine =
+    nextUnit !== undefined
+      ? `${t('acasa.countdownAnd')} ${nextUnit.value} ${t(`acasa.unitShort_${nextUnit.key}`, { count: nextUnit.value })} ${untilLabel}`
+      : untilLabel;
+  const stage = currentStage(days);
+
   return (
-    <View style={[styles.countdown, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-      {counting ? (
+    <View style={styles.countdown}>
+      {counting || showDays ? (
         <View
           style={styles.countdownBody}
           accessible
-          accessibilityLabel={`${units.map((unit) => t(`acasa.unit_${unit.key}`, { count: unit.value })).join(', ')} ${untilLabel}`}
+          accessibilityLabel={`${(showDays ? [lead] : units).map((unit) => t(`acasa.unit_${unit.key}`, { count: unit.value })).join(', ')} ${untilLabel}`}
         >
-          <View style={styles.leadRow}>
-            <Text style={[styles.leadValue, { color: tokens.textPrimary }]}>{lead.value}</Text>
-            <Text style={[styles.leadUnit, { color: tokens.textSecondary }]}>
+          <Text style={[styles.leadValue, { color: tokens.textPrimary }]}>{lead.value}</Text>
+          <View style={styles.leadText}>
+            <Text style={[styles.leadUnit, { color: tokens.textPrimary }]}>
               {t(`acasa.unitShort_${lead.key}`, { count: lead.value })}
             </Text>
+            <Text style={[styles.countdownSub, { color: tokens.textSecondary }]}>{subLine}</Text>
           </View>
-          <Text style={[styles.countdownSub, { color: tokens.textSecondary }]}>
-            {restText.length > 0 ? `${restText} ${untilLabel}` : untilLabel}
-          </Text>
-          <Text style={[styles.countdownDate, { color: tokens.textMuted }]}>{formatEventDate(date)}</Text>
         </View>
       ) : null}
       {headline !== null ? (
         <Text style={[styles.countdownTitle, { color: tokens.textPrimary }]}>{headline}</Text>
       ) : null}
-      <StoryTimeline stage={currentStage(days)} type={type} />
+      <StoryTimeline stage={stage} type={type} />
+      <Text style={[styles.stageHint, { color: tokens.textSecondary }]}>{t(`acasa.stageHint_${stage}`)}</Text>
+    </View>
+  );
+}
+
+/** Full-bleed cover with back and edit on it, then the event's name, date and place. */
+function EventHero({ event, canEdit }: { event: AppEvent; canEdit: boolean }) {
+  const { t } = useTranslation();
+  const { tokens } = useTheme();
+  const insets = useSafeAreaInsets();
+  const cover = useEventCoverPhoto(event);
+
+  const pickCover = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [16, 9],
+    });
+    const asset = result.canceled ? undefined : result.assets[0];
+    if (asset !== undefined) cover.setPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
+  };
+
+  const changeCover = () => {
+    if (cover.path === null) {
+      void pickCover();
+      return;
+    }
+    showActionSheet({
+      title: t('acasa.coverTitle'),
+      actions: [
+        { label: t('acasa.coverChange'), tone: 'edit', onPress: () => void pickCover() },
+        { label: t('acasa.coverRemove'), tone: 'delete', onPress: () => cover.removePhoto() },
+      ],
+    });
+  };
+
+  const meta = [formatEventDate(event.date), event.location.trim()].filter((part) => part.length > 0).join(' · ');
+
+  return (
+    <View style={styles.hero}>
+      <EventCover type={event.type} coverTheme={event.coverTheme} photoPath={cover.path} style={styles.heroCover}>
+        <View style={[styles.heroActions, { paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity
+            style={[styles.heroBack, { backgroundColor: tokens.surface }]}
+            onPress={() => router.navigate('/')}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('acasa.backHome')}
+          >
+            <Feather name="chevron-left" size={22} color={tokens.textPrimary} />
+          </TouchableOpacity>
+          {canEdit ? (
+            <View style={styles.heroRight}>
+              <TouchableOpacity
+                style={[styles.heroBack, { backgroundColor: tokens.surface }]}
+                onPress={changeCover}
+                disabled={cover.busy}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t('acasa.coverTitle')}
+              >
+                {cover.busy ? (
+                  <ActivityIndicator size="small" color={tokens.textPrimary} />
+                ) : (
+                  <Feather name="camera" size={18} color={tokens.textPrimary} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.heroEdit, { backgroundColor: tokens.surface }]}
+                onPress={() => router.push(`/edit-event/${event.id}`)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+              >
+                <Feather name="edit-2" size={15} color={tokens.textPrimary} />
+                <Text style={[styles.heroEditLabel, { color: tokens.textPrimary }]}>{t('common.edit')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      </EventCover>
+      <View style={styles.heroText}>
+        <Text style={[styles.heroType, { color: tokens.textSecondary }]}>
+          {t(`eventTypes.${event.type}.label`).toUpperCase()}
+        </Text>
+        <Text style={[styles.heroName, { color: tokens.textPrimary }]}>{event.name}</Text>
+        {meta.length > 0 ? <Text style={[styles.heroMeta, { color: tokens.textSecondary }]}>{meta}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
+const STEP_ICONS: Record<GettingStartedKey, keyof typeof Feather.glyphMap> = {
+  event: 'check',
+  location: 'map-pin',
+  schedule: 'clock',
+  menu: 'book-open',
+  guests: 'user-plus',
+  invites: 'message-circle',
+  moment: 'camera',
+};
+
+/** "What's left to do": the organizer's next few checklist steps, each opening its own place. */
+function NextSteps({ eventId }: { eventId: string }) {
+  const { t } = useTranslation();
+  const { tokens } = useTheme();
+  const { ready, steps, allDone } = useGettingStarted(eventId);
+  if (!ready || allDone) return null;
+
+  return (
+    <View style={[styles.section, styles.sectionRule, { borderTopColor: tokens.border }]}>
+      <View style={styles.sectionHead}>
+        <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('acasa.nextStepsTitle')}</Text>
+        <TouchableOpacity onPress={openGettingStarted} activeOpacity={0.7} accessibilityRole="button" hitSlop={8}>
+          <Text style={[styles.seeAll, { color: tokens.accentText }]}>{t('acasa.seeAll')}</Text>
+        </TouchableOpacity>
+      </View>
+      {steps
+        .filter((step) => !step.done)
+        .slice(0, 3)
+        .map((step) => (
+          <TouchableOpacity
+            key={step.key}
+            style={styles.stepRow}
+            onPress={step.showMe ?? undefined}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <View style={[styles.stepIcon, { backgroundColor: tokens.accentTint }]}>
+              <Feather name={STEP_ICONS[step.key]} size={18} color={tokens.accentText} />
+            </View>
+            <View style={styles.stepText}>
+              <Text style={[styles.stepTitle, { color: tokens.textPrimary }]} numberOfLines={1}>
+                {t(`gettingStarted.steps.${step.key}.title`)}
+              </Text>
+              <Text style={[styles.stepSub, { color: tokens.textSecondary }]} numberOfLines={1}>
+                {t(`gettingStarted.steps.${step.key}.tip`)}
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={tokens.textSecondary} />
+          </TouchableOpacity>
+        ))}
     </View>
   );
 }
@@ -229,6 +380,7 @@ function StoryAcasa() {
   if (content === null) {
     return (
       <GuestScreen transparent>
+        {event !== undefined ? <EventHero event={event} canEdit={canEditMoments} /> : null}
         {event !== undefined ? <CountdownCard
             date={event.date}
             type={event.type}
@@ -246,6 +398,7 @@ function StoryAcasa() {
         contentStyle={owner ? { paddingBottom: tabBarClearance + gSpace.xxl + 56 } : undefined}
         transparent
       >
+        {event !== undefined ? <EventHero event={event} canEdit={canEditMoments} /> : null}
         {event !== undefined ? <CountdownCard
             date={event.date}
             type={event.type}
@@ -253,12 +406,16 @@ function StoryAcasa() {
           /> : null}
 
         {/* Organizer's checklist while the event is still ahead. */}
-        {owner && event !== undefined && !isEventPast(event.date) ? <GettingStartedCard eventId={id} /> : null}
+        {owner && event !== undefined && !isEventPast(event.date) ? <NextSteps eventId={id} /> : null}
 
         {/* Finished event with its album ready: the story of the whole thing. */}
         {event !== undefined && isEventPast(event.date) && isStoryReady(event) ? <StoryEntryCard event={event} /> : null}
 
         {event !== undefined ? <UpNextCard eventId={id} date={event.date} schedule={content.schedule} /> : null}
+
+        <View style={[styles.sectionRule, { borderTopColor: tokens.border }]}>
+          <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('acasa.momentsTitle')}</Text>
+        </View>
 
         {content.moments.length === 0 ? (
           <EmptyState message={canEditMoments ? t('acasa.emptyOwner') : t('acasa.emptyGuest')} />
@@ -357,42 +514,141 @@ const styles = StyleSheet.create({
   wrap: {
     flex: 1,
   },
+  // Cancels GuestScreen's padding so the cover runs edge to edge.
+  hero: {
+    marginHorizontal: -gSpace.xl,
+    marginTop: -gSpace.lg,
+    gap: gSpace.lg,
+  },
+  heroCover: {
+    height: 220,
+  },
+  heroActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  heroRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroBack: {
+    width: 44,
+    height: 44,
+    borderRadius: themeRadius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroEdit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: themeRadius.pill,
+  },
+  heroEditLabel: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 14,
+  },
+  heroText: {
+    paddingHorizontal: gSpace.xl,
+    gap: 4,
+  },
+  heroType: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 12,
+    letterSpacing: 1.2,
+  },
+  heroName: {
+    fontFamily: typeface.display,
+    fontSize: 30,
+    lineHeight: 36,
+  },
+  heroMeta: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
   countdown: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 18,
     gap: 16,
   },
   countdownBody: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  leadRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
+    alignItems: 'center',
+    gap: 12,
   },
   leadValue: {
     fontFamily: typeface.display,
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 64,
+    lineHeight: 70,
     fontVariant: ['tabular-nums'],
   },
-  leadUnit: {
-    fontSize: 15,
-    fontWeight: '600',
+  leadText: {
+    flex: 1,
+    gap: 2,
   },
-  countdownDate: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 2,
+  leadUnit: {
+    fontFamily: typeface.display,
+    fontSize: 20,
+  },
+  stageHint: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  section: {
+    gap: 14,
+  },
+  sectionRule: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 20,
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sectionTitle: {
+    fontFamily: typeface.display,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  seeAll: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 14,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 48,
+  },
+  stepIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  stepTitle: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 15,
+  },
+  stepSub: {
+    fontSize: 13,
   },
   countdownTitle: {
     ...typography.title2,
   },
   countdownSub: {
     fontSize: 13,
-    textAlign: 'center',
   },
   upNext: {
     borderRadius: 24,

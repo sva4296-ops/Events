@@ -17,7 +17,6 @@ import {
 } from '@/components/InvitationListItem';
 import { Screen } from '@/components/Screen';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
@@ -30,6 +29,7 @@ import { compareEventsByDate } from '@/utils/eventOrder';
 import { confirmDelete } from '@/utils/confirm';
 import { isEventPast } from '@/utils/format';
 import { reportSupabaseError } from '@/utils/reportError';
+import { daysUntilEvent } from '@/utils/format';
 import { myInvitations } from '@/utils/invitations';
 import { staggerIn } from '@/utils/motion';
 import { canOpenEventPage } from '@/utils/spontaneous';
@@ -67,7 +67,6 @@ export default function DashboardScreen() {
   const { events, hydrated, isOwner, isPrimaryOwner, isRestaurant, deleteEvent } = useEvents();
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
-  const { isAgencyOwner } = useAgency();
   const { firstName, lastName, avatarUrl } = useUserProfile();
   const { user } = useAuth();
 
@@ -75,17 +74,20 @@ export default function DashboardScreen() {
   // RLS shows it the whole guest list, so guests[0] wouldn't be "its" row.
   const managesEvent = (event: (typeof events)[number]) => isOwner(event) || isRestaurant(event);
   const ownedEvents = events.filter(managesEvent).sort(compareEventsByDate);
+  // "Up next" is only what's still ahead; finished events get their own section.
+  const isFinished = (event: (typeof events)[number]) => (daysUntilEvent(event.date) ?? 0) < 0;
+  const upcomingEvents = ownedEvents.filter((event) => !isFinished(event));
+  const finishedEvents = ownedEvents.filter(isFinished);
+  const nextEvent = upcomingEvents[0];
   const invitations = myInvitations(events, managesEvent).sort((a, b) => compareEventsByDate(a.event, b.event));
   const avatarInitials = initials(firstName, lastName);
 
   // Null = not picked yet: open on "mine", or on "invited" when you only
-  // have invitations. Agency accounts never get invitations, so no tabs.
+  // have invitations. Agency accounts get the same tabs: they can be invited too.
   const [pickedTab, setPickedTab] = useState<HomeTab | null>(null);
-  const tab: HomeTab = isAgencyOwner
-    ? 'mine'
-    : (pickedTab ?? (ownedEvents.length === 0 && invitations.length > 0 ? 'invited' : 'mine'));
+  const tab: HomeTab = pickedTab ?? (ownedEvents.length === 0 && invitations.length > 0 ? 'invited' : 'mine');
   const showMine = tab !== 'invited';
-  const showInvited = !isAgencyOwner && tab !== 'mine';
+  const showInvited = tab !== 'mine';
   const tabs: { key: HomeTab; label: string; count: number | null }[] = [
     { key: 'mine', label: t('home.yourEvents'), count: hydrated ? ownedEvents.length : null },
     { key: 'invited', label: t('home.tabInvited'), count: hydrated ? invitations.length : null },
@@ -161,42 +163,40 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {isAgencyOwner ? null : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabs}
-            accessibilityRole="tablist"
-          >
-            {tabs.map((item) => {
-              const active = tab === item.key;
-              return (
-                <TouchableOpacity
-                  key={item.key}
-                  onPress={() => setPickedTab(item.key)}
-                  activeOpacity={0.8}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: active }}
-                  style={[
-                    styles.tab,
-                    active
-                      ? { backgroundColor: tokens.textPrimary }
-                      : { backgroundColor: tokens.surface, borderWidth: 1.5, borderColor: tokens.border },
-                  ]}
-                >
-                  <Text style={[styles.tabText, { color: active ? tokens.surface : tokens.textPrimary }]}>
-                    {item.label}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabs}
+          accessibilityRole="tablist"
+        >
+          {tabs.map((item) => {
+            const active = tab === item.key;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                onPress={() => setPickedTab(item.key)}
+                activeOpacity={0.8}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                style={[
+                  styles.tab,
+                  active
+                    ? { backgroundColor: tokens.textPrimary }
+                    : { backgroundColor: tokens.surface, borderWidth: 1.5, borderColor: tokens.border },
+                ]}
+              >
+                <Text style={[styles.tabText, { color: active ? tokens.surface : tokens.textPrimary }]}>
+                  {item.label}
+                </Text>
+                {item.count !== null ? (
+                  <Text style={[styles.tabCount, { color: active ? tokens.surface : tokens.textPrimary }]}>
+                    {item.count}
                   </Text>
-                  {item.count !== null ? (
-                    <Text style={[styles.tabCount, { color: active ? tokens.surface : tokens.textPrimary }]}>
-                      {item.count}
-                    </Text>
-                  ) : null}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         {showMine ? (
         <View style={styles.section}>
@@ -217,20 +217,22 @@ export default function DashboardScreen() {
           ) : (
             <>
               {/* The soonest event gets the big card; the rest are compact rows. */}
-              <Animated.View entering={staggerIn(0)}>
-                <DashboardHero
-                  event={ownedEvents[0]!}
-                  onPress={() => openEvent(ownedEvents[0]!)}
-                  menuActions={menuFor(ownedEvents[0]!)}
-                  onPressInvite={() => router.push(`/event/${ownedEvents[0]!.id}`)}
-                />
-              </Animated.View>
-              {ownedEvents.length > 1 ? (
+              {nextEvent !== undefined ? (
+                <Animated.View entering={staggerIn(0)}>
+                  <DashboardHero
+                    event={nextEvent}
+                    onPress={() => openEvent(nextEvent)}
+                    menuActions={menuFor(nextEvent)}
+                    onPressInvite={() => router.push(`/event/${nextEvent.id}`)}
+                  />
+                </Animated.View>
+              ) : null}
+              {upcomingEvents.length > 1 ? (
                 <View>
                   <Text style={[styles.overline, { color: tokens.textSecondary, borderBottomColor: tokens.border }]}>
                     {t('home.dashboard.upNext')}
                   </Text>
-                  {ownedEvents.slice(1).map((event, index) => (
+                  {upcomingEvents.slice(1).map((event, index) => (
                     <Animated.View key={event.id} entering={staggerIn(index + 1)}>
                       <DashboardRow
                         event={event}
@@ -242,15 +244,27 @@ export default function DashboardScreen() {
                   ))}
                 </View>
               ) : null}
+              {finishedEvents.length > 0 ? (
+                <View>
+                  <Text style={[styles.overline, { color: tokens.textSecondary, borderBottomColor: tokens.border }]}>
+                    {t('home.dashboard.finished')}
+                  </Text>
+                  {finishedEvents.map((event, index) => (
+                    <DashboardRow
+                      key={event.id}
+                      event={event}
+                      showDivider={index > 0}
+                      onPress={() => openEvent(event)}
+                      menuActions={menuFor(event)}
+                    />
+                  ))}
+                </View>
+              ) : null}
             </>
           )}
         </View>
         ) : null}
 
-        {/* Agency accounts don't participate in guest invitations — see
-            CLAUDE.md's "Agency accounts" section. Hidden outright rather than
-            just filtered to empty, since (unlike "Your events") there's no
-            legitimate agency-owner invitation to ever show here. */}
         {!showInvited ? null : (
           <View style={styles.section}>
             {tab === 'all' ? (

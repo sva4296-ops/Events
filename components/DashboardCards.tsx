@@ -85,7 +85,7 @@ export function DashboardHero({
     >
       {/* ImageBackground, not a bare View + absolute Image: a style-less View gets
           flattened away and the image then fills the whole card. */}
-      <EventCover type={event.type} coverTheme={event.coverTheme} style={styles.cover}>
+      <EventCover type={event.type} coverTheme={event.coverTheme} photoPath={event.coverPhotoPath} style={styles.cover}>
         {past ? <View style={[StyleSheet.absoluteFill, { backgroundColor: pastCoverShade }]} /> : null}
         <View style={[styles.nextLabel, { backgroundColor: tokens.surface }]}>
           <Text style={[styles.nextLabelText, { color: tokens.accentText }]}>{t('home.dashboard.next')}</Text>
@@ -160,7 +160,9 @@ export function DashboardRow({
     >
       <EventCover
         type={event.type}
-        coverTheme={event.coverTheme} thumbnail
+        coverTheme={event.coverTheme}
+        photoPath={event.coverPhotoPath}
+        thumbnail
         style={[styles.thumb, days !== null && days < 0 && styles.pastThumb]}
       />
       <View style={styles.rowText}>

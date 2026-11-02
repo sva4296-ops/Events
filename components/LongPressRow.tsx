@@ -19,6 +19,8 @@ interface LongPressRowProps {
   enabled?: boolean;
   /** Menu title, usually the row's name. */
   title?: string;
+  /** Replaces the menu: the screen shows its own UI for the held row. */
+  onLongPress?: () => void;
 }
 
 /**
@@ -30,13 +32,17 @@ interface LongPressRowProps {
  * Native long-press recognizer, so it works around rows that are themselves
  * touchable: once it fires, the row's own touch is cancelled and no tap follows.
  */
-export function LongPressRow({ children, actions, enabled = true, title }: LongPressRowProps) {
-  if (!enabled || actions.length === 0) {
+export function LongPressRow({ children, actions, enabled = true, title, onLongPress }: LongPressRowProps) {
+  if (!enabled || (actions.length === 0 && onLongPress === undefined)) {
     return <>{children}</>;
   }
 
   const openMenu = () => {
     haptics.press();
+    if (onLongPress !== undefined) {
+      onLongPress();
+      return;
+    }
     showActionSheet({
       title,
       actions: actions.map((action) => ({ label: action.label, tone: action.tone, onPress: action.onPress })),

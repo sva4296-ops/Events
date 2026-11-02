@@ -62,7 +62,7 @@ export function useGettingStarted(eventId: string) {
 
   const toPlan = () => router.navigate(`/guest/${eventId}/detalii`);
   const toAcasa = () => router.navigate(`/guest/${eventId}`);
-  const toGuests = () => router.push(`/event/${eventId}`);
+  const toGuests = () => router.navigate(`/guest/${eventId}/invitati`);
 
   const steps: GettingStartedStep[] = [
     { key: "event", done: true, showMe: null },

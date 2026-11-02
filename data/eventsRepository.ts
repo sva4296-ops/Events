@@ -1,3 +1,4 @@
+import { generateId } from '@/utils/uuid';
 import { supabase } from '@/data/supabaseClient';
 import type { AppEvent, CoOrganizer, EventDraft, Guest, InvitePreview, RsvpStatus } from '@/types/event';
 import { parseSpotLimit } from '@/utils/spontaneous';
@@ -79,6 +80,7 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     planTier: row.plan_tier,
     planPurchasedAt: row.plan_purchased_at,
     coverTheme: row.cover_theme ?? null,
+    coverPhotoPath: row.cover_photo_path ?? null,
     albumStatus: row.album_status,
     template: row.template ?? null,
     outing: row.outing ?? null,
@@ -288,6 +290,39 @@ async function listEventFiles(prefix: string): Promise<string[]> {
     }
     if (data.length < pageSize) return paths;
   }
+}
+
+/** Uploads the new cover first, then points the event at it and removes the old file. */
+export async function setEventCoverPhoto(
+  eventId: string,
+  localUri: string,
+  previousPath: string | null,
+): Promise<void> {
+  const path = `${eventId}/cover/${generateId()}.jpg`;
+  const buffer = await fetch(localUri).then((res) => res.arrayBuffer());
+  const { error: uploadError } = await supabase.storage
+    .from('event-photos')
+    .upload(path, buffer, { contentType: 'image/jpeg', cacheControl: '31536000' });
+  if (uploadError) throw uploadError;
+
+  const { error } = await supabase.from('events').update({ cover_photo_path: path }).eq('id', eventId);
+  if (error) {
+    await supabase.storage.from('event-photos').remove([path]);
+    throw error;
+  }
+  if (previousPath !== null) await supabase.storage.from('event-photos').remove([previousPath]);
+}
+
+export async function removeEventCoverPhoto(eventId: string, path: string): Promise<void> {
+  const { error } = await supabase.from('events').update({ cover_photo_path: null }).eq('id', eventId);
+  if (error) throw error;
+  await supabase.storage.from('event-photos').remove([path]);
+}
+
+/** Null when the file can't be signed: the page falls back to the drawn cover. */
+export async function fetchEventCoverUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from('event-photos').createSignedUrl(path, 24 * 60 * 60);
+  return error ? null : data.signedUrl;
 }
 
 /**

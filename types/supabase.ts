@@ -38,6 +38,7 @@ export interface EventRow {
   plan_purchased_at: string | null;
   /** utils/coverThemes.ts id (20261027000002); null = the static per-type cover. */
   cover_theme?: string | null;
+  cover_photo_path?: string | null;
   /** Flipped to 'ready' by the advance_album_status() pg_cron job ~72h after
    * event_date — see 20260812000003_album_status_cron.sql. */
   album_status: 'not_started' | 'generating' | 'ready';
@@ -178,6 +179,12 @@ export interface MomentWithReactionsRow extends MomentRow {
   moment_reactions: MomentReactionRow[];
 }
 
+export interface MessageReactionRow {
+  id: string;
+  user_id: string;
+  emoji: string;
+}
+
 export interface MessageRow {
   id: string;
   event_id: string;
@@ -185,6 +192,11 @@ export interface MessageRow {
   sender_label: string;
   content: string;
   created_at: string;
+  photo_width: number | null;
+  photo_height: number | null;
+  edited_at: string | null;
+  /** Embedded by loadSocial; absent on a Realtime payload. */
+  message_reactions?: MessageReactionRow[];
 }
 
 export interface FundRow {

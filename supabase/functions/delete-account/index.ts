@@ -81,6 +81,33 @@ Deno.serve(async (req) => {
     photoPaths.push(`${photo.event_id}/${photo.id}/thumb.jpg`, `${photo.event_id}/${photo.id}/full.jpg`);
   }
 
+  // Cover photos of owned events.
+  if (ownedEventIds.length > 0) {
+    const { data: covers, error: coversError } = await admin
+      .from('events')
+      .select('cover_photo_path')
+      .in('id', ownedEventIds);
+    if (coversError) return json({ error: coversError.message }, 500);
+    for (const cover of covers ?? []) {
+      if (typeof cover.cover_photo_path === 'string') photoPaths.push(cover.cover_photo_path);
+    }
+  }
+
+  // Chat photos: this user's messages anywhere, plus every message on owned events.
+  const { data: chatPhotos, error: chatPhotosError } = await admin
+    .from('messages')
+    .select('id, event_id')
+    .not('photo_width', 'is', null)
+    .or(
+      ownedEventIds.length > 0
+        ? `sender_id.eq.${userId},event_id.in.(${ownedEventIds.join(',')})`
+        : `sender_id.eq.${userId}`,
+    );
+  if (chatPhotosError) return json({ error: chatPhotosError.message }, 500);
+  for (const message of chatPhotos ?? []) {
+    photoPaths.push(`${message.event_id}/chat/${message.id}/thumb.jpg`, `${message.event_id}/chat/${message.id}/full.jpg`);
+  }
+
   // Moments on owned events, plus ones this user posted as a co-organizer
   // elsewhere (those rows cascade with the user, so their files go too).
   const momentFilter =

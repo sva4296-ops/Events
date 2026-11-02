@@ -58,6 +58,18 @@ const PHOTO_BUCKET = 'event-photos';
 /** Regenerated on every loadSocial (staleTime 30s for this query — see useEventContent.tsx), so this only needs to outlive one render, not be long-lived. */
 const PHOTO_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
+const CHAT_PHOTO_SIGNED_URL_TTL_SECONDS = 24 * 60 * 60;
+const CHAT_PHOTO_SIGNED_URL_REUSE_MS = 23 * 60 * 60 * 1000;
+/** Files never change, so a year. */
+const CHAT_PHOTO_CACHE_CONTROL = '31536000';
+
+/**
+ * A new signed URL is a new cache key for the image loader, so re-signing on
+ * every loadSocial would re-download (and flash) each chat photo on every
+ * refresh. URLs are kept here and reused until shortly before they expire.
+ */
+const signedChatPhotos = new Map<string, { thumb_url: string; full_url: string; signedAt: number }>();
+
 /**
  * Moment photos share the event-photos bucket (same RLS: first path segment is
  * the eventId). moments.photo_url stores this path, not a URL; loadSocial
@@ -70,6 +82,13 @@ function momentStoragePath(eventId: string, momentId: string): string {
 
 function menuPhotoStoragePath(eventId: string, photoId: string): string {
   return `${eventId}/menu/${photoId}.jpg`;
+}
+
+function chatPhotoStoragePaths(eventId: string, messageId: string) {
+  return {
+    thumb: `${eventId}/chat/${messageId}/thumb.jpg`,
+    full: `${eventId}/chat/${messageId}/full.jpg`,
+  };
 }
 
 function isMomentStoragePath(eventId: string, value: string | null): value is string {
@@ -135,6 +154,7 @@ function mapReaction(momentId: string, row: MomentReactionRow): MomentReaction {
 }
 
 function mapMessage(row: MessageRow): Message {
+  const signed = signedChatPhotos.get(row.id);
   return {
     id: row.id,
     event_id: row.event_id,
@@ -142,6 +162,17 @@ function mapMessage(row: MessageRow): Message {
     sender_label: row.sender_label,
     content: row.content,
     created_at: row.created_at,
+    edited_at: row.edited_at ?? null,
+    photo:
+      row.photo_width !== null && row.photo_height !== null
+        ? {
+            width: row.photo_width,
+            height: row.photo_height,
+            thumb_url: signed?.thumb_url ?? null,
+            full_url: signed?.full_url ?? null,
+          }
+        : null,
+    reactions: row.message_reactions ?? [],
   };
 }
 
@@ -227,6 +258,39 @@ async function signMomentPhotos(eventId: string, rows: MomentRow[]): Promise<Map
     if (entry.path !== null && entry.signedUrl) result.set(entry.path, entry.signedUrl);
   }
   return result;
+}
+
+/** Fills signedChatPhotos for these rows; mapMessage reads from it. */
+async function signChatPhotos(rows: MessageRow[]): Promise<void> {
+  const now = Date.now();
+  const missing = rows.filter((row) => {
+    if (row.photo_width === null) return false;
+    const signed = signedChatPhotos.get(row.id);
+    return signed === undefined || now - signed.signedAt > CHAT_PHOTO_SIGNED_URL_REUSE_MS;
+  });
+  if (missing.length === 0) return;
+
+  const paths = missing.flatMap((row) => Object.values(chatPhotoStoragePaths(row.event_id, row.id)));
+  const { data, error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .createSignedUrls(paths, CHAT_PHOTO_SIGNED_URL_TTL_SECONDS);
+  if (error) throw error;
+
+  const signedUrlByPath = new Map((data ?? []).map((entry) => [entry.path, entry.signedUrl]));
+  for (const row of missing) {
+    const { thumb, full } = chatPhotoStoragePaths(row.event_id, row.id);
+    const thumbUrl = signedUrlByPath.get(thumb);
+    const fullUrl = signedUrlByPath.get(full);
+    if (thumbUrl && fullUrl) {
+      signedChatPhotos.set(row.id, { thumb_url: thumbUrl, full_url: fullUrl, signedAt: now });
+    }
+  }
+}
+
+/** For the Chat screen's Realtime subscription: the raw row has no signed URLs yet. */
+async function mapIncomingMessage(row: MessageRow): Promise<Message> {
+  await signChatPhotos([row]);
+  return mapMessage(row);
 }
 
 function mapMenu(eventId: string, row: MenuRow | null): Menu | null {
@@ -332,7 +396,7 @@ async function loadSocial(eventId: string): Promise<SocialContent> {
       .select('*, moment_reactions(*)')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false }),
-    client.from('messages').select('*').eq('event_id', eventId).order('created_at', { ascending: true }),
+    client.from('messages').select('*, message_reactions(id, user_id, emoji)').eq('event_id', eventId).order('created_at', { ascending: true }),
     client.from('photos').select('*').eq('event_id', eventId).order('created_at', { ascending: false }),
   ]);
 
@@ -355,10 +419,13 @@ async function loadSocial(eventId: string): Promise<SocialContent> {
     mapPhoto(row, signedByPhotoId.get(row.id) ?? { thumb_url: null, full_url: null }),
   );
 
+  const messageRows = messagesRes.data as MessageRow[];
+  await signChatPhotos(messageRows);
+
   return {
     moments,
     reactions,
-    messages: (messagesRes.data as MessageRow[]).map(mapMessage),
+    messages: messageRows.map(mapMessage),
     photos,
   };
 }
@@ -466,9 +533,83 @@ async function sendMessage(eventId: string, content: string, actor: Actor): Prom
   if (error) throw error;
 }
 
-async function deleteMessage(messageId: string): Promise<void> {
+/** messageId is generated by the caller, like addPhoto's photoId: the Storage
+ * path has to exist before the row points at it. */
+async function sendPhotoMessage(
+  eventId: string,
+  messageId: string,
+  photo: PhotoUploadVersions & { width: number; height: number },
+  caption: string,
+  actor: Actor,
+): Promise<void> {
+  const client = supabase;
+  const { thumb, full } = chatPhotoStoragePaths(eventId, messageId);
+
+  const [thumbBuffer, fullBuffer] = await Promise.all([
+    fetch(photo.thumbnailUri).then((res) => res.arrayBuffer()),
+    fetch(photo.fullUri).then((res) => res.arrayBuffer()),
+  ]);
+
+  const options = { contentType: 'image/jpeg', cacheControl: CHAT_PHOTO_CACHE_CONTROL };
+  const [thumbUpload, fullUpload] = await Promise.all([
+    client.storage.from(PHOTO_BUCKET).upload(thumb, thumbBuffer, options),
+    client.storage.from(PHOTO_BUCKET).upload(full, fullBuffer, options),
+  ]);
+  if (thumbUpload.error || fullUpload.error) {
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+    throw thumbUpload.error ?? fullUpload.error;
+  }
+
+  const { error } = await client.from('messages').insert({
+    id: messageId,
+    event_id: eventId,
+    sender_id: actor.id,
+    sender_label: actor.label,
+    content: caption,
+    photo_width: photo.width,
+    photo_height: photo.height,
+  });
+  if (error) {
+    // e.g. the chat plan trigger: don't leave the files orphaned.
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+    throw error;
+  }
+}
+
+async function deleteMessage(eventId: string, messageId: string, hasPhoto: boolean): Promise<void> {
   const client = supabase;
   const { error } = await client.from('messages').delete().eq('id', messageId);
+  if (error) throw error;
+  if (hasPhoto) {
+    const { thumb, full } = chatPhotoStoragePaths(eventId, messageId);
+    // Best-effort, same as deletePhoto: the message is already gone.
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+    signedChatPhotos.delete(messageId);
+  }
+}
+
+async function editMessage(messageId: string, content: string): Promise<void> {
+  const { error } = await supabase.rpc('edit_message', { p_message_id: messageId, p_content: content });
+  if (error) throw error;
+}
+
+/** Null removes it. One per person per message, so a new emoji replaces the old. */
+async function setMessageReaction(
+  eventId: string,
+  messageId: string,
+  emoji: string | null,
+  actor: Actor,
+): Promise<void> {
+  const client = supabase;
+  const { error } =
+    emoji === null
+      ? await client.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', actor.id)
+      : await client
+          .from('message_reactions')
+          .upsert(
+            { message_id: messageId, event_id: eventId, user_id: actor.id, emoji },
+            { onConflict: 'message_id,user_id' },
+          );
   if (error) throw error;
 }
 
@@ -963,7 +1104,11 @@ export const remoteRepository = {
   loadDetails,
   loadContributions,
   sendMessage,
+  sendPhotoMessage,
+  setMessageReaction,
+  editMessage,
   deleteMessage,
+  mapIncomingMessage,
   // Exported so the Chat screen's Realtime subscription (app/guest/[id]/chat.tsx)
   // can map a postgres_changes payload's raw row the same way loadSocial does,
   // instead of duplicating this mapping and risking drift if a column is added.

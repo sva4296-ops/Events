@@ -25,7 +25,9 @@ const TABS: readonly { name: string; labelKey: string; icon: TabIconId }[] = [
   { name: 'index', labelKey: 'guestTabs.home', icon: 'home' },
   { name: 'detalii', labelKey: 'guestTabs.details', icon: 'plan' },
   { name: 'fond', labelKey: 'guestTabs.fund', icon: 'fund' },
+  { name: 'invitati', labelKey: 'guestTabs.guests', icon: 'guests' },
   { name: 'chat', labelKey: 'guestTabs.chat', icon: 'chat' },
+  // Not in the bar anymore; the route stays for the live stream's old links.
   { name: 'live', labelKey: 'guestTabs.live', icon: 'live' },
   { name: 'album', labelKey: 'guestTabs.album', icon: 'album' },
 ];
@@ -45,11 +47,12 @@ const VENUE_TAB_OVERRIDES: Record<string, { labelKey: string; icon: TabIconId }>
 
 /** Derived from the pathname rather than the tab bar's own state, since this
  * bar is mounted once above <Tabs> and needs to know which tab is active. */
-type ActiveTab = 'acasa' | 'detalii' | 'fond' | 'chat' | 'live' | 'album';
+type ActiveTab = 'acasa' | 'detalii' | 'fond' | 'invitati' | 'chat' | 'live' | 'album';
 
 function getActiveTab(pathname: string): ActiveTab {
   if (pathname.endsWith('/detalii')) return 'detalii';
   if (pathname.endsWith('/fond')) return 'fond';
+  if (pathname.endsWith('/invitati')) return 'invitati';
   if (pathname.endsWith('/chat')) return 'chat';
   if (pathname.endsWith('/live')) return 'live';
   if (pathname.endsWith('/album')) return 'album';
@@ -95,6 +98,14 @@ export default function GuestEventLayout() {
   if (past && activeTab !== 'acasa' && activeTab !== 'album' && !(spontaneous && activeTab === 'fond')) {
     return <Redirect href={`/guest/${id}`} />;
   }
+  // The guest list is the organizers' (a guest's RLS only returns their own
+  // row); a venue night has its bookings instead.
+  const guestsTab = owner && !venueEvent;
+  if (!guestsTab && activeTab === 'invitati') {
+    return <Redirect href={`/guest/${id}`} />;
+  }
+  // Story events: Acasă draws its own cover hero, with back and edit on it.
+  const heroHeader = activeTab === 'acasa' && !spontaneous && !venueEvent;
   const headerSubtitle =
     event !== undefined
       ? `${formatShortDate(event.date)} · ${t(
@@ -205,7 +216,7 @@ export default function GuestEventLayout() {
     <GuestEventProvider id={id}>
       <EventAccentProvider coverTheme={event?.coverTheme ?? null}>
       <LinearGradient colors={tokens.background} style={styles.shell}>
-        <EventHeaderBar
+        {heroHeader ? null : <EventHeaderBar
           // Name and date only on Acasă; the other tabs keep just their actions.
           name={activeTab === 'acasa' || restaurant ? (event?.name ?? 'Evenimentul nostru') : ''}
           type={event?.type ?? null}
@@ -213,7 +224,7 @@ export default function GuestEventLayout() {
           subtitle={restaurant ? headerSubtitle : undefined}
           showBack={activeTab === 'acasa' || restaurant}
           actions={actions}
-        />
+        />}
         <Tabs
           screenOptions={{
             headerShown: false,
@@ -222,11 +233,10 @@ export default function GuestEventLayout() {
               styles.bar,
               {
                 backgroundColor: tokens.tabBar.background,
-                borderColor: tokens.border,
                 borderTopColor: tokens.border,
-                height: floatingTabBar.height,
-                bottom: tabBarBottomInset(insets.bottom),
-                shadowOpacity: tokens.mode === 'dark' ? 0.45 : 0.16,
+                // Docked and opaque: the bar itself covers the system nav area.
+                height: floatingTabBar.height + tabBarBottomInset(insets.bottom),
+                paddingBottom: tabBarBottomInset(insets.bottom),
               },
             ],
             // This component reads the theme outside its own EventAccentProvider.
@@ -252,6 +262,8 @@ export default function GuestEventLayout() {
                   // split (spontaneous Fond) isn't the fund, so FUND_ENABLED
                   // doesn't hide it.
                   href:
+                    tab.name === 'live' ||
+                    (tab.name === 'invitati' && !guestsTab) ||
                     (past && tab.name !== 'index' && tab.name !== 'album' && !(spontaneous && tab.name === 'fond')) ||
                     (!FUND_ENABLED && !spontaneous && !venueEvent && tab.name === 'fond')
                       ? null
@@ -292,28 +304,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: guest.cream,
   },
-  // Floating pill above the bottom edge. `position: 'absolute'` so screens
+  // Docked to the bottom edge. `position: 'absolute'` so screens
   // scroll under it; every guest screen clears it with
   // `tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height`.
   // borderTopWidth is set explicitly: React Navigation's own top border
   // otherwise stays under a custom style.
   bar: {
     position: 'absolute',
-    // Margins, not left/right offsets: React Navigation's tab bar overrides
-    // left/right, and the pill came out full width.
     left: 0,
     right: 0,
-    marginHorizontal: floatingTabBar.side,
-    borderRadius: 32,
-    borderWidth: 1,
+    bottom: 0,
     borderTopWidth: 1,
     paddingTop: 0,
-    paddingBottom: 0,
     paddingHorizontal: 6,
-    shadowColor: '#000000',
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    elevation: 0,
   },
   item: {
     paddingTop: 8,

@@ -27,13 +27,31 @@ export interface MomentReaction {
   reaction_type: ReactionType;
 }
 
+export interface MessagePhoto {
+  width: number;
+  height: number;
+  /** Null when no signed URL could be produced (e.g. the file is missing). */
+  thumb_url: string | null;
+  full_url: string | null;
+}
+
+export interface MessageReaction {
+  id: string;
+  user_id: string;
+  emoji: string;
+}
+
 export interface Message {
   id: string;
   event_id: string;
   sender_id: string;
   sender_label: string;
+  /** Empty for a photo sent without a caption. */
   content: string;
   created_at: string;
+  edited_at: string | null;
+  photo: MessagePhoto | null;
+  reactions: MessageReaction[];
 }
 
 export interface Fund {

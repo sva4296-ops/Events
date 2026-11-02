@@ -54,7 +54,7 @@ export function InvitationListItem({
     >
       {/* Past event: dim the content, not the row, so the divider stays crisp. */}
       <View style={[styles.content, past && styles.past]}>
-      <EventCover type={type.id} coverTheme={event.coverTheme} thumbnail style={styles.badge} />
+      <EventCover type={type.id} coverTheme={event.coverTheme} photoPath={event.coverPhotoPath} thumbnail style={styles.badge} />
 
       <View style={styles.info}>
         <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>

@@ -83,10 +83,11 @@ function DetaliiHub() {
     content.venue.address.trim().length > 0;
   // The free-text location typed when the event was created, shown until a venue is set.
   const eventLocation = event?.location.trim() ?? "";
-  const seatedCount = content.seatingTables.reduce(
-    (sum, table) => sum + table.seat_count,
-    0,
-  );
+  // Seats aren't people: count who's actually at a table, starting from the
+  // confirmed; anyone seated who hasn't confirmed is called out separately.
+  const seatedGuests = (event?.guests ?? []).filter((guest) => guest.tableId !== null);
+  const seatedCount = seatedGuests.filter((guest) => guest.status === "confirmed").length;
+  const unconfirmedSeated = seatedGuests.length - seatedCount;
   // A guest's event.guests is RLS-scoped to their own row, so [0] is theirs.
   const myMenuOptionId = owner
     ? null
@@ -146,7 +147,12 @@ function DetaliiHub() {
         content.seatingTables.length === 0
           ? t("detalii.hub.seatingUnset")
           : owner
-            ? t("detalii.hub.seatingCount", { count: seatedCount })
+            ? [
+                t("detalii.hub.seatingCount", { count: seatedCount }),
+                ...(unconfirmedSeated > 0
+                  ? [t("detalii.hub.seatingUnconfirmed", { count: unconfirmedSeated })]
+                  : []),
+              ].join(" · ")
             : t("detalii.hub.seatingGuest"),
       complete: content.seatingTables.length > 0,
       route: `/detalii-seating/${id}`,

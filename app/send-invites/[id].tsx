@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AppState, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import Feather from '@expo/vector-icons/Feather';
 
+import { showDialog } from '@/components/ActionSheet';
 import { AiWriteButton } from '@/components/AiWriteButton';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
@@ -34,8 +35,31 @@ import { themeRadius, whatsappFill } from '@/utils/themeTokens';
  * there's no way to confirm WhatsApp itself ever opened for them; Skip
  * exists for exactly that gap, and for "I don't have WhatsApp for this
  * person." Skip is session-local only — it never writes to the database,
- * so a skipped guest is back in the queue next time this screen opens.
+ * so a skipped guest is back in the queue next time this screen opens; until
+ * then they wait in their own section, still sendable. WhatsApp and SMS can't
+ * report whether a message really went out, so the organizer is asked on coming
+ * back; only a yes takes the guest off this screen. Resending to someone already
+ * marked lives on their row in the guest list.
  */
+/** Resolves when the user is back from the app we opened (or after 3s if it never left this one). */
+function waitForReturn(): Promise<void> {
+  return new Promise((resolve) => {
+    let left = false;
+    const finish = () => {
+      subscription.remove();
+      clearTimeout(timer);
+      resolve();
+    };
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') left = true;
+      else if (left) finish();
+    });
+    const timer = setTimeout(() => {
+      if (!left) finish();
+    }, 3000);
+  });
+}
+
 export default function SendInvitesScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -76,6 +100,13 @@ export default function SendInvitesScreen() {
       !skippedIds.has(guest.id),
   );
 
+  const skipped = event.guests.filter(
+    (guest) =>
+      guest.status === 'pending' &&
+      guest.whatsappSentAt === null &&
+      guest.phone !== null &&
+      skippedIds.has(guest.id),
+  );
   // SMS counts as sent too (whatsapp_sent_at is the queue's "invite sent"
   // flag), so a guest invited by SMS leaves the queue like a WhatsApp one.
   const sendToGuest = async (guest: Guest, channel: 'whatsapp' | 'sms') => {
@@ -95,11 +126,24 @@ export default function SendInvitesScreen() {
       channel === 'sms'
         ? await sendGuestSmsInvite(guest.phone, input)
         : await sendGuestWhatsAppInvite(guest.phone, input);
+    if (opened) await waitForReturn();
     setSendingId(null);
     if (opened) {
-      await markWhatsAppSent(event.id, guest.id);
-      haptics.success();
-      setSentCount((count) => count + 1);
+      showDialog({
+        title: t('sendInvitesQueue.confirmSentTitle'),
+        message: t('sendInvitesQueue.confirmSentBody', { name: guest.name }),
+        buttons: [
+          { label: t('sendInvitesQueue.confirmSentNo'), style: 'cancel' },
+          {
+            label: t('sendInvitesQueue.confirmSentYes'),
+            onPress: () => {
+              void markWhatsAppSent(event.id, guest.id);
+              haptics.success();
+              setSentCount((count) => count + 1);
+            },
+          },
+        ],
+      });
     }
   };
 
@@ -107,7 +151,72 @@ export default function SendInvitesScreen() {
     setSkippedIds((current) => new Set(current).add(guestId));
   };
 
-  const sample = queue[0];
+  const unskipGuest = (guestId: string) => {
+    setSkippedIds((current) => {
+      const next = new Set(current);
+      next.delete(guestId);
+      return next;
+    });
+  };
+
+  const renderGuests = (guests: Guest[], section: 'queue' | 'skipped') => (
+    <View style={[styles.list, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+      {guests.map((guest, index) => (
+        <View key={guest.id} style={[styles.row, index > 0 && { borderTopWidth: 1, borderTopColor: tokens.border }]}>
+          <View style={[styles.avatar, { backgroundColor: tokens.statusPendingSoft }]}>
+            <Text maxFontSizeMultiplier={1.2} style={[styles.avatarText, { color: tokens.statusPending }]}>
+              {guest.name === guest.phone ? '#' : initialsOf(guest.name)}
+            </Text>
+          </View>
+          <View style={styles.rowText}>
+            <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
+              {guest.name}
+            </Text>
+            {guest.phone !== null && guest.name !== guest.phone ? (
+              <Text style={[styles.phone, { color: tokens.textSecondary }]} numberOfLines={1}>
+                {formatPhoneDisplay(guest.phone)}
+              </Text>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            onPress={() => (section === 'queue' ? skipGuest(guest.id) : unskipGuest(guest.id))}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            style={styles.skipButton}
+          >
+            <Text style={[styles.skipButtonText, { color: tokens.textSecondary }]}>
+              {t(section === 'queue' ? 'sendInvitesQueue.skipButton' : 'sendInvitesQueue.unskipButton')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.smsButton, { borderColor: tokens.border }]}
+            onPress={() => void sendToGuest(guest, 'sms')}
+            disabled={sendingId === guest.id}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('sendInvitesQueue.smsButton')}
+          >
+            <Feather name="smartphone" size={17} color={tokens.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sendButton, { backgroundColor: whatsappFill }]}
+            onPress={() => void sendToGuest(guest, 'whatsapp')}
+            disabled={sendingId === guest.id}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('sendInvitesQueue.sendButton')}
+          >
+            <Feather name="message-circle" size={16} color="#FFFFFF" />
+            <Text style={styles.sendButtonText}>
+              {sendingId === guest.id ? t('sendInvitesQueue.sending') : t('sendInvitesQueue.sendButton')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </View>
+  );
+
+  const sample = queue[0] ?? skipped[0];
   const sampleMessage =
     sample !== undefined
       ? buildGuestInviteMessage({
@@ -167,70 +276,20 @@ export default function SendInvitesScreen() {
         ) : null}
       </View>
 
-      {queue.length === 0 ? (
+      {queue.length === 0 && skipped.length === 0 ? (
         <EmptyState
           message={t('sendInvitesQueue.empty')}
           action={<Button label={t('common.done')} variant="tonal" onPress={() => router.back()} />}
         />
-      ) : (
-        <View style={[styles.list, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-          {queue.map((guest, index) => (
-            <View
-              key={guest.id}
-              style={[styles.row, index > 0 && { borderTopWidth: 1, borderTopColor: tokens.border }]}
-            >
-              <View style={[styles.avatar, { backgroundColor: tokens.statusPendingSoft }]}>
-                <Text maxFontSizeMultiplier={1.2} style={[styles.avatarText, { color: tokens.statusPending }]}>
-                  {guest.name === guest.phone ? '#' : initialsOf(guest.name)}
-                </Text>
-              </View>
-              <View style={styles.rowText}>
-                <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
-                  {guest.name}
-                </Text>
-                {guest.phone !== null && guest.name !== guest.phone ? (
-                  <Text style={[styles.phone, { color: tokens.textSecondary }]} numberOfLines={1}>
-                    {formatPhoneDisplay(guest.phone)}
-                  </Text>
-                ) : null}
-              </View>
-              <TouchableOpacity
-                onPress={() => skipGuest(guest.id)}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                style={styles.skipButton}
-              >
-                <Text style={[styles.skipButtonText, { color: tokens.textSecondary }]}>
-                  {t('sendInvitesQueue.skipButton')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.smsButton, { borderColor: tokens.border }]}
-                onPress={() => void sendToGuest(guest, 'sms')}
-                disabled={sendingId === guest.id}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel={t('sendInvitesQueue.smsButton')}
-              >
-                <Feather name="smartphone" size={17} color={tokens.textPrimary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.sendButton, { backgroundColor: whatsappFill }]}
-                onPress={() => void sendToGuest(guest, 'whatsapp')}
-                disabled={sendingId === guest.id}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel={t('sendInvitesQueue.sendButton')}
-              >
-                <Feather name="message-circle" size={16} color="#FFFFFF" />
-                <Text style={styles.sendButtonText}>
-                  {sendingId === guest.id ? t('sendInvitesQueue.sending') : t('sendInvitesQueue.sendButton')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      )}
+      ) : null}
+      {queue.length > 0 ? renderGuests(queue, 'queue') : null}
+
+      {skipped.length > 0 ? (
+        <>
+          <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('sendInvitesQueue.skippedTitle')}</Text>
+          {renderGuests(skipped, 'skipped')}
+        </>
+      ) : null}
 
       <View style={[styles.note, { backgroundColor: tokens.accentTint }]}>
         <Feather name="info" size={18} color={tokens.accentText} />

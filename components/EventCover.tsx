@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 
+import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import { CoverArt } from '@/components/CoverArt';
 import { EventTypeIcon } from '@/components/EventTypeIcon';
+import { fetchEventCoverUrl } from '@/data/eventsRepository';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
 import { getCoverTheme, type CoverDecoration, type CoverTheme } from '@/utils/coverThemes';
@@ -43,16 +46,40 @@ export function defaultCover(type: EventTypeId, tokens: ThemeTokens): CoverTheme
   };
 }
 
+/** The organizer's own photo over the drawn cover, which stays as the fallback
+ * while it loads or if it can't be signed. Cached on disk by path. */
+function CoverPhoto({ path }: { path: string }) {
+  const { data: url } = useQuery({
+    queryKey: ['eventCover', path],
+    queryFn: () => fetchEventCoverUrl(path),
+    // The URL lasts 24h.
+    staleTime: 23 * 60 * 60_000,
+  });
+  if (url === undefined || url === null) return null;
+  return (
+    <Image
+      source={{ uri: url, cacheKey: path }}
+      cachePolicy="disk"
+      contentFit="cover"
+      transition={150}
+      style={StyleSheet.absoluteFill}
+    />
+  );
+}
+
 /** An event's cover: its picked theme, otherwise the app-themed default. */
 export function EventCover({
   type,
   coverTheme,
+  photoPath = null,
   thumbnail = false,
   style,
   children,
 }: {
   type: EventTypeId;
   coverTheme?: string | null;
+  /** events.cover_photo_path: wins over the theme. */
+  photoPath?: string | null;
   /** Small list square: no illustration, just the colors with the type's icon centered. */
   thumbnail?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -76,11 +103,13 @@ export function EventCover({
         <View style={styles.center}>
           <EventTypeIcon type={type} size={22} color={tokens.mode === 'dark' ? tokens.textPrimary : accent} />
         </View>
+        {photoPath !== null ? <CoverPhoto path={photoPath} /> : null}
       </View>
     );
   }
   return (
     <CoverArt theme={picked ?? defaultCover(type, tokens)} style={style}>
+      {photoPath !== null ? <CoverPhoto path={photoPath} /> : null}
       {children}
     </CoverArt>
   );

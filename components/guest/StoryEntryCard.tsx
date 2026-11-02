@@ -22,7 +22,7 @@ export function StoryEntryCard({ event }: { event: AppEvent }) {
       accessibilityLabel={t('story.entryCta')}
       style={styles.card}
     >
-      <EventCover type={event.type} coverTheme={event.coverTheme} style={styles.image}>
+      <EventCover type={event.type} coverTheme={event.coverTheme} photoPath={event.coverPhotoPath} style={styles.image}>
         <LinearGradient colors={['rgba(15,12,28,0.15)', 'rgba(15,12,28,0.82)']} style={styles.veil}>
           <View style={styles.badge}>
             <Feather name="play" size={14} color="#1E1A30" />

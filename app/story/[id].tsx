@@ -81,7 +81,7 @@ export default function EventStoryScreen() {
         options={{ presentation: "fullScreenModal", animation: "fade" }}
       />
       {event !== undefined ? (
-        <EventCover type={event.type} coverTheme={event.coverTheme} style={StyleSheet.absoluteFill}>
+        <EventCover type={event.type} coverTheme={event.coverTheme} photoPath={event.coverPhotoPath} style={StyleSheet.absoluteFill}>
           <LinearGradient colors={VEIL} style={StyleSheet.absoluteFill} />
         </EventCover>
       ) : null}

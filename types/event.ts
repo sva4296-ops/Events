@@ -115,6 +115,8 @@ export interface AppEvent {
   planPurchasedAt: string | null;
   /** utils/coverThemes.ts id, or null for the static per-type cover. */
   coverTheme: string | null;
+  /** The organizer's own photo in event-photos; wins over coverTheme on the event page. */
+  coverPhotoPath?: string | null;
   /** events.album_status — 'ready' ~72h after the event date (server cron). */
   albumStatus: 'not_started' | 'generating' | 'ready';
   /** Spontaneous events only (null otherwise). */

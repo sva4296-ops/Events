@@ -28,6 +28,7 @@ export type InviteCardEvent = Pick<EventDraft, 'type' | 'name' | 'date' | 'locat
   startTime?: string | null;
   /** utils/coverThemes.ts id: drawn cover instead of the band/photo. */
   coverTheme?: string | null;
+  coverPhotoPath?: string | null;
 };
 
 export function InviteCard({ event }: { event: InviteCardEvent; /** Kept for callers; every card now draws EventCover. */ coverPhoto?: boolean }) {
@@ -62,7 +63,7 @@ export function InviteCard({ event }: { event: InviteCardEvent; /** Kept for cal
         tokens.surfaceElevatedShadow ?? undefined,
       ]}
     >
-      <EventCover type={type.id} coverTheme={event.coverTheme} style={styles.cover}>
+      <EventCover type={type.id} coverTheme={event.coverTheme} photoPath={event.coverPhotoPath} style={styles.cover}>
         {coverContent}
       </EventCover>
 

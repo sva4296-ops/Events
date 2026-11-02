@@ -18,6 +18,10 @@ const FULL_LONGEST_EDGE = 2800;
 const FULL_QUALITY = 0.9;
 const MOMENT_LONGEST_EDGE = 1600;
 const MOMENT_QUALITY = 0.8;
+const CHAT_THUMBNAIL_LONGEST_EDGE = 600;
+const CHAT_THUMBNAIL_QUALITY = 0.65;
+const CHAT_FULL_LONGEST_EDGE = 1600;
+const CHAT_FULL_QUALITY = 0.8;
 const AVATAR_LONGEST_EDGE = 512;
 const AVATAR_QUALITY = 0.8;
 
@@ -29,11 +33,7 @@ const AVATAR_QUALITY = 0.8;
  * re-saves as JPEG at `quality` regardless, since the source could be a PNG
  * or HEIC capture.
  */
-async function resizeToLongestEdge(
-  photo: PickedPhoto,
-  longestEdge: number,
-  quality: number,
-): Promise<string> {
+async function renderToLongestEdge(photo: PickedPhoto, longestEdge: number, quality: number) {
   const hasDimensions = photo.width > 0 && photo.height > 0;
   const longestOriginalEdge = hasDimensions ? Math.max(photo.width, photo.height) : null;
   const needsResize = longestOriginalEdge === null || longestOriginalEdge > longestEdge;
@@ -45,7 +45,15 @@ async function resizeToLongestEdge(
   }
 
   const rendered = await context.renderAsync();
-  const saved = await rendered.saveAsync({ compress: quality, format: SaveFormat.JPEG });
+  return rendered.saveAsync({ compress: quality, format: SaveFormat.JPEG });
+}
+
+async function resizeToLongestEdge(
+  photo: PickedPhoto,
+  longestEdge: number,
+  quality: number,
+): Promise<string> {
+  const saved = await renderToLongestEdge(photo, longestEdge, quality);
   return saved.uri;
 }
 
@@ -55,6 +63,21 @@ export async function processPhotoVersions(photo: PickedPhoto): Promise<Processe
     resizeToLongestEdge(photo, FULL_LONGEST_EDGE, FULL_QUALITY),
   ]);
   return { thumbnailUri, fullUri };
+}
+
+export interface ProcessedChatPhoto extends ProcessedPhotoVersions {
+  width: number;
+  height: number;
+}
+
+/** Chat photos are seen once by everyone in the chat, so they're kept much
+ * smaller than album photos (the bubble shows the thumbnail, a tap the full). */
+export async function processChatPhoto(photo: PickedPhoto): Promise<ProcessedChatPhoto> {
+  const [thumbnail, full] = await Promise.all([
+    renderToLongestEdge(photo, CHAT_THUMBNAIL_LONGEST_EDGE, CHAT_THUMBNAIL_QUALITY),
+    renderToLongestEdge(photo, CHAT_FULL_LONGEST_EDGE, CHAT_FULL_QUALITY),
+  ]);
+  return { thumbnailUri: thumbnail.uri, fullUri: full.uri, width: full.width, height: full.height };
 }
 
 /** Single resized JPEG for a profile avatar — no dual-resolution need like

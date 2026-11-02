@@ -78,16 +78,14 @@ export const gShadow = {
  * manually now that it's no longer a normal layout sibling.
  */
 /**
- * The event tab bar floats again: a rounded pill `height` tall, sitting
- * tabBarBottomInset() above the screen bottom. `gap` is the breathing room
- * between page content and the pill, so every
+ * The event tab bar is docked to the screen bottom: `height` tall plus the
+ * system's safe area under it. `gap` is the breathing room between page
+ * content and the bar, so every
  * `tabBarBottomInset + gap + height` clearance stays correct.
  */
 export const floatingTabBar = {
   height: 64,
   gap: 12,
-  /** Distance from the screen's left/right edges. */
-  side: 16,
 } as const;
 
 /**
@@ -96,5 +94,5 @@ export const floatingTabBar = {
  * screen edge, so there's always at least 12px.
  */
 export function tabBarBottomInset(safeAreaBottom: number): number {
-  return Math.max(safeAreaBottom, 12);
+  return safeAreaBottom;
 }

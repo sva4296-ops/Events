@@ -1,6 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
+import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
-import { Image, Modal, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { guest } from '@/utils/guestTheme';
@@ -11,13 +12,15 @@ interface PhotoViewerProps {
   onClose: () => void;
   /** Shown at the bottom, e.g. who took it or the dish name. */
   caption?: string;
+  /** Stable disk-cache key for a signed URL that changes (chat photos). */
+  cacheKey?: string;
 }
 
 /**
  * Full-screen photo on a dark backdrop; tap anywhere or the X to close.
  * Shared by the album/live tiles and the menu's course photos.
  */
-export function PhotoViewer({ uri, visible, onClose, caption }: PhotoViewerProps) {
+export function PhotoViewer({ uri, visible, onClose, caption, cacheKey }: PhotoViewerProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
@@ -25,7 +28,7 @@ export function PhotoViewer({ uri, visible, onClose, caption }: PhotoViewerProps
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.backdrop}>
-          <Image source={{ uri }} style={styles.image} resizeMode="contain" />
+          <Image source={{ uri, cacheKey }} cachePolicy="disk" style={styles.image} contentFit="contain" />
 
           <TouchableOpacity
             style={[styles.close, { top: insets.top + 12 }]}

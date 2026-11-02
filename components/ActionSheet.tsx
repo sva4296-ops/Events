@@ -1,8 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, BackHandler, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { SlideInDown, ZoomIn } from 'react-native-reanimated';
+import { Alert, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -110,17 +109,6 @@ export function ActionSheetHost() {
     if (Platform.OS !== 'ios') runPending();
   };
 
-  // Android: hardware back closes the overlay (the Modal's onRequestClose on iOS).
-  useEffect(() => {
-    if (Platform.OS !== 'android' || !visible) return;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      pending.current = null;
-      setVisible(false);
-      return true;
-    });
-    return () => sub.remove();
-  }, [visible]);
-
   const content = (
     <>
       <TouchableOpacity
@@ -132,8 +120,7 @@ export function ActionSheetHost() {
       />
       {visible && current?.kind === 'dialog' ? (
         <View style={styles.center} pointerEvents="box-none">
-          <Animated.View
-            entering={ZoomIn.duration(180)}
+          <View
             style={[styles.popup, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
             accessibilityRole="alert"
           >
@@ -165,15 +152,14 @@ export function ActionSheetHost() {
                 );
               })}
             </View>
-          </Animated.View>
+          </View>
         </View>
       ) : null}
       {visible && current?.kind === 'sheet' ? (
         // A bottom sheet: grabber, title in the theme's display font, plain
         // rows with hairlines (no icon boxes), Cancel as a quiet text button.
         <View style={styles.bottom} pointerEvents="box-none">
-          <Animated.View
-            entering={SlideInDown.duration(240)}
+          <View
             style={[
               styles.sheet,
               { backgroundColor: tokens.surface, borderColor: tokens.border, paddingBottom: insets.bottom + spacing.md },
@@ -213,26 +199,21 @@ export function ActionSheetHost() {
             <TouchableOpacity style={styles.cancel} onPress={() => close()} activeOpacity={0.6} accessibilityRole="button">
               <Text style={[styles.cancelLabel, { color: tokens.textSecondary }]}>{t('common.cancel')}</Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         </View>
       ) : null}
     </>
   );
 
-  // Android draws it as a plain overlay over the root, not a Modal: a Modal is
-  // a separate window, and on some devices (Galaxy Fold, edge-to-edge) taps
-  // inside it never reach the buttons, so the menu opened but did nothing.
-  // The host is mounted last in app/_layout.tsx, so it sits above every screen.
-  if (Platform.OS === 'android') {
-    if (!visible) return null;
-    return <View style={styles.overlay}>{content}</View>;
-  }
 
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      // The Modal's own animation, no Reanimated `entering` inside it: on
+      // Android that left the buttons' touch area at the animation's start
+      // (off screen), so the sheet opened but taps did nothing.
+      animationType={current?.kind === 'sheet' ? 'slide' : 'fade'}
       statusBarTranslucent
       onRequestClose={() => close()}
       onDismiss={runPending}
@@ -243,15 +224,6 @@ export function ActionSheetHost() {
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    zIndex: 1000,
-    elevation: 1000,
-  },
   dialogText: {
     gap: 8,
     paddingHorizontal: 4,

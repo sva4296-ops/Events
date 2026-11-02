@@ -147,7 +147,7 @@ export default function AlbumScreen() {
         </View>
         {!loading ? (
           <Text style={[styles.summary, { color: tokens.textSecondary }]}>
-            {t("album.summary", { count: photos.length, people: uploaders })}
+            {`${t("album.summary", { count: photos.length })} · ${t("album.summaryPeople", { count: uploaders })}`}
           </Text>
         ) : null}
       </View>

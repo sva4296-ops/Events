@@ -4,8 +4,8 @@ import { useCallback, useMemo } from 'react';
 import { remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import type { DetailsContent, EventContent, ReactionType, TableShape, Venue } from '@/types/guest';
-import { processMomentPhoto, processPhotoVersions, type PickedPhoto } from '@/utils/imageProcessing';
+import type { DetailsContent, EventContent, ReactionType, TableShape, Venue, SocialContent } from '@/types/guest';
+import { type PickedPhoto, processChatPhoto, processMomentPhoto, processPhotoVersions } from '@/utils/imageProcessing';
 import { reportSupabaseError } from '@/utils/reportError';
 import { generateId } from '@/utils/uuid';
 
@@ -236,6 +236,74 @@ export function useEventContent(eventId: string) {
         runRemote(() => remoteRepository.sendMessage(eventId, trimmed, actor), 'social');
       },
 
+      /** Patched into the cache for instant feedback; a failure refetches the old text. */
+      editMessage: (messageId: string, text: string) => {
+        const content = text.trim();
+        queryClient.setQueryData<SocialContent>(socialKey, (social) =>
+          social === undefined
+            ? social
+            : {
+                ...social,
+                messages: social.messages.map((message) =>
+                  message.id === messageId ? { ...message, content, edited_at: new Date().toISOString() } : message,
+                ),
+              },
+        );
+        void runRemote(() => remoteRepository.editMessage(messageId, content), 'social').then(() =>
+          queryClient.invalidateQueries({ queryKey: socialKey }),
+        );
+      },
+
+      /** Same emoji again removes it; patched into the cache for instant feedback. */
+      toggleMessageReaction: (messageId: string, emoji: string) => {
+        const current = queryClient
+          .getQueryData<SocialContent>(socialKey)
+          ?.messages.find((message) => message.id === messageId)
+          ?.reactions.find((reaction) => reaction.user_id === actor.id);
+        const next = current?.emoji === emoji ? null : emoji;
+        queryClient.setQueryData<SocialContent>(socialKey, (social) =>
+          social === undefined
+            ? social
+            : {
+                ...social,
+                messages: social.messages.map((message) => {
+                  if (message.id !== messageId) return message;
+                  const others = message.reactions.filter((reaction) => reaction.user_id !== actor.id);
+                  return {
+                    ...message,
+                    reactions:
+                      next === null
+                        ? others
+                        : [...others, { id: current?.id ?? generateId(), user_id: actor.id, emoji: next }],
+                  };
+                }),
+              },
+        );
+        runRemote(() => remoteRepository.setMessageReaction(eventId, messageId, next, actor), 'social');
+      },
+
+      /** One message per photo, in order, one at a time (see addPhotos); the
+       * caption goes on the last one. A failed photo doesn't stop the rest. */
+      sendPhotoMessages: (photos: PickedPhoto[], caption: string) =>
+        runRemote(async () => {
+          let firstError: unknown = null;
+          for (const [index, photo] of photos.entries()) {
+            try {
+              const processed = await processChatPhoto(photo);
+              await remoteRepository.sendPhotoMessage(
+                eventId,
+                generateId(),
+                processed,
+                index === photos.length - 1 ? caption.trim() : '',
+                actor,
+              );
+            } catch (error) {
+              firstError ??= error;
+            }
+          }
+          if (firstError !== null) throw firstError;
+        }, 'social'),
+
       /** Uploads one or more photos, one at a time (resizing several at once
        * would spike memory). A failed photo doesn't stop the rest; if any
        * failed, the first error is reported once at the end. */
@@ -308,8 +376,8 @@ export function useEventContent(eventId: string) {
         return runRemote(() => remoteRepository.deleteMoment(eventId, momentId), 'social');
       },
 
-      deleteMessage: (messageId: string) => {
-        return runRemote(() => remoteRepository.deleteMessage(messageId), 'social');
+      deleteMessage: (messageId: string, hasPhoto: boolean) => {
+        return runRemote(() => remoteRepository.deleteMessage(eventId, messageId, hasPhoto), 'social');
       },
 
       deletePhoto: (photoId: string) => {

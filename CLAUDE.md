@@ -13,6 +13,19 @@
 >   `['eventContent', 'social', eventId]` cache via `setQueryData`. It is the **only** subscription:
 >   moments, reactions and photos are still request/response. Every "Realtime is unused / nothing
 >   subscribes" line below is stale for Chat only.
+> - **Chat photos (2026-11-02).** One photo per message: `messages.photo_width/height` (non-null = has a
+>   photo, `content` is `''` without a caption), files at `{eventId}/chat/{messageId}/thumb|full.jpg` in
+>   `event-photos`. Signed URLs are memoized in `signedChatPhotos`; `expo-image` caches on disk by a stable `cacheKey`, so restarts don't re-download.
+>   `purge_finished_event_chats` skips photo messages; the `purge-chat-photos` edge function (pg_cron, needs
+>   the `project_url`/`cron_secret` Vault secrets and the `CRON_SECRET` env) removes their files and rows.
+> - **Chat reactions (2026-11-02).** `message_reactions` (one per person per message, `20261102000002`), embedded
+>   in `loadSocial`; long-press a message for `MessageActionsBar`, floating at the message (emoji + delete on your own), not a sheet. Own messages can be edited there too, via the `edit_message` RPC (`20261102000003`; sets `edited_at`).
+> - **Event page redesign (2026-11-02).** Tabs are Acasă / Plan / Invitați / Chat / Album. `invitati` (owners only,
+>   not venue nights) renders `components/GuestDashboard.tsx`, also behind `/event/[id]`; `live` is hidden from the
+>   bar (`href: null`), route kept. Story events' Acasă draws its own cover hero and no `EventHeaderBar`.
+> - **Agency accounts see invitations now (2026-11-02).** Home's Mine/Invited/All tabs show for everyone; older lines saying "My invitations" is hidden for agencies are stale.
+> - **Event cover photo (2026-11-02).** `events.cover_photo_path` (`20261102000004`), file at `{eventId}/cover/{uuid}.jpg`; `hooks/useEventCoverPhoto.ts`. `EventCover`'s `photoPath` draws it over the theme (hero, Home cards, invitation, story).
+> - **Audit fixes (2026-11-02).** The event tab bar is docked and opaque again (`tabBarBottomInset` = safe area); Acasă's countdown uses `daysUntilEvent` like Home; Home splits finished events into their own section; chat has day separators.
 > - **Plan-tier feature gating exists** (`2bd5315`). `hooks/usePlanGate.tsx` (`usePlanGate(eventId)`)
 >   is the single client-side source for "does this event's plan allow X"; a null `plan_tier` behaves
 >   as Esențial (50 guests, no chat/live/fund/lodging/vendors). Locked states are wired into Chat,

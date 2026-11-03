@@ -21,7 +21,7 @@ export function useCancelCreate(): () => void {
   return () => {
     const exit = () => {
       resetDraft();
-      router.navigate('/');
+      router.dismissTo('/');
     };
 
     if (!dirty) {

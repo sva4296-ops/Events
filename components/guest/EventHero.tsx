@@ -158,7 +158,7 @@ export function EventHero({
         <View style={[styles.heroActions, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
             style={[styles.heroBack, { backgroundColor: tokens.surface }]}
-            onPress={() => router.navigate('/')}
+            onPress={() => router.dismissTo('/')}
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={t('acasa.backHome')}

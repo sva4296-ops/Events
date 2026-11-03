@@ -71,6 +71,7 @@ export interface EventGuestRow {
    * from `invited_at` above, which is just row-creation time. Null until
    * sent. See 20260822000001_bulk_guest_invites.sql. */
   whatsapp_sent_at: string | null;
+  invite_seen_at?: string | null;
   responded_at: string | null;
   dietary_preferences: string[];
   /** Which seating_tables row this guest is assigned to, if any — see

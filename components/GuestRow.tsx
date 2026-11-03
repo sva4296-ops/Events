@@ -48,7 +48,9 @@ export function GuestRow({
     : guest.status === 'pending'
       ? guest.phone === null
         ? t('event.noPhone')
-        : guest.whatsappSentAt !== null
+        : guest.inviteSeenAt !== null
+          ? t('event.inviteSeen')
+          : guest.whatsappSentAt !== null
           ? t('event.inviteSent')
           : t('event.inviteNotSent')
       : guest.status === 'confirmed' && guest.partySize !== null

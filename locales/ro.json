@@ -577,6 +577,7 @@
     "filterDeclined": "Refuzați",
     "searchPlaceholder": "Caută după nume sau telefon",
     "noMatches": "Niciun invitat nu se potrivește.",
+    "inviteSeen": "A văzut invitația, n-a răspuns încă",
     "inviteSent": "Invitație trimisă pe WhatsApp",
     "inviteNotSent": "Invitația nu a fost trimisă încă",
     "noPhone": "Fără telefon",

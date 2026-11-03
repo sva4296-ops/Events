@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
@@ -14,7 +14,7 @@ import { InviteCard } from '@/components/InviteCard';
 import { InviteReveal } from '@/components/InviteReveal';
 import { Screen } from '@/components/Screen';
 import { Toggle } from '@/components/Toggle';
-import { fetchInvitePreview } from '@/data/eventsRepository';
+import { fetchInvitePreview, markInviteSeen } from '@/data/eventsRepository';
 import type { RsvpStatus } from '@/types/event';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
@@ -201,6 +201,12 @@ export default function InviteScreen() {
     staleTime: 30_000,
   });
   const preview = previewQuery.data ?? null;
+
+  // The guest has it on screen. The server ignores this for organizers.
+  const userId = user?.id ?? null;
+  useEffect(() => {
+    if (userId !== null && id !== undefined) void markInviteSeen(id);
+  }, [userId, id]);
 
   // Venue events have a booking page instead of an RSVP.
   if (event?.type === 'venue' || preview?.type === 'venue') {

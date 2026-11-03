@@ -26,6 +26,7 @@ function mapGuestRow(row: EventGuestRow): Guest {
     dietaryPreferences: row.dietary_preferences,
     phone: row.guest_phone,
     whatsappSentAt: row.whatsapp_sent_at,
+    inviteSeenAt: row.invite_seen_at ?? null,
     tableId: row.table_id,
     menuOptionId: row.menu_option_id ?? null,
     inviteToken: row.invite_token,
@@ -485,6 +486,11 @@ export async function markGuestWhatsAppSent(guestId: string): Promise<void> {
  * session has no matching pending (or already-linked) invite for this event;
  * the RPC itself only ever matches the caller's own row, never anyone else's.
  */
+/** Best-effort: a failure only means the organizer doesn't see "seen" yet. */
+export async function markInviteSeen(eventId: string): Promise<void> {
+  await supabase.rpc('mark_invite_seen', { p_event_id: eventId });
+}
+
 /**
  * The event a personal invite token belongs to — get_invite_by_token() is
  * granted to anon, so this works before sign-in (app/i/[token].tsx). Null for

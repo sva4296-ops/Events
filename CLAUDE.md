@@ -27,6 +27,7 @@
 > - **Event cover photo (2026-11-02).** `events.cover_photo_path` (`20261102000004`), file at `{eventId}/cover/{uuid}.jpg`; `hooks/useEventCoverPhoto.ts`. `EventCover`'s `photoPath` draws it over the theme (hero, Home cards, invitation, story).
 > - **Audit fixes (2026-11-02).** The event tab bar is docked and opaque again (`tabBarBottomInset` = safe area); Acasă's countdown uses `daysUntilEvent` like Home; Home splits finished events into their own section; chat has day separators.
 > - **Co-organizers are guests too (2026-11-03).** `20261103000001`: every co-organizer gets a confirmed `event_guests` row (trigger + backfill), so they can pick a menu and be seated. `Guest.userId` finds their own row; don't use `guests[0]` for anyone who sees the whole list.
+> - **Invite seen (2026-11-03).** `event_guests.invite_seen_at`, set only from client code (`mark_invite_seen` in the app, `mark_invite_seen_by_token` on the web): server rendering would count WhatsApp's link preview as a view.
 > - **Plan-tier feature gating exists** (`2bd5315`). `hooks/usePlanGate.tsx` (`usePlanGate(eventId)`)
 >   is the single client-side source for "does this event's plan allow X"; a null `plan_tier` behaves
 >   as Esențial (50 guests, no chat/live/fund/lodging/vendors). Locked states are wired into Chat,

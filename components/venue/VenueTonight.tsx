@@ -1,9 +1,10 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { EventTypeIcon } from '@/components/EventTypeIcon';
+import { EventCountdown, EventHero } from '@/components/guest/EventHero';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Skeleton } from '@/components/Skeleton';
 import { Eyebrow } from '@/components/spontaneous/parts';
@@ -12,11 +13,10 @@ import { useTheme } from '@/hooks/useTheme';
 import { useVenue } from '@/hooks/useVenue';
 import type { AppEvent } from '@/types/event';
 import type { VenueBooking } from '@/types/venue';
-import { getEventType } from '@/utils/eventTypes';
 import { daysUntilEvent } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
 import { AVATAR_COLORS, AVATAR_INK, formatSpontaneousWhen } from '@/utils/spontaneous';
-import { bandGradientLocations, themeRadius, typography } from '@/utils/themeTokens';
+import { themeRadius } from '@/utils/themeTokens';
 
 const MAX_AVATARS = 6;
 
@@ -29,42 +29,36 @@ export function VenueTonight({ event, owner }: { event: AppEvent; owner: boolean
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const { venue } = useVenue(event.id);
-  const type = getEventType('venue');
   const days = daysUntilEvent(event.date);
   const booked = venue?.myBooking?.status === 'confirmed';
 
   return (
     <GuestScreen transparent>
-      <LinearGradient colors={type.band} locations={bandGradientLocations} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-        {days !== null && days >= 0 ? (
-          <View style={styles.days}>
-            <Text style={[styles.daysValue, { color: type.bandInk }]}>{days}</Text>
-            <Text style={[styles.daysLabel, { color: type.bandInk }]}>
-              {days === 0 ? t('venue.tonight.tonight') : t('spontaneous.home.daysLeft', { count: days })}
-            </Text>
-          </View>
-        ) : null}
-        <View style={styles.heroText}>
-          <Text style={[styles.heroTitle, { color: type.bandInk }]} numberOfLines={2}>
-            {event.name}
-          </Text>
-          <Text style={[styles.heroMeta, { color: type.bandInk }]}>{formatSpontaneousWhen(event.date, event.startTime)}</Text>
-          {!owner ? (
-            <TouchableOpacity
-              onPress={() => {
-                haptics.press();
-                router.push(booked ? `/guest/${event.id}/fond` : `/guest/${event.id}/detalii`);
-              }}
-              accessibilityRole="button"
-              style={styles.heroButton}
-            >
-              <Text style={[styles.heroButtonText, { color: type.bandInk }]}>
-                {booked ? t('venue.home.seeTicket') : t('venue.book.cta')}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      </LinearGradient>
+      <EventHero
+        event={event}
+        canEdit={owner && (days === null || days >= 0)}
+        meta={[formatSpontaneousWhen(event.date, event.startTime), event.location.trim()].filter((part) => part.length > 0).join(' · ')}
+        extraAction={{
+          icon: 'clipboard',
+          label: t('venue.bookings.title'),
+          onPress: () => router.push(`/venue-bookings/${event.id}`),
+        }}
+      />
+      <EventCountdown
+        date={event.date}
+        type={event.type}
+        scheduleTimes={event.startTime !== null ? [event.startTime] : []}
+        timeline={false}
+      />
+      {!owner ? (
+        <Button
+          label={booked ? t('venue.home.seeTicket') : t('venue.book.cta')}
+          onPress={() => {
+            haptics.press();
+            router.push(booked ? `/guest/${event.id}/fond` : `/guest/${event.id}/detalii`);
+          }}
+        />
+      ) : null}
 
       {owner ? <VenueHomeCard event={event} owner /> : null}
 
@@ -203,54 +197,6 @@ function VenueUpcoming({ venue }: { venue: VenueBooking }) {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    borderRadius: 24,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 18,
-  },
-  days: {
-    alignItems: 'center',
-    minWidth: 64,
-  },
-  daysValue: {
-    ...typography.display,
-    fontSize: 46,
-    lineHeight: 52,
-  },
-  daysLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    opacity: 0.9,
-  },
-  heroText: {
-    flex: 1,
-    gap: 4,
-  },
-  heroTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  heroMeta: {
-    fontSize: 13,
-    opacity: 0.9,
-  },
-  heroButton: {
-    alignSelf: 'flex-start',
-    marginTop: 8,
-    height: 36,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-  },
-  heroButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
   card: {
     borderRadius: 24,
     borderWidth: 1,

@@ -12,6 +12,7 @@ import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
 import { LongPressRow } from '@/components/LongPressRow';
 import { PhotoViewer } from '@/components/PhotoViewer';
+import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
@@ -55,6 +56,7 @@ export default function DetaliiMenuScreen() {
   const { getEvent, isVenueManager, updateMyDietaryPreferences, updateMyMenuChoice } = useEvents();
   const event = getEvent(id);
   const owner = isVenueManager(event);
+  const { user } = useAuth();
   const { content, deleteMenuOption, saveMenuDeadline } = useEventContent(id ?? '');
   const { tokens } = useTheme();
   const [deadlineOpen, setDeadlineOpen] = useState(false);
@@ -71,7 +73,8 @@ export default function DetaliiMenuScreen() {
 
   // RLS already limits a non-organizer's event.guests to just their own row,
   // so [0] is "my" row.
-  const myGuest = owner || event === undefined ? undefined : event.guests[0];
+  // An organizer sees the whole list; a co-organizer's own row is theirs to pick for.
+  const myGuest = owner ? event?.guests.find((guest) => guest.userId === user?.id) : event?.guests[0];
   const myDietary = myGuest?.dietaryPreferences ?? [];
   const myChoice = myGuest?.menuOptionId ?? null;
   const canChoose = myGuest?.status === 'confirmed';
@@ -235,6 +238,42 @@ export default function DetaliiMenuScreen() {
               </Text>
             </View>
           )}
+
+          {/* A co-organizer eats too: same choice as any guest, above the organizer's view. */}
+          {owner && myGuest !== undefined ? (
+            <View style={[styles.menuCard, card]}>
+              <Text style={[styles.summaryTitle, { color: tokens.textPrimary }]}>{t('detalii.menuYourChoice')}</Text>
+              {options.map((option) => {
+                const mine = option.id === myChoice;
+                return (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={styles.titleRow}
+                    onPress={() => choose(option)}
+                    disabled={closed}
+                    activeOpacity={0.7}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: mine, disabled: closed }}
+                  >
+                    <Text style={[styles.optionName, { color: tokens.textPrimary }]} numberOfLines={1}>
+                      {option.name}
+                    </Text>
+                    <View
+                      style={[
+                        styles.radio,
+                        {
+                          borderColor: mine ? tokens.accentFill : tokens.border,
+                          backgroundColor: mine ? tokens.accentFill : 'transparent',
+                        },
+                      ]}
+                    >
+                      {mine ? <Feather name="check" size={13} color={tokens.onAccent} /> : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
 
           <View style={styles.stack}>
             {options.map((option) => {

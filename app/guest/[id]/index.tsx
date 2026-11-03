@@ -1,10 +1,8 @@
 import Feather from '@expo/vector-icons/Feather';
-import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,200 +10,29 @@ import { showActionSheet, showDialog } from '@/components/ActionSheet';
 import { BrandFlourish } from '@/components/BrandFlourish';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
-import { EventCover } from '@/components/EventCover';
+import { EventCountdown, EventHero } from '@/components/guest/EventHero';
 import { openGettingStarted } from '@/components/tour/GettingStartedSheet';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { StoryEntryCard } from '@/components/guest/StoryEntryCard';
 import { MomentCard, MomentCardSkeleton } from '@/components/guest/MomentCard';
-import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { useTourTarget } from '@/components/tour/Tour';
 import { SpontaneousHome } from '@/components/spontaneous/SpontaneousHome';
 import { VenueTonight } from '@/components/venue/VenueTonight';
 import { confirmDelete } from '@/utils/confirm';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
-import { useEventCoverPhoto } from '@/hooks/useEventCoverPhoto';
 import { useEvents } from '@/hooks/useEvents';
 import { TOUR_TARGETS, useGettingStarted, type GettingStartedKey } from '@/hooks/useGettingStarted';
 import { useGuestEvent } from '@/hooks/useGuestEvent';
 import { useTheme } from '@/hooks/useTheme';
-import type { AppEvent, EventTypeId } from '@/types/event';
 import type { ScheduleItem } from '@/types/guest';
 import { isStoryReady } from '@/utils/eventStory';
 import { FUND_ENABLED } from '@/utils/features';
-import { daysUntilEvent, eventStartTime, formatEventDate, isEventPast } from '@/utils/format';
+import { daysUntilEvent, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { staggerIn } from '@/utils/motion';
 import { accentButtonShadow, themeRadius, typeface, typography } from '@/utils/themeTokens';
-
-/**
- * Live countdown (days · hours · minutes) to the event's start: its date at
- * the earliest time in the Program, or midnight without one. Once the start
- * passes it's the type's day-of headline, then "the story continues" after
- * the day. Ticks every 15s (minute resolution, no seconds).
- */
-function CountdownCard({ date, type, scheduleTimes }: { date: string; type: EventTypeId; scheduleTimes: string[] }) {
-  const { t } = useTranslation();
-  const { tokens } = useTheme();
-  const [now, setNow] = useState(() => Date.now());
-  const days = daysUntilEvent(date);
-  const start = eventStartTime(date, scheduleTimes);
-  const remaining = start !== null ? start.getTime() - now : 0;
-  const counting = start !== null && remaining > 0;
-
-  useEffect(() => {
-    if (!counting) return;
-    const timer = setInterval(() => setNow(Date.now()), 15_000);
-    return () => clearInterval(timer);
-  }, [counting]);
-
-  // Round up to the minute so "0 min" never shows while time is still left.
-  const totalMinutes = Math.ceil(remaining / 60_000);
-  const units = [
-    { key: 'days', value: Math.floor(totalMinutes / 1440) },
-    { key: 'hours', value: Math.floor((totalMinutes % 1440) / 60) },
-    { key: 'minutes', value: totalMinutes % 60 },
-  ] as const;
-  const untilLabel = t(`eventTypes.${type}.countdownUntil`);
-  // The largest non-zero unit is the headline number.
-  const leadIndex = Math.max(0, units.findIndex((unit) => unit.value > 0));
-  // Whole days use the same calendar count as Home, so the two can't disagree;
-  // hours and minutes only take over on the day itself.
-  const showDays = days !== null && days > 0;
-  const lead = showDays ? { key: 'days' as const, value: days } : (units[leadIndex] ?? units[2]);
-
-  const headline =
-    days === null || counting || showDays
-      ? null
-      : days >= 0
-        ? t(`eventTypes.${type}.countdownToday`)
-        : t('acasa.countdownPast');
-
-  // On the day: the next unit along, as in "3 ore, și 20 min până la aniversare".
-  const nextUnit = showDays ? undefined : units[leadIndex + 1];
-  const subLine =
-    nextUnit !== undefined
-      ? `${t('acasa.countdownAnd')} ${nextUnit.value} ${t(`acasa.unitShort_${nextUnit.key}`, { count: nextUnit.value })} ${untilLabel}`
-      : untilLabel;
-
-  return (
-    <View style={styles.countdown}>
-      {counting || showDays ? (
-        <View
-          style={styles.countdownBody}
-          accessible
-          accessibilityLabel={`${(showDays ? [lead] : units).map((unit) => t(`acasa.unit_${unit.key}`, { count: unit.value })).join(', ')} ${untilLabel}`}
-        >
-          <Text style={[styles.leadValue, { color: tokens.textPrimary }]}>{lead.value}</Text>
-          <View style={styles.leadText}>
-            <Text style={[styles.leadUnit, { color: tokens.textPrimary }]}>
-              {t(`acasa.unitShort_${lead.key}`, { count: lead.value })}
-            </Text>
-            <Text style={[styles.countdownSub, { color: tokens.textSecondary }]}>{subLine}</Text>
-          </View>
-        </View>
-      ) : null}
-      {headline !== null ? (
-        <Text style={[styles.countdownTitle, { color: tokens.textPrimary }]}>{headline}</Text>
-      ) : null}
-      <StoryTimeline stage={currentStage(days)} type={type} />
-    </View>
-  );
-}
-
-/** Full-bleed cover with back and edit on it, then the event's name, date and place. */
-function EventHero({ event, canEdit }: { event: AppEvent; canEdit: boolean }) {
-  const { t } = useTranslation();
-  const { tokens } = useTheme();
-  const insets = useSafeAreaInsets();
-  const cover = useEventCoverPhoto(event);
-
-  const pickCover = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [16, 9],
-    });
-    const asset = result.canceled ? undefined : result.assets[0];
-    if (asset !== undefined) cover.setPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
-  };
-
-  const changeCover = () => {
-    if (cover.path === null) {
-      void pickCover();
-      return;
-    }
-    showActionSheet({
-      title: t('acasa.coverTitle'),
-      actions: [
-        { label: t('acasa.coverChange'), tone: 'edit', onPress: () => void pickCover() },
-        { label: t('acasa.coverRemove'), tone: 'delete', onPress: () => cover.removePhoto() },
-      ],
-    });
-  };
-
-  const meta = [formatEventDate(event.date), event.location.trim()].filter((part) => part.length > 0).join(' · ');
-
-  return (
-    <View style={styles.hero}>
-      <EventCover type={event.type} coverTheme={event.coverTheme} photoPath={cover.path} style={styles.heroCover}>
-        <View style={[styles.heroActions, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity
-            style={[styles.heroBack, { backgroundColor: tokens.surface }]}
-            onPress={() => router.navigate('/')}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={t('acasa.backHome')}
-          >
-            <Feather name="chevron-left" size={22} color={tokens.textPrimary} />
-          </TouchableOpacity>
-          {canEdit ? (
-            <View style={styles.heroRight}>
-              <TouchableOpacity
-                style={[styles.heroBack, { backgroundColor: tokens.surface }]}
-                onPress={changeCover}
-                disabled={cover.busy}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel={t('acasa.coverTitle')}
-              >
-                {cover.busy ? (
-                  <ActivityIndicator size="small" color={tokens.textPrimary} />
-                ) : (
-                  <Feather name="camera" size={18} color={tokens.textPrimary} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.heroEdit, { backgroundColor: tokens.surface }]}
-                onPress={() => router.push(`/edit-event/${event.id}`)}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-              >
-                <Feather name="edit-2" size={15} color={tokens.textPrimary} />
-                <Text style={[styles.heroEditLabel, { color: tokens.textPrimary }]}>{t('common.edit')}</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
-        {/* A dark scrim so the white text reads on any photo or drawn cover. */}
-        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.72)']} style={styles.heroText}>
-          <Text style={styles.heroName} numberOfLines={2}>
-            {event.name}
-          </Text>
-          {meta.length > 0 ? (
-            <Text style={styles.heroMeta} numberOfLines={1}>
-              {meta}
-            </Text>
-          ) : null}
-        </LinearGradient>
-      </EventCover>
-    </View>
-  );
-}
 
 const STEP_ICONS: Record<GettingStartedKey, keyof typeof Feather.glyphMap> = {
   event: 'check',
@@ -384,7 +211,7 @@ function StoryAcasa() {
     return (
       <GuestScreen transparent>
         {event !== undefined ? <EventHero event={event} canEdit={canEditMoments} /> : null}
-        {event !== undefined ? <CountdownCard
+        {event !== undefined ? <EventCountdown
             date={event.date}
             type={event.type}
             scheduleTimes={[]}
@@ -402,7 +229,7 @@ function StoryAcasa() {
         transparent
       >
         {event !== undefined ? <EventHero event={event} canEdit={canEditMoments} /> : null}
-        {event !== undefined ? <CountdownCard
+        {event !== undefined ? <EventCountdown
             date={event.date}
             type={event.type}
             scheduleTimes={content.schedule.map((item) => item.time)}
@@ -517,87 +344,6 @@ const styles = StyleSheet.create({
   wrap: {
     flex: 1,
   },
-  // Cancels GuestScreen's padding so the cover runs edge to edge.
-  hero: {
-    marginHorizontal: -gSpace.xl,
-    marginTop: -gSpace.lg,
-  },
-  heroCover: {
-    height: 260,
-  },
-  heroActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  heroRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  heroBack: {
-    width: 44,
-    height: 44,
-    borderRadius: themeRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroEdit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    minHeight: 44,
-    paddingHorizontal: 16,
-    borderRadius: themeRadius.pill,
-  },
-  heroEditLabel: {
-    fontFamily: typeface.bodySemiBold,
-    fontSize: 14,
-  },
-  heroText: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: gSpace.xl,
-    paddingTop: 48,
-    paddingBottom: 16,
-    gap: 2,
-  },
-  heroName: {
-    fontFamily: typeface.display,
-    fontSize: 28,
-    lineHeight: 34,
-    color: '#FFFFFF',
-  },
-  heroMeta: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  countdown: {
-    gap: 16,
-  },
-  countdownBody: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  leadValue: {
-    fontFamily: typeface.bodyMedium,
-    fontSize: 44,
-    lineHeight: 50,
-    fontVariant: ['tabular-nums'],
-  },
-  leadText: {
-    flex: 1,
-    gap: 2,
-  },
-  leadUnit: {
-    fontFamily: typeface.bodyMedium,
-    fontSize: 16,
-  },
   section: {
     gap: 14,
   },
@@ -643,12 +389,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   stepSub: {
-    fontSize: 13,
-  },
-  countdownTitle: {
-    ...typography.title2,
-  },
-  countdownSub: {
     fontSize: 13,
   },
   upNext: {

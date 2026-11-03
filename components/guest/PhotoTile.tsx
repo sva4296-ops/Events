@@ -14,6 +14,8 @@ interface PhotoTileProps {
   onDelete: (photoId: string) => void | Promise<unknown>;
   /** Live's filmstrip tiles are much smaller than Album's — shrink the caption to match. */
   labelFontSize?: number;
+  /** Open a shared gallery instead of this tile's own single-photo viewer. */
+  onOpen?: () => void;
 }
 
 /**
@@ -22,7 +24,7 @@ interface PhotoTileProps {
  * full-screen viewer — always available, unlike delete, which stays gated on
  * canDelete via onLongPress alone rather than disabling the whole tile.
  */
-export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 12 }: PhotoTileProps) {
+export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 12, onOpen }: PhotoTileProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const label = photo.uploaded_by_label ?? 'Invitat';
   // Grid tile: thumbnail (400px) — this is the whole point of having one.
@@ -37,7 +39,7 @@ export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 1
       <TouchableOpacity
         style={[styles.tile, style]}
         activeOpacity={0.85}
-        onPress={() => setViewerOpen(true)}
+        onPress={() => (onOpen !== undefined ? onOpen() : setViewerOpen(true))}
         onLongPress={
           canDelete
             ? () =>

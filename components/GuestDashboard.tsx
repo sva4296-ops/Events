@@ -403,7 +403,16 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
                       },
                     ]}
                   >
-                    <GuestRow guest={guest} showDivider={index > 0} />
+                    <GuestRow
+                      guest={guest}
+                      showDivider={index > 0}
+                      coOrganizer={event.coOrganizers.some(
+                        (member) =>
+                          member.role === "co_organizer" &&
+                          ((member.userId !== null && member.userId === guest.userId) ||
+                            (member.phone !== null && member.phone === guest.phone)),
+                      )}
+                    />
                   </LongPressRow>
                 </Animated.View>
               ))}

@@ -325,6 +325,7 @@
     "seatCount_one": "{{count}} seat",
     "seatCount_other": "{{count}} seats",
     "seatingYoureHere": "You're here",
+    "menuYourChoice": "Your menu",
     "seatingWithYou": "With you: {{names}}",
     "seatingViewList": "List",
     "seatingViewPlan": "Floor plan",

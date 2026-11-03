@@ -22,7 +22,15 @@ function initialsOf(name: string): string {
  * context (WhatsApp status while pending, menu preference once confirmed)
  * and the RSVP badge. Rows sit inside one card, separated by hairlines.
  */
-export function GuestRow({ guest, showDivider = false }: { guest: Guest; showDivider?: boolean }) {
+export function GuestRow({
+  guest,
+  showDivider = false,
+  coOrganizer = false,
+}: {
+  guest: Guest;
+  showDivider?: boolean;
+  coOrganizer?: boolean;
+}) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
 
@@ -35,8 +43,9 @@ export function GuestRow({ guest, showDivider = false }: { guest: Guest; showDiv
           ? { bg: tokens.accentTint, fg: tokens.accentText }
           : { bg: tokens.statusDeclinedSoft, fg: tokens.statusDeclined };
 
-  const detail =
-    guest.status === 'pending'
+  const detail = coOrganizer
+    ? t('home.coOrganizer')
+    : guest.status === 'pending'
       ? guest.phone === null
         ? t('event.noPhone')
         : guest.whatsappSentAt !== null

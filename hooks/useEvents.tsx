@@ -462,14 +462,14 @@ export function useEvents(): EventsResult {
       if (user === null) throw new Error('Not signed in.');
       return updateMenuChoiceRow(vars.eventId, user.id, vars.menuOptionId);
     },
-    // Optimistic, same index-0-is-my-row convention as updateDietaryMutation.
+    // Optimistic, on my own row (a co-organizer sees the whole list, so not index 0).
     onMutate: ({ eventId, menuOptionId }) => {
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
         current.map((event) =>
           event.id === eventId
             ? {
                 ...event,
-                guests: event.guests.map((guest, index) => (index === 0 ? { ...guest, menuOptionId } : guest)),
+                guests: event.guests.map((guest) => (guest.userId === user?.id ? { ...guest, menuOptionId } : guest)),
               }
             : event,
         ),

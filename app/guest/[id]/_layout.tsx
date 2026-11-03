@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
 import { TabBarIcon, type TabIconId } from '@/components/guest/TabBarIcon';
-import { GettingStartedSheet, openGettingStarted } from '@/components/tour/GettingStartedSheet';
+import { GettingStartedSheet } from '@/components/tour/GettingStartedSheet';
 import { currentStage, stageDayKey } from '@/components/StoryTimeline';
 import { useChatRead } from '@/hooks/useChatRead';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -104,8 +104,8 @@ export default function GuestEventLayout() {
   if (!guestsTab && activeTab === 'invitati') {
     return <Redirect href={`/guest/${id}`} />;
   }
-  // Story events: Acasă draws its own cover hero, with back and edit on it.
-  const heroHeader = activeTab === 'acasa' && !spontaneous && !venueEvent;
+  // Acasă draws its own cover hero, with back and edit on it.
+  const heroHeader = activeTab === 'acasa';
   const headerSubtitle =
     event !== undefined
       ? `${formatShortDate(event.date)} · ${t(
@@ -124,36 +124,7 @@ export default function GuestEventLayout() {
   // Finished events get no header actions: deleting one is a long press on
   // its Home card, like every other event.
   if (!past && owner) {
-    if (activeTab === 'acasa' && venueEvent) {
-      // A venue night: its bookings instead of the wedding-shaped guide.
-      actions.push({
-        key: 'bookings',
-        icon: 'clipboard',
-        accessibilityLabel: t('venue.bookings.title'),
-        onPress: () => router.push(`/venue-bookings/${id}`),
-      });
-    } else if (activeTab === 'acasa') {
-      actions.push({
-        key: 'help',
-        icon: 'help-circle',
-        accessibilityLabel: t('gettingStarted.title'),
-        onPress: openGettingStarted,
-      });
-      actions.push({
-        key: 'guests',
-        icon: 'users',
-        accessibilityLabel: 'Lista de invitați și statistici',
-        onPress: () => router.push(`/event/${id}`),
-      });
-      // Straight to the event editor (name, date, place, co-organizers),
-      // instead of the long press on its Home card.
-      actions.push({
-        key: 'edit-event',
-        icon: 'edit-2',
-        accessibilityLabel: t('event.editEvent'),
-        onPress: () => router.push(`/edit-event/${id}`),
-      });
-    } else if (activeTab === 'detalii' && venueEvent) {
+    if (activeTab === 'detalii' && venueEvent) {
       // The Book tab replaces the Detalii hub: the programme and the event
       // editor are reached from here instead.
       actions.push(
@@ -217,12 +188,11 @@ export default function GuestEventLayout() {
       <EventAccentProvider coverTheme={event?.coverTheme ?? null}>
       <LinearGradient colors={tokens.background} style={styles.shell}>
         {heroHeader ? null : <EventHeaderBar
-          // Name and date only on Acasă; the other tabs keep just their actions.
-          name={activeTab === 'acasa' || restaurant ? (event?.name ?? 'Evenimentul nostru') : ''}
+          // Only the restaurant's one tab needs the name; the others keep just their actions.
+          name={restaurant ? (event?.name ?? 'Evenimentul nostru') : ''}
           type={event?.type ?? null}
-          // Acasă shows just the name: the date and stage live in the countdown card below.
-          subtitle={restaurant ? headerSubtitle : undefined}
-          showBack={activeTab === 'acasa' || restaurant}
+                    subtitle={restaurant ? headerSubtitle : undefined}
+          showBack={restaurant}
           actions={actions}
         />}
         <Tabs

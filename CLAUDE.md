@@ -22,10 +22,11 @@
 >   in `loadSocial`; long-press a message for `MessageActionsBar`, floating at the message (emoji + delete on your own), not a sheet. Own messages can be edited there too, via the `edit_message` RPC (`20261102000003`; sets `edited_at`).
 > - **Event page redesign (2026-11-02).** Tabs are Acasă / Plan / Invitați / Chat / Album. `invitati` (owners only,
 >   not venue nights) renders `components/GuestDashboard.tsx`, also behind `/event/[id]`; `live` is hidden from the
->   bar (`href: null`), route kept. Story events' Acasă draws its own cover hero and no `EventHeaderBar`.
+>   bar (`href: null`), route kept. Every Acasă (spontaneous and venue too) draws `components/guest/EventHero.tsx`'s cover hero and countdown, and no `EventHeaderBar`.
 > - **Agency accounts see invitations now (2026-11-02).** Home's Mine/Invited/All tabs show for everyone; older lines saying "My invitations" is hidden for agencies are stale.
 > - **Event cover photo (2026-11-02).** `events.cover_photo_path` (`20261102000004`), file at `{eventId}/cover/{uuid}.jpg`; `hooks/useEventCoverPhoto.ts`. `EventCover`'s `photoPath` draws it over the theme (hero, Home cards, invitation, story).
 > - **Audit fixes (2026-11-02).** The event tab bar is docked and opaque again (`tabBarBottomInset` = safe area); Acasă's countdown uses `daysUntilEvent` like Home; Home splits finished events into their own section; chat has day separators.
+> - **Co-organizers are guests too (2026-11-03).** `20261103000001`: every co-organizer gets a confirmed `event_guests` row (trigger + backfill), so they can pick a menu and be seated. `Guest.userId` finds their own row; don't use `guests[0]` for anyone who sees the whole list.
 > - **Plan-tier feature gating exists** (`2bd5315`). `hooks/usePlanGate.tsx` (`usePlanGate(eventId)`)
 >   is the single client-side source for "does this event's plan allow X"; a null `plan_tier` behaves
 >   as Esențial (50 guests, no chat/live/fund/lodging/vendors). Locked states are wired into Chat,

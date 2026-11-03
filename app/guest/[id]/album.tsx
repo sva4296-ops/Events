@@ -9,6 +9,7 @@ import { Button, buttonLabelColor } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { GuestScreen } from "@/components/guest/GuestScreen";
 import { PhotoTile } from "@/components/guest/PhotoTile";
+import { PhotoGallery } from "@/components/PhotoViewer";
 import { ProgressBar } from "@/components/guest/ProgressBar";
 import { Skeleton } from "@/components/Skeleton";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +41,7 @@ export default function AlbumScreen() {
   const [filter, setFilter] = useState<AlbumFilter>("all");
   const [download, setDownload] = useState<{ done: number; total: number } | null>(null);
   const [upload, setUpload] = useState<{ done: number; total: number } | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const owner = isOwner(event);
   const loading = content === null;
@@ -256,7 +258,7 @@ export default function AlbumScreen() {
         />
       ) : (
         <View style={styles.grid}>
-          {visible.map((photo) => (
+          {visible.map((photo, index) => (
             <PhotoTile
               key={photo.id}
               photo={photo}
@@ -264,10 +266,24 @@ export default function AlbumScreen() {
               canDelete={owner || photo.uploaded_by === user?.id}
               onDelete={deletePhoto}
               labelFontSize={10}
+              onOpen={() => setViewerIndex(index)}
             />
           ))}
         </View>
       )}
+
+      {viewerIndex !== null ? (
+        <PhotoGallery
+          photos={visible.map((photo) => ({
+            id: photo.id,
+            uri: photo.full_url ?? photo.url ?? undefined,
+            placeholderUri: photo.thumb_url ?? undefined,
+            caption: photo.uploaded_by_label ?? undefined,
+          }))}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      ) : null}
 
       {/* Download only once the server cron marks the album ready (events.album_status,
           ~72h after the event). The timing is explained in the ⓘ next to the title. */}

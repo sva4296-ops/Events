@@ -44,7 +44,8 @@ export default function DetaliiSeatingScreen() {
 
   // RLS already limits a non-organizer's event.guests to just their own row,
   // so [0] is "my" row — same pattern the menu tab's dietary pills already use.
-  const myGuest = owner || event === undefined ? undefined : event.guests[0];
+  // An organizer sees the whole list, so a co-organizer finds their own row by id.
+  const myGuest = owner ? event?.guests.find((guest) => guest.userId === user?.id) : event?.guests[0];
   const myTableId = myGuest?.tableId ?? null;
 
   // Co-assigned names aren't in event.guests for a guest viewer at all (RLS
@@ -53,7 +54,7 @@ export default function DetaliiSeatingScreen() {
   const companionsQuery = useQuery({
     queryKey: ['tableCompanions', id, user?.id ?? null],
     queryFn: () => fetchTableCompanions(id as string),
-    enabled: !owner && myTableId !== null && id !== undefined,
+    enabled: myTableId !== null && id !== undefined,
     staleTime: 30_000,
   });
   const companions = companionsQuery.data ?? [];
@@ -201,7 +202,7 @@ export default function DetaliiSeatingScreen() {
         <View style={styles.stack}>
           {content.seatingTables.map((table) => {
             const assignedCount = event?.guests.filter((guest) => guest.tableId === table.id).length ?? 0;
-            const isMine = !owner && myTableId !== null && table.id === myTableId;
+            const isMine = myTableId !== null && table.id === myTableId;
             return (
               <LongPressRow
                 title={table.name}

@@ -36,6 +36,8 @@ export interface EventTypeMeta {
 
 export interface Guest {
   id: string;
+  /** The linked account, once there is one. */
+  userId: string | null;
   name: string;
   status: RsvpStatus;
   respondedAt: string | null;

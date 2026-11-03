@@ -6,7 +6,9 @@ import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { EventCountdown, EventHero } from '@/components/guest/EventHero';
 import { GuestScreen } from '@/components/guest/GuestScreen';
+import { openGettingStarted } from '@/components/tour/GettingStartedSheet';
 import { Skeleton } from '@/components/Skeleton';
 import { Avatar, Bar, DeletableRow, Eyebrow, SpCard } from '@/components/spontaneous/parts';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -19,12 +21,12 @@ import { haptics } from '@/utils/haptics';
 import { staggerIn } from '@/utils/motion';
 import { timeAgo } from '@/utils/relativeTime';
 import { formatSpontaneousWhen } from '@/utils/spontaneous';
-import { accentButtonShadow, themeRadius, typography } from '@/utils/themeTokens';
+import { accentButtonShadow, themeRadius } from '@/utils/themeTokens';
 
 const MAX_AVATARS = 6;
 
 /**
- * Acasă for a spontaneous event: countdown card, who's
+ * Acasă for a spontaneous event: cover and countdown like every event, who's
  * coming, the group vote, the host's updates (moments without a photo, same
  * table and composer as every other type), then a nudge to the Plan tab.
  */
@@ -51,29 +53,17 @@ export function SpontaneousHome({ event, owner }: { event: AppEvent; owner: bool
         contentStyle={owner ? { paddingBottom: tabBarClearance + gSpace.xxl + 56 } : undefined}
         transparent
       >
-        <SpCard style={styles.countdown}>
-          {days !== null && days >= 0 ? (
-            <View style={styles.daysBox}>
-              <Text style={[styles.daysValue, { color: tokens.accentText }]}>{days}</Text>
-              <Text style={[styles.daysLabel, { color: tokens.textSecondary }]}>
-                {days === 0 ? t('spontaneous.home.today') : t('spontaneous.home.daysLeft', { count: days })}
-              </Text>
-            </View>
-          ) : null}
-          <View style={styles.countdownText}>
-            <Text style={[styles.countdownTitle, { color: tokens.textPrimary }]} numberOfLines={2}>
-              {event.name}
-            </Text>
-            <Text style={[styles.countdownWhen, { color: tokens.textSecondary }]}>
-              {formatSpontaneousWhen(event.date, event.startTime)}
-            </Text>
-            {event.location.trim().length > 0 ? (
-              <Text style={[styles.countdownWhen, { color: tokens.textSecondary }]} numberOfLines={1}>
-                {event.location}
-              </Text>
-            ) : null}
-          </View>
-        </SpCard>
+        <EventHero
+          event={event}
+          canEdit={owner && (days === null || days >= 0)}
+          meta={[formatSpontaneousWhen(event.date, event.startTime), event.location.trim()].filter((part) => part.length > 0).join(' · ')}
+          extraAction={{ icon: 'help-circle', label: t('gettingStarted.title'), onPress: openGettingStarted }}
+        />
+        <EventCountdown
+          date={event.date}
+          type={event.type}
+          scheduleTimes={event.startTime !== null ? [event.startTime] : []}
+        />
 
         <SpCard>
           <Eyebrow right={t('spontaneous.home.counts', { yes: goingPeople, maybe: maybe.length })}>
@@ -228,39 +218,6 @@ export function SpontaneousHome({ event, owner }: { event: AppEvent; owner: bool
 const styles = StyleSheet.create({
   wrap: {
     flex: 1,
-  },
-  countdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 18,
-  },
-  daysBox: {
-    alignItems: 'center',
-    minWidth: 64,
-  },
-  daysValue: {
-    ...typography.display,
-    fontSize: 46,
-    lineHeight: 52,
-  },
-  daysLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    opacity: 0.9,
-  },
-  countdownText: {
-    flex: 1,
-    gap: 3,
-  },
-  countdownTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  countdownWhen: {
-    fontSize: 13,
-    opacity: 0.9,
   },
   muted: {
     fontSize: 14,

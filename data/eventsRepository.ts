@@ -19,6 +19,7 @@ const SELECT_WITH_GUESTS = '*, event_guests(*), event_members(*)';
 function mapGuestRow(row: EventGuestRow): Guest {
   return {
     id: row.id,
+    userId: row.guest_user_id,
     name: row.guest_name ?? row.guest_email ?? row.guest_phone ?? 'Guest',
     status: row.rsvp_status,
     respondedAt: row.responded_at,

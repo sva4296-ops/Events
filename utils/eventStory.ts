@@ -99,7 +99,7 @@ export function buildEventStory(event: AppEvent, content: EventContent, confirme
     slides.push({
       kind: 'stats',
       guests: confirmedGuests,
-      photos: photosWithFile.length,
+      photos: Math.max(photosWithFile.length, content.photoUploaderIds.length),
       moments: content.moments.length,
     });
   }

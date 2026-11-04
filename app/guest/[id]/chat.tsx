@@ -2,11 +2,12 @@ import Feather from '@expo/vector-icons/Feather';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   AppState,
+  FlatList,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -24,7 +25,7 @@ import { LockedFeature } from '@/components/guest/LockedFeature';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { MessageActionsBar, MessageBubble, MessageBubbleSkeleton } from '@/components/guest/MessageBubble';
 import { LongPressRow } from '@/components/LongPressRow';
-import { remoteRepository } from '@/data/remoteEventContentRepository';
+import { MESSAGES_PAGE_SIZE, remoteRepository } from '@/data/remoteEventContentRepository';
 import { supabase } from '@/data/supabaseClient';
 import { fetchAvatarUrls } from '@/data/usersRepository';
 import { useAuth } from '@/hooks/useAuth';
@@ -54,13 +55,104 @@ const REACTION_EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'] as co
 const MESSAGE_GAP = 14;
 const MESSAGE_RUN_GAP = 4;
 
+const HeldIndexContext = createContext(-1);
+
+/** The actions bar hangs over the neighboring message, so the held row's cell goes on top. */
+function MessageCell({ index, style, ...props }: ComponentProps<typeof View> & { index: number }) {
+  const heldIndex = useContext(HeldIndexContext);
+  return <View {...props} style={[style, { zIndex: index === heldIndex ? 1 : 0 }]} />;
+}
+
+interface MessageRowHandlers {
+  onHold: (messageId: string) => void;
+  onReact: (messageId: string, emoji: string) => void;
+  onEdit: (message: Message) => void;
+  onDelete: (message: Message) => void;
+}
+
+/**
+ * Memoized, with stable handlers and plain props: the list re-renders its mounted
+ * cells every time its window moves, and without this each scroll step redrew
+ * every message (a new native long-press gesture included), not just the new ones.
+ */
+const ChatMessageRow = memo(function ChatMessageRow({
+  message,
+  hasPrevious,
+  newDay,
+  continuesRun,
+  endsRun,
+  held,
+  isOwn,
+  fromOrganizer,
+  avatarUri,
+  avatarDay,
+  currentUserId,
+  handlers,
+}: {
+  message: Message;
+  hasPrevious: boolean;
+  newDay: boolean;
+  continuesRun: boolean;
+  endsRun: boolean;
+  held: boolean;
+  isOwn: boolean;
+  fromOrganizer: boolean;
+  avatarUri: string | undefined;
+  avatarDay: string;
+  currentUserId: string | undefined;
+  handlers: MessageRowHandlers;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <View
+      style={[
+        hasPrevious && { marginTop: continuesRun ? MESSAGE_RUN_GAP : MESSAGE_GAP },
+        held && styles.heldMessage,
+      ]}
+    >
+      {newDay ? (
+        <View style={[styles.dayLabel, { backgroundColor: tokens.surface2 }]}>
+          <Text style={[styles.dayLabelText, { color: tokens.textSecondary }]}>{chatDayLabel(message.created_at)}</Text>
+        </View>
+      ) : null}
+      {held ? (
+        <MessageActionsBar
+          emojis={REACTION_EMOJIS}
+          selected={message.reactions.find((reaction) => reaction.user_id === currentUserId)?.emoji ?? null}
+          alignEnd={isOwn}
+          below={!hasPrevious}
+          onPick={(emoji) => handlers.onReact(message.id, emoji)}
+          onEdit={isOwn ? () => handlers.onEdit(message) : undefined}
+          onDelete={isOwn ? () => handlers.onDelete(message) : undefined}
+        />
+      ) : null}
+      <LongPressRow
+        // Anyone can hold a message to react; deleting is for your own only.
+        actions={[]}
+        onLongPress={() => handlers.onHold(message.id)}
+      >
+        <MessageBubble
+          message={message}
+          fromOrganizer={fromOrganizer}
+          avatar={avatarUri !== undefined ? { uri: avatarUri, cacheKey: `avatar-${message.sender_id}-${avatarDay}` } : null}
+          isOwn={isOwn}
+          showSender={!continuesRun}
+          showAvatar={endsRun}
+          currentUserId={currentUserId}
+          onPressReaction={(emoji) => handlers.onReact(message.id, emoji)}
+        />
+      </LongPressRow>
+    </View>
+  );
+});
+
 export default function ChatScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { user } = useAuth();
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
-  const { content, sendMessage, sendPhotoMessages, editMessage, deleteMessage, toggleMessageReaction } = useEventContent(id);
+  const { content, sendMessage, sendPhotoMessages, editMessage, deleteMessage, toggleMessageReaction, loadOlderMessages } = useEventContent(id);
   const { hydrated: planHydrated, capabilities } = usePlanGate(id);
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<PickedPhoto[]>([]);
@@ -71,15 +163,14 @@ export default function ChatScreen() {
   // The finger lifting after a long press must not close the bar it just opened.
   const justHeld = useRef(false);
   const queryClient = useQueryClient();
-  const scrollRef = useRef<ScrollView>(null);
-  // False until the first real (non-skeleton) content size lands, so that
-  // first snap to the bottom is instant — matching "opens already scrolled
-  // to the latest message" — while every later arrival (send or Realtime
-  // receive) animates instead of jumping.
-  const hasScrolledInitialContent = useRef(false);
+  const listRef = useRef<FlatList<Message>>(null);
+  // Scrolling up loads older pages; a short page means the start was reached.
+  const [reachedStart, setReachedStart] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [readingOlder, setReadingOlder] = useState(false);
   const { markRead } = useChatRead(id);
   const insets = useSafeAreaInsets();
-  // The composer sits just above the floating tab bar, closer than the
+  // The composer sits just above the tab bar, closer than the
   // default page clearance (which also leaves room for scrolled content).
   const composerClearance = { paddingBottom: tabBarBottomInset(insets.bottom) + floatingTabBar.height + gSpace.sm };
 
@@ -109,10 +200,13 @@ export default function ChatScreen() {
   );
 
   /** The event's owner or a co-organizer: gets the crown in the chat. */
-  const isOrganizer = (senderId: string): boolean =>
-    event !== undefined &&
-    (senderId === event.owner_id ||
-      event.coOrganizers.some((member) => member.role === 'co_organizer' && member.userId === senderId));
+  const isOrganizer = useCallback(
+    (senderId: string): boolean =>
+      event !== undefined &&
+      (senderId === event.owner_id ||
+        event.coOrganizers.some((member) => member.role === 'co_organizer' && member.userId === senderId)),
+    [event],
+  );
 
   // Other people's profile photos. The URLs last a day; the day in the cache key
   // keeps the file on disk across restarts, and picks up a new photo by tomorrow.
@@ -124,12 +218,10 @@ export default function ChatScreen() {
     queryFn: () => fetchAvatarUrls(senderIds, AVATAR_URL_TTL_SECONDS),
     enabled: senderIds.length > 0,
     staleTime: 23 * 60 * 60_000,
+    // A new sender on an older page changes the key: don't blank everyone's photo meanwhile.
+    placeholderData: (previous) => previous,
   });
   const avatarDay = new Date().toISOString().slice(0, 10);
-  const avatarFor = (senderId: string) => {
-    const uri = avatarUrls?.[senderId];
-    return uri !== undefined ? { uri, cacheKey: `avatar-${senderId}-${avatarDay}` } : null;
-  };
 
   /**
    * Realtime replaces the request/response gap CLAUDE.md's §7 flags for
@@ -255,13 +347,13 @@ export default function ChatScreen() {
   const attachmentsDisabled = sendingPhotos || editing !== null || attachments.length >= MAX_PHOTOS_PER_SEND;
   const canSend = !sendingPhotos && (draft.trim().length > 0 || attachments.length > 0 || editing?.photo != null);
 
-  const startEditing = (message: Message) => {
+  const startEditing = useCallback((message: Message) => {
     setHeldMessageId(null);
     setAttachments([]);
     setEditing(message);
     setDraft(message.content);
     inputRef.current?.focus();
-  };
+  }, []);
 
   const cancelEditing = () => {
     setEditing(null);
@@ -275,6 +367,8 @@ export default function ChatScreen() {
       cancelEditing();
       return;
     }
+    // Your own message always brings you back to the latest one.
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
     if (attachments.length === 0) {
       sendMessage(draft);
       setDraft('');
@@ -287,7 +381,90 @@ export default function ChatScreen() {
     setSendingPhotos(false);
   };
 
-  const messages = content?.messages ?? [];
+  const loadOlder = async () => {
+    if (loadingOlder || reachedStart || content === null) return;
+    if (content.messages.length < MESSAGES_PAGE_SIZE) {
+      setReachedStart(true);
+      return;
+    }
+    setLoadingOlder(true);
+    try {
+      if (!(await loadOlderMessages())) setReachedStart(true);
+    } catch (error) {
+      // Scrolling up again retries.
+      console.warn('[chat] loading older messages failed', error);
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
+  // Newest first: the list is inverted, so it stays at the latest message and only
+  // the messages on screen get drawn.
+  const messages = content?.messages;
+  const newestFirst = useMemo(() => (messages === undefined ? [] : [...messages].reverse()), [messages]);
+  const heldIndex = newestFirst.findIndex((message) => message.id === heldMessageId);
+
+  // Who sent what around each message, worked out once per list rather than for
+  // every mounted cell on every scroll step (it parses dates).
+  const rowMeta = useMemo(() => {
+    const days = newestFirst.map((message) => dayKey(message.created_at));
+    return newestFirst.map((message, index) => {
+      const previous = newestFirst[index + 1];
+      const next = newestFirst[index - 1];
+      const newDay = previous === undefined || days[index + 1] !== days[index];
+      return {
+        hasPrevious: previous !== undefined,
+        newDay,
+        continuesRun: !newDay && previous?.sender_id === message.sender_id,
+        endsRun: next === undefined || next.sender_id !== message.sender_id || days[index - 1] !== days[index],
+      };
+    });
+  }, [newestFirst]);
+
+  // These change with the content; the rows must not, so they read the latest through a ref.
+  const latestActions = useRef({ toggleMessageReaction, deleteMessage });
+  useEffect(() => {
+    latestActions.current = { toggleMessageReaction, deleteMessage };
+  });
+  const rowHandlers = useMemo<MessageRowHandlers>(
+    () => ({
+      onHold: (messageId) => {
+        justHeld.current = true;
+        setHeldMessageId(messageId);
+      },
+      onReact: (messageId, emoji) => latestActions.current.toggleMessageReaction(messageId, emoji),
+      onEdit: startEditing,
+      onDelete: (message) =>
+        confirmDelete(t('chat.deleteMessageTitle'), t('chat.deleteMessageBody'), () =>
+          latestActions.current.deleteMessage(message.id, message.photo !== null),
+        ),
+    }),
+    [startEditing, t],
+  );
+
+  const renderMessage = useCallback(
+    ({ item: message, index }: { item: Message; index: number }) => {
+      const meta = rowMeta[index];
+      if (meta === undefined) return null;
+      return (
+        <ChatMessageRow
+          message={message}
+          hasPrevious={meta.hasPrevious}
+          newDay={meta.newDay}
+          continuesRun={meta.continuesRun}
+          endsRun={meta.endsRun}
+          held={heldMessageId === message.id}
+          isOwn={message.sender_id === user?.id}
+          fromOrganizer={isOrganizer(message.sender_id)}
+          avatarUri={avatarUrls?.[message.sender_id]}
+          avatarDay={avatarDay}
+          currentUserId={user?.id}
+          handlers={rowHandlers}
+        />
+      );
+    },
+    [rowMeta, heldMessageId, user?.id, isOrganizer, avatarUrls, avatarDay, rowHandlers],
+  );
 
   // Chat isn't included in this event's current plan (Esențial). Server-side
   // enforcement is a trigger on messages inserts (see the plan-feature-gating
@@ -309,120 +486,60 @@ export default function ChatScreen() {
       {/*
         GuestScreen's own scroll mode would put the composer inside the same
         ScrollView as the message list, so it scrolls away with the content
-        instead of staying pinned. scroll={false} here + an inner ScrollView
+        instead of staying pinned. scroll={false} here + an inner FlatList
         for just the messages (flex: 1, so it fills the space between the
         fixed header and the fixed composer below it) keeps the composer's
         position stable while the list scrolls behind it.
       */}
       <GuestScreen scroll={false} contentStyle={{ ...styles.content, ...composerClearance }} transparent>
-        <ScrollView
-          ref={scrollRef}
-          style={styles.messagesScroll}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          onScrollBeginDrag={() => setHeldMessageId(null)}
-          // Any tap in the list closes the bar, a tap on the bar itself included.
-          onTouchEnd={() => {
-            if (justHeld.current) justHeld.current = false;
-            else setHeldMessageId(null);
-          }}
-          // Android doesn't clamp the scroll offset when the list grows taller
-          // (keyboard closing), which left an empty gap above the composer.
-          onLayout={() => {
-            if (content !== null) scrollRef.current?.scrollToEnd({ animated: false });
-          }}
-          // Fires whenever the message list's own content height changes —
-          // initial load (skeletons -> real history), a message this device
-          // just sent, or one the Realtime subscription just appended — so
-          // one handler covers all three required triggers without this
-          // screen needing to hook into the send handler or the Realtime
-          // callback itself. Skeleton-phase size changes (content === null)
-          // are ignored so the *first real* layout is the one that snaps
-          // instantly; every one after that animates.
-          onContentSizeChange={() => {
-            if (content === null) return;
-            scrollRef.current?.scrollToEnd({ animated: hasScrolledInitialContent.current });
-            hasScrolledInitialContent.current = true;
-          }}
-        >
-          {content === null ? (
-            <View style={styles.skeletons}>
-              <MessageBubbleSkeleton bubbleWidth={150} />
-              <MessageBubbleSkeleton bubbleWidth={200} />
-              <MessageBubbleSkeleton bubbleWidth={120} />
-            </View>
-          ) : null}
-
-          {content !== null && content.messages.length === 0 ? (
+        {content === null ? (
+          <View style={[styles.messagesScroll, styles.skeletons]}>
+            <MessageBubbleSkeleton bubbleWidth={150} />
+            <MessageBubbleSkeleton bubbleWidth={200} />
+            <MessageBubbleSkeleton bubbleWidth={120} />
+          </View>
+        ) : content.messages.length === 0 ? (
+          <View style={styles.messagesScroll}>
             <EmptyState message={t('chat.empty')} />
-          ) : null}
-
-          {messages.map((message, index) => {
-            const previous = messages[index - 1];
-            const next = messages[index + 1];
-            const newDay = previous === undefined || dayKey(previous.created_at) !== dayKey(message.created_at);
-            const continuesRun = !newDay && previous?.sender_id === message.sender_id;
-            const endsRun =
-              next === undefined ||
-              next.sender_id !== message.sender_id ||
-              dayKey(next.created_at) !== dayKey(message.created_at);
-            return (
-              <View
-                key={message.id}
-                style={[
-                  index > 0 && { marginTop: continuesRun ? MESSAGE_RUN_GAP : MESSAGE_GAP },
-                  heldMessageId === message.id && styles.heldMessage,
-                ]}
-              >
-                {newDay ? (
-                  <View style={[styles.dayLabel, { backgroundColor: tokens.surface2 }]}>
-                    <Text style={[styles.dayLabelText, { color: tokens.textSecondary }]}>
-                      {chatDayLabel(message.created_at)}
-                    </Text>
-                  </View>
-                ) : null}
-                {heldMessageId === message.id ? (
-                  <MessageActionsBar
-                    emojis={REACTION_EMOJIS}
-                    selected={message.reactions.find((reaction) => reaction.user_id === user?.id)?.emoji ?? null}
-                    alignEnd={message.sender_id === user?.id}
-                    below={index === 0}
-                    onPick={(emoji) => toggleMessageReaction(message.id, emoji)}
-                    onEdit={message.sender_id === user?.id ? () => startEditing(message) : undefined}
-                    onDelete={
-                      message.sender_id === user?.id
-                        ? () =>
-                            confirmDelete(t('chat.deleteMessageTitle'), t('chat.deleteMessageBody'), () =>
-                              deleteMessage(message.id, message.photo !== null),
-                            )
-                        : undefined
-                    }
-                  />
-                ) : null}
-                <LongPressRow
-                  // Anyone can hold a message to react; deleting is for your own only.
-                  actions={[]}
-                  onLongPress={() => {
-                    justHeld.current = true;
-                    setHeldMessageId(message.id);
-                  }}
-                >
-                  <MessageBubble
-                    message={message}
-                    fromOrganizer={isOrganizer(message.sender_id)}
-                    avatar={avatarFor(message.sender_id)}
-                    isOwn={message.sender_id === user?.id}
-                    showSender={!continuesRun}
-                    showAvatar={endsRun}
-                    currentUserId={user?.id}
-                    onPressReaction={(emoji) => toggleMessageReaction(message.id, emoji)}
-                  />
-                </LongPressRow>
-              </View>
-            );
-          })}
-        </ScrollView>
+          </View>
+        ) : (
+          <HeldIndexContext.Provider value={heldIndex}>
+          <FlatList
+            ref={listRef}
+            inverted
+            data={newestFirst}
+            keyExtractor={(message) => message.id}
+            renderItem={renderMessage}
+            CellRendererComponent={MessageCell}
+            style={styles.messagesScroll}
+            // Inverted, so this keeps a short chat at the top, as a chat that doesn't fill the screen.
+            contentContainerStyle={styles.messagesContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            // The bar hangs outside its cell: clipping would cut it off.
+            removeClippedSubviews={false}
+            initialNumToRender={15}
+            maxToRenderPerBatch={10}
+            windowSize={7}
+            // Reading older messages isn't interrupted by new ones. Only then: left on all the
+            // time it held the list away from the latest message while the first cells rendered.
+            maintainVisibleContentPosition={readingOlder ? { minIndexForVisible: 1 } : undefined}
+            scrollEventThrottle={100}
+            onScroll={(event) => setReadingOlder(event.nativeEvent.contentOffset.y > 80)}
+            onEndReachedThreshold={0.5}
+            onEndReached={() => void loadOlder()}
+            ListFooterComponent={
+              loadingOlder ? <ActivityIndicator style={styles.olderSpinner} color={tokens.textSecondary} /> : null
+            }
+            onScrollBeginDrag={() => setHeldMessageId(null)}
+            // Any tap in the list closes the bar, a tap on the bar itself included.
+            onTouchEnd={() => {
+              if (justHeld.current) justHeld.current = false;
+              else setHeldMessageId(null);
+            }}
+          />
+          </HeldIndexContext.Provider>
+        )}
 
         {attachments.length > 0 ? (
           <ScrollView
@@ -541,7 +658,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // scroll={false} on GuestScreen means this styles the fixed outer column
-  // directly (header + messages ScrollView + composer), not a ScrollView's
+  // directly (header + messages list + composer), not a ScrollView's
   // contentContainerStyle — see the JSX comment above. GuestScreen's own
   // scroll={true} branch applies its internal styles.content (which has
   // paddingHorizontal: gSpace.xl) automatically; the scroll={false} branch
@@ -562,7 +679,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    paddingBottom: gSpace.sm,
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+    paddingTop: gSpace.sm,
+  },
+  olderSpinner: {
+    paddingVertical: gSpace.md,
   },
   dayLabel: {
     alignSelf: 'center',

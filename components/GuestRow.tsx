@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -19,8 +20,8 @@ function initialsOf(name: string): string {
 
 /**
  * Warm Story 2.0 guest row: status-tinted initials avatar, name, one line of
- * context (WhatsApp status while pending, menu preference once confirmed)
- * and the RSVP badge. Rows sit inside one card, separated by hairlines.
+ * context (menu preference once confirmed) and the status badge. A pending
+ * guest's badge says where the invitation stands: not sent, sent or seen. Rows sit inside one card, separated by hairlines.
  */
 export function GuestRow({
   guest,
@@ -34,11 +35,19 @@ export function GuestRow({
   const { t } = useTranslation();
   const { tokens } = useTheme();
 
+  const inviteStage: 'seen' | 'sent' | 'notSent' =
+    guest.inviteSeenAt !== null ? 'seen' : guest.whatsappSentAt !== null ? 'sent' : 'notSent';
+  const pendingBadge = {
+    seen: { icon: 'eye' as const, label: t('event.inviteStageSeen'), fg: tokens.accentText, bg: tokens.accentTint },
+    sent: { icon: 'check' as const, label: t('event.inviteStageSent'), fg: tokens.statusPending, bg: tokens.statusPendingSoft },
+    notSent: { icon: 'clock' as const, label: t('event.inviteStageNotSent'), fg: tokens.textSecondary, bg: tokens.surface2 },
+  }[inviteStage];
+
   const tone =
-    guest.status === 'confirmed'
-      ? { bg: tokens.statusConfirmedSoft, fg: tokens.statusConfirmed }
-      : guest.status === 'pending'
-        ? { bg: tokens.statusPendingSoft, fg: tokens.statusPending }
+    guest.status === 'pending'
+      ? pendingBadge
+      : guest.status === 'confirmed'
+        ? { bg: tokens.statusConfirmedSoft, fg: tokens.statusConfirmed }
         : guest.status === 'maybe'
           ? { bg: tokens.accentTint, fg: tokens.accentText }
           : { bg: tokens.statusDeclinedSoft, fg: tokens.statusDeclined };
@@ -48,11 +57,7 @@ export function GuestRow({
     : guest.status === 'pending'
       ? guest.phone === null
         ? t('event.noPhone')
-        : guest.inviteSeenAt !== null
-          ? t('event.inviteSeen')
-          : guest.whatsappSentAt !== null
-          ? t('event.inviteSent')
-          : t('event.inviteNotSent')
+        : null
       : guest.status === 'confirmed' && guest.partySize !== null
         ? [t('venue.book.people', { count: guest.partySize }), guest.bookingTime, guest.bookingCode]
             .filter((part): part is string => part !== null && part.length > 0)
@@ -81,7 +86,14 @@ export function GuestRow({
           </Text>
         ) : null}
       </View>
-      <RsvpBadge status={guest.status} />
+      {guest.status === 'pending' ? (
+        <View style={[styles.stage, { backgroundColor: pendingBadge.bg }]}>
+          <Feather name={pendingBadge.icon} size={12} color={pendingBadge.fg} />
+          <Text style={[styles.stageText, { color: pendingBadge.fg }]}>{pendingBadge.label}</Text>
+        </View>
+      ) : (
+        <RsvpBadge status={guest.status} />
+      )}
     </View>
   );
 }
@@ -133,5 +145,20 @@ const styles = StyleSheet.create({
   },
   detail: {
     fontSize: 13,
+  },
+  stage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minHeight: 24,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: themeRadius.pill,
+    flexShrink: 1,
+  },
+  stageText: {
+    fontSize: 12,
+    fontWeight: '600',
+    flexShrink: 1,
   },
 });

@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -80,6 +80,7 @@ export function ActionSheetHost() {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const [current, setCurrent] = useState<HostRequest | null>(null);
   const [visible, setVisible] = useState(false);
   // Run after the sheet is gone: an action that opens another dialog (the
@@ -162,7 +163,8 @@ export function ActionSheetHost() {
           <View
             style={[
               styles.sheet,
-              { backgroundColor: tokens.surface, borderColor: tokens.border, paddingBottom: insets.bottom + spacing.md },
+              // Long lists (the theme picker) scroll under the title instead of reaching the status bar.
+              { backgroundColor: tokens.surface, borderColor: tokens.border, paddingBottom: insets.bottom + spacing.md, maxHeight: windowHeight - insets.top - spacing.md },
             ]}
           >
             <View style={[styles.grabber, { backgroundColor: tokens.border }]} />
@@ -172,7 +174,7 @@ export function ActionSheetHost() {
               </Text>
             ) : null}
 
-            <View>
+            <ScrollView style={styles.rows} bounces={false} showsVerticalScrollIndicator={false}>
               {current.sheet.actions.map((action, index) => {
                 const tone = action.tone ?? 'default';
                 const color = tone === 'delete' ? tokens.destructive : tokens.textPrimary;
@@ -194,7 +196,7 @@ export function ActionSheetHost() {
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
 
             <TouchableOpacity style={styles.cancel} onPress={() => close()} activeOpacity={0.6} accessibilityRole="button">
               <Text style={[styles.cancelLabel, { color: tokens.textSecondary }]}>{t('common.cancel')}</Text>
@@ -282,6 +284,9 @@ const styles = StyleSheet.create({
   bottom: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  rows: {
+    flexShrink: 1,
   },
   sheet: {
     borderTopLeftRadius: themeRadius.sheet,

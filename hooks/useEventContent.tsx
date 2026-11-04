@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
-import { remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
+import { MESSAGES_PAGE_SIZE, PHOTOS_PAGE_SIZE, remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { DetailsContent, EventContent, ReactionType, TableShape, Venue, SocialContent } from '@/types/guest';
@@ -84,6 +84,20 @@ type ContentCategory = 'social' | 'details' | 'contributions';
  * `content` is still the single merged EventContent every screen has always
  * read; only the caching underneath it is split.
  */
+/** `fresh` plus the loaded items beyond it, which go before it ('start') or after it ('end'). */
+function withEarlierPages<Item extends { id: string; created_at: string }>(
+  loaded: readonly Item[],
+  fresh: readonly Item[],
+  side: 'start' | 'end',
+): Item[] {
+  const freshIds = new Set(fresh.map((item) => item.id));
+  const oldest = side === 'start' ? fresh[0] : fresh[fresh.length - 1];
+  if (oldest === undefined || !loaded.some((item) => freshIds.has(item.id))) return [...fresh];
+  const oldestMs = Date.parse(oldest.created_at);
+  const beyond = loaded.filter((item) => Date.parse(item.created_at) < oldestMs);
+  return side === 'start' ? [...beyond, ...fresh] : [...fresh, ...beyond];
+}
+
 export function useEventContent(eventId: string) {
   const { user } = useAuth();
   const { displayName } = useUserProfile();
@@ -98,7 +112,19 @@ export function useEventContent(eventId: string) {
 
   const socialQuery = useQuery({
     queryKey: socialKey,
-    queryFn: () => remoteRepository.loadSocial(eventId),
+    queryFn: async () => {
+      const fresh = await remoteRepository.loadSocial(eventId);
+      // A refetch brings the latest page only: keep what scrolling already loaded,
+      // unless the pages no longer touch (a long time away), which would leave a gap.
+      const cached = queryClient.getQueryData<SocialContent>(socialKey);
+      return cached === undefined
+        ? fresh
+        : {
+            ...fresh,
+            messages: withEarlierPages(cached.messages, fresh.messages, 'start'),
+            photos: withEarlierPages(cached.photos, fresh.photos, 'end'),
+          };
+    },
     enabled: eventId.length > 0,
     /**
      * Moments, reactions, messages, photos — the "would be Realtime-backed"
@@ -376,11 +402,61 @@ export function useEventContent(eventId: string) {
         return runRemote(() => remoteRepository.deleteMoment(eventId, momentId), 'social');
       },
 
+      /** Prepends the page before the oldest loaded message. False once there's nothing older. */
+      loadOlderMessages: async (): Promise<boolean> => {
+        const oldest = queryClient.getQueryData<SocialContent>(socialKey)?.messages[0];
+        if (oldest === undefined) return false;
+        const older = await remoteRepository.loadOlderMessages(eventId, oldest.created_at);
+        if (older.length > 0) {
+          queryClient.setQueryData<SocialContent>(socialKey, (social) => {
+            if (social === undefined) return social;
+            const known = new Set(social.messages.map((message) => message.id));
+            return { ...social, messages: [...older.filter((message) => !known.has(message.id)), ...social.messages] };
+          });
+        }
+        return older.length === MESSAGES_PAGE_SIZE;
+      },
+
       deleteMessage: (messageId: string, hasPhoto: boolean) => {
+        // Patched in too: a refetch only replaces the latest page, not older ones.
+        queryClient.setQueryData<SocialContent>(socialKey, (social) =>
+          social === undefined
+            ? social
+            : { ...social, messages: social.messages.filter((message) => message.id !== messageId) },
+        );
         return runRemote(() => remoteRepository.deleteMessage(eventId, messageId, hasPhoto), 'social');
       },
 
+      /** Appends the page after the oldest loaded photo. False once there's nothing older. */
+      loadOlderPhotos: async (): Promise<boolean> => {
+        const photos = queryClient.getQueryData<SocialContent>(socialKey)?.photos ?? [];
+        const oldest = photos[photos.length - 1];
+        if (oldest === undefined) return false;
+        const older = await remoteRepository.loadOlderPhotos(eventId, oldest.created_at);
+        if (older.length > 0) {
+          queryClient.setQueryData<SocialContent>(socialKey, (social) => {
+            if (social === undefined) return social;
+            const known = new Set(social.photos.map((photo) => photo.id));
+            return { ...social, photos: [...social.photos, ...older.filter((photo) => !known.has(photo.id))] };
+          });
+        }
+        return older.length === PHOTOS_PAGE_SIZE;
+      },
+
+      loadAllPhotos: () => remoteRepository.loadAllPhotos(eventId),
+
       deletePhoto: (photoId: string) => {
+        // Patched in too: a refetch only replaces the latest page, not older ones.
+        queryClient.setQueryData<SocialContent>(socialKey, (social) => {
+          if (social === undefined) return social;
+          const removed = social.photos.find((photo) => photo.id === photoId);
+          const uploaderIndex = removed === undefined ? -1 : social.photoUploaderIds.indexOf(removed.uploaded_by);
+          return {
+            ...social,
+            photos: social.photos.filter((photo) => photo.id !== photoId),
+            photoUploaderIds: social.photoUploaderIds.filter((_, index) => index !== uploaderIndex),
+          };
+        });
         return runRemote(() => remoteRepository.deletePhoto(eventId, photoId), 'social');
       },
 
@@ -518,7 +594,7 @@ export function useEventContent(eventId: string) {
         return runRemote(() => remoteRepository.deleteVendor(vendorId), 'details');
       },
     }),
-    [eventId, actor, hasReacted, runRemote, content, queryClient, detailsKey, user],
+    [eventId, actor, hasReacted, runRemote, content, queryClient, socialKey, detailsKey, user],
   );
 
   return { content, hasReacted, reactionCount, ...actions };

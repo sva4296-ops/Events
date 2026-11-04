@@ -132,21 +132,22 @@ export function getCoverTheme(id: string | null | undefined): CoverTheme | null 
 }
 
 /**
- * Five themes per event type, none shared between types, each drawn with an
+ * Three themes per event type (spontaneous keeps one per template, other one per
+ * occasion), none shared between types, each drawn with an
  * illustration that fits its name and the occasion (no tree on a charity).
  * The first one is the suggested. Themes not listed here stay defined only so
  * events created with them earlier still render.
  */
 const THEMES_BY_TYPE: Record<EventTypeId, readonly string[]> = {
-  wedding: ['nunta', 'trandafiri', 'arcada', 'aurit', 'salvie'],
-  baptism: ['botez', 'ingeras', 'bleu', 'rozpudrat', 'nori'],
-  birthday: ['aniversare', 'copii', 'sclipici', 'jubileu', 'retro'],
-  cause: ['gradina', 'inima', 'speranta', 'apa', 'comunitate'],
-  corporate: ['corporate', 'conferinta', 'gala', 'teambuilding', 'lansare'],
-  memorial: ['minimal', 'lumanare', 'crini', 'amurg', 'stele'],
-  venue: ['local', 'cina', 'jazz', 'lounge', 'terasa'],
+  wedding: ['nunta', 'aurit', 'salvie'],
+  baptism: ['botez', 'ingeras', 'rozpudrat'],
+  birthday: ['aniversare', 'copii', 'jubileu'],
+  cause: ['gradina', 'inima', 'speranta'],
+  corporate: ['corporate', 'gala', 'teambuilding'],
+  memorial: ['minimal', 'lumanare', 'amurg'],
+  venue: ['local', 'cina', 'terasa'],
   spontaneous: ['petrecere', 'karaoke', 'neon', 'degustare', 'aurora'],
-  other: ['festival', 'revelion', 'craciun', 'muzica', 'primavara'],
+  other: ['festival', 'revelion', 'craciun', 'primavara'],
 };
 
 export function coverThemesFor(type: EventTypeId | null): CoverTheme[] {
@@ -174,7 +175,7 @@ export function suggestedCoverTheme(type: EventTypeId | null, template: Spontane
 }
 
 
-function mixHex(a: string, b: string, t: number): string {
+export function mixHex(a: string, b: string, t: number): string {
   const channel = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
   let out = '#';
   for (let i = 0; i < 3; i += 1) {
@@ -191,8 +192,9 @@ function mixHex(a: string, b: string, t: number): string {
  * the rest of the app while keeping its own look.
  */
 export function harmonizeCoverTheme(theme: CoverTheme, tokens: ThemeTokens): CoverTheme {
-  const toward = tokens.accentFill;
-  const amount = 0.22;
+  // The site themes' accentFill is their text color, which would only gray the cover: their violet instead.
+  const toward = tokens.coverBase ?? tokens.accentFill;
+  const amount = 0.28;
   return {
     ...theme,
     colors: [mixHex(theme.colors[0], toward, amount), mixHex(theme.colors[1], toward, amount), mixHex(theme.colors[2], toward, amount)],

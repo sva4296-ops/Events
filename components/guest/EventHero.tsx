@@ -2,17 +2,19 @@ import Feather from '@expo/vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showActionSheet } from '@/components/ActionSheet';
-import { EventCover } from '@/components/EventCover';
+import { defaultCover, EventCover } from '@/components/EventCover';
+import { CoverStatusContext } from '@/components/guest/eventChrome';
 import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { useEventCoverPhoto } from '@/hooks/useEventCoverPhoto';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent, EventTypeId } from '@/types/event';
+import { getCoverTheme } from '@/utils/coverThemes';
 import { daysUntilEvent, eventStartTime, formatEventDate } from '@/utils/format';
 import { gSpace } from '@/utils/guestTheme';
 import { themeRadius, typeface, typography } from '@/utils/themeTokens';
@@ -121,6 +123,8 @@ export function EventHero({
   const { tokens } = useTheme();
   const insets = useSafeAreaInsets();
   const cover = useEventCoverPhoto(event);
+  const coverStatus = useContext(CoverStatusContext);
+  const darkCover = cover.path !== null || !(getCoverTheme(event.coverTheme) ?? defaultCover(event.type, tokens)).light;
 
   const pickCover = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -153,8 +157,21 @@ export function EventHero({
     meta ?? [formatEventDate(event.date), event.location.trim()].filter((part) => part.length > 0).join(' · ');
 
   return (
-    <View style={styles.hero}>
+    <View
+      style={styles.hero}
+      onLayout={({ nativeEvent: { layout } }) =>
+        coverStatus?.reportHeroBottom(darkCover ? layout.y + styles.heroCover.height : null)
+      }
+    >
       <EventCover type={event.type} coverTheme={event.coverTheme} photoPath={cover.path} style={styles.heroCover}>
+        {/* Keeps the light status bar readable on a bright photo. */}
+        {darkCover ? (
+          <LinearGradient
+            colors={['rgba(0,0,0,0.38)', 'transparent']}
+            style={[styles.statusScrim, { height: insets.top + 44 }]}
+            pointerEvents="none"
+          />
+        ) : null}
         <View style={[styles.heroActions, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
             style={[styles.heroBack, { backgroundColor: tokens.surface }]}
@@ -205,7 +222,7 @@ export function EventHero({
           ) : null}
         </View>
         {/* A dark scrim so the white text reads on any photo or drawn cover. */}
-        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.72)']} style={styles.heroText}>
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.72)']} style={styles.heroText} pointerEvents="none">
           <Text style={styles.heroName} numberOfLines={2}>
             {event.name}
           </Text>
@@ -228,6 +245,12 @@ const styles = StyleSheet.create({
   },
   heroCover: {
     height: 260,
+  },
+  statusScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
   heroActions: {
     flexDirection: 'row',

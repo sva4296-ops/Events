@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { EventCountdown, EventHero } from '@/components/guest/EventHero';
 import { GuestScreen } from '@/components/guest/GuestScreen';
+import { PostMomentBar } from '@/components/guest/PostMomentBar';
 import { openGettingStarted } from '@/components/tour/GettingStartedSheet';
 import { Skeleton } from '@/components/Skeleton';
 import { Avatar, Bar, DeletableRow, Eyebrow, SpCard } from '@/components/spontaneous/parts';
@@ -21,7 +22,6 @@ import { haptics } from '@/utils/haptics';
 import { staggerIn } from '@/utils/motion';
 import { timeAgo } from '@/utils/relativeTime';
 import { formatSpontaneousWhen } from '@/utils/spontaneous';
-import { accentButtonShadow, themeRadius } from '@/utils/themeTokens';
 
 const MAX_AVATARS = 6;
 
@@ -197,19 +197,7 @@ export function SpontaneousHome({ event, owner }: { event: AppEvent; owner: bool
       </GuestScreen>
 
       {owner ? (
-        <TouchableOpacity
-          style={[
-            styles.fab,
-            { backgroundColor: tokens.accentFill, bottom: tabBarClearance + gSpace.lg },
-            tokens.mode === 'light' ? accentButtonShadow : undefined,
-          ]}
-          onPress={() => router.push(`/post-moment/${event.id}`)}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel={t('spontaneous.home.postUpdate')}
-        >
-          <Feather name="plus" size={26} color={tokens.onAccent} />
-        </TouchableOpacity>
+        <PostMomentBar label={t('spontaneous.home.postUpdate')} onPress={() => router.push(`/post-moment/${event.id}`)} />
       ) : null}
     </View>
   );
@@ -308,14 +296,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 21,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: themeRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

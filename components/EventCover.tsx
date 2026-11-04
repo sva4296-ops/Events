@@ -10,7 +10,7 @@ import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { fetchEventCoverUrl } from '@/data/eventsRepository';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeId } from '@/types/event';
-import { getCoverTheme, type CoverDecoration, type CoverTheme } from '@/utils/coverThemes';
+import { getCoverTheme, mixHex, type CoverDecoration, type CoverTheme } from '@/utils/coverThemes';
 import type { ThemeTokens } from '@/utils/themeTokens';
 
 /** Decoration for an event type's default cover. */
@@ -28,9 +28,26 @@ const TYPE_DECORATION: Record<EventTypeId, CoverDecoration> = {
 
 /**
  * Default cover when the organizer didn't pick a theme: drawn in the app
- * theme's own colors (Hârtie, Șampanie, …) with the type's decoration.
+ * theme's own colors (Hârtie, Șampanie, …) with the type's decoration. The site
+ * themes use deep violet with white text instead, like the website.
  */
 export function defaultCover(type: EventTypeId, tokens: ThemeTokens): CoverTheme {
+  const base = tokens.coverBase;
+  if (base !== undefined) {
+    const deep = mixHex(base, '#000000', 0.3);
+    return {
+      id: `default-${type}`,
+      colors: [mixHex(base, '#000000', 0.55), deep, mixHex(base, '#000000', 0.72)],
+      glows: [
+        [tokens.accentPink, 0.82, 0.25],
+        [deep, 0.15, 0.85],
+      ],
+      decoration: TYPE_DECORATION[type],
+      ink: mixHex(base, '#FFFFFF', 0.7),
+      accent: base,
+      light: false,
+    };
+  }
   const dark = tokens.mode === 'dark';
   return {
     id: `default-${type}`,

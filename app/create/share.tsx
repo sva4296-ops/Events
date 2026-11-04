@@ -61,7 +61,7 @@ export default function ShareScreen() {
   };
 
   // Text over the cover: dark on light themes (and on Classic in a light app theme).
-  const coverInk = (getCoverTheme(event.coverTheme)?.light ?? tokens.mode === "light") ? "#2B2740" : "#FFFFFF";
+  const coverInk = (getCoverTheme(event.coverTheme)?.light ?? (tokens.mode === "light" && tokens.coverBase === undefined)) ? "#2B2740" : "#FFFFFF";
 
   return (
     <Screen

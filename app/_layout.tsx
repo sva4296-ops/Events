@@ -8,6 +8,7 @@ import { InstrumentSans_500Medium } from "@expo-google-fonts/instrument-sans/500
 import { InstrumentSans_600SemiBold } from "@expo-google-fonts/instrument-sans/600SemiBold";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CormorantGaramond_500Medium } from "@expo-google-fonts/cormorant-garamond/500Medium";
+import { Fraunces_400Regular } from "@expo-google-fonts/fraunces/400Regular";
 import { Lora_400Regular } from "@expo-google-fonts/lora/400Regular";
 import { Lora_700Bold } from "@expo-google-fonts/lora/700Bold";
 import { Newsreader_400Regular } from "@expo-google-fonts/newsreader/400Regular";
@@ -76,6 +77,7 @@ function RootLayout() {
     InstrumentSans_500Medium,
     InstrumentSans_600SemiBold,
     // Per-theme display fonts (utils/themeTokens.ts THEMES).
+    Fraunces_400Regular,
     Lora_400Regular,
     Lora_700Bold,
     Newsreader_400Regular,

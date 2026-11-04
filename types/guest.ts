@@ -198,7 +198,10 @@ export interface SocialContent {
   moments: Moment[];
   reactions: MomentReaction[];
   messages: Message[];
+  /** The latest page; the album loads the rest as it scrolls. */
   photos: Photo[];
+  /** One entry per photo in the whole album, for its totals. */
+  photoUploaderIds: string[];
 }
 
 /** Owner-edited, rarely-changing settings — schedule, venue, menu, seating,

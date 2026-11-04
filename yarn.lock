@@ -658,6 +658,11 @@
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/cormorant-garamond/-/cormorant-garamond-0.4.1.tgz#b748835a4c36e2ebe4ac042441d37feefc3affb6"
   integrity sha512-e8J4Cn13K1txygamg50n3odLUsYP7Ck28XOGobMi7uDsWvFmp/jgK0qcALqJTlmi9NczSWUNdERxcLauHCBa/Q==
 
+"@expo-google-fonts/fraunces@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@expo-google-fonts/fraunces/-/fraunces-0.4.1.tgz#1dd641c322436dccb7cc156e07e247d146cd000c"
+  integrity sha512-gYc9P92ObyWvz1rWPOeWSvVKyBFIuA8hgOdhvo4DSiPBaWLbFA6v8uLIEIBwW+0oWTlXbBzjeBReHQI2H7UNjQ==
+
 "@expo-google-fonts/instrument-sans@^0.4.2":
   version "0.4.2"
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/instrument-sans/-/instrument-sans-0.4.2.tgz#22e2f42d38687fb0c2b3966f72fe02897307b373"

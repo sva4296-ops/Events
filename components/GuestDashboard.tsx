@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,7 +17,10 @@ import Animated from "react-native-reanimated";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
-import { GrowFromLeft } from "@/components/GrowFromLeft";
+import { showDialog } from "@/components/ActionSheet";
+import { PostMomentBar } from "@/components/guest/PostMomentBar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { floatingTabBar, tabBarBottomInset } from "@/utils/guestTheme";
 import { GuestScreen } from "@/components/guest/GuestScreen";
 import { GuestRow, GuestRowSkeleton } from "@/components/GuestRow";
 import { Header } from "@/components/Header";
@@ -38,7 +42,9 @@ import { staggerIn } from "@/utils/motion";
 import { reportSupabaseError } from "@/utils/reportError";
 import { spacing } from "@/utils/theme";
 import { themeRadius, typography } from "@/utils/themeTokens";
-import { sendGuestWhatsAppInvite } from "@/utils/whatsappInvite";
+import type { Guest } from "@/types/event";
+import { sendGuestWhatsAppInvite, waitForReturn } from "@/utils/whatsappInvite";
+import { haptics } from "@/utils/haptics";
 
 type GuestFilter = "all" | RsvpStatus;
 
@@ -50,7 +56,7 @@ type GuestFilter = "all" | RsvpStatus;
  */
 export function GuestDashboard({ id, embedded = false }: { id: string; embedded?: boolean }) {
   const { t } = useTranslation();
-  const { getEvent, hydrated, removeGuest, isOwner } = useEvents();
+  const { getEvent, hydrated, removeGuest, isOwner, markWhatsAppSent } = useEvents();
   const { tokens } = useTheme();
   const { plans } = usePlanFeatures();
   const {
@@ -62,8 +68,9 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
   const [query, setQuery] = useState("");
   const [exporting, setExporting] = useState(false);
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const addGuestRef = useTourTarget(TOUR_TARGETS.guests);
-  const whatsappRef = useTourTarget(TOUR_TARGETS.invites, 18); // styles.action borderRadius
+  const whatsappRef = useTourTarget(TOUR_TARGETS.invites, 22); // the round menu button
 
   const event = getEvent(id);
   const owner = isOwner(event);
@@ -138,17 +145,35 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
     }
   };
 
-  const share = (value: number) => (counts.total > 0 ? (value / counts.total) * 100 : 0);
+  // WhatsApp can't report whether the message really left, so we ask on coming back.
+  // No WhatsApp on the phone opens the share sheet instead: same question after it.
+  const sendInvite = async (guest: Guest) => {
+    if (guest.phone === null) return;
+    const opened = await sendGuestWhatsAppInvite(guest.phone, {
+      guestName: guest.name === guest.phone ? "" : guest.name,
+      event,
+      inviteToken: guest.inviteToken,
+    });
+    if (opened) await waitForReturn();
+    if (guest.whatsappSentAt !== null) return;
+    showDialog({
+      title: t("sendInvitesQueue.confirmSentTitle"),
+      message: t("event.confirmSentBody", { name: guest.name }),
+      buttons: [
+        { label: t("sendInvitesQueue.confirmSentNo"), style: "cancel" },
+        {
+          label: t("sendInvitesQueue.confirmSentYes"),
+          onPress: () => {
+            void markWhatsAppSent(event.id, guest.id);
+            haptics.success();
+          },
+        },
+      ],
+    });
+  };
 
-  const filters: { key: GuestFilter; label: string; count: number }[] = [
-    { key: "all", label: t("event.filterAll"), count: counts.total },
-    { key: "confirmed", label: t("event.filterConfirmed"), count: counts.confirmed },
-    { key: "pending", label: t("event.filterPending"), count: counts.pending },
-    ...(spontaneous ? [{ key: "maybe" as const, label: t("event.filterMaybe"), count: counts.maybe }] : []),
-    { key: "declined", label: t("event.filterDeclined"), count: counts.declined },
-  ];
-
-  const stats: { key: RsvpStatus; label: string; value: number; fg: string; bg: string }[] = [
+  const stats: { key: GuestFilter; label: string; value: number; fg: string; bg: string }[] = [
+    { key: "all", label: t("event.filterAll"), value: counts.total, fg: tokens.textPrimary, bg: tokens.surface },
     { key: "confirmed", label: t("event.filterConfirmed"), value: counts.confirmed, fg: tokens.statusConfirmed, bg: tokens.statusConfirmedSoft },
     { key: "pending", label: t("event.filterPending"), value: counts.pending, fg: tokens.statusPending, bg: tokens.statusPendingSoft },
     ...(spontaneous
@@ -170,14 +195,34 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
             </TouchableOpacity>
   ) : undefined;
 
+  const statTiles = stats.map((stat) => {
+    const active = filter === stat.key;
+    return (
+      <TouchableOpacity
+        key={stat.key}
+        style={[
+          styles.stat,
+          spontaneous && styles.statSliding,
+          { backgroundColor: stat.bg, borderColor: active ? stat.fg : "transparent" },
+        ]}
+        onPress={() => setFilter(active ? "all" : stat.key)}
+        disabled={event.guests.length === 0}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityState={{ selected: active }}
+      >
+        <AnimatedNumber value={stat.value} style={[styles.statValue, { color: stat.fg }]} />
+        <Text style={[styles.statLabel, { color: stat.fg }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {stat.label}
+        </Text>
+      </TouchableOpacity>
+    );
+  });
+
   const body = (
     <>
-      {embedded ? (
-        <View style={styles.embeddedHead}>
-          <Text style={[styles.embeddedTitle, { color: tokens.textPrimary }]}>{t("guestTabs.guests")}</Text>
-          {addGuestButton}
-        </View>
-      ) : (
+      {/* Embedded, the tab already says "Invitați": the add button sits in the summary. */}
+      {embedded ? null : (
         <Header
           title=""
           showBack
@@ -191,95 +236,72 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
         />
       )}
 
-      <View
-        style={[
-          styles.summary,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
-          tokens.surfaceElevatedShadow ?? undefined,
-        ]}
-      >
-        <View style={styles.summaryHead}>
-          <Text style={[styles.summaryTitle, { color: tokens.textPrimary }]}>
-            {t("event.confirmationsTitle")}
-          </Text>
-          <Text style={[styles.summaryMeta, { color: tokens.textSecondary }]}>
-            {t("event.guestsTotal", { count: counts.total })}
-            {spontaneous && plusOnes > 0 ? ` · ${t("spontaneous.dashboard.plusOnes", { count: plusOnes })}` : ""}
-            {spontaneous && event.spotLimit !== null
-              ? ` · ${t("spontaneous.dashboard.spots", { taken: counts.confirmed + plusOnes, limit: event.spotLimit })}`
-              : ""}
-          </Text>
-        </View>
-        <View style={styles.stats}>
-          {stats.map((stat) => (
-            <View key={stat.key} style={[styles.stat, { backgroundColor: stat.bg }]}>
-              <AnimatedNumber value={stat.value} style={[styles.statValue, { color: stat.fg }]} />
-              <Text style={[styles.statLabel, { color: stat.fg }]} numberOfLines={1}>
-                {stat.label}
-              </Text>
-            </View>
-          ))}
-        </View>
-        {counts.total > 0 ? (
-          <View style={styles.bar} accessibilityRole="image">
-            <GrowFromLeft style={styles.barFill}>
-              {counts.confirmed > 0 ? (
-                <View style={{ width: `${share(counts.confirmed)}%`, backgroundColor: tokens.statusConfirmed }} />
-              ) : null}
-              {counts.maybe > 0 ? (
-                <View style={{ width: `${share(counts.maybe)}%`, backgroundColor: tokens.accentPrimary }} />
-              ) : null}
-              {counts.pending > 0 ? (
-                <View style={{ width: `${share(counts.pending)}%`, backgroundColor: tokens.accentGold }} />
-              ) : null}
-              {counts.declined > 0 ? (
-                <View style={{ width: `${share(counts.declined)}%`, backgroundColor: tokens.accentPink }} />
-              ) : null}
-            </GrowFromLeft>
+      <View style={styles.toolbar}>
+        {event.guests.length > 0 ? (
+          <View style={[styles.search, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+            <Feather name="search" size={18} color={tokens.textSecondary} />
+            <TextInput
+              style={[styles.searchInput, { color: tokens.textPrimary }]}
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t("event.searchShort")}
+              placeholderTextColor={tokens.textMuted}
+              accessibilityLabel={t("event.searchPlaceholder")}
+              autoCorrect={false}
+            />
           </View>
+        ) : (
+          <View style={styles.toolbarSpacer} />
+        )}
+        {owner && event.guests.length > 0 ? (
+          <TouchableOpacity
+            ref={pendingUnsentCount > 0 ? undefined : whatsappRef}
+            style={[styles.headerButton, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+            onPress={() => void handleExport()}
+            disabled={exporting}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t("export.button")}
+          >
+            {exporting ? (
+              <ActivityIndicator size="small" color={tokens.textPrimary} />
+            ) : (
+              <Feather name="download" size={20} color={tokens.textPrimary} />
+            )}
+          </TouchableOpacity>
         ) : null}
       </View>
 
-      {owner && event.guests.length > 0 ? (
-        <View style={styles.actions}>
+      {/* The totals are the filters. Spontaneous nights have one more, so that row slides. */}
+      {spontaneous ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stats}>
+          {statTiles}
+        </ScrollView>
+      ) : (
+        <View style={styles.stats}>{statTiles}</View>
+      )}
+
+      {spontaneous && (plusOnes > 0 || event.spotLimit !== null) ? (
+        <Text style={[styles.summaryMeta, { color: tokens.textSecondary }]}>
           {[
-            {
-              key: "whatsapp",
-              icon: "message-circle" as const,
-              label: t("event.sendWhatsApp"),
-              onPress: () => router.push(`/send-invites/${event.id}`),
-              disabled: pendingUnsentCount === 0,
-            },
-            {
-              key: "export",
-              icon: "download" as const,
-              label: exporting ? t("export.exporting") : t("export.button"),
-              onPress: () => void handleExport(),
-              disabled: exporting,
-            },
-          ].map((action) => (
-            <TouchableOpacity
-              key={action.key}
-              ref={action.key === "whatsapp" ? whatsappRef : undefined}
-              style={[
-                styles.action,
-                { backgroundColor: tokens.surface, borderColor: tokens.border },
-                action.disabled && styles.actionDisabled,
-              ]}
-              onPress={action.onPress}
-              disabled={action.disabled}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: action.disabled }}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: tokens.accentTint }]}>
-                <Feather name={action.icon} size={20} color={tokens.accentText} />
-              </View>
-              <Text style={[styles.actionLabel, { color: tokens.textPrimary }]} numberOfLines={2}>
-                {action.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+            plusOnes > 0 ? t("spontaneous.dashboard.plusOnes", { count: plusOnes }) : null,
+            event.spotLimit !== null
+              ? t("spontaneous.dashboard.spots", { taken: counts.confirmed + plusOnes, limit: event.spotLimit })
+              : null,
+          ]
+            .filter((part) => part !== null)
+            .join(" · ")}
+        </Text>
+      ) : null}
+
+      {owner && pendingUnsentCount > 0 ? (
+        <View ref={whatsappRef} collapsable={false}>
+          <Button
+            variant="whatsapp"
+            label={`${t("event.sendWhatsApp")} (${pendingUnsentCount})`}
+            icon={<Feather name="message-circle" size={19} color="#FFFFFF" />}
+            onPress={() => router.push(`/send-invites/${event.id}`)}
+          />
         </View>
       ) : null}
 
@@ -303,7 +325,7 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
         <EmptyState
           message={t("event.noGuestsYet")}
           action={
-            owner ? (
+            owner && !embedded ? (
               <Button
                 label={t("event.inviteGuest")}
                 onPress={() => router.push(`/add-guest/${event.id}`)}
@@ -313,57 +335,6 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
         />
       ) : (
         <>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filters}
-            accessibilityRole="tablist"
-          >
-            {filters.map((item) => {
-              const active = filter === item.key;
-              return (
-                <TouchableOpacity
-                  key={item.key}
-                  onPress={() => setFilter(item.key)}
-                  activeOpacity={0.8}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: active }}
-                  style={[
-                    styles.chip,
-                    active
-                      ? { backgroundColor: tokens.textPrimary }
-                      : { backgroundColor: tokens.surface, borderWidth: 1.5, borderColor: tokens.border },
-                  ]}
-                >
-                  <Text style={[styles.chipText, { color: active ? tokens.surface : tokens.textPrimary }]}>
-                    {item.label}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.chipCount,
-                      { color: active ? tokens.surface : tokens.textPrimary },
-                    ]}
-                  >
-                    {item.count}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          <View style={[styles.search, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-            <Feather name="search" size={19} color={tokens.textSecondary} />
-            <TextInput
-              style={[styles.searchInput, { color: tokens.textPrimary }]}
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t("event.searchPlaceholder")}
-              placeholderTextColor={tokens.textMuted}
-              accessibilityLabel={t("event.searchPlaceholder")}
-              autoCorrect={false}
-            />
-          </View>
-
           {visibleGuests.length === 0 ? (
             <EmptyState message={t("event.noMatches")} />
           ) : (
@@ -378,15 +349,10 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
                       ...(guest.status === "pending" && guest.phone !== null
                         ? [
                             {
-                              label: t("event.resendInvite"),
+                              label: t(guest.whatsappSentAt === null ? "event.sendInvite" : "event.resendInvite"),
                               icon: "message-circle",
                               tone: "edit" as const,
-                              onPress: () =>
-                                void sendGuestWhatsAppInvite(guest.phone ?? "", {
-                                  guestName: guest.name === guest.phone ? "" : guest.name,
-                                  event,
-                                  inviteToken: guest.inviteToken,
-                                }),
+                              onPress: () => void sendInvite(guest),
                             },
                           ]
                         : []),
@@ -424,9 +390,25 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
   );
 
   return embedded ? (
-    <GuestScreen transparent contentStyle={styles.embedded}>
+    <View style={styles.embeddedRoot}>
+    <GuestScreen
+      transparent
+      contentStyle={
+        owner
+          ? { ...styles.embedded, paddingBottom: tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height + 56 + spacing.xl }
+          : styles.embedded
+      }
+    >
       {body}
     </GuestScreen>
+    {owner ? (
+      <PostMomentBar
+        targetRef={addGuestRef}
+        label={t("event.addGuest")}
+        onPress={() => router.push(`/add-guest/${event.id}`)}
+      />
+    ) : null}
+    </View>
   ) : (
     <Screen coverTheme={event?.coverTheme} contentStyle={styles.content}>
       {body}
@@ -439,17 +421,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 16,
   },
+  embeddedRoot: {
+    flex: 1,
+  },
   embedded: {
     gap: 16,
-  },
-  embeddedHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  embeddedTitle: {
-    ...typography.title1,
   },
   headerSkeleton: {
     flexDirection: "row",
@@ -465,21 +441,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  summary: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 18,
-    gap: 14,
-  },
-  summaryHead: {
+  toolbar: {
     flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
+    alignItems: "center",
     gap: 8,
   },
-  summaryTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+  toolbarSpacer: {
+    flex: 1,
   },
   summaryMeta: {
     fontSize: 13,
@@ -490,62 +458,23 @@ const styles = StyleSheet.create({
   },
   stat: {
     flex: 1,
-    borderRadius: 16,
-    padding: 12,
-    gap: 2,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  statSliding: {
+    flex: 0,
+    width: 92,
   },
   statValue: {
-    ...typography.title1,
-    lineHeight: 32,
+    ...typography.title2,
+    fontSize: 20,
+    lineHeight: 26,
   },
   statLabel: {
     fontSize: 12,
     fontWeight: "600",
-  },
-  bar: {
-    flexDirection: "row",
-    gap: 3,
-    height: 10,
-    borderRadius: 99,
-    overflow: "hidden",
-  },
-  barFill: {
-    flex: 1,
-    flexDirection: "row",
-    gap: 3,
-  },
-  // Adding guests lives in the header; these two share one row as tiles
-  // (labels wrap to two lines, which a half-width pill couldn't do).
-  actions: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  action: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    minHeight: 64,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 18,
-    borderWidth: 1,
-  },
-  actionDisabled: {
-    opacity: 0.5,
-  },
-  actionIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: themeRadius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
-    lineHeight: 18,
   },
   notice: {
     flexDirection: "row",
@@ -560,34 +489,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     lineHeight: 18,
   },
-  filters: {
-    gap: 8,
-  },
-  chip: {
+  search: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    minHeight: 40,
+    gap: 8,
+    height: 44,
     paddingHorizontal: 14,
     borderRadius: themeRadius.pill,
-    paddingVertical: 4,
-  },
-  chipText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  chipCount: {
-    fontSize: 14,
-    fontWeight: "600",
-    opacity: 0.7,
-  },
-  search: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    height: 48,
-    paddingHorizontal: 16,
-    borderRadius: 16,
     borderWidth: 1.5,
   },
   searchInput: {

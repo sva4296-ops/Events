@@ -63,6 +63,9 @@ export interface ThemeTokens {
   statusDeclinedSoft: string;
   destructive: string;
   destructiveSoft: string;
+  /** Default covers and the backdrop in this color instead of the accent: for themes whose
+   * accentFill is the text color (Site dark/light), which would make them gray. */
+  coverBase?: string;
   tabBar: {
     background: string;
     active: string;
@@ -180,9 +183,9 @@ export const darkTheme: ThemeTokens = {
 /** The six themes the user picks from in Profile. */
 export type ThemeId =
   | "hartie" | "sampanie" | "minimal" | "bleumarin" | "teracota" | "visina"
-  | "sepia" | "retro" | "cinema";
+  | "sepia" | "retro" | "cinema" | "teracotaDark" | "siteDark" | "siteLight";
 export const THEME_IDS: readonly ThemeId[] = [
-  "hartie", "sampanie", "minimal", "bleumarin", "teracota", "visina", "sepia", "retro", "cinema",
+  "hartie", "sampanie", "minimal", "bleumarin", "siteDark", "siteLight", "teracota", "teracotaDark", "visina", "sepia", "retro", "cinema",
 ];
 export const DEFAULT_THEME: ThemeId = "teracota";
 
@@ -264,6 +267,35 @@ export const THEMES: Record<ThemeId, ThemeTokens> = {
     background: "#EEE5D9", surface: "#FFFFFF", surface2: "#E2D5C3", border: "#E0D4C4",
     textPrimary: "#2A211C", textSecondary: "#6A5E54", textMuted: "#958879",
     accent: "#A54E36", onAccent: "#FFFFFF", accentTint: "#F3E2DA", accentText: "#9A462F",
+  }),
+  // The website's two themes (povestea-web globals.css). Buttons are the text color, the rose is the accent.
+  siteDark: {
+    ...makeTheme({
+      mode: "dark", displayFont: "Fraunces_400Regular",
+      background: "#14111D", surface: "#1E1A30", surface2: "#272240", border: "#322E42",
+      textPrimary: "#F4EFE8", textSecondary: "#A79FB8", textMuted: "#7F7892",
+      accent: "#F4EFE8", onAccent: "#14111D", accentTint: "#33223F", accentText: "#FF9DB1",
+    }),
+    accentPrimary: "#FF6B8A", accentGold: "#FFD23F", accentPink: "#FF6B8A",
+    statusPending: "#FFD23F", statusDeclined: "#FF9DB1",
+    coverBase: "#9B5DE5",
+  },
+  siteLight: {
+    ...makeTheme({
+      mode: "light", displayFont: "Fraunces_400Regular",
+      background: "#F7F3EC", surface: "#FFFFFF", surface2: "#F1EBE1", border: "#E2DEDA",
+      textPrimary: "#231E33", textSecondary: "#6E6680", textMuted: "#938BA3",
+      accent: "#231E33", onAccent: "#F7F3EC", accentTint: "#F7E6EA", accentText: "#A64C70",
+    }),
+    accentPrimary: "#E0456A", accentGold: "#D9A400", accentPink: "#E0456A",
+    coverBase: "#7B3FC4",
+  },
+  // Teracotă at night: the site's warm charcoal. "teracota" switches to it when the phone is in dark mode.
+  teracotaDark: makeTheme({
+    mode: "dark", displayFont: "Lora_400Regular",
+    background: "#15110F", surface: "#211A17", surface2: "#2C2420", border: "#3A2F2A",
+    textPrimary: "#F5EEE8", textSecondary: "#BBAEA3", textMuted: "#8F8278",
+    accent: "#E07A62", onAccent: "#1A1210", accentTint: "#3A2620", accentText: "#EE927C",
   }),
   // B3 · Vișină & roz pudrat.
   visina: makeTheme({

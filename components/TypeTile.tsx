@@ -63,7 +63,7 @@ export function TypeTile({ type, selected, onPress }: TypeTileProps) {
         <CoverArt theme={cover} style={styles.cover}>
           <View style={styles.coverInner}>
             <EventTypeIcon type={type.id} size={20} color={ink} strokeWidth={1.6} />
-            <Text style={[styles.label, { color: ink, fontFamily: tokens.displayFont }]} numberOfLines={2}>
+            <Text style={[styles.label, { color: ink, fontFamily: tokens.displayFont }, tokens.coverBase !== undefined && styles.labelWideFont]} numberOfLines={2}>
               {label}
             </Text>
           </View>
@@ -82,6 +82,10 @@ export function TypeTile({ type, selected, onPress }: TypeTileProps) {
 }
 
 const styles = StyleSheet.create({
+  // Fraunces (the site themes) runs wide: "Comemorare" broke mid-word at the usual size.
+  labelWideFont: {
+    fontSize: 20,
+  },
   tile: {
     width: '48%',
     gap: 8,

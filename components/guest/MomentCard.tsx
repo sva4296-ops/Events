@@ -1,6 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { MomentIcon, isMomentIconId } from '@/components/MomentIcon';
@@ -67,7 +68,13 @@ export function MomentCard({
       </View>
 
       {moment.photo_url.length > 0 ? (
-        <Image source={{ uri: moment.photo_url }} style={[styles.photo, { backgroundColor: tokens.surface2 }]} />
+        <Image
+          source={{ uri: moment.photo_url }}
+          cachePolicy="disk"
+          contentFit="cover"
+          recyclingKey={moment.id}
+          style={[styles.photo, { backgroundColor: tokens.surface2 }]}
+        />
       ) : (
         <View style={[styles.photo, styles.photoPlaceholder, { backgroundColor: tokens.surface2 }]}>
           <Feather name="image" size={28} color={tokens.textSecondary} />

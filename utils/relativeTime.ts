@@ -47,9 +47,18 @@ export function chatDayLabel(iso: string): string {
   });
 }
 
+// toLocaleTimeString builds a formatter per call, slow on Android: one formatter, labels kept.
+let clockFormat: Intl.DateTimeFormat | undefined;
+const clockLabels = new Map<string, string>();
+
 /** Short clock label for chat bubbles, e.g. "14:32". */
 export function timeOfDay(iso: string): string {
+  const cached = clockLabels.get(iso);
+  if (cached !== undefined) return cached;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  clockFormat ??= new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
+  const label = clockFormat.format(date);
+  clockLabels.set(iso, label);
+  return label;
 }

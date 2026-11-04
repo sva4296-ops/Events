@@ -10,7 +10,8 @@ import { showActionSheet, showDialog } from '@/components/ActionSheet';
 import { BrandFlourish } from '@/components/BrandFlourish';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
-import { EventCountdown, EventHero } from '@/components/guest/EventHero';
+import { EventCountdown } from '@/components/guest/EventHero';
+import { PostMomentBar } from '@/components/guest/PostMomentBar';
 import { openGettingStarted } from '@/components/tour/GettingStartedSheet';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { StoryEntryCard } from '@/components/guest/StoryEntryCard';
@@ -32,7 +33,7 @@ import { daysUntilEvent, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { staggerIn } from '@/utils/motion';
-import { accentButtonShadow, themeRadius, typeface, typography } from '@/utils/themeTokens';
+import { themeRadius, typeface, typography } from '@/utils/themeTokens';
 
 const STEP_ICONS: Record<GettingStartedKey, keyof typeof Feather.glyphMap> = {
   event: 'check',
@@ -209,8 +210,7 @@ function StoryAcasa() {
 
   if (content === null) {
     return (
-      <GuestScreen transparent>
-        {event !== undefined ? <EventHero event={event} canEdit={canEditMoments} /> : null}
+      <GuestScreen transparent showHero>
         {event !== undefined ? <EventCountdown
             date={event.date}
             type={event.type}
@@ -225,10 +225,10 @@ function StoryAcasa() {
   return (
     <View style={styles.wrap}>
       <GuestScreen
+        showHero
         contentStyle={owner ? { paddingBottom: tabBarClearance + gSpace.xxl + 56 } : undefined}
         transparent
       >
-        {event !== undefined ? <EventHero event={event} canEdit={canEditMoments} /> : null}
         {event !== undefined ? <EventCountdown
             date={event.date}
             type={event.type}
@@ -321,20 +321,11 @@ function StoryAcasa() {
 
       {/* No new moments once the event is over: the story is in the album now. */}
       {owner && (event === undefined || !isEventPast(event.date)) ? (
-        <TouchableOpacity
-          ref={postMomentRef}
-          style={[
-            styles.fab,
-            { backgroundColor: tokens.accentFill, bottom: tabBarClearance + gSpace.lg },
-            tokens.mode === 'light' ? accentButtonShadow : undefined,
-          ]}
+        <PostMomentBar
+          targetRef={postMomentRef}
+          label={t('acasa.postMoment')}
           onPress={() => router.push(`/post-moment/${id}`)}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel={t('acasa.postMoment')}
-        >
-          <Feather name="plus" size={26} color={tokens.onAccent} />
-        </TouchableOpacity>
+        />
       ) : null}
     </View>
   );
@@ -461,14 +452,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     marginBottom: 4,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: themeRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

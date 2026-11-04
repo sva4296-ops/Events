@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { EventAccentProvider, useTheme } from "@/hooks/useTheme";
 import type { Gradient } from "@/types/event";
 import { spacing } from "@/utils/theme";
@@ -41,6 +42,7 @@ export function Screen({
 
   return (
     <Wrapper colors={resolvedGradient} style={styles.fill}>
+      {transparent || gradient !== undefined ? null : <AmbientBackground />}
       <EventAccentProvider coverTheme={coverTheme}>
         <SafeAreaView
           style={styles.fill}

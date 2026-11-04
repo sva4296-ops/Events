@@ -1,4 +1,4 @@
-import { Linking, Platform, Share } from 'react-native';
+import { AppState, Linking, Platform, Share } from 'react-native';
 
 import type { AppEvent, EventTypeId, SpontaneousTemplate } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
@@ -304,4 +304,39 @@ export function buildVenueMessage(
       : []),
   ];
   return lines.filter((line): line is string => line !== null).join('\n');
+}
+
+/**
+ * "Send invites" queue — reached after a bulk save (app/bulk-add-guests/[id].tsx)
+ * or directly from app/event/[id].tsx's "Send pending invites" button.
+ * Pending queue = event.guests where status is 'pending', whatsappSentAt is
+ * still null, and there's a phone to message (an email-only pending guest
+ * has nothing for this screen to do). Derived client-side from the same
+ * events cache useEvents() already holds — no separate fetch.
+ *
+ * "Sent" only ever means the app confirmed opening the wa.me link
+ * (sendGuestWhatsAppInvite's return value) — a guest who was actually
+ * shared via the fallback share sheet is *not* marked sent here, since
+ * there's no way to confirm WhatsApp itself ever opened for them. WhatsApp and SMS can't
+ * report whether a message really went out, so the organizer is asked on coming
+ * back; only a yes takes the guest off this screen. Resending to someone already
+ * marked lives on their row in the guest list.
+ */
+/** Resolves when the user is back from the app we opened (or after 3s if it never left this one). */
+export function waitForReturn(): Promise<void> {
+  return new Promise((resolve) => {
+    let left = false;
+    const finish = () => {
+      subscription.remove();
+      clearTimeout(timer);
+      resolve();
+    };
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') left = true;
+      else if (left) finish();
+    });
+    const timer = setTimeout(() => {
+      if (!left) finish();
+    }, 3000);
+  });
 }

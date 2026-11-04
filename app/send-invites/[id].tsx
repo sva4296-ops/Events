@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppState, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import Feather from '@expo/vector-icons/Feather';
 
@@ -18,47 +18,8 @@ import type { Guest } from '@/types/event';
 import { formatPhoneDisplay } from '@/utils/countryCodes';
 import { haptics } from '@/utils/haptics';
 import { reportSupabaseError } from '@/utils/reportError';
-import { buildGuestInviteMessage, sendGuestSmsInvite, sendGuestWhatsAppInvite } from '@/utils/whatsappInvite';
+import { buildGuestInviteMessage, sendGuestSmsInvite, sendGuestWhatsAppInvite, waitForReturn } from '@/utils/whatsappInvite';
 import { themeRadius, whatsappFill } from '@/utils/themeTokens';
-
-/**
- * "Send invites" queue — reached after a bulk save (app/bulk-add-guests/[id].tsx)
- * or directly from app/event/[id].tsx's "Send pending invites" button.
- * Pending queue = event.guests where status is 'pending', whatsappSentAt is
- * still null, and there's a phone to message (an email-only pending guest
- * has nothing for this screen to do). Derived client-side from the same
- * events cache useEvents() already holds — no separate fetch.
- *
- * "Sent" only ever means the app confirmed opening the wa.me link
- * (sendGuestWhatsAppInvite's return value) — a guest who was actually
- * shared via the fallback share sheet is *not* marked sent here, since
- * there's no way to confirm WhatsApp itself ever opened for them; Skip
- * exists for exactly that gap, and for "I don't have WhatsApp for this
- * person." Skip is session-local only — it never writes to the database,
- * so a skipped guest is back in the queue next time this screen opens; until
- * then they wait in their own section, still sendable. WhatsApp and SMS can't
- * report whether a message really went out, so the organizer is asked on coming
- * back; only a yes takes the guest off this screen. Resending to someone already
- * marked lives on their row in the guest list.
- */
-/** Resolves when the user is back from the app we opened (or after 3s if it never left this one). */
-function waitForReturn(): Promise<void> {
-  return new Promise((resolve) => {
-    let left = false;
-    const finish = () => {
-      subscription.remove();
-      clearTimeout(timer);
-      resolve();
-    };
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') left = true;
-      else if (left) finish();
-    });
-    const timer = setTimeout(() => {
-      if (!left) finish();
-    }, 3000);
-  });
-}
 
 export default function SendInvitesScreen() {
   const { t } = useTranslation();
@@ -67,7 +28,6 @@ export default function SendInvitesScreen() {
   const { tokens } = useTheme();
   const event = getEvent(id);
 
-  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sentCount, setSentCount] = useState(0);
   // The organizer's own invitation line; saved on the event before the first send.
@@ -96,17 +56,9 @@ export default function SendInvitesScreen() {
     (guest) =>
       guest.status === 'pending' &&
       guest.whatsappSentAt === null &&
-      guest.phone !== null &&
-      !skippedIds.has(guest.id),
+      guest.phone !== null,
   );
 
-  const skipped = event.guests.filter(
-    (guest) =>
-      guest.status === 'pending' &&
-      guest.whatsappSentAt === null &&
-      guest.phone !== null &&
-      skippedIds.has(guest.id),
-  );
   // SMS counts as sent too (whatsapp_sent_at is the queue's "invite sent"
   // flag), so a guest invited by SMS leaves the queue like a WhatsApp one.
   const sendToGuest = async (guest: Guest, channel: 'whatsapp' | 'sms') => {
@@ -147,19 +99,7 @@ export default function SendInvitesScreen() {
     }
   };
 
-  const skipGuest = (guestId: string) => {
-    setSkippedIds((current) => new Set(current).add(guestId));
-  };
-
-  const unskipGuest = (guestId: string) => {
-    setSkippedIds((current) => {
-      const next = new Set(current);
-      next.delete(guestId);
-      return next;
-    });
-  };
-
-  const renderGuests = (guests: Guest[], section: 'queue' | 'skipped') => (
+  const renderGuests = (guests: Guest[]) => (
     <View style={[styles.list, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
       {guests.map((guest, index) => (
         <View key={guest.id} style={[styles.row, index > 0 && { borderTopWidth: 1, borderTopColor: tokens.border }]}>
@@ -169,7 +109,7 @@ export default function SendInvitesScreen() {
             </Text>
           </View>
           <View style={styles.rowText}>
-            <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
+            <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={2}>
               {guest.name}
             </Text>
             {guest.phone !== null && guest.name !== guest.phone ? (
@@ -178,16 +118,6 @@ export default function SendInvitesScreen() {
               </Text>
             ) : null}
           </View>
-          <TouchableOpacity
-            onPress={() => (section === 'queue' ? skipGuest(guest.id) : unskipGuest(guest.id))}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            style={styles.skipButton}
-          >
-            <Text style={[styles.skipButtonText, { color: tokens.textSecondary }]}>
-              {t(section === 'queue' ? 'sendInvitesQueue.skipButton' : 'sendInvitesQueue.unskipButton')}
-            </Text>
-          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.smsButton, { borderColor: tokens.border }]}
             onPress={() => void sendToGuest(guest, 'sms')}
@@ -216,7 +146,7 @@ export default function SendInvitesScreen() {
     </View>
   );
 
-  const sample = queue[0] ?? skipped[0];
+  const sample = queue[0];
   const sampleMessage =
     sample !== undefined
       ? buildGuestInviteMessage({
@@ -276,20 +206,13 @@ export default function SendInvitesScreen() {
         ) : null}
       </View>
 
-      {queue.length === 0 && skipped.length === 0 ? (
+      {queue.length === 0 ? (
         <EmptyState
           message={t('sendInvitesQueue.empty')}
           action={<Button label={t('common.done')} variant="tonal" onPress={() => router.back()} />}
         />
       ) : null}
-      {queue.length > 0 ? renderGuests(queue, 'queue') : null}
-
-      {skipped.length > 0 ? (
-        <>
-          <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('sendInvitesQueue.skippedTitle')}</Text>
-          {renderGuests(skipped, 'skipped')}
-        </>
-      ) : null}
+      {queue.length > 0 ? renderGuests(queue) : null}
 
       <View style={[styles.note, { backgroundColor: tokens.accentTint }]}>
         <Feather name="info" size={18} color={tokens.accentText} />
@@ -363,10 +286,10 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     minHeight: 68,
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
   avatar: {
     width: 40,
@@ -413,15 +336,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     flexShrink: 1,
-  },
-  skipButton: {
-    minHeight: 40,
-    paddingHorizontal: 4,
-    justifyContent: 'center',
-  },
-  skipButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
   },
   note: {
     flexDirection: 'row',

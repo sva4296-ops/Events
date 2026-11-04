@@ -4,7 +4,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LinearGradient } from 'expo-linear-gradient';
+import { AmbientBackground } from '@/components/AmbientBackground';
 
+import { EventChromeContext } from '@/components/guest/eventChrome';
+import { EventHero } from '@/components/guest/EventHero';
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
 import { TabBarIcon, type TabIconId } from '@/components/guest/TabBarIcon';
 import { GettingStartedSheet } from '@/components/tour/GettingStartedSheet';
@@ -15,11 +18,14 @@ import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
 import { eventAccentTokens } from '@/utils/eventAccent';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
-import { confirmDelete } from '@/utils/confirm';
 import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, formatShortDate, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
 import { floatingTabBar, guest, tabBarBottomInset } from '@/utils/guestTheme';
+
+/** Derived from the pathname rather than the tab bar's own state, since this
+ * bar is mounted once above <Tabs> and needs to know which tab is active. */
+type ActiveTab = 'acasa' | 'detalii' | 'fond' | 'invitati' | 'chat' | 'live' | 'album';
 
 const TABS: readonly { name: string; labelKey: string; icon: TabIconId }[] = [
   { name: 'index', labelKey: 'guestTabs.home', icon: 'home' },
@@ -45,10 +51,6 @@ const VENUE_TAB_OVERRIDES: Record<string, { labelKey: string; icon: TabIconId }>
   fond: { labelKey: 'guestTabs.ticket', icon: 'ticket' },
 };
 
-/** Derived from the pathname rather than the tab bar's own state, since this
- * bar is mounted once above <Tabs> and needs to know which tab is active. */
-type ActiveTab = 'acasa' | 'detalii' | 'fond' | 'invitati' | 'chat' | 'live' | 'album';
-
 function getActiveTab(pathname: string): ActiveTab {
   if (pathname.endsWith('/detalii')) return 'detalii';
   if (pathname.endsWith('/fond')) return 'fond';
@@ -61,12 +63,12 @@ function getActiveTab(pathname: string): ActiveTab {
 
 export default function GuestEventLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getEvent, hydrated, isOwner, isPrimaryOwner, isRestaurant } = useEvents();
+  const { getEvent, hydrated, isOwner, isRestaurant } = useEvents();
   const { tokens } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
-  const { content, deleteFund } = useEventContent(id ?? '');
+  const { content } = useEventContent(id ?? '');
   const { hasUnread } = useChatRead(id ?? '');
 
   if (!hydrated || id === undefined) {
@@ -104,8 +106,6 @@ export default function GuestEventLayout() {
   if (!guestsTab && activeTab === 'invitati') {
     return <Redirect href={`/guest/${id}`} />;
   }
-  // Acasă draws its own cover hero, with back and edit on it.
-  const heroHeader = activeTab === 'acasa';
   const headerSubtitle =
     event !== undefined
       ? `${formatShortDate(event.date)} · ${t(
@@ -115,149 +115,120 @@ export default function GuestEventLayout() {
         )}`
       : undefined;
 
-  // Which single-row top-right action(s) show depends on the active tab —
-  // guests/stats only on Acasă (the guest list's one entry point, see §4 of
-  // CLAUDE.md), and the fund's own
-  // edit+delete only on Fond (and only once a fund actually exists — an
-  // empty Fond tab has nothing to edit or delete). Every other tab gets none.
-  const actions: HeaderAction[] = [];
-  // Finished events get no header actions: deleting one is a long press on
-  // its Home card, like every other event.
-  if (!past && owner) {
-    if (activeTab === 'detalii' && venueEvent) {
-      // The Book tab replaces the Detalii hub: the programme and the event
-      // editor are reached from here instead.
-      actions.push(
-        {
-          key: 'programme',
-          icon: 'clock',
-          accessibilityLabel: t('venue.tabs.editProgramme'),
-          onPress: () => router.push(`/detalii-schedule/${id}`),
-        },
-        {
-          key: 'edit-event',
-          icon: 'edit-2',
-          accessibilityLabel: t('event.editEvent'),
-          onPress: () => router.push(`/edit-event/${id}`),
-        },
-      );
-    } else if (activeTab === 'detalii' && spontaneous) {
-      // The spontaneous Plan tab has no Detalii hub to reach the event editor from.
-      actions.push({
-        key: 'edit-event',
-        icon: 'edit-2',
-        accessibilityLabel: t('event.editEvent'),
-        onPress: () => router.push(`/edit-event/${id}`),
-      });
-    } else if (activeTab === 'fond' && spontaneous) {
-      actions.push({
-        key: 'edit-bill',
-        icon: 'edit-2',
-        accessibilityLabel: t('spontaneous.bill.edit'),
-        onPress: () => router.push(`/bill/${id}`),
-      });
-    } else if (activeTab === 'fond' && isPrimaryOwner(event) && content !== null && content.fund !== null) {
-      const fund = content.fund;
-      const contributorCount = content.contributions.length;
-      actions.push(
-        {
-          key: 'edit-fund',
-          icon: 'edit-2',
-          accessibilityLabel: 'Editează fondul',
-          onPress: () => router.push(`/fund/${id}`),
-        },
-        {
-          key: 'delete-fund',
-          icon: 'trash-2',
-          tone: 'destructive',
-          accessibilityLabel: 'Șterge fondul',
-          onPress: () => {
-            const message =
-              contributorCount > 0
-                ? t('fond.deleteFundWithContributions', { title: fund.title, count: contributorCount })
-                : t('fond.deleteFundNoContributions', { title: fund.title });
-            confirmDelete(t('fond.deleteFundTitle'), message, deleteFund);
-          },
-        },
-      );
-    }
-  }
+  // Only Acasă has the cover (and its back and edit); what's specific to another tab goes in a slim bar.
+  const headerActions: HeaderAction[] =
+    past || !owner
+      ? []
+      : activeTab === 'detalii' && venueEvent
+        ? [
+            {
+              key: 'programme',
+              icon: 'clock',
+              accessibilityLabel: t('venue.tabs.editProgramme'),
+              onPress: () => router.push(`/detalii-schedule/${id}`),
+            },
+          ]
+        : activeTab === 'fond' && spontaneous
+          ? [
+              {
+                key: 'edit-bill',
+                icon: 'edit-3',
+                accessibilityLabel: t('spontaneous.bill.edit'),
+                onPress: () => router.push(`/bill/${id}`),
+              },
+            ]
+          : [];
+
+  const chrome =
+    event === undefined || restaurant
+      ? null
+      : {
+          hero: <EventHero event={event} canEdit={owner && !past} />,
+        };
 
   return (
     <GuestEventProvider id={id}>
       <EventAccentProvider coverTheme={event?.coverTheme ?? null}>
       <LinearGradient colors={tokens.background} style={styles.shell}>
-        {heroHeader ? null : <EventHeaderBar
-          // Only the restaurant's one tab needs the name; the others keep just their actions.
-          name={restaurant ? (event?.name ?? 'Evenimentul nostru') : ''}
-          type={event?.type ?? null}
-                    subtitle={restaurant ? headerSubtitle : undefined}
-          showBack={restaurant}
-          actions={actions}
-        />}
-        <Tabs
-          screenOptions={{
-            headerShown: false,
-            tabBarStyle: [
-              restaurant && styles.hidden,
-              styles.bar,
-              {
-                backgroundColor: tokens.tabBar.background,
-                borderTopColor: tokens.border,
-                // Docked and opaque: the bar itself covers the system nav area.
-                height: floatingTabBar.height + tabBarBottomInset(insets.bottom),
-                paddingBottom: tabBarBottomInset(insets.bottom),
-              },
-            ],
-            // This component reads the theme outside its own EventAccentProvider.
-            tabBarActiveTintColor: eventAccentTokens(event?.coverTheme, tokens)?.tabBar.active ?? tokens.tabBar.active,
-            tabBarInactiveTintColor: tokens.tabBar.inactive,
-            tabBarItemStyle: styles.item,
-            sceneStyle: { backgroundColor: 'transparent' },
-          }}
-          screenListeners={{ tabPress: () => haptics.tap() }}
-        >
-          {TABS.map((base) => {
-            const tab = {
-              ...base,
-              ...(spontaneous ? SPONTANEOUS_TAB_OVERRIDES[base.name] : undefined),
-              ...(venueEvent ? VENUE_TAB_OVERRIDES[base.name] : undefined),
-            };
-            return (
-              <Tabs.Screen
-                key={tab.name}
-                name={tab.name}
-                options={{
-                  // Past events hide every tab but Acasă and Album. The bill
-                  // split (spontaneous Fond) isn't the fund, so FUND_ENABLED
-                  // doesn't hide it.
-                  href:
-                    tab.name === 'live' ||
-                    (tab.name === 'invitati' && !guestsTab) ||
-                    (past && tab.name !== 'index' && tab.name !== 'album' && !(spontaneous && tab.name === 'fond')) ||
-                    (!FUND_ENABLED && !spontaneous && !venueEvent && tab.name === 'fond')
-                      ? null
-                      : undefined,
-                  title: t(tab.labelKey),
-                  tabBarLabel: ({ color, focused }) => (
-                    <Text style={[styles.label, { color, fontWeight: focused ? '700' : '500' }]}>
-                      {t(tab.labelKey)}
-                    </Text>
-                  ),
-                  // Warm Story 2.0: accentTint pill behind the active icon.
-                  tabBarIcon: ({ color, focused }) => (
-                    <TabBarIcon
-                      name={tab.icon}
-                      color={color}
-                      focused={focused}
-                      badge={tab.name === 'chat' && !focused && content !== null && hasUnread(content.messages)}
-                    />
-                  ),
-                }}
-              />
-            );
-          })}
-        </Tabs>
+        <AmbientBackground />
+        {restaurant ? (
+          <EventHeaderBar
+            name={event?.name ?? 'Evenimentul nostru'}
+            type={event?.type ?? null}
+            subtitle={headerSubtitle}
+            showBack
+            actions={[]}
+          />
+        ) : activeTab === 'acasa' ? null : headerActions.length > 0 ? (
+          <EventHeaderBar name="" type={event?.type ?? null} actions={headerActions} />
+        ) : (
+          <View style={{ height: insets.top }} />
+        )}
+        <EventChromeContext.Provider value={chrome}>
+          <Tabs
+            screenOptions={{
+              headerShown: false,
+              tabBarStyle: [
+                restaurant && styles.hidden,
+                styles.bar,
+                {
+                  backgroundColor: tokens.tabBar.background,
+                  borderTopColor: tokens.border,
+                  // Docked and opaque: the bar itself covers the system nav area.
+                  height: floatingTabBar.height + tabBarBottomInset(insets.bottom),
+                  paddingBottom: tabBarBottomInset(insets.bottom),
+                },
+              ],
+              // This component reads the theme outside its own EventAccentProvider.
+              tabBarActiveTintColor: eventAccentTokens(event?.coverTheme, tokens)?.tabBar.active ?? tokens.tabBar.active,
+              tabBarInactiveTintColor: tokens.tabBar.inactive,
+              tabBarItemStyle: styles.item,
+              sceneStyle: { backgroundColor: 'transparent' },
+            }}
+            screenListeners={{ tabPress: () => haptics.tap() }}
+          >
+            {TABS.map((base) => {
+              const tab = {
+                ...base,
+                ...(spontaneous ? SPONTANEOUS_TAB_OVERRIDES[base.name] : undefined),
+                ...(venueEvent ? VENUE_TAB_OVERRIDES[base.name] : undefined),
+              };
+              return (
+                <Tabs.Screen
+                  key={tab.name}
+                  name={tab.name}
+                  options={{
+                    // Past events hide every tab but Acasă and Album. The bill
+                    // split (spontaneous Fond) isn't the fund, so FUND_ENABLED
+                    // doesn't hide it.
+                    href:
+                      tab.name === 'live' ||
+                      (tab.name === 'invitati' && !guestsTab) ||
+                      (past && tab.name !== 'index' && tab.name !== 'album' && !(spontaneous && tab.name === 'fond')) ||
+                      (!FUND_ENABLED && !spontaneous && !venueEvent && tab.name === 'fond')
+                        ? null
+                        : undefined,
+                    title: t(tab.labelKey),
+                    tabBarLabel: ({ color, focused }) => (
+                      <Text style={[styles.label, { color, fontWeight: focused ? '700' : '500' }]}>
+                        {t(tab.labelKey)}
+                      </Text>
+                    ),
+                    // Warm Story 2.0: accentTint pill behind the active icon.
+                    tabBarIcon: ({ color, focused }) => (
+                      <TabBarIcon
+                        name={tab.icon}
+                        color={color}
+                        focused={focused}
+                        badge={tab.name === 'chat' && !focused && content !== null && hasUnread(content.messages)}
+                      />
+                    ),
+                  }}
+                />
+              );
+            })}
+          </Tabs>
+        </EventChromeContext.Provider>
         {!past && owner && !restaurant && !venueEvent ? <GettingStartedSheet eventId={id} /> : null}
       </LinearGradient>
       </EventAccentProvider>
@@ -274,8 +245,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: guest.cream,
   },
-  // Docked to the bottom edge. `position: 'absolute'` so screens
-  // scroll under it; every guest screen clears it with
+  // Docked to the bottom edge. `position: 'absolute'` so screens scroll under it;
+  // every guest screen clears it with
   // `tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height`.
   // borderTopWidth is set explicitly: React Navigation's own top border
   // otherwise stays under a custom style.

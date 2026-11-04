@@ -1,17 +1,20 @@
 import Feather from "@expo/vector-icons/Feather";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { showDialog } from "@/components/ActionSheet";
 import { Button, buttonLabelColor } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { CoverStatusContext } from "@/components/guest/eventChrome";
 import { GuestScreen } from "@/components/guest/GuestScreen";
 import { PhotoTile } from "@/components/guest/PhotoTile";
 import { PhotoGallery } from "@/components/PhotoViewer";
 import { ProgressBar } from "@/components/guest/ProgressBar";
 import { Skeleton } from "@/components/Skeleton";
+import type { Photo } from "@/types/guest";
 import { useAuth } from "@/hooks/useAuth";
 import { useEventContent } from "@/hooks/useEventContent";
 import { useEvents } from "@/hooks/useEvents";
@@ -23,6 +26,7 @@ import {
   PHOTO_UPLOAD_DAYS_AFTER,
 } from "@/utils/limits";
 import { saveAlbumToGallery } from "@/utils/albumDownload";
+import { floatingTabBar, gSpace, tabBarBottomInset } from "@/utils/guestTheme";
 import { reportSupabaseError } from "@/utils/reportError";
 import { themeRadius, typography } from "@/utils/themeTokens";
 
@@ -31,13 +35,34 @@ type AlbumFilter = "all" | "mine";
 /** Per pick, so a large batch doesn't sit resizing for minutes. */
 const MAX_PHOTOS_PER_BATCH = 30;
 
+const COLUMNS = 3;
+const TILE_GAP = 4;
+const SIDE_PADDING = 20;
+
+/** Inside GuestScreen, so the cover's status bar handling applies to this list too. */
+function AlbumList(props: React.ComponentProps<typeof FlatList<Photo>>) {
+  const coverStatus = useContext(CoverStatusContext);
+  return (
+    <FlatList
+      {...props}
+      scrollEventThrottle={64}
+      onScroll={(event) => coverStatus?.onScrollY(event.nativeEvent.contentOffset.y)}
+    />
+  );
+}
+
 export default function AlbumScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { user } = useAuth();
   const { isOwner } = useEvents();
   const { tokens } = useTheme();
-  const { content, addPhotos, deletePhoto } = useEventContent(id);
+  const { content, addPhotos, deletePhoto, loadOlderPhotos, loadAllPhotos } = useEventContent(id);
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const tileSize = (windowWidth - SIDE_PADDING * 2 - TILE_GAP * (COLUMNS - 1)) / COLUMNS;
+  const [reachedEnd, setReachedEnd] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState<AlbumFilter>("all");
   const [download, setDownload] = useState<{ done: number; total: number } | null>(null);
   const [upload, setUpload] = useState<{ done: number; total: number } | null>(null);
@@ -45,16 +70,19 @@ export default function AlbumScreen() {
 
   const owner = isOwner(event);
   const loading = content === null;
-  const photos = content?.photos ?? [];
-  const uploaders = new Set(photos.map((photo) => photo.uploaded_by)).size;
-  const visible =
-    filter === "mine"
-      ? photos.filter((photo) => photo.uploaded_by === user?.id)
-      : photos;
-  const canDownload = event?.albumStatus === "ready" && photos.length > 0;
-  const myCount = photos.filter(
-    (photo) => photo.uploaded_by === user?.id,
-  ).length;
+  const photos = useMemo(() => content?.photos ?? [], [content?.photos]);
+  // Totals come from the whole album: only some of its photos are loaded.
+  const uploaderIds = content?.photoUploaderIds ?? [];
+  const uploaders = new Set(uploaderIds).size;
+  const visible = useMemo(
+    () =>
+      filter === "mine"
+        ? photos.filter((photo) => photo.uploaded_by === user?.id)
+        : photos,
+    [filter, photos, user?.id],
+  );
+  const canDownload = event?.albumStatus === "ready" && uploaderIds.length > 0;
+  const myCount = uploaderIds.filter((uploader) => uploader === user?.id).length;
   // Organizers have no limit; the server enforces it too (guest photo limit trigger).
   const limitReached = !owner && myCount >= GUEST_PHOTO_LIMIT;
   // 3 full days after the event nobody adds photos anymore (server enforces it too).
@@ -91,7 +119,7 @@ export default function AlbumScreen() {
   const downloadAll = async () => {
     if (download !== null) return;
     try {
-      const result = await saveAlbumToGallery(photos, (done, total) =>
+      const result = await saveAlbumToGallery(await loadAllPhotos(), (done, total) =>
         setDownload({ done, total }),
       );
       if (result.status === "denied") {
@@ -120,13 +148,26 @@ export default function AlbumScreen() {
     }
   };
 
+  const loadMore = async () => {
+    if (loadingMore || reachedEnd || content === null) return;
+    setLoadingMore(true);
+    try {
+      if (!(await loadOlderPhotos())) setReachedEnd(true);
+    } catch (error) {
+      // Scrolling down again retries.
+      console.warn("[album] loading more photos failed", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   const filters: { key: AlbumFilter; label: string }[] = [
     { key: "all", label: t("album.filterAll") },
     { key: "mine", label: t("album.filterMine") },
   ];
 
-  return (
-    <GuestScreen transparent>
+  const listHeader = (
+    <View style={styles.header}>
       <View style={styles.head}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: tokens.textPrimary }]}>
@@ -149,7 +190,7 @@ export default function AlbumScreen() {
         </View>
         {!loading ? (
           <Text style={[styles.summary, { color: tokens.textSecondary }]}>
-            {`${t("album.summary", { count: photos.length })} · ${t("album.summaryPeople", { count: uploaders })}`}
+            {`${t("album.summary", { count: uploaderIds.length })} · ${t("album.summaryPeople", { count: uploaders })}`}
           </Text>
         ) : null}
       </View>
@@ -249,42 +290,20 @@ export default function AlbumScreen() {
       {loading ? (
         <View style={styles.grid}>
           {Array.from({ length: 9 }, (_, index) => (
-            <Skeleton key={index} style={styles.tile} radius={0} />
-          ))}
-        </View>
-      ) : visible.length === 0 ? (
-        <EmptyState
-          message={filter === "mine" ? t("album.emptyMine") : t("album.empty")}
-        />
-      ) : (
-        <View style={styles.grid}>
-          {visible.map((photo, index) => (
-            <PhotoTile
-              key={photo.id}
-              photo={photo}
-              style={[styles.tile, { backgroundColor: tokens.surface2 }]}
-              canDelete={owner || photo.uploaded_by === user?.id}
-              onDelete={deletePhoto}
-              labelFontSize={10}
-              onOpen={() => setViewerIndex(index)}
+            <Skeleton
+              key={index}
+              style={{ width: tileSize, height: tileSize, borderRadius: 0 }}
+              radius={0}
             />
           ))}
         </View>
-      )}
-
-      {viewerIndex !== null ? (
-        <PhotoGallery
-          photos={visible.map((photo) => ({
-            id: photo.id,
-            uri: photo.full_url ?? photo.url ?? undefined,
-            placeholderUri: photo.thumb_url ?? undefined,
-            caption: photo.uploaded_by_label ?? undefined,
-          }))}
-          initialIndex={viewerIndex}
-          onClose={() => setViewerIndex(null)}
-        />
       ) : null}
+    </View>
+  );
 
+  const listFooter = (
+    <View style={styles.footer}>
+      {loadingMore ? <ActivityIndicator color={tokens.textSecondary} /> : null}
       {/* Download only once the server cron marks the album ready (events.album_status,
           ~72h after the event). The timing is explained in the ⓘ next to the title. */}
       {canDownload ? (
@@ -308,11 +327,84 @@ export default function AlbumScreen() {
           </Text>
         </TouchableOpacity>
       ) : null}
+    </View>
+  );
+
+  return (
+    <GuestScreen transparent scroll={false} contentStyle={styles.screen}>
+      {/* Only the photos on screen get drawn, and the next page loads on the way down. */}
+      <AlbumList
+        data={loading ? [] : visible}
+        keyExtractor={(photo) => photo.id}
+        numColumns={COLUMNS}
+        columnWrapperStyle={styles.row}
+        renderItem={({ item: photo, index }) => (
+          <PhotoTile
+            photo={photo}
+            style={{ width: tileSize, height: tileSize, backgroundColor: tokens.surface2 }}
+            canDelete={owner || photo.uploaded_by === user?.id}
+            onDelete={deletePhoto}
+            labelFontSize={10}
+            onOpen={() => setViewerIndex(index)}
+          />
+        )}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={
+          loading ? null : (
+            <EmptyState message={filter === "mine" ? t("album.emptyMine") : t("album.empty")} />
+          )
+        }
+        ListFooterComponent={listFooter}
+        contentContainerStyle={[
+          styles.list,
+          { paddingBottom: tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height + gSpace.lg },
+        ]}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={7}
+        onEndReachedThreshold={0.6}
+        onEndReached={() => void loadMore()}
+      />
+
+      {viewerIndex !== null ? (
+        <PhotoGallery
+          photos={visible.map((photo) => ({
+            id: photo.id,
+            uri: photo.full_url ?? photo.url ?? undefined,
+            placeholderUri: photo.thumb_url ?? undefined,
+            caption: photo.uploaded_by_label ?? undefined,
+          }))}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      ) : null}
+
     </GuestScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  list: {
+    paddingHorizontal: SIDE_PADDING,
+    paddingTop: gSpace.lg,
+  },
+  header: {
+    gap: gSpace.lg,
+    marginBottom: gSpace.lg,
+  },
+  row: {
+    gap: TILE_GAP,
+    marginBottom: TILE_GAP,
+  },
+  footer: {
+    gap: gSpace.lg,
+    marginTop: gSpace.lg,
+  },
   head: {
     gap: 4,
   },
@@ -381,11 +473,6 @@ const styles = StyleSheet.create({
     gap: 4,
     borderRadius: 18,
     overflow: "hidden",
-  },
-  tile: {
-    width: "32.4%",
-    aspectRatio: 1,
-    borderRadius: 0,
   },
   download: {
     minHeight: 54,

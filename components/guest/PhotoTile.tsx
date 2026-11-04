@@ -1,6 +1,7 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, type StyleProp, type ViewStyle } from 'react-native';
 
 import { PhotoViewer } from '@/components/PhotoViewer';
 
@@ -51,7 +52,14 @@ export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 1
         accessibilityRole="button"
         accessibilityLabel={`Poză de la ${label}`}
       >
-        <Image source={{ uri: gridUri }} style={StyleSheet.absoluteFill} />
+        {/* Signed URLs change hourly: a stable key keeps thumbnails on disk, so they aren't downloaded again. */}
+        <Image
+          source={{ uri: gridUri, cacheKey: `photo-${photo.id}-thumb` }}
+          cachePolicy="disk"
+          recyclingKey={photo.id}
+          contentFit="cover"
+          style={StyleSheet.absoluteFill}
+        />
         <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.scrim}>
           <Text style={[styles.label, { fontSize: labelFontSize }]} numberOfLines={1}>
             {label}
@@ -59,7 +67,7 @@ export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 1
         </LinearGradient>
       </TouchableOpacity>
 
-      <PhotoViewer uri={viewerUri} visible={viewerOpen} onClose={() => setViewerOpen(false)} caption={label} />
+      <PhotoViewer uri={viewerUri} cacheKey={`photo-${photo.id}-full`} visible={viewerOpen} onClose={() => setViewerOpen(false)} caption={label} />
     </>
   );
 }

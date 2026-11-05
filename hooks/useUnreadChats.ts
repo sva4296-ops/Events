@@ -7,7 +7,9 @@ import { useAuth } from '@/hooks/useAuth';
 /**
  * Unread chat messages per event, for Home's cards. Refreshed when a push
  * arrives (usePushNotifications), when a chat is marked read (useChatRead)
- * and when Home comes back into focus.
+ * and by Home itself (focus, foreground, a slow timer). No Realtime here on
+ * purpose: a table-wide listener makes every message cost one access check
+ * per connected user, in any event.
  */
 export function useUnreadChats(): { unreadFor: (eventId: string) => number; refetch: () => void } {
   const { user } = useAuth();

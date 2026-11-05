@@ -3,7 +3,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,7 +21,6 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
-import { useChatActivity } from '@/hooks/useChatActivity';
 import { useUnreadChats } from '@/hooks/useUnreadChats';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -53,14 +52,27 @@ function initials(firstName: string | null, lastName: string | null): string {
   return letters.toUpperCase();
 }
 
+const UNREAD_REFRESH_MS = 2 * 60_000;
+
 export default function DashboardScreen() {
   usePushNotifications();
-  useChatActivity();
   const { unreadFor, refetch: refetchUnread } = useUnreadChats();
-  // Back on Home (e.g. after reading a chat): refresh the "new messages" pills.
+  // The "new messages" pills aren't live: refreshed on the way back to Home, when
+  // the app returns to the foreground, every so often while Home is showing, and
+  // when a push arrives (usePushNotifications). Only an open chat uses Realtime.
   useFocusEffect(
     useCallback(() => {
       refetchUnread();
+      const timer = setInterval(() => {
+        if (AppState.currentState === 'active') refetchUnread();
+      }, UNREAD_REFRESH_MS);
+      const subscription = AppState.addEventListener('change', (state) => {
+        if (state === 'active') refetchUnread();
+      });
+      return () => {
+        clearInterval(timer);
+        subscription.remove();
+      };
     }, [refetchUnread]),
   );
   const { t } = useTranslation();

@@ -22,25 +22,25 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AuthGate } from "@/components/AuthGate";
-import { ActionSheetHost } from "@/components/ActionSheet";
 import { BrandSplash } from "@/components/BrandSplash";
+import { ActionSheetHost } from "@/components/ActionSheet";
 import { BusyOverlayHost } from "@/components/BusyOverlay";
 import { TourHost } from "@/components/tour/Tour";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useEvents } from "@/hooks/useEvents";
 import { EventDraftProvider } from "@/hooks/useEventDraft";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { markAppReady } from "@/utils/appReady";
 import { initSentry, wrapRoot } from "@/utils/sentry";
 
 /**
- * Keeps the native splash (app.json's `expo-splash-screen` plugin config, with
- * its own light/dark `backgroundColor`) on screen past its normal auto-hide
- * point, until `RootLayout` explicitly hides it once fonts are ready and the
- * theme-aware BrandSplash overlay is already mounted underneath — so the
- * handoff is a clean cut, not a blank/wrong-background frame in between.
- * Module scope so this runs before the first render, not inside an effect.
+ * Keeps the native splash (app.json's `expo-splash-screen` config) up past its normal
+ * auto-hide point until `SplashGate` hides it, with BrandSplash already mounted
+ * underneath, pixel-identical. Module scope so this runs before the first render.
  */
 void SplashScreen.preventAutoHideAsync();
+SplashScreen.setOptions({ fade: true, duration: 250 });
 
 // No-op until EXPO_PUBLIC_SENTRY_DSN is set (see utils/sentry.ts).
 initSentry();
@@ -86,25 +86,10 @@ function RootLayout() {
 
   const [queryClient] = useState(createQueryClient);
   const [splashVisible, setSplashVisible] = useState(true);
-
-  // Nothing to route here anymore — AuthGate decides Auth vs Onboarding vs
-  // letting the default route (Home) through, once mounted underneath.
-  const handleReveal = useCallback(() => {}, []);
-
-  const handleFinished = useCallback(() => {
+  const handleSplashFinished = useCallback(() => {
     setSplashVisible(false);
     markAppReady();
   }, []);
-
-  // Fires once, right as this component is about to render BrandSplash for
-  // the first time — hides the native splash at exactly the moment the
-  // theme-aware JS one is ready to be seen in its place.
-  useEffect(() => {
-    if (fontsLoaded) {
-      void SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
   if (!fontsLoaded) return null;
 
   return (
@@ -115,11 +100,7 @@ function RootLayout() {
             <AuthProvider>
               <EventDraftProvider>
                 <AuthGate>
-                  <AppShell
-                    splashVisible={splashVisible}
-                    onReveal={handleReveal}
-                    onFinished={handleFinished}
-                  />
+                  <AppShell splashVisible={splashVisible} onSplashFinished={handleSplashFinished} />
                 </AuthGate>
               </EventDraftProvider>
             </AuthProvider>
@@ -136,12 +117,10 @@ function RootLayout() {
  */
 function AppShell({
   splashVisible,
-  onReveal,
-  onFinished,
+  onSplashFinished,
 }: {
   splashVisible: boolean;
-  onReveal: () => void;
-  onFinished: () => void;
+  onSplashFinished: () => void;
 }) {
   const { mode, tokens } = useTheme();
 
@@ -158,12 +137,47 @@ function AppShell({
         <TourHost />
         <ActionSheetHost />
         <BusyOverlayHost />
-        {splashVisible ? (
-          <BrandSplash onReveal={onReveal} onFinished={onFinished} />
-        ) : null}
+        {splashVisible ? <SplashGate onFinished={onSplashFinished} /> : null}
       </View>
     </>
   );
+}
+
+/** Never hold the splash longer than this (slow network, offline). */
+const SPLASH_MAX_WAIT_MS = 5000;
+
+/**
+ * Rendering the first screen keeps the JS thread busy on a mid-range phone, which
+ * froze BrandSplash halfway through its animation. So the native splash stays up
+ * through that work, and the animation starts only afterwards.
+ */
+function SplashGate({ onFinished }: { onFinished: () => void }) {
+  const { loading } = useAuth();
+  const { hydrated: profileHydrated } = useUserProfile();
+  const { hydrated: eventsHydrated } = useEvents();
+  const [timedOut, setTimedOut] = useState(false);
+  const [ready, setReady] = useState(false);
+  const contentReady = (!loading && profileHydrated && eventsHydrated) || timedOut;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setTimedOut(true), SPLASH_MAX_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!contentReady) return;
+    // Two frames: the screen that just got its data has committed and painted.
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        void SplashScreen.hideAsync()
+          .catch(() => undefined)
+          .then(() => setReady(true));
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [contentReady]);
+
+  return <BrandSplash ready={ready} onFinished={onFinished} />;
 }
 
 const styles = StyleSheet.create({

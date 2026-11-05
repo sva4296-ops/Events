@@ -33,7 +33,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 257,
           "resizeMode": "contain",
-          "backgroundColor": "#F7F3EC",
+          "backgroundColor": "#14111D",
           "android": {
             "drawable": {
               "icon": "./assets/splash-icon-android.xml"
@@ -41,7 +41,7 @@
           },
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#F7F3EC"
+            "backgroundColor": "#14111D"
           }
         }
       ],

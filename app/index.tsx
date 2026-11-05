@@ -1,8 +1,9 @@
+import { Image } from 'expo-image';
 import Feather from '@expo/vector-icons/Feather';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -67,7 +68,7 @@ export default function DashboardScreen() {
   const { events, hydrated, isOwner, isPrimaryOwner, isRestaurant, deleteEvent } = useEvents();
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
-  const { firstName, lastName, avatarUrl } = useUserProfile();
+  const { firstName, lastName, avatarUrl, avatarCacheKey } = useUserProfile();
   const { user } = useAuth();
 
   // The restaurant's events sit here too (labelled), never under invitations:
@@ -156,7 +157,7 @@ export default function DashboardScreen() {
             accessibilityLabel={t('home.profile')}
           >
             {avatarUrl !== null ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+              <Image source={{ uri: avatarUrl, cacheKey: avatarCacheKey ?? undefined }} cachePolicy="disk" style={styles.avatar} />
             ) : (
               <GeneratedAvatar seed={user?.id ?? avatarInitials} size={44} />
             )}

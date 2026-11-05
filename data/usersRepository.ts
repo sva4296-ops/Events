@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { supabase } from '@/data/supabaseClient';
 import type { UserProfileRow } from '@/types/supabase';
 
@@ -16,17 +18,20 @@ export interface UserProfile {
    * the only auth method; this is a separate, freely-editable column the
    * user can fill in or leave blank. */
   email: string | null;
-  /** Signed URL into the private `avatars` bucket, re-derived on every
-   * fetch (see fetchAvatarUrl) — null if the user has never uploaded one.
-   * Not a stored column; the object path is fully derivable from the
-   * user's own id, same "no new column" convention as event photo paths. */
-  avatarUrl: string | null;
+}
+
+/**
+ * The signed URL changes on every fetch; `cacheKey` is what keeps the image on
+ * disk across restarts. It holds the day, so another device's new photo shows up
+ * by tomorrow, and a local version, so this device's own upload shows right away.
+ */
+export interface UserAvatar {
+  url: string;
+  cacheKey: string;
 }
 
 const AVATAR_BUCKET = 'avatars';
-/** Regenerated on every fetchMyProfile (staleTime 180s for this query — see
- * useUserProfile.tsx), so this only needs to outlive a few renders, not be
- * long-lived — same reasoning as event photos' own signed-URL TTL. */
+/** Must outlive the avatar query's staleTime (useUserProfile.tsx). */
 const AVATAR_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 function avatarStoragePath(userId: string): string {
@@ -45,25 +50,33 @@ function mapUserProfileRow(row: UserProfileRow): Omit<UserProfile, 'avatarUrl'> 
 /** Null (not thrown) when the user has no avatar yet — createSignedUrl
  * errors for a path that doesn't exist, and "no avatar" is an expected,
  * common state, not a failure. */
-async function fetchAvatarUrl(userId: string): Promise<string | null> {
-  const { data, error } = await supabase.storage
-    .from(AVATAR_BUCKET)
-    .createSignedUrl(avatarStoragePath(userId), AVATAR_SIGNED_URL_TTL_SECONDS);
+export async function fetchMyAvatar(userId: string): Promise<UserAvatar | null> {
+  const [{ data, error }, version] = await Promise.all([
+    supabase.storage.from(AVATAR_BUCKET).createSignedUrl(avatarStoragePath(userId), AVATAR_SIGNED_URL_TTL_SECONDS),
+    AsyncStorage.getItem(avatarVersionKey(userId)),
+  ]);
   if (error) return null;
-  return data.signedUrl;
+  const day = new Date().toISOString().slice(0, 10);
+  return { url: data.signedUrl, cacheKey: `avatar-${userId}-${day}-${version ?? '0'}` };
+}
+
+function avatarVersionKey(userId: string): string {
+  return `povesteanoastra:avatar-version:${userId}`;
+}
+
+/** Called after an upload, so the next fetch doesn't reuse the old image from disk. */
+export async function bumpAvatarVersion(userId: string): Promise<void> {
+  await AsyncStorage.setItem(avatarVersionKey(userId), String(Date.now()));
 }
 
 export async function fetchMyProfile(userId: string): Promise<UserProfile | null> {
-  const [{ data, error }, avatarUrl] = await Promise.all([
-    supabase
-      .from('users')
-      .select('first_name, last_name, display_name, email')
-      .eq('id', userId)
-      .maybeSingle(),
-    fetchAvatarUrl(userId),
-  ]);
+  const { data, error } = await supabase
+    .from('users')
+    .select('first_name, last_name, display_name, email')
+    .eq('id', userId)
+    .maybeSingle();
   if (error) throw error;
-  return data === null ? null : { ...mapUserProfileRow(data as UserProfileRow), avatarUrl };
+  return data === null ? null : mapUserProfileRow(data as UserProfileRow);
 }
 
 /** userId -> signed URL for those who have an avatar and whose avatar the caller may

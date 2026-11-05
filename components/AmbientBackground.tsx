@@ -1,5 +1,3 @@
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
@@ -58,23 +56,13 @@ function Glow({
 /**
  * Two soft glows and a little dust behind the content. Completely static: it
  * used to drift, which kept the screen redrawing nonstop (battery). No big
- * bitmaps either (about 75 MB per screen when it drew them), and nothing is
- * mounted on a screen that isn't focused.
+ * bitmaps either (about 75 MB per screen when it drew them). It stays mounted
+ * when the screen loses focus: unmounting it there made the backdrop go flat
+ * for a moment before and after every navigation, and it's cheap enough to keep.
  */
 export function AmbientBackground() {
   const { tokens } = useTheme();
   const { width, height } = useWindowDimensions();
-  const [focused, setFocused] = useState(true);
-
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
-
-  if (!focused) return null;
-
   const dark = tokens.mode === 'dark';
   const strength = dark ? 1 : 0.6;
   const reach = Math.max(width, height);

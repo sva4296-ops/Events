@@ -1,10 +1,11 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
-import { ActivityIndicator, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { showActionSheet, showDialog } from '@/components/ActionSheet';
 import { Button } from '@/components/Button';
@@ -34,7 +35,7 @@ const LANGUAGE_LABEL_KEY: Record<SupportedLanguage, string> = {
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const { user, signOut, deleteAccount } = useAuth();
-  const { displayName, avatarUrl, uploadAvatar } = useUserProfile();
+  const { displayName, avatarUrl, avatarCacheKey, uploadAvatar } = useUserProfile();
   const { isAgencyOwner, hydrated: agencyHydrated } = useAgency();
   const { tokens, themeId, setThemeId } = useTheme();
   const activeLanguage = i18n.language;
@@ -161,7 +162,7 @@ export default function ProfileScreen() {
           accessibilityLabel={t('profile.changePhoto')}
         >
           {avatarUrl !== null ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            <Image source={{ uri: avatarUrl, cacheKey: avatarCacheKey ?? undefined }} cachePolicy="disk" style={styles.avatar} />
           ) : (
             <GeneratedAvatar seed={user?.id ?? initials} size={72} />
           )}

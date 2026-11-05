@@ -1,9 +1,8 @@
-import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
 
-import { useTheme } from '@/hooks/useTheme';
 import {
   MARK_DOT_RADIUS,
   MARK_END,
@@ -16,10 +15,14 @@ import {
   MARK_UNITS_WIDTH,
   MARK_VIEWBOX,
 } from '@/utils/brandMark';
-import { typography } from '@/utils/themeTokens';
+import { THEMES, typography } from '@/utils/themeTokens';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+/** One fixed look, whatever the phone's dark mode or the app theme: the native splash runs
+ * before any JS can read the saved theme. Must match app.json's splash backgroundColor. */
+const SPLASH_TOKENS = THEMES.siteDark;
 
 /** Must match app.json's splash imageWidth × 0.7 (the mark fills 70% of splash-icon.png). */
 const MARK_WIDTH = 180;
@@ -36,8 +39,8 @@ const LIFT = 56;
 const SPARK_LENGTH = 34;
 
 interface BrandSplashProps {
-  /** Fires when the sequence ends, before the fade — the parent routes here. */
-  onReveal: () => void;
+  /** Holds the mark still (identical to the native splash) until the app underneath is ready. */
+  ready: boolean;
   /** Fires once the overlay has fully faded out and can be unmounted. */
   onFinished: () => void;
 }
@@ -45,17 +48,17 @@ interface BrandSplashProps {
 /**
  * Warm Story 2.0 animated splash. The native splash (assets/splash-icon.png,
  * see app.json) already shows the full mark, centered, at exactly this size,
- * so the hand-off is seamless. From there:
+ * on the same background, so the two read as one screen. From there:
  *   1. the heart beats twice (lub-dub) while the gold dot pulses,
  *   2. a soft light runs along the thread, from the gold dot through the
  *      heart to the purple dot, which pulses as it arrives,
  *   3. the mark glides up while the wordmark and tagline rise in under it,
  *   4. the overlay fades out.
- * Theme-aware background; the mark's own gradient is brand identity and
- * stays fixed in both modes. About 2.3s end to end.
+ * About 2.3s end to end, starting only once the app is ready (see SplashGate), since
+ * rendering the first screen keeps JS busy and would freeze it halfway.
  */
-export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
-  const { tokens } = useTheme();
+export function BrandSplash({ ready, onFinished }: BrandSplashProps) {
+  const tokens = SPLASH_TOKENS;
   const beat = useRef(new Animated.Value(1)).current;
   const goldPulse = useRef(new Animated.Value(0)).current;
   const purplePulse = useRef(new Animated.Value(0)).current;
@@ -66,6 +69,8 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
   const overlay = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (!ready) return;
+
     // SVG props (dot radius, dash offset) can't run on the native driver.
     const pulse = (value: Animated.Value) =>
       Animated.sequence([
@@ -120,7 +125,6 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
 
     sequence.start(({ finished }) => {
       if (!finished) return;
-      onReveal();
       Animated.timing(overlay, {
         toValue: 0,
         duration: 320,
@@ -129,7 +133,7 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
     });
 
     return () => sequence.stop();
-  }, [beat, goldPulse, purplePulse, spark, lift, wordmark, tagline, overlay, onReveal, onFinished]);
+  }, [ready, beat, goldPulse, purplePulse, spark, lift, wordmark, tagline, overlay, onFinished]);
 
   const rise = (value: Animated.Value) => ({
     opacity: value,
@@ -144,8 +148,8 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
   const sparkOpacity = spark.interpolate({ inputRange: [0, 0.08, 0.9, 1], outputRange: [0, 0.75, 0.75, 0] });
 
   return (
-    <Animated.View style={[styles.overlay, { opacity: overlay }]}>
-      <LinearGradient colors={tokens.background} style={StyleSheet.absoluteFill} />
+    <Animated.View style={[styles.overlay, { opacity: overlay, backgroundColor: tokens.background[0] }]}>
+      <StatusBar style="light" />
 
       {/* The mark starts dead-center (matching the native splash), beats, then glides up. */}
       <Animated.View

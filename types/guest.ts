@@ -10,6 +10,10 @@ export interface Moment {
   organizer_id: string;
   title: string;
   photo_url: string;
+  /** Optional line icon id (components/MomentIcon.tsx), null when none. */
+  icon: string | null;
+  /** Who posted it (display name), null when unknown. */
+  author_label: string | null;
   created_at: string;
 }
 
@@ -23,13 +27,31 @@ export interface MomentReaction {
   reaction_type: ReactionType;
 }
 
+export interface MessagePhoto {
+  width: number;
+  height: number;
+  /** Null when no signed URL could be produced (e.g. the file is missing). */
+  thumb_url: string | null;
+  full_url: string | null;
+}
+
+export interface MessageReaction {
+  id: string;
+  user_id: string;
+  emoji: string;
+}
+
 export interface Message {
   id: string;
   event_id: string;
   sender_id: string;
   sender_label: string;
+  /** Empty for a photo sent without a caption. */
   content: string;
   created_at: string;
+  edited_at: string | null;
+  photo: MessagePhoto | null;
+  reactions: MessageReaction[];
 }
 
 export interface Fund {
@@ -81,6 +103,9 @@ export interface ScheduleItem {
   time: string;
   title: string;
   location: string;
+  /** Map point picked in the schedule editor; both null when not set. */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface Venue {
@@ -144,6 +169,10 @@ export interface Accommodation {
   name: string;
   detail_line: string;
   price_line: string;
+  /** Address text; '' when not set. */
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface Vendor {
@@ -169,7 +198,10 @@ export interface SocialContent {
   moments: Moment[];
   reactions: MomentReaction[];
   messages: Message[];
+  /** The latest page; the album loads the rest as it scrolls. */
   photos: Photo[];
+  /** One entry per photo in the whole album, for its totals. */
+  photoUploaderIds: string[];
 }
 
 /** Owner-edited, rarely-changing settings — schedule, venue, menu, seating,

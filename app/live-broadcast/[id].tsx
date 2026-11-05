@@ -75,7 +75,7 @@ export default function LiveBroadcastScreen() {
 
   if (!allowed || id === undefined) {
     return (
-      <Screen>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('common.notAvailable')} subtitle={t('liveVideo.notAvailable')} showBack />
       </Screen>
     );
@@ -157,11 +157,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   statusChip: {
-    height: 30,
+    minHeight: 30,
     paddingHorizontal: 12,
     borderRadius: 999,
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 4,
   },
   statusLive: {
     backgroundColor: '#B5335F',

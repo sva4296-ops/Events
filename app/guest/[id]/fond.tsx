@@ -9,6 +9,8 @@ import { Button, buttonLabelColor } from '@/components/Button';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { LockedFeature } from '@/components/guest/LockedFeature';
 import { GuestScreen } from '@/components/guest/GuestScreen';
+import { SpontaneousBill } from '@/components/spontaneous/SpontaneousBill';
+import { VenueTicketTab } from '@/components/venue/VenueTabs';
 import { ProgressBar } from '@/components/guest/ProgressBar';
 import { Skeleton } from '@/components/Skeleton';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -21,6 +23,14 @@ import { typography } from '@/utils/themeTokens';
 import { formatMoney } from '@/utils/money';
 
 export default function FondScreen() {
+  const { event } = useGuestEvent();
+  const { isOwner } = useEvents();
+  if (event?.type === 'spontaneous') return <SpontaneousBill event={event} owner={isOwner(event)} />;
+  if (event?.type === 'venue') return <VenueTicketTab event={event} owner={isOwner(event)} />;
+  return <FundScreen />;
+}
+
+function FundScreen() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { isPrimaryOwner } = useEvents();
@@ -204,5 +214,6 @@ const styles = StyleSheet.create({
   },
   disclaimer: {
     fontSize: 12,
+    flexShrink: 1,
   },
 });

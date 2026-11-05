@@ -1,13 +1,15 @@
+import { Image } from 'expo-image';
 import Feather from '@expo/vector-icons/Feather';
-import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/Button';
-import { EventListItem, EventListItemSkeleton } from '@/components/EventListItem';
+import { type EventMenuAction } from '@/components/EventMenu';
+import { DashboardHero, DashboardHeroSkeleton, DashboardRow } from '@/components/DashboardCards';
+import { GeneratedAvatar } from '@/components/GeneratedAvatar';
 import { HomeEmptyState } from '@/components/HomeEmptyState';
 import {
   InvitationGroup,
@@ -16,18 +18,25 @@ import {
 } from '@/components/InvitationListItem';
 import { Screen } from '@/components/Screen';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { useAgency } from '@/hooks/useAgency';
+import { useAuth } from '@/hooks/useAuth';
 import { useEventDraft } from '@/hooks/useEventDraft';
 import { useEvents } from '@/hooks/useEvents';
-import { usePlanFeatures } from '@/hooks/usePlanFeatures';
+import { useUnreadChats } from '@/hooks/useUnreadChats';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import i18n from '@/utils/i18n';
 import { compareEventsByDate } from '@/utils/eventOrder';
+import { confirmDelete } from '@/utils/confirm';
+import { isEventPast } from '@/utils/format';
+import { reportSupabaseError } from '@/utils/reportError';
+import { daysUntilEvent } from '@/utils/format';
 import { myInvitations } from '@/utils/invitations';
 import { staggerIn } from '@/utils/motion';
+import { canOpenEventPage } from '@/utils/spontaneous';
 import { spacing } from '@/utils/theme';
-import { brandGradient, themeRadius, typography } from '@/utils/themeTokens';
+import { themeRadius, typeface, typography } from '@/utils/themeTokens';
+
+type HomeTab = 'mine' | 'invited' | 'all';
 
 function todayLabel(): string {
   const label = new Date().toLocaleDateString(i18n.language, {
@@ -43,37 +52,92 @@ function initials(firstName: string | null, lastName: string | null): string {
   return letters.toUpperCase();
 }
 
+const UNREAD_REFRESH_MS = 2 * 60_000;
+
 export default function DashboardScreen() {
   usePushNotifications();
+  const { unreadFor, refetch: refetchUnread } = useUnreadChats();
+  // The "new messages" pills aren't live: refreshed on the way back to Home, when
+  // the app returns to the foreground, every so often while Home is showing, and
+  // when a push arrives (usePushNotifications). Only an open chat uses Realtime.
+  useFocusEffect(
+    useCallback(() => {
+      refetchUnread();
+      const timer = setInterval(() => {
+        if (AppState.currentState === 'active') refetchUnread();
+      }, UNREAD_REFRESH_MS);
+      const subscription = AppState.addEventListener('change', (state) => {
+        if (state === 'active') refetchUnread();
+      });
+      return () => {
+        clearInterval(timer);
+        subscription.remove();
+      };
+    }, [refetchUnread]),
+  );
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { events, hydrated, isOwner, isRestaurant, myCoOrganizerRole } = useEvents();
+  const { events, hydrated, isOwner, isPrimaryOwner, isRestaurant, deleteEvent } = useEvents();
   const { resetDraft } = useEventDraft();
   const { tokens } = useTheme();
-  const { isAgencyOwner } = useAgency();
-  const { plans } = usePlanFeatures();
-  const { firstName, lastName, avatarUrl } = useUserProfile();
+  const { firstName, lastName, avatarUrl, avatarCacheKey } = useUserProfile();
+  const { user } = useAuth();
 
   // The restaurant's events sit here too (labelled), never under invitations:
   // RLS shows it the whole guest list, so guests[0] wouldn't be "its" row.
   const managesEvent = (event: (typeof events)[number]) => isOwner(event) || isRestaurant(event);
   const ownedEvents = events.filter(managesEvent).sort(compareEventsByDate);
-  // Null for events you own; your label ("Naș", "Mireasă"…) where you're a co-organizer.
-  const coOrganizerLabel = (role: ReturnType<typeof myCoOrganizerRole>) =>
-    role === null ? null : role === 'co_organizer' ? t('home.coOrganizer') : t(`coOrganizers.relation.${role}`);
+  // "Up next" is only what's still ahead; finished events get their own section.
+  const isFinished = (event: (typeof events)[number]) => (daysUntilEvent(event.date) ?? 0) < 0;
+  const upcomingEvents = ownedEvents.filter((event) => !isFinished(event));
+  const finishedEvents = ownedEvents.filter(isFinished);
+  const nextEvent = upcomingEvents[0];
   const invitations = myInvitations(events, managesEvent).sort((a, b) => compareEventsByDate(a.event, b.event));
   const avatarInitials = initials(firstName, lastName);
 
-  // plan_features.display_name is the single source of truth for a tier's
-  // label (the exact same string the pricing screen's own card shows) —
-  // looked up here rather than duplicated as a second set of tier-name
-  // strings, so a card's badge can't drift from what the pricing screen
-  // itself calls that plan. Falls back to the raw plan_tier value only if
-  // plan_features doesn't (yet, or anymore) have a matching row.
-  const planLabelFor = (planTier: string | null): string | null => {
-    if (planTier === null) return null;
-    return plans.find((plan) => plan.planKey === planTier)?.displayName ?? planTier;
+  // Null = not picked yet: open on "mine", or on "invited" when you only
+  // have invitations. Agency accounts get the same tabs: they can be invited too.
+  const [pickedTab, setPickedTab] = useState<HomeTab | null>(null);
+  const tab: HomeTab = pickedTab ?? (ownedEvents.length === 0 && invitations.length > 0 ? 'invited' : 'mine');
+  const showMine = tab !== 'invited';
+  const showInvited = tab !== 'mine';
+  const tabs: { key: HomeTab; label: string; count: number | null }[] = [
+    { key: 'mine', label: t('home.yourEvents'), count: hydrated ? ownedEvents.length : null },
+    { key: 'invited', label: t('home.tabInvited'), count: hydrated ? invitations.length : null },
+    { key: 'all', label: t('home.tabAll'), count: null },
+  ];
+
+  // Edit (until it's over) and, for its creator, Delete after a confirmation:
+  // a bottom sheet on a long press of the card.
+  const menuFor = (event: (typeof events)[number]): EventMenuAction[] => {
+    if (isRestaurant(event)) return [];
+    const actions: EventMenuAction[] = [];
+    if (isOwner(event) && !isEventPast(event.date)) {
+      actions.push({
+        id: 'edit',
+        title: t('common.edit'),
+        onPress: () => router.push(`/edit-event/${event.id}`),
+      });
+    }
+    if (isPrimaryOwner(event)) {
+      actions.push({
+        id: 'delete',
+        title: t('common.delete'),
+        destructive: true,
+        onPress: () =>
+          confirmDelete(
+            t('editEventForm.deleteTitle'),
+            t('editEventForm.deleteBody', { name: event.name }),
+            () => deleteEvent(event.id).catch(reportSupabaseError),
+          ),
+      });
+    }
+    return actions;
   };
+
+  // The restaurant only has the Detalii tab; everyone else lands on Acasă.
+  const openEvent = (event: (typeof events)[number]) =>
+    router.push(isRestaurant(event) ? `/guest/${event.id}/detalii` : `/guest/${event.id}`);
 
   const startCreating = () => {
     resetDraft();
@@ -82,11 +146,16 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.root}>
-      <Screen contentStyle={styles.content}>
+      {/* Cards scroll all the way down, behind the floating "create" button
+          and the home indicator; the padding keeps the last one reachable. */}
+      <Screen
+        bottomSafeArea={false}
+        contentStyle={{ ...styles.content, paddingBottom: styles.content.paddingBottom + insets.bottom }}
+      >
         <View style={styles.header}>
           <View style={styles.greeting}>
             <Text style={[styles.date, { color: tokens.textSecondary }]}>{todayLabel()}</Text>
-            <Text style={[styles.hello, { color: tokens.textPrimary }]} numberOfLines={1}>
+            <Text style={[styles.hello, { color: tokens.textPrimary, fontFamily: tokens.displayFont }]} numberOfLines={1}>
               {firstName !== null && firstName.trim().length > 0
                 ? t('home.greeting', { name: firstName.trim() })
                 : t('home.greetingNoName')}
@@ -100,29 +169,56 @@ export default function DashboardScreen() {
             accessibilityLabel={t('home.profile')}
           >
             {avatarUrl !== null ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+              <Image source={{ uri: avatarUrl, cacheKey: avatarCacheKey ?? undefined }} cachePolicy="disk" style={styles.avatar} />
             ) : (
-              <LinearGradient
-                colors={brandGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.avatar}
-              >
-                {avatarInitials.length > 0 ? (
-                  <Text style={styles.avatarText}>{avatarInitials}</Text>
-                ) : (
-                  <Feather name="user" size={20} color="#FFFFFF" />
-                )}
-              </LinearGradient>
+              <GeneratedAvatar seed={user?.id ?? avatarInitials} size={44} />
             )}
           </TouchableOpacity>
         </View>
 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabs}
+          accessibilityRole="tablist"
+        >
+          {tabs.map((item) => {
+            const active = tab === item.key;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                onPress={() => setPickedTab(item.key)}
+                activeOpacity={0.8}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                style={[
+                  styles.tab,
+                  active
+                    ? { backgroundColor: tokens.textPrimary }
+                    : { backgroundColor: tokens.surface, borderWidth: 1.5, borderColor: tokens.border },
+                ]}
+              >
+                <Text style={[styles.tabText, { color: active ? tokens.surface : tokens.textPrimary }]}>
+                  {item.label}
+                </Text>
+                {item.count !== null ? (
+                  <Text style={[styles.tabCount, { color: active ? tokens.surface : tokens.textPrimary }]}>
+                    {item.count}
+                  </Text>
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {showMine ? (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('home.yourEvents')}</Text>
+          {tab === 'all' ? (
+            <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>{t('home.yourEvents')}</Text>
+          ) : null}
 
           {!hydrated ? (
-            <EventListItemSkeleton />
+            <DashboardHeroSkeleton />
           ) : ownedEvents.length === 0 ? (
             <HomeEmptyState
               icon="calendar"
@@ -132,32 +228,63 @@ export default function DashboardScreen() {
               onPressCta={startCreating}
             />
           ) : (
-            ownedEvents.map((event, index) => (
-              <Animated.View key={event.id} entering={staggerIn(index)}>
-                <EventListItem
-                  event={event}
-                  onPress={() =>
-                    // The restaurant only has the Detalii tab.
-                    router.push(isRestaurant(event) ? `/guest/${event.id}/detalii` : `/guest/${event.id}`)
-                  }
-                  planLabel={planLabelFor(event.planTier)}
-                  onPressChoosePlan={() => router.push(`/pricing/${event.id}`)}
-                  coOrganizerLabel={coOrganizerLabel(myCoOrganizerRole(event))}
-                />
-              </Animated.View>
-            ))
+            <>
+              {/* The soonest event gets the big card; the rest are compact rows. */}
+              {nextEvent !== undefined ? (
+                <Animated.View entering={staggerIn(0)}>
+                  <DashboardHero
+                    event={nextEvent}
+                    onPress={() => openEvent(nextEvent)}
+                    menuActions={menuFor(nextEvent)}
+                    onPressInvite={() => router.push(`/event/${nextEvent.id}`)}
+                  />
+                </Animated.View>
+              ) : null}
+              {upcomingEvents.length > 1 ? (
+                <View>
+                  <Text style={[styles.overline, { color: tokens.textSecondary, borderBottomColor: tokens.border }]}>
+                    {t('home.dashboard.upNext')}
+                  </Text>
+                  {upcomingEvents.slice(1).map((event, index) => (
+                    <Animated.View key={event.id} entering={staggerIn(index + 1)}>
+                      <DashboardRow
+                        event={event}
+                        showDivider={index > 0}
+                        onPress={() => openEvent(event)}
+                        menuActions={menuFor(event)}
+                      />
+                    </Animated.View>
+                  ))}
+                </View>
+              ) : null}
+              {finishedEvents.length > 0 ? (
+                <View>
+                  <Text style={[styles.overline, { color: tokens.textSecondary, borderBottomColor: tokens.border }]}>
+                    {t('home.dashboard.finished')}
+                  </Text>
+                  {finishedEvents.map((event, index) => (
+                    <DashboardRow
+                      key={event.id}
+                      event={event}
+                      showDivider={index > 0}
+                      onPress={() => openEvent(event)}
+                      menuActions={menuFor(event)}
+                    />
+                  ))}
+                </View>
+              ) : null}
+            </>
           )}
         </View>
+        ) : null}
 
-        {/* Agency accounts don't participate in guest invitations — see
-            CLAUDE.md's "Agency accounts" section. Hidden outright rather than
-            just filtered to empty, since (unlike "Your events") there's no
-            legitimate agency-owner invitation to ever show here. */}
-        {isAgencyOwner ? null : (
+        {!showInvited ? null : (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>
-              {t('home.myInvitations')}
-            </Text>
+            {tab === 'all' ? (
+              <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>
+                {t('home.myInvitations')}
+              </Text>
+            ) : null}
 
             {!hydrated ? (
               <InvitationGroup>
@@ -177,13 +304,14 @@ export default function DashboardScreen() {
                     <InvitationListItem
                       invitation={invitation}
                       showDivider={index > 0}
+                      unreadMessages={invitation.guest.status === 'confirmed' ? unreadFor(invitation.event.id) : 0}
                       onPress={() =>
-                        // Only a confirmed guest enters the event. Pending and
-                        // declined both land on the RSVP screen, which for a
-                        // declined guest shows no event-access button, only
-                        // "Change my answer".
+                        // Only a confirmed guest enters the event (or "maybe", on a
+                        // spontaneous one). Pending and declined both land on
+                        // the RSVP screen, which for a declined guest shows no
+                        // event-access button, only "Change my answer".
                         router.push(
-                          invitation.guest.status === 'confirmed'
+                          canOpenEventPage(invitation.event.type, invitation.guest.status)
                             ? `/guest/${invitation.event.id}`
                             : `/invite/${invitation.event.id}`,
                         )
@@ -197,13 +325,15 @@ export default function DashboardScreen() {
         )}
       </Screen>
 
-      <View style={[styles.createBar, { bottom: insets.bottom + spacing.lg }]} pointerEvents="box-none">
-        <Button
-          label={t('home.createEvent')}
-          onPress={startCreating}
-          icon={<Feather name="plus" size={20} color={tokens.onAccent} />}
-        />
-      </View>
+      <TouchableOpacity
+        onPress={startCreating}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={t('home.createEvent')}
+        style={[styles.fab, { backgroundColor: tokens.accentFill, bottom: Math.max(insets.bottom, spacing.md) + 8 }]}
+      >
+        <Feather name="plus" size={26} color={tokens.onAccent} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -229,6 +359,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   date: {
+    fontFamily: typeface.bodyMedium,
     fontSize: 14,
   },
   hello: {
@@ -243,20 +374,59 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: '#FFFFFF',
+    fontFamily: typeface.bodyBold,
     fontSize: 15,
-    fontWeight: '700',
   },
   section: {
     gap: spacing.md,
+  },
+  tabs: {
+    gap: 8,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: 14,
+    borderRadius: themeRadius.pill,
+    paddingVertical: 4,
+  },
+  tabText: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 14,
+    flexShrink: 1,
+  },
+  tabCount: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 14,
+    opacity: 0.7,
+    flexShrink: 1,
   },
   sectionTitle: {
     ...typography.subtitle,
     fontSize: 18,
   },
-  createBar: {
+  overline: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  fab: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    right: 20,
+    width: 58,
+    height: 58,
+    borderRadius: themeRadius.pill,
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
 });

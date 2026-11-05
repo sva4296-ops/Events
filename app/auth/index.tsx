@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontFamily: typography.title1.fontFamily,
     fontSize: 20,
+    flexShrink: 1,
   },
   intro: {
     gap: spacing.md,

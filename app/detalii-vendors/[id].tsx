@@ -7,8 +7,9 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { usePlanGate } from '@/hooks/usePlanGate';
@@ -57,7 +58,7 @@ export default function DetaliiVendorsScreen() {
 
   if (content === null) {
     return (
-      <Screen>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('detalii.hub.vendorsTitle')} showBack />
       </Screen>
     );
@@ -68,7 +69,7 @@ export default function DetaliiVendorsScreen() {
   // vendors inserts (see the plan-feature-gating migration).
   if (planHydrated && !capabilities.vendorTaggingEnabled) {
     return (
-      <GuestScreen topInset>
+      <GuestScreen coverTheme={event?.coverTheme} topInset>
         <Header title={t('detalii.hub.vendorsTitle')} showBack />
         <EmptyState
           icon="lock"
@@ -89,7 +90,7 @@ export default function DetaliiVendorsScreen() {
   const card = cardStyle(tokens);
 
   return (
-    <GuestScreen topInset>
+    <GuestScreen coverTheme={event?.coverTheme} topInset>
       <Header
         title={t('detalii.hub.vendorsTitle')}
         subtitle={t('detalii.vendorsDescription')}
@@ -120,7 +121,8 @@ export default function DetaliiVendorsScreen() {
         <>
           <View style={styles.stack}>
             {content.vendors.map((vendor) => (
-              <SwipeableRow
+              <LongPressRow
+                title={vendor.name}
                 key={vendor.id}
                 enabled={owner}
                 actions={[
@@ -165,8 +167,16 @@ export default function DetaliiVendorsScreen() {
                       </Text>
                     </TouchableOpacity>
                   ) : null}
+                  {owner ? (
+                    <IconCircleButton
+                      size="sm"
+                      icon="edit-2"
+                      accessibilityLabel={t('common.edit')}
+                      onPress={() => router.push(`/vendor/${id}?itemId=${vendor.id}`)}
+                    />
+                  ) : null}
                 </View>
-              </SwipeableRow>
+              </LongPressRow>
             ))}
           </View>
           <Text style={[styles.vendorCaption, { color: tokens.textSecondary }]}>

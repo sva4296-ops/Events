@@ -56,6 +56,26 @@ export const EVENT_TYPES: readonly EventTypeMeta[] = [
     accent: '#5B6076',
   },
   {
+    // Karaoke / party / wine tasting, 1–2 weeks away (events.template).
+    id: 'spontaneous',
+    label: 'Spontaneous',
+    emoji: '⚡',
+    gradient: ['#FFD9C4', '#F9C6DA'],
+    band: ['#FFB547', '#E8457A', '#7A2E8E'],
+    bandInk: '#FFFFFF',
+    accent: '#C42E61',
+  },
+  {
+    // A bar/restaurant night customers book. Business accounts only (wizard + guard_venue_event_owner).
+    id: 'venue',
+    label: 'Venue',
+    emoji: '🎟️',
+    gradient: ['#E9D5F2', '#F8CFDD'],
+    band: ['#1A1A2E', '#5F2B84', '#D6336C'],
+    bandInk: '#FFFFFF',
+    accent: '#A61E4D',
+  },
+  {
     id: 'other',
     label: 'Other',
     // Not ➕ — a plus inside a tile or avatar reads as an "add" button.
@@ -99,6 +119,8 @@ const EVENT_TYPE_GRADIENTS: Record<EventTypeId, EventTypeGradientPair> = {
   corporate: { light: ['#D3DDF0', '#C3CFE8'], dark: ['#232B42', '#1C2238'] },
   memorial: { light: ['#E2E4EC', '#D7DDF0'], dark: ['#2C2E3D', '#272B42'] },
   other: { light: ['#E8DDFB', '#D6E4FF'], dark: ['#2E2350', '#20263F'] },
+  spontaneous: { light: ['#FFD9C4', '#F9C6DA'], dark: ['#3B1F3F', '#2B1B4F'] },
+  venue: { light: ['#E9D5F2', '#F8CFDD'], dark: ['#1A1A2E', '#3A1F4F'] },
 };
 
 const FALLBACK_GRADIENT_PAIR: EventTypeGradientPair = EVENT_TYPE_GRADIENTS.other;

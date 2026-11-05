@@ -10,6 +10,7 @@ import {
   isPushPreferenceEnabled,
   registerForPushNotifications,
   routeFromNotification,
+  syncPushLocale,
 } from '@/utils/pushNotifications';
 
 /**
@@ -34,6 +35,7 @@ function refreshEventData(queryClient: QueryClient, route: string | null): void 
   // '/' = an event was deleted (on_event_delete_notify): only Home's list changes.
   if (eventId === null && route !== '/') return;
   void queryClient.invalidateQueries({ queryKey: ['events'] });
+  void queryClient.invalidateQueries({ queryKey: ['unreadChats'] });
   if (eventId === null) return;
   void queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === 'eventContent' && query.queryKey[2] === eventId,
@@ -45,6 +47,12 @@ export function usePushNotifications(): void {
   const queryClient = useQueryClient();
   const registeredFor = useRef<string | null>(null);
   const lastResponse = Notifications.useLastNotificationResponse();
+  const userId = user?.id ?? null;
+
+  // Server-side push copy follows the app language (also re-synced on change in Profile).
+  useEffect(() => {
+    if (userId !== null) void syncPushLocale(userId);
+  }, [userId]);
 
   useEffect(() => {
     if (user === null || registeredFor.current === user.id) return;

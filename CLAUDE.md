@@ -13,6 +13,26 @@
 >   `['eventContent', 'social', eventId]` cache via `setQueryData`. It is the **only** subscription:
 >   moments, reactions and photos are still request/response. Every "Realtime is unused / nothing
 >   subscribes" line below is stale for Chat only.
+> - **Chat photos (2026-11-02).** One photo per message: `messages.photo_width/height` (non-null = has a
+>   photo, `content` is `''` without a caption), files at `{eventId}/chat/{messageId}/thumb|full.jpg` in
+>   `event-photos`. Signed URLs are memoized in `signedChatPhotos`; `expo-image` caches on disk by a stable `cacheKey`, so restarts don't re-download.
+>   `purge_finished_event_chats` skips photo messages; the `purge-chat-photos` edge function (pg_cron, needs
+>   the `project_url`/`cron_secret` Vault secrets and the `CRON_SECRET` env) removes their files and rows.
+> - **Chat reactions (2026-11-02).** `message_reactions` (one per person per message, `20261102000002`), embedded
+>   in `loadSocial`; long-press a message for `MessageActionsBar`, floating at the message (emoji + delete on your own), not a sheet. Own messages can be edited there too, via the `edit_message` RPC (`20261102000003`; sets `edited_at`).
+> - **Event page redesign (2026-11-02).** Tabs are Acasă / Plan / Invitați / Chat / Album. `invitati` (owners only,
+>   not venue nights) renders `components/GuestDashboard.tsx`, also behind `/event/[id]`; `live` is hidden from the
+>   bar (`href: null`), route kept. Every Acasă (spontaneous and venue too) draws `components/guest/EventHero.tsx`'s cover hero and countdown, and no `EventHeaderBar`.
+> - **Agency accounts see invitations now (2026-11-02).** Home's Mine/Invited/All tabs show for everyone; older lines saying "My invitations" is hidden for agencies are stale.
+> - **Event cover photo (2026-11-02).** `events.cover_photo_path` (`20261102000004`), file at `{eventId}/cover/{uuid}.jpg`; `hooks/useEventCoverPhoto.ts`. `EventCover`'s `photoPath` draws it over the theme (hero, Home cards, invitation, story).
+> - **Event page chrome (2026-11-04).** Docked bottom bar again (Acasă / Plan / Invitați / Chat / Album; Chat is a tab). The tabs layout provides the cover hero through `eventChrome.tsx`, and only Acasă draws it (`GuestScreen`'s `showHero`; Spontaneous and Venue draw `EventHero` themselves): the other tabs have no cover and no back. Their owner actions sit in a slim `EventHeaderBar`. In `GuestDashboard` the totals (Toți first) are the filters, search sits beside the export button, a WhatsApp button shows while invites are unsent, adding a guest is the button above the tab bar (`PostMomentBar`), and a pending row's badge says Netrimisă / Trimisă / Văzută. Acasă's post action is `PostMomentBar`, just above the bar.
+> - **Album paging (2026-11-04).** `loadSocial` brings the latest `PHOTOS_PAGE_SIZE` (30) photos plus `photoUploaderIds` (all, for totals); `loadOlderPhotos` appends; the album is a 3-column `FlatList`; the download uses `loadAllPhotos`. Test event: `TEST performanță` (`08f6874f-52e6-48b7-8fef-aa5cd5c71f4c`), deletable.
+> - **Chat paging (2026-11-04).** `loadSocial` brings only the latest `MESSAGES_PAGE_SIZE` (50) messages; `useEventContent().loadOlderMessages` prepends older pages into the same `social` cache, and the social `queryFn` keeps them across refetches. Chat is an inverted `FlatList`; its rows are a memoized `ChatMessageRow` with plain props and stable handlers, keep them that way (the list re-renders mounted cells on every window change). Moments still load whole.
+> - **Ambient backdrop (2026-11-04).** `components/AmbientBackground.tsx` (fully static: small glows scaled up + 25 dust views, no big bitmaps, focused screens only) sits behind `Screen`, `GuestScreen` and the event tabs shell. `teracotaDark` is a selectable theme.
+> - **Site themes (2026-11-04).** `siteDark` / `siteLight` in `THEMES` copy the website's two themes (Fraunces for display). Their `accentFill` is the text color, so `tokens.coverBase` (violet) drives default covers (deep, white text, on these two themes only), `AmbientBackground` and `harmonizeCoverTheme` (picked covers mix 28% toward the app theme); body text stays Instrument Sans.
+> - **Audit fixes (2026-11-02).** The event tab bar is docked and opaque again (`tabBarBottomInset` = safe area); Acasă's countdown uses `daysUntilEvent` like Home; Home splits finished events into their own section; chat has day separators.
+> - **Co-organizers are guests too (2026-11-03).** `20261103000001`: every co-organizer gets a confirmed `event_guests` row (trigger + backfill), so they can pick a menu and be seated. `Guest.userId` finds their own row; don't use `guests[0]` for anyone who sees the whole list.
+> - **Invite seen (2026-11-03).** `event_guests.invite_seen_at`, set only from client code (`mark_invite_seen` in the app, `mark_invite_seen_by_token` on the web): server rendering would count WhatsApp's link preview as a view.
 > - **Plan-tier feature gating exists** (`2bd5315`). `hooks/usePlanGate.tsx` (`usePlanGate(eventId)`)
 >   is the single client-side source for "does this event's plan allow X"; a null `plan_tier` behaves
 >   as Esențial (50 guests, no chat/live/fund/lodging/vendors). Locked states are wired into Chat,
@@ -86,7 +106,11 @@
 >   `ScreenBackground`, `BrandHeader`. povestea-web: `components/ui/styles.ts` classes, `TabNav` (docked
 >   bar) and every `bg-accent text-white` / `text-accent` moved to accent-fill / accent-text.
 >   **Logo + splash (same day):** the brand mark is the design's "story thread"
->   (`utils/brandMark.ts`: `M5 28C15 28 17 8 29 8S43 30 55 12`, gold + purple end dots). All
+>   (`utils/brandMark.ts`, gold + purple end dots). **Updated 2026-10-07:** the mark is now the
+  "story thread with a heart" (thread from the gold dot loops into a heart, ends at the purple dot;
+  viewBox `0 20 100 68`); the old plain wave survives only as `FLOURISH_PATH` for `BrandFlourish`.
+  `BrandSplash` now: heart double-beat + gold pulse, a white light runs along the thread, purple
+  pulse, then lift + wordmark + fade (~2.3s). All
 >   `assets/` icons were Expo defaults; they're now rendered from that mark (plum `#1E1A30` icon
 >   background, adaptive fg inside the safe zone, white monochrome). The native splash shows the
 >   mark at `imageWidth: 257` (= 180px mark), and `BrandSplash` starts from that exact frame: dots
@@ -226,6 +250,45 @@
 >   `20260929000002_invite_token_event_id.sql` makes `get_invite_by_token` also return `event_id`
 >   (drop + recreate, return type changed). If you change a data contract here (tables, RPCs, Storage
 >   paths, plan gating), check povestea-web too.
+> - **Spontaneous events (2026-10-22, branch `claude/add-whatsapp-invite-options-63ac3b`).** New
+>   `event_type` `'spontaneous'` (karaoke / party / wine tasting, 1-2 weeks away) and `rsvp_status`
+>   `'maybe'`, in their own migration (`20261022000001`). `20261022000002_spontaneous_events.sql`:
+>   `events.template/start_time/reply_by/spot_limit`, `event_guests.plus_one/bill_sent_at/bill_confirmed_at`,
+>   `event_polls` + `event_poll_votes` (one group vote per event), `plan_items` (+ `plan_item_votes`,
+>   `plan_item_ratings`; kind song/bring/wine; guests add songs, claim "bring" items via
+>   `claim_plan_item`), `bill_splits`, `get_event_attendees()` (yes + maybe with names/payment status,
+>   since guests only see their own `event_guests` row), triggers `guard_spot_limit` (raises
+>   `event_full`, counts +1) and `guard_bill_confirmation` (only organizers tick payments off). App:
+>   `data/spontaneousRepository.ts` + `hooks/useSpontaneous.tsx` (`['spontaneous', eventId]`, polls every
+>   20s, no Realtime), `components/spontaneous/*`. The guest tabs branch on `event.type`: Acasă →
+>   `SpontaneousHome`, Detalii → `SpontaneousPlan` (tab label "Plan"), Fond → `SpontaneousBill` (tab
+>   "Notă", not plan-gated). Wizard: type → `create/template` → details (+ time, reply-by, spot limit) →
+>   preview → pricing → share (6 steps, `utils/spontaneous.ts` `wizardStep`). RSVP screen offers Vin /
+>   Poate / Nu pot + a +1 switch; "maybe" guests can open the event tabs (`canOpenEventPage`). WhatsApp
+>   invites are the same per-guest flow with a per-template message. 'maybe' is only offered on
+>   spontaneous events. Not built: add-to-calendar, reminders for "maybe", web (povestea-web) support
+>   for 'maybe'/'spontaneous', the "Local" (venue/HoReCa) type.
+> - **Venue events ("Local", 2026-10-23).** `event_type` `'venue'` (`20261023000001`), business accounts
+>   only (wizard hides the tile without an `agencies` row; trigger `guard_venue_event_owner`).
+>   `20261023000002_venue_events.sql`: `events.host_name/price_info/booking_times/max_party_size/public_token`,
+>   `venue_zones` (capacity per area), `event_guests.party_size/zone_id/booking_time/booking_code/checked_in_at`
+>   (a booking IS an event_guests row, confirmed = booked, declined = cancelled), `venue_followers` (per
+>   agency, consent to get invitations; name/phone snapshotted), RPCs `resolve_venue_token` (anon),
+>   `get_venue_booking`, `book_venue_event` (capacity check under a zone row lock, raises `zone_full`).
+>   `enforce_guest_cap` skips venue events. The public link reuses `/i/<token>`: `app/i/[token].tsx` tries
+>   the personal invite token first, then `resolve_venue_token` → `/book/<id>?t=<token>`. App:
+>   `data/venueRepository.ts`, `hooks/useVenue.tsx` (`['venue', eventId]`, polls 20s), `app/book/[id].tsx`
+>   (booking + `VenueTicket` with QR of the code), `app/venue-bookings/[id].tsx` (occupancy, check-in),
+>   `app/venue-send/[id].tsx` (share link + WhatsApp to followers), `app/venue-setup/[id].tsx` +
+>   `app/create/venue.tsx` (shared `VenueSetupForm`). The invite screen redirects venue events to `/book`.
+>   No payments (price is a text line), no web booking page yet (povestea-web), no consent register/QR for tables.
+> - **Fonts (2026-10-22).** Only Bricolage Grotesque 600 (display/titles/numbers) and Instrument
+>   Sans 400/500/600 are loaded, per-weight in `app/_layout.tsx`; Playfair, Fraunces, Space Grotesk and
+>   Unbounded are uninstalled. `typeface`/`typography`/`fonts` map to the new files (`bodyBold` = 600,
+>   no 700 file). Nothing else about the design changed.
+> - **Splash (2026-11-05).** Reads as one screen: the native splash and `BrandSplash` share the mark, its place and one fixed background whatever the phone's dark mode or the app theme (`#14111D`, app.json must match `THEMES.siteDark`). `SplashGate` (`app/_layout.tsx`) holds the native splash until auth, profile and events are in (5s cap), then the animation runs (heartbeat, light along the thread, wordmark, tagline). `assets/splash-icon-android.xml` is an `animated-vector` with a no-op animation, so Android 12+ draws it live instead of upscaling a small bitmap; logo only, because Android clips the icon to a circle of about 110dp radius. `useUserProfile` keeps the avatar in its own query (`avatarCacheKey`). `AmbientBackground` stays mounted on blur: unmounting it flattened the backdrop around every navigation.
+> - **Realtime only in an open chat (2026-11-05).** The app-wide `useChatActivity` listener is gone: `chat.tsx`'s filtered subscription is the only one. Home's unread pills refresh on focus, foreground, every 2 minutes and on push, so they can lag. Other events' messages no longer reach anyone's phone until they open that chat.
+> - **Performance pass (2026-11-05).** `20261105000001`: `my_unread_chat_counts` starts from the caller's events, 39 RLS policies use `(select auth.uid())`, 14 foreign keys got indexes. `purge-chat-photos` fails until the `project_url`/`cron_secret` Vault secrets are set. Left on purpose: 156 `multiple_permissive_policies` warnings.
 > - **Sentry still does not exist** in this codebase; `console.warn`/`reportSupabaseError` remain the
 >   substitutes documented below.
 

@@ -122,14 +122,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    height: 24,
+    minHeight: 24,
     paddingHorizontal: 10,
     borderRadius: 999,
+    paddingVertical: 4,
+    flexShrink: 1,
   },
   planBadgeText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#2B2740',
+    flexShrink: 1,
   },
   title: {
     ...typography.title2,

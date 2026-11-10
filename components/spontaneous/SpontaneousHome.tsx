@@ -16,7 +16,7 @@ import { useEventContent } from '@/hooks/useEventContent';
 import { useSpontaneous } from '@/hooks/useSpontaneous';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent } from '@/types/event';
-import { daysUntilEvent } from '@/utils/format';
+import { daysUntilEvent, isEventPast } from '@/utils/format';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { haptics } from '@/utils/haptics';
 import { staggerIn } from '@/utils/motion';
@@ -46,6 +46,8 @@ export function SpontaneousHome({ event, owner }: { event: AppEvent; owner: bool
   const poll = content?.poll ?? null;
   const totalVotes = content?.pollVotes.length ?? 0;
   const template = event.template ?? 'party';
+  // Same rule as the tabs layout: Invitați is the organizers' and closes once the night is over.
+  const canOpenGuests = owner && !isEventPast(event.date);
 
   return (
     <View style={styles.wrap}>
@@ -65,31 +67,40 @@ export function SpontaneousHome({ event, owner }: { event: AppEvent; owner: bool
           scheduleTimes={event.startTime !== null ? [event.startTime] : []}
         />
 
-        <SpCard>
-          <Eyebrow right={t('spontaneous.home.counts', { yes: goingPeople, maybe: maybe.length })}>
-            {t('spontaneous.home.whoComes')}
-          </Eyebrow>
-          {content === null ? (
-            <Skeleton height={34} width="70%" radius={17} />
-          ) : going.length + maybe.length === 0 ? (
-            <Text style={[styles.muted, { color: tokens.textSecondary }]}>{t('spontaneous.home.nobodyYet')}</Text>
-          ) : (
-            <View style={styles.avatars}>
-              {[...going, ...maybe].slice(0, MAX_AVATARS).map((attendee, index) => (
-                <View key={attendee.guestId} style={index > 0 ? styles.overlap : undefined}>
-                  <Avatar name={attendee.name} index={index} />
-                </View>
-              ))}
-              {going.length + maybe.length > MAX_AVATARS ? (
-                <View style={[styles.more, styles.overlap, { backgroundColor: tokens.accentTint, borderColor: tokens.surface }]}>
-                  <Text style={[styles.moreText, { color: tokens.accentText }]}>
-                    +{going.length + maybe.length - MAX_AVATARS}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          )}
-        </SpCard>
+        {/* Organizers jump to the full list (Invitați); guests only see the faces. */}
+        <TouchableOpacity
+          disabled={!canOpenGuests}
+          onPress={() => router.push(`/guest/${event.id}/invitati`)}
+          activeOpacity={0.8}
+          accessibilityRole={canOpenGuests ? 'button' : undefined}
+          accessibilityLabel={canOpenGuests ? t('spontaneous.home.openGuests') : undefined}
+        >
+          <SpCard>
+            <Eyebrow right={t('spontaneous.home.counts', { yes: goingPeople, maybe: maybe.length })}>
+              {t('spontaneous.home.whoComes')}
+            </Eyebrow>
+            {content === null ? (
+              <Skeleton height={34} width="70%" radius={17} />
+            ) : going.length + maybe.length === 0 ? (
+              <Text style={[styles.muted, { color: tokens.textSecondary }]}>{t('spontaneous.home.nobodyYet')}</Text>
+            ) : (
+              <View style={styles.avatars}>
+                {[...going, ...maybe].slice(0, MAX_AVATARS).map((attendee, index) => (
+                  <View key={attendee.guestId} style={index > 0 ? styles.overlap : undefined}>
+                    <Avatar name={attendee.name} index={index} />
+                  </View>
+                ))}
+                {going.length + maybe.length > MAX_AVATARS ? (
+                  <View style={[styles.more, styles.overlap, { backgroundColor: tokens.accentTint, borderColor: tokens.surface }]}>
+                    <Text style={[styles.moreText, { color: tokens.accentText }]}>
+                      +{going.length + maybe.length - MAX_AVATARS}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            )}
+          </SpCard>
+        </TouchableOpacity>
 
         {poll !== null ? (
           <SpCard>

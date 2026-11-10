@@ -26,6 +26,7 @@ import { GuestRow, GuestRowSkeleton } from "@/components/GuestRow";
 import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import { Skeleton } from "@/components/Skeleton";
+import { Avatar } from "@/components/spontaneous/parts";
 import { LongPressRow } from "@/components/LongPressRow";
 import { useTourTarget } from "@/components/tour/Tour";
 import { remoteRepository } from "@/data/remoteEventContentRepository";
@@ -56,7 +57,7 @@ type GuestFilter = "all" | RsvpStatus;
  */
 export function GuestDashboard({ id, embedded = false }: { id: string; embedded?: boolean }) {
   const { t } = useTranslation();
-  const { getEvent, hydrated, removeGuest, isOwner, markWhatsAppSent } = useEvents();
+  const { getEvent, hydrated, removeGuest, isOwner, isPrimaryOwner, markWhatsAppSent } = useEvents();
   const { tokens } = useTheme();
   const { plans } = usePlanFeatures();
   const {
@@ -219,6 +220,56 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
     );
   });
 
+  // Who helps organize: everyone who sees this screen sees them; only the
+  // primary organizer can open the screen that adds and removes them.
+  const canManageCoOrganizers = isPrimaryOwner(event);
+  const coOrganizerName = (member: (typeof event.coOrganizers)[number]) =>
+    member.name ?? (member.phone !== null ? `+${member.phone}` : t("home.coOrganizer"));
+  const pendingCoOrganizers = event.coOrganizers.filter((member) => member.userId === null).length;
+  const coOrganizersCard =
+    owner && (event.coOrganizers.length > 0 || canManageCoOrganizers) ? (
+      <TouchableOpacity
+        style={[styles.coOrgCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+        onPress={() => router.push(`/co-organizers/${event.id}`)}
+        disabled={!canManageCoOrganizers}
+        activeOpacity={0.75}
+        accessibilityRole={canManageCoOrganizers ? "button" : undefined}
+        accessibilityLabel={t("coOrganizers.title")}
+      >
+        {event.coOrganizers.length > 0 ? (
+          <View style={styles.coOrgAvatars}>
+            {event.coOrganizers.slice(0, 3).map((member, index) => (
+              <View key={member.id} style={index > 0 ? styles.coOrgOverlap : undefined}>
+                <Avatar name={coOrganizerName(member)} index={index} size={32} />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.coOrgIcon, { backgroundColor: tokens.accentTint }]}>
+            <Feather name="user-plus" size={17} color={tokens.accentText} />
+          </View>
+        )}
+        <View style={styles.coOrgText}>
+          <Text style={[styles.coOrgTitle, { color: tokens.textPrimary }]}>
+            {event.coOrganizers.length > 0
+              ? `${t("coOrganizers.title")} · ${event.coOrganizers.length}`
+              : t("event.addCoOrganizer")}
+          </Text>
+          <Text style={[styles.coOrgMeta, { color: tokens.textSecondary }]} numberOfLines={1}>
+            {event.coOrganizers.length > 0
+              ? [
+                  event.coOrganizers.map(coOrganizerName).join(", "),
+                  pendingCoOrganizers > 0 ? t("event.coOrganizersPending", { count: pendingCoOrganizers }) : null,
+                ]
+                  .filter((part) => part !== null)
+                  .join(" · ")
+              : t("event.addCoOrganizerHint")}
+          </Text>
+        </View>
+        {canManageCoOrganizers ? <Feather name="chevron-right" size={20} color={tokens.textSecondary} /> : null}
+      </TouchableOpacity>
+    ) : null;
+
   const body = (
     <>
       {/* Embedded, the tab already says "Invitați": the add button sits in the summary. */}
@@ -320,6 +371,8 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
           </Text>
         </TouchableOpacity>
       ) : null}
+
+      {coOrganizersCard}
 
       {event.guests.length === 0 ? (
         <EmptyState
@@ -502,6 +555,39 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
+  },
+  coOrgCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  coOrgAvatars: {
+    flexDirection: "row",
+  },
+  coOrgOverlap: {
+    marginLeft: -10,
+  },
+  coOrgIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: themeRadius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coOrgText: {
+    flex: 1,
+    gap: 2,
+  },
+  coOrgTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  coOrgMeta: {
+    fontSize: 13,
   },
   listCard: {
     borderRadius: 22,

@@ -129,6 +129,9 @@
     "phoneLabel": "Phone number",
     "phonePlaceholder": "0712 345 678",
     "selectCountry": "Select a country",
+    "searchCountry": "Search a country or type a prefix",
+    "useCustomPrefix": "Use the prefix {{prefix}}",
+    "noCountryMatch": "No country matches. Type a prefix, e.g. +1242.",
     "errors": {
       "invalidPhone": "Enter a valid phone number."
     }
@@ -524,6 +527,10 @@
     ]
   },
   "event": {
+    "addCoOrganizer": "Add a co-organizer",
+    "addCoOrganizerHint": "Someone who helps you organize, from their own phone",
+    "coOrganizersPending_one": "{{count}} hasn't joined yet",
+    "coOrganizersPending_other": "{{count}} haven't joined yet",
     "notFound": "Event not found",
     "shareInvitation": "Share invitation",
     "previewAsGuest": "Preview as guest",
@@ -1401,6 +1408,7 @@
       "daysLeft_other": "days left",
       "today": "today",
       "whoComes": "Who's coming",
+      "openGuests": "Open the guest list",
       "counts": "{{yes}} in · {{maybe}} maybe",
       "nobodyYet": "Nobody has replied yet.",
       "fromHost": "Updates from the host",

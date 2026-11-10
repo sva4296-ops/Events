@@ -132,6 +132,9 @@
     "phoneLabel": "Număr de telefon",
     "phonePlaceholder": "0712 345 678",
     "selectCountry": "Alege o țară",
+    "searchCountry": "Caută o țară sau scrie un prefix",
+    "useCustomPrefix": "Folosește prefixul {{prefix}}",
+    "noCountryMatch": "Nicio țară găsită. Scrie un prefix, de ex. +1242.",
     "errors": {
       "invalidPhone": "Introdu un număr de telefon valid."
     }
@@ -552,6 +555,11 @@
     ]
   },
   "event": {
+    "addCoOrganizer": "Adaugă un co-organizator",
+    "addCoOrganizerHint": "Cineva care te ajută să organizezi, din telefonul lui",
+    "coOrganizersPending_one": "{{count}} nu a intrat încă",
+    "coOrganizersPending_few": "{{count}} nu au intrat încă",
+    "coOrganizersPending_other": "{{count}} nu au intrat încă",
     "notFound": "Evenimentul nu a fost găsit",
     "shareInvitation": "Distribuie invitația",
     "previewAsGuest": "Previzualizează ca invitat",
@@ -1441,6 +1449,7 @@
       "daysLeft_other": "de zile rămase",
       "today": "azi",
       "whoComes": "Cine vine",
+      "openGuests": "Deschide lista de invitați",
       "counts": "{{yes}} vin · {{maybe}} poate",
       "nobodyYet": "Încă n-a răspuns nimeni.",
       "fromHost": "Noutăți de la organizator",

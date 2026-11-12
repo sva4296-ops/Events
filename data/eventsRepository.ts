@@ -359,9 +359,11 @@ export async function removeGuestRow(guestId: string): Promise<void> {
  */
 export async function insertCoOrganizer(
   eventId: string,
-  phone: string,
+  phone: string | null,
   name: string,
   role: 'co_organizer' | 'restaurant',
+  /** Only when there's no phone: a guest row linked to an account but with no number. */
+  userId: string | null = null,
 ): Promise<void> {
   const restaurant = role === 'restaurant';
   const client = supabase;
@@ -369,11 +371,51 @@ export async function insertCoOrganizer(
     event_id: eventId,
     role: restaurant ? 'restaurant' : 'co_organizer',
     invited_phone: phone,
+    user_id: phone === null ? userId : null,
     invited_name: name.length > 0 ? name : null,
     // Labels (Mire, Nașă...) are retired: every co-organizer is just a co-organizer.
     relation: null,
   });
   if (error) throw error;
+}
+
+/**
+ * Organizer edit of one guest's name and phone (`phone` null = leave it as it
+ * is). A co-organizer's event_members row follows, so the phone auto-link
+ * (on_event_member_insert / on_user_created_link_members) still matches.
+ * A 23505 from here means that number is already on this event's list.
+ */
+export async function updateGuestRow(
+  eventId: string,
+  guestId: string,
+  name: string,
+  phone: string | null,
+  memberId: string | null,
+): Promise<void> {
+  const client = supabase;
+  const guestName = name.trim().length > 0 ? name.trim() : null;
+  const patch: { guest_name: string | null; guest_phone?: string } = { guest_name: guestName };
+  if (phone !== null) patch.guest_phone = phone;
+  // .select() so an RLS-filtered update (0 rows) surfaces instead of passing silently.
+  const { data, error } = await client
+    .from('event_guests')
+    .update(patch)
+    .eq('id', guestId)
+    .eq('event_id', eventId)
+    .select('id');
+  if (error) throw error;
+  if (data.length === 0) throw new Error('Guest not found or not yours to edit.');
+
+  if (memberId !== null) {
+    const memberPatch: { invited_name: string | null; invited_phone?: string } = { invited_name: guestName };
+    if (phone !== null) memberPatch.invited_phone = phone;
+    const { error: memberError } = await client
+      .from('event_members')
+      .update(memberPatch)
+      .eq('id', memberId)
+      .eq('event_id', eventId);
+    if (memberError) throw memberError;
+  }
 }
 
 export async function removeCoOrganizerRow(memberId: string): Promise<void> {

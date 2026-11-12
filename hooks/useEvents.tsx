@@ -17,6 +17,7 @@ import {
   updateDietaryPreferencesRow,
   updateMenuChoiceRow,
   updateEventRow,
+  updateGuestRow,
   upsertGuestInvitesBatch,
   type BulkGuestEntry,
 } from '@/data/eventsRepository';
@@ -37,7 +38,24 @@ interface EventsResult {
   updateEvent: (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt' | 'planTier' | 'planPurchasedAt'>>) => Promise<void>;
   /** `plusOne` is only sent for spontaneous events (undefined leaves the column alone). */
   respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>, plusOne?: boolean) => void;
-  removeGuest: (eventId: string, guestId: string) => Promise<void>;
+  /** Pass the guest's co-organizer `memberId`: that row goes first, or
+   * sync_member_guest could add the guest back. Resolves false on failure (already reported). */
+  removeGuest: (eventId: string, guestId: string, memberId?: string | null) => Promise<boolean>;
+  /** Organizer edit of a guest's name and phone (`phone` null = unchanged). Rejects; 23505 = number already listed. */
+  updateGuest: (
+    eventId: string,
+    guestId: string,
+    name: string,
+    phone: string | null,
+    memberId: string | null,
+  ) => Promise<void>;
+  /** Primary owner only (event_members RLS). Invitat ↔ co-organizator for one guest row. */
+  setGuestRole: (
+    eventId: string,
+    guest: { phone: string | null; name: string; userId: string | null },
+    role: 'guest' | 'co_organizer',
+    memberId: string | null,
+  ) => Promise<void>;
   /** Deletes the event and everything under it (rows cascade, photos removed from Storage). */
   deleteEvent: (eventId: string) => Promise<void>;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
@@ -162,12 +180,20 @@ export function useEvents(): EventsResult {
   );
 
   const removeGuestMutation = useMutation({
-    mutationFn: ({ guestId }: { eventId: string; guestId: string }) => removeGuestRow(guestId),
-    onMutate: ({ eventId, guestId }) => {
+    mutationFn: async ({ guestId, memberId }: { eventId: string; guestId: string; memberId: string | null }) => {
+      // Member row first: on_event_member_sync_guest would otherwise be free to recreate the guest.
+      if (memberId !== null) await removeCoOrganizerRow(memberId);
+      await removeGuestRow(guestId);
+    },
+    onMutate: ({ eventId, guestId, memberId }) => {
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
         current.map((event) =>
           event.id === eventId
-            ? { ...event, guests: event.guests.filter((guest) => guest.id !== guestId) }
+            ? {
+                ...event,
+                guests: event.guests.filter((guest) => guest.id !== guestId),
+                coOrganizers: event.coOrganizers.filter((member) => member.id !== memberId),
+              }
             : event,
         ),
       );
@@ -180,12 +206,76 @@ export function useEvents(): EventsResult {
   });
   const removeGuest = useCallback(
     // Never rejects: onError already reports and rolls back.
-    (eventId: string, guestId: string) =>
-      removeGuestMutation.mutateAsync({ eventId, guestId }).then(
-        () => undefined,
-        () => undefined,
+    (eventId: string, guestId: string, memberId: string | null = null) =>
+      removeGuestMutation.mutateAsync({ eventId, guestId, memberId }).then(
+        () => true,
+        () => false,
       ),
     [removeGuestMutation],
+  );
+
+  /** Refetch the single event afterwards, same as the add flows: the member
+   * triggers may confirm or link the guest row server-side. */
+  const replaceWithFresh = useCallback(
+    (fresh: AppEvent | null) => {
+      if (fresh !== null) {
+        queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+          current.map((event) => (event.id === fresh.id ? fresh : event)),
+        );
+      }
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    [queryClient, queryKey],
+  );
+
+  const updateGuestMutation = useMutation({
+    mutationFn: async (vars: {
+      eventId: string;
+      guestId: string;
+      name: string;
+      phone: string | null;
+      memberId: string | null;
+    }) => {
+      await updateGuestRow(vars.eventId, vars.guestId, vars.name, vars.phone, vars.memberId);
+      return fetchEventById(vars.eventId);
+    },
+    onSuccess: replaceWithFresh,
+  });
+  const updateGuest = useCallback(
+    async (eventId: string, guestId: string, name: string, phone: string | null, memberId: string | null) => {
+      await updateGuestMutation.mutateAsync({ eventId, guestId, name, phone, memberId });
+    },
+    [updateGuestMutation],
+  );
+
+  const setGuestRoleMutation = useMutation({
+    mutationFn: async (vars: {
+      eventId: string;
+      guest: { phone: string | null; name: string; userId: string | null };
+      role: 'guest' | 'co_organizer';
+      memberId: string | null;
+    }) => {
+      if (vars.role === 'guest') {
+        // They stay on the list as a confirmed guest (nothing removes that row).
+        if (vars.memberId !== null) await removeCoOrganizerRow(vars.memberId);
+      } else if (vars.memberId === null) {
+        // on_event_member_sync_guest confirms their guest row.
+        await insertCoOrganizer(vars.eventId, vars.guest.phone, vars.guest.name, 'co_organizer', vars.guest.userId);
+      }
+      return fetchEventById(vars.eventId);
+    },
+    onSuccess: replaceWithFresh,
+  });
+  const setGuestRole = useCallback(
+    async (
+      eventId: string,
+      guest: { phone: string | null; name: string; userId: string | null },
+      role: 'guest' | 'co_organizer',
+      memberId: string | null,
+    ) => {
+      await setGuestRoleMutation.mutateAsync({ eventId, guest, role, memberId });
+    },
+    [setGuestRoleMutation],
   );
 
   const deleteEventMutation = useMutation({
@@ -518,6 +608,8 @@ export function useEvents(): EventsResult {
     updateEvent,
     respondToInvite,
     removeGuest,
+    updateGuest,
+    setGuestRole,
     deleteEvent,
     addGuest,
     addGuestByPhone,

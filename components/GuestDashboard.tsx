@@ -31,6 +31,7 @@ import { LongPressRow } from "@/components/LongPressRow";
 import { useTourTarget } from "@/components/tour/Tour";
 import { remoteRepository } from "@/data/remoteEventContentRepository";
 import { confirmDelete } from "@/utils/confirm";
+import { findCoOrganizerMember } from "@/utils/coOrganizers";
 import { useEvents } from "@/hooks/useEvents";
 import { TOUR_TARGETS } from "@/hooks/useGettingStarted";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
@@ -47,7 +48,7 @@ import type { Guest } from "@/types/event";
 import { sendGuestWhatsAppInvite, waitForReturn } from "@/utils/whatsappInvite";
 import { haptics } from "@/utils/haptics";
 
-type GuestFilter = "all" | RsvpStatus;
+type GuestFilter = "all" | RsvpStatus | "coOrganizers";
 
 /**
  * Warm Story 2.0 organizer dashboard for one event's guests: RSVP totals
@@ -119,10 +120,15 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
   ).length;
   const locked = planHydrated && !canAddGuests;
 
+  // Every co-organizer also has a (confirmed) guest row; this is its member row.
+  const memberFor = new Map(event.guests.map((guest) => [guest.id, findCoOrganizerMember(event, guest)]));
+  const coOrganizerGuests = event.guests.filter((guest) => memberFor.get(guest.id) !== undefined).length;
+
   const needle = query.trim().toLowerCase();
   const visibleGuests = event.guests.filter(
     (guest) =>
-      (filter === "all" || guest.status === filter) &&
+      (filter === "all" ||
+        (filter === "coOrganizers" ? memberFor.get(guest.id) !== undefined : guest.status === filter)) &&
       (needle.length === 0 ||
         guest.name.toLowerCase().includes(needle) ||
         (guest.phone ?? "").includes(needle.replace(/\D/g, "") || "\u0000")),
@@ -181,7 +187,12 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
       ? [{ key: "maybe" as const, label: t("event.filterMaybe"), value: counts.maybe, fg: tokens.accentText, bg: tokens.accentTint }]
       : []),
     { key: "declined", label: t("event.filterDeclined"), value: counts.declined, fg: tokens.statusDeclined, bg: tokens.statusDeclinedSoft },
+    ...(coOrganizerGuests > 0
+      ? [{ key: "coOrganizers" as const, label: t("event.filterCoOrganizers"), value: coOrganizerGuests, fg: tokens.accentText, bg: tokens.accentTint }]
+      : []),
   ];
+  // Five or more totals don't fit side by side: that row slides.
+  const slidingStats = stats.length > 4;
 
   const addGuestButton = owner ? (
             <TouchableOpacity
@@ -203,7 +214,7 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
         key={stat.key}
         style={[
           styles.stat,
-          spontaneous && styles.statSliding,
+          slidingStats && styles.statSliding,
           { backgroundColor: stat.bg, borderColor: active ? stat.fg : "transparent" },
         ]}
         onPress={() => setFilter(active ? "all" : stat.key)}
@@ -323,8 +334,8 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
         ) : null}
       </View>
 
-      {/* The totals are the filters. Spontaneous nights have one more, so that row slides. */}
-      {spontaneous ? (
+      {/* The totals are the filters. With a fifth one (Poate, Co-organizatori) the row slides. */}
+      {slidingStats ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stats}>
           {statTiles}
         </ScrollView>
@@ -410,27 +421,34 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
                           ]
                         : []),
                       {
+                        label: t("common.edit"),
+                        icon: "edit-2",
+                        tone: "edit",
+                        onPress: () =>
+                          router.push({ pathname: "/edit-guest/[id]", params: { id: event.id, guestId: guest.id } }),
+                      },
+                      {
                         label: t("event.removeGuestAction"),
                         icon: "user-x",
                         tone: "delete",
-                        onPress: () =>
+                        onPress: () => {
+                          const member = memberFor.get(guest.id);
                           confirmDelete(
                             t("event.removeGuestTitle"),
-                            t("event.removeGuestBody", { name: guest.name }),
-                            () => removeGuest(event.id, guest.id),
-                          ),
+                            t(member !== undefined ? "editGuest.deleteBodyCoOrganizer" : "event.removeGuestBody", {
+                              name: guest.name,
+                            }),
+                            // Member row first, or sync_member_guest could add them back.
+                            () => removeGuest(event.id, guest.id, member?.id ?? null),
+                          );
+                        },
                       },
                     ]}
                   >
                     <GuestRow
                       guest={guest}
                       showDivider={index > 0}
-                      coOrganizer={event.coOrganizers.some(
-                        (member) =>
-                          member.role === "co_organizer" &&
-                          ((member.userId !== null && member.userId === guest.userId) ||
-                            (member.phone !== null && member.phone === guest.phone)),
-                      )}
+                      coOrganizer={memberFor.get(guest.id) !== undefined}
                     />
                   </LongPressRow>
                 </Animated.View>

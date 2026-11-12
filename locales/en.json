@@ -134,7 +134,9 @@
     "noCountryMatch": "No country matches. Type a prefix, e.g. +1242.",
     "errors": {
       "invalidPhone": "Enter a valid phone number."
-    }
+    },
+    "mostUsed": "Most used",
+    "allCountries": "All countries"
   },
   "verify": {
     "headline": "Check your phone",
@@ -568,7 +570,8 @@
     "inviteSent": "Invite sent on WhatsApp",
     "inviteNotSent": "Invite not sent yet",
     "noPhone": "No phone",
-    "filterMaybe": "Maybe"
+    "filterMaybe": "Maybe",
+    "filterCoOrganizers": "Co-organizers"
   },
   "export": {
     "button": "Export list for the venue",
@@ -1840,5 +1843,36 @@
     "whenPlaceholder": "Pick the date below",
     "themeLabel": "Theme",
     "detailsLabel": "Details"
+  },
+  "editGuest": {
+    "title": "Edit guest",
+    "notFound": "This guest no longer exists",
+    "nameLabel": "Name",
+    "namePlaceholder": "No name",
+    "roleLabel": "Role",
+    "role": {
+      "guest": "Guest",
+      "co_organizer": "Co-organizer"
+    },
+    "roleHint": {
+      "guest": "Replies, sees the details, the album and the live feed.",
+      "co_organizer": "Runs the event with you from the app: guests, plan, messages. Signs in with their phone number."
+    },
+    "currentRole": " · current role",
+    "demoteNote": "They stay on the list as a confirmed guest, but can no longer manage the event.",
+    "saving": "Saving…",
+    "delete": "Delete guest",
+    "deleteTitle": "Delete this guest?",
+    "deleteBody": "Remove {{name}} from the list? Their invitation link will stop working.",
+    "deleteBodyCoOrganizer": "Remove {{name}} from the list? They will no longer be a co-organizer either. Their invitation link will stop working.",
+    "promotedTitle": "Co-organizer added",
+    "promotedBody": "{{name}} can manage the event from the app by signing in with their phone number. Let them know on WhatsApp.",
+    "theGuest": "The guest",
+    "notifyWhatsApp": "Tell them on WhatsApp",
+    "errors": {
+      "alreadyOnList": "This number is already on the guest list.",
+      "alreadyCoOrganizer": "Already a co-organizer.",
+      "needPhone": "Add a phone number first: a co-organizer signs in to the app with it."
+    }
   }
 }

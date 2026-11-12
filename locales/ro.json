@@ -137,7 +137,9 @@
     "noCountryMatch": "Nicio țară găsită. Scrie un prefix, de ex. +1242.",
     "errors": {
       "invalidPhone": "Introdu un număr de telefon valid."
-    }
+    },
+    "mostUsed": "Cele mai folosite",
+    "allCountries": "Toate țările"
   },
   "verify": {
     "headline": "Verifică-ți telefonul",
@@ -598,7 +600,8 @@
     "inviteSent": "Invitație trimisă pe WhatsApp",
     "inviteNotSent": "Invitația nu a fost trimisă încă",
     "noPhone": "Fără telefon",
-    "filterMaybe": "Poate"
+    "filterMaybe": "Poate",
+    "filterCoOrganizers": "Co-organizatori"
   },
   "export": {
     "button": "Exportă lista pentru restaurant",
@@ -1890,5 +1893,36 @@
     "whenPlaceholder": "Alege data mai jos",
     "themeLabel": "Temă",
     "detailsLabel": "Detalii"
+  },
+  "editGuest": {
+    "title": "Editează invitatul",
+    "notFound": "Invitatul nu mai există",
+    "nameLabel": "Nume",
+    "namePlaceholder": "Fără nume",
+    "roleLabel": "Rol",
+    "role": {
+      "guest": "Invitat",
+      "co_organizer": "Co-organizator"
+    },
+    "roleHint": {
+      "guest": "Confirmă, vede detaliile, albumul și live-ul.",
+      "co_organizer": "Gestionează evenimentul cu tine din aplicație: invitați, plan, mesaje. Intră cu numărul lui de telefon."
+    },
+    "currentRole": " · rolul actual",
+    "demoteNote": "Rămâne pe listă ca invitat confirmat, dar nu mai poate gestiona evenimentul.",
+    "saving": "Se salvează…",
+    "delete": "Șterge invitatul",
+    "deleteTitle": "Ștergi invitatul?",
+    "deleteBody": "Ștergi {{name}} de pe listă? Linkul lui de invitație nu va mai funcționa.",
+    "deleteBodyCoOrganizer": "Ștergi {{name}} de pe listă? Nu va mai fi nici co-organizator. Linkul lui de invitație nu va mai funcționa.",
+    "promotedTitle": "Co-organizator adăugat",
+    "promotedBody": "{{name}} poate gestiona evenimentul din aplicație, intrând cu numărul lui de telefon. Spune-i pe WhatsApp.",
+    "theGuest": "Invitatul",
+    "notifyWhatsApp": "Anunță-l pe WhatsApp",
+    "errors": {
+      "alreadyOnList": "Numărul acesta e deja pe lista de invitați.",
+      "alreadyCoOrganizer": "E deja co-organizator.",
+      "needPhone": "Adaugă-i întâi un număr de telefon: co-organizatorul intră în aplicație cu el."
+    }
   }
 }

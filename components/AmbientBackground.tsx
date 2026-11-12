@@ -3,18 +3,8 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTheme } from '@/hooks/useTheme';
 
-const DUST_COUNT = 25;
 /** A glow is drawn this small and scaled up: the gradient is soft enough, and the bitmap stays tiny. */
 const GLOW_DRAW_SIZE = 48;
-
-/** Same scattered dust on every screen, so it doesn't jump when navigating. */
-const DUST = Array.from({ length: DUST_COUNT }, (_, index) => {
-  const pick = (salt: number) => {
-    const value = Math.sin((index + 1) * 12.9898 + salt * 78.233) * 43758.5453;
-    return value - Math.floor(value);
-  };
-  return { x: pick(1), y: pick(2), radius: 0.4 + pick(3) * 0.7, gold: pick(4) < 0.25 };
-});
 
 function Glow({
   id,
@@ -54,7 +44,7 @@ function Glow({
 }
 
 /**
- * Two soft glows and a little dust behind the content. Completely static: it
+ * Two soft glows behind the content (no dust specks anymore). Completely static: it
  * used to drift, which kept the screen redrawing nonstop (battery). No big
  * bitmaps either (about 75 MB per screen when it drew them). It stays mounted
  * when the screen loses focus: unmounting it there made the backdrop go flat
@@ -66,7 +56,6 @@ export function AmbientBackground() {
   const dark = tokens.mode === 'dark';
   const strength = dark ? 1 : 0.6;
   const reach = Math.max(width, height);
-  const dustOpacity = dark ? 0.55 : 0.4;
   // The website's themes: violet and rose, softer. The others: their accent and gold.
   const site = tokens.coverBase !== undefined;
   // On Site light: its warm rose and gold, which sit on the cream; violet reads cold there.
@@ -91,21 +80,6 @@ export function AmbientBackground() {
         left={width * 0.82}
         top={height * 0.75}
       />
-      {DUST.map((speck, index) => (
-        <View
-          key={index}
-          style={{
-            position: 'absolute',
-            left: speck.x * width - speck.radius,
-            top: speck.y * height - speck.radius,
-            width: speck.radius * 2,
-            height: speck.radius * 2,
-            borderRadius: speck.radius,
-            backgroundColor: speck.gold ? secondColor : firstColor,
-            opacity: dustOpacity,
-          }}
-        />
-      ))}
     </View>
   );
 }

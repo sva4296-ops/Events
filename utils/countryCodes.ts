@@ -1,3 +1,5 @@
+import { COUNTRY_NAMES_RO } from '@/utils/countryNamesRo';
+
 /** The phone-entry country-code picker's list: the markets this app is used in
  * most come first (Romania leading), then the rest of the world alphabetically.
  * Anything missing can be typed as a custom prefix in PhoneField's picker. */
@@ -278,3 +280,16 @@ export function formatPhoneDisplay(stored: string): string {
   const groups = localNumber.match(/.{1,3}/g) ?? [localNumber];
   return `${dialCode} ${groups.join(' ')}`;
 }
+
+/** 🇷🇴 from "RO": regional-indicator letters, same as the site's flagOf. */
+export function flagOf(iso: string): string {
+  return String.fromCodePoint(...[...iso.toUpperCase()].map((char) => 0x1f1a5 + char.charCodeAt(0)));
+}
+
+/** The country's name in the app's language (Romanian names come from the site's list). */
+export function countryDisplayName(country: CountryCode, language: string): string {
+  return language.startsWith('ro') ? (COUNTRY_NAMES_RO[country.iso] ?? country.name) : country.name;
+}
+
+/** The main markets at the top of the picker ("Cele mai folosite"), up to Greece, as on the site. */
+export const MAIN_COUNTRY_COUNT = COUNTRY_CODES.findIndex((country) => country.iso === 'GR') + 1;

@@ -1,10 +1,10 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useState } from 'react';
 import {
-  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  SectionList,
   StyleSheet,
   Text,
   TextInput,
@@ -16,7 +16,14 @@ import { useTranslation } from 'react-i18next';
 
 import { FocusRing } from '@/components/FocusRing';
 import { useTheme } from '@/hooks/useTheme';
-import { COUNTRY_CODES, normalizeDialCode, type CountryCode } from '@/utils/countryCodes';
+import {
+  COUNTRY_CODES,
+  MAIN_COUNTRY_COUNT,
+  countryDisplayName,
+  flagOf,
+  normalizeDialCode,
+  type CountryCode,
+} from '@/utils/countryCodes';
 import { spacing } from '@/utils/theme';
 import { themeRadius, typography } from '@/utils/themeTokens';
 
@@ -47,7 +54,7 @@ export function PhoneField({
   hint,
   error,
 }: PhoneFieldProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { tokens } = useTheme();
   // Edge-to-edge: Android draws modals under the nav bar, so the sheet
   // clears it (3-button nav ~48dp, gesture pill ~24dp, iOS home indicator).
@@ -63,15 +70,28 @@ export function PhoneField({
   // the list has can still be used as typed (the "custom prefix" row).
   const needle = query.trim().toLowerCase();
   const typedDialCode = /^\+?[\d\s]+$/.test(needle) ? normalizeDialCode(needle) : null;
+  const nameOf = (c: CountryCode) => countryDisplayName(c, i18n.language);
   const visibleCountries =
     needle.length === 0
       ? COUNTRY_CODES
       : COUNTRY_CODES.filter(
           (c) =>
+            nameOf(c).toLowerCase().includes(needle) ||
             c.name.toLowerCase().includes(needle) ||
             c.iso.toLowerCase() === needle ||
             (typedDialCode !== null && c.dialCode.startsWith(typedDialCode)),
         );
+  // Same grouping as the site's picker: the main markets first, then everyone A-Z.
+  const sections: { title: string | null; data: CountryCode[] }[] =
+    needle.length === 0
+      ? [
+          { title: t('phoneAuth.mostUsed'), data: COUNTRY_CODES.slice(0, MAIN_COUNTRY_COUNT) },
+          {
+            title: t('phoneAuth.allCountries'),
+            data: COUNTRY_CODES.slice(MAIN_COUNTRY_COUNT).sort((a, b) => nameOf(a).localeCompare(nameOf(b))),
+          },
+        ]
+      : [{ title: null, data: visibleCountries }];
   const customDialCode =
     typedDialCode !== null && !COUNTRY_CODES.some((c) => c.dialCode === typedDialCode) ? typedDialCode : null;
 
@@ -98,7 +118,7 @@ export function PhoneField({
           >
             <Text style={[styles.dialCodeText, { color: tokens.textPrimary }]}>
               {selected !== undefined && sharedDialCodes(dialCode) === 1
-                ? `${selected.iso} ${selected.dialCode}`
+                ? `${flagOf(selected.iso)} ${selected.dialCode}`
                 : dialCode}
             </Text>
           </TouchableOpacity>
@@ -166,20 +186,27 @@ export function PhoneField({
               {visibleCountries.length === 0 && customDialCode === null ? (
                 <Text style={[styles.empty, { color: tokens.textSecondary }]}>{t('phoneAuth.noCountryMatch')}</Text>
               ) : null}
-              <FlatList
-                data={visibleCountries}
+              <SectionList
+                sections={sections}
                 keyExtractor={(item) => item.iso}
                 keyboardShouldPersistTaps="handled"
+                stickySectionHeadersEnabled={false}
                 style={styles.list}
+                renderSectionHeader={({ section }) =>
+                  section.title !== null ? (
+                    <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>{section.title}</Text>
+                  ) : null
+                }
                 renderItem={({ item }: { item: CountryCode }) => {
                   const active = item.dialCode === dialCode;
                   return (
                     <TouchableOpacity style={styles.option} onPress={() => pick(item.dialCode)} activeOpacity={0.7}>
+                      <Text style={styles.flag}>{flagOf(item.iso)}</Text>
                       <Text
                         style={[styles.optionName, { color: tokens.textPrimary }, active && styles.optionActive]}
                         numberOfLines={1}
                       >
-                        {item.name}
+                        {nameOf(item)}
                       </Text>
                       <Text style={[styles.optionDial, { color: active ? tokens.accentText : tokens.textSecondary }]}>
                         {item.dialCode}
@@ -293,13 +320,21 @@ const styles = StyleSheet.create({
   },
   option: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
     paddingVertical: spacing.md,
+  },
+  flag: {
+    fontSize: 20,
+  },
+  sectionTitle: {
+    ...typography.label,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
   },
   optionName: {
     flex: 1,
     fontSize: 15,
-    marginRight: spacing.md,
   },
   optionActive: {
     fontWeight: '700',

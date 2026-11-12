@@ -69,7 +69,7 @@ function journeyItems(moments: readonly Moment[], eventMs: number | null): Journ
 }
 
 function photoPicks(photos: readonly Photo[]): string[] {
-  const urls = photos.map((photo) => photo.full_url ?? photo.thumb_url ?? photo.url).filter((url): url is string => url !== null);
+  const urls = photos.map((photo) => photo.display_url ?? photo.full_url ?? photo.thumb_url ?? photo.url).filter((url): url is string => url !== null);
   if (urls.length <= MAX_PHOTOS) return urls;
   // Evenly spaced through the album, so it isn't just the last few uploads.
   return Array.from({ length: MAX_PHOTOS }, (_, i) => urls[Math.floor((i * urls.length) / MAX_PHOTOS)]!);
@@ -94,7 +94,7 @@ export function buildEventStory(event: AppEvent, content: EventContent, confirme
   const eventMs = eventDayMs(event.date);
   const slides: StorySlide[] = [{ kind: 'cover' }];
 
-  const photosWithFile = content.photos.filter((photo) => (photo.full_url ?? photo.thumb_url ?? photo.url) !== null);
+  const photosWithFile = content.photos.filter((photo) => (photo.display_url ?? photo.full_url ?? photo.thumb_url ?? photo.url) !== null);
   if (confirmedGuests > 0 || photosWithFile.length > 0 || content.moments.length > 0) {
     slides.push({
       kind: 'stats',

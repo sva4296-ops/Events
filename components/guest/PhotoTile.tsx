@@ -28,12 +28,13 @@ interface PhotoTileProps {
 export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 12, onOpen }: PhotoTileProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const label = photo.uploaded_by_label ?? 'Invitat';
-  // Grid tile: thumbnail (400px) — this is the whole point of having one.
-  // Lightbox: full (2800px, near-lossless) for a crisp zoomed view. `url` is
-  // the legacy local-device URI from before real Storage uploads existed —
-  // only reached for old rows where a signed URL couldn't be produced.
+  // Grid tile: thumbnail (400px). Lightbox: display (2048px, ~3x a phone
+  // screen), or full for older photos that have no display version. The
+  // 2800px full is otherwise only for "download all". `url` is the legacy
+  // local-device URI from before real Storage uploads existed.
   const gridUri = photo.thumb_url ?? photo.url ?? undefined;
-  const viewerUri = photo.full_url ?? photo.url ?? undefined;
+  const viewerUri = photo.display_url ?? photo.full_url ?? photo.url ?? undefined;
+  const viewerKey = photo.display_url !== null ? 'display' : 'full';
 
   return (
     <>
@@ -67,7 +68,15 @@ export function PhotoTile({ photo, style, canDelete, onDelete, labelFontSize = 1
         </LinearGradient>
       </TouchableOpacity>
 
-      <PhotoViewer uri={viewerUri} cacheKey={`photo-${photo.id}-full`} visible={viewerOpen} onClose={() => setViewerOpen(false)} caption={label} />
+      <PhotoViewer
+        uri={viewerUri}
+        cacheKey={`photo-${photo.id}-${viewerKey}`}
+        placeholderUri={gridUri}
+        placeholderCacheKey={`photo-${photo.id}-thumb`}
+        visible={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        caption={label}
+      />
     </>
   );
 }

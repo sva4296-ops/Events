@@ -88,7 +88,10 @@ export interface Photo {
   url: string | null;
   /** Signed URL for the 400px-longest-edge version — grid tiles only. */
   thumb_url: string | null;
-  /** Signed URL for the 2800px-longest-edge, near-lossless version — full-screen viewer and future album download. */
+  /** Signed URL for the 2048px version — the full-screen viewer. Null for
+   * photos uploaded before it existed (and web uploads): fall back to full_url. */
+  display_url: string | null;
+  /** Signed URL for the 2800px, near-lossless version — "download all" only. */
   full_url: string | null;
   created_at: string;
 }

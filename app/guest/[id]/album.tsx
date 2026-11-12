@@ -371,7 +371,7 @@ export default function AlbumScreen() {
         <PhotoGallery
           photos={visible.map((photo) => ({
             id: photo.id,
-            uri: photo.full_url ?? photo.url ?? undefined,
+            uri: photo.display_url ?? photo.full_url ?? photo.url ?? undefined,
             placeholderUri: photo.thumb_url ?? undefined,
             caption: photo.uploaded_by_label ?? undefined,
           }))}

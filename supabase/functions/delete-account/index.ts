@@ -78,7 +78,11 @@ Deno.serve(async (req) => {
 
   const photoPaths: string[] = [];
   for (const photo of photos ?? []) {
-    photoPaths.push(`${photo.event_id}/${photo.id}/thumb.jpg`, `${photo.event_id}/${photo.id}/full.jpg`);
+    photoPaths.push(
+      `${photo.event_id}/${photo.id}/thumb.jpg`,
+      `${photo.event_id}/${photo.id}/display.jpg`,
+      `${photo.event_id}/${photo.id}/full.jpg`,
+    );
   }
 
   // Cover photos of owned events.

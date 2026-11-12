@@ -24,13 +24,16 @@ interface PhotoViewerProps {
   caption?: string;
   /** Stable disk-cache key for a signed URL that changes (chat photos). */
   cacheKey?: string;
+  /** Already-cached small version, shown at once while `uri` loads. */
+  placeholderUri?: string;
+  placeholderCacheKey?: string;
 }
 
 /**
  * Full-screen photo on a dark backdrop; tap anywhere or the X to close.
  * Shared by the album/live tiles and the menu's course photos.
  */
-export function PhotoViewer({ uri, visible, onClose, caption, cacheKey }: PhotoViewerProps) {
+export function PhotoViewer({ uri, visible, onClose, caption, cacheKey, placeholderUri, placeholderCacheKey }: PhotoViewerProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
@@ -38,7 +41,14 @@ export function PhotoViewer({ uri, visible, onClose, caption, cacheKey }: PhotoV
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.backdrop}>
-          <Image source={{ uri, cacheKey }} cachePolicy="disk" style={styles.image} contentFit="contain" />
+          <Image
+            source={{ uri, cacheKey }}
+            placeholder={placeholderUri !== undefined ? { uri: placeholderUri, cacheKey: placeholderCacheKey } : undefined}
+            placeholderContentFit="contain"
+            cachePolicy="disk"
+            style={styles.image}
+            contentFit="contain"
+          />
 
           <TouchableOpacity
             style={[styles.close, { top: insets.top + 12 }]}
@@ -108,7 +118,7 @@ export function PhotoGallery({
             <TouchableWithoutFeedback onPress={onClose}>
               <View style={[styles.page, { width }]}>
                 <Image
-                  source={{ uri: item.uri, cacheKey: `gallery-${item.id}` }}
+                  source={{ uri: item.uri, cacheKey: `gallery-${item.id}-display` }}
                   placeholder={item.placeholderUri !== undefined ? { uri: item.placeholderUri } : undefined}
                   placeholderContentFit="contain"
                   cachePolicy="disk"

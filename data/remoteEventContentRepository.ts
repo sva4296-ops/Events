@@ -95,12 +95,24 @@ function isMomentStoragePath(eventId: string, value: string | null): value is st
   return value !== null && value.startsWith(`${eventId}/moments/`);
 }
 
+/** display.jpg only exists for photos uploaded from the app after the
+ * three-size change; older ones (and web uploads) have thumb + full only, so
+ * readers fall back from display_url to full_url. */
 function photoStoragePaths(eventId: string, photoId: string) {
   return {
     thumb: `${eventId}/${photoId}/thumb.jpg`,
+    display: `${eventId}/${photoId}/display.jpg`,
     full: `${eventId}/${photoId}/full.jpg`,
   };
 }
+
+interface SignedPhotoUrls {
+  thumb_url: string | null;
+  display_url: string | null;
+  full_url: string | null;
+}
+
+const NO_SIGNED_PHOTO_URLS: SignedPhotoUrls = { thumb_url: null, display_url: null, full_url: null };
 
 interface FundDraft {
   title: string;
@@ -199,7 +211,7 @@ function mapContribution(row: ContributionRow): Contribution {
   };
 }
 
-function mapPhoto(row: PhotoRow, signed: { thumb_url: string | null; full_url: string | null }): Photo {
+function mapPhoto(row: PhotoRow, signed: SignedPhotoUrls): Photo {
   return {
     id: row.id,
     event_id: row.event_id,
@@ -207,6 +219,7 @@ function mapPhoto(row: PhotoRow, signed: { thumb_url: string | null; full_url: s
     uploaded_by_label: row.uploaded_by_label,
     url: row.url,
     thumb_url: signed.thumb_url,
+    display_url: signed.display_url,
     full_url: signed.full_url,
     created_at: row.created_at,
   };
@@ -221,8 +234,8 @@ function mapPhoto(row: PhotoRow, signed: { thumb_url: string | null; full_url: s
  */
 async function signPhotoUrls(
   rows: PhotoRow[],
-): Promise<Map<string, { thumb_url: string | null; full_url: string | null }>> {
-  const result = new Map<string, { thumb_url: string | null; full_url: string | null }>();
+): Promise<Map<string, SignedPhotoUrls>> {
+  const result = new Map<string, SignedPhotoUrls>();
   if (rows.length === 0) return result;
 
   const paths = rows.flatMap((row) => Object.values(photoStoragePaths(row.event_id, row.id)));
@@ -233,9 +246,10 @@ async function signPhotoUrls(
 
   const signedUrlByPath = new Map((data ?? []).map((entry) => [entry.path, entry.signedUrl]));
   for (const row of rows) {
-    const { thumb, full } = photoStoragePaths(row.event_id, row.id);
+    const { thumb, display, full } = photoStoragePaths(row.event_id, row.id);
     result.set(row.id, {
       thumb_url: signedUrlByPath.get(thumb) ?? null,
+      display_url: signedUrlByPath.get(display) ?? null,
       full_url: signedUrlByPath.get(full) ?? null,
     });
   }
@@ -445,7 +459,7 @@ async function loadSocial(eventId: string): Promise<SocialContent> {
   const photoRows = photosRes.data as PhotoRow[];
   const signedByPhotoId = await signPhotoUrls(photoRows);
   const photos = photoRows.map((row) =>
-    mapPhoto(row, signedByPhotoId.get(row.id) ?? { thumb_url: null, full_url: null }),
+    mapPhoto(row, signedByPhotoId.get(row.id) ?? NO_SIGNED_PHOTO_URLS),
   );
 
   const messageRows = (messagesRes.data as MessageRow[]).reverse();
@@ -625,7 +639,7 @@ async function fetchPhotoUploaderIds(eventId: string): Promise<string[]> {
 
 async function mapPhotoRows(rows: PhotoRow[]): Promise<Photo[]> {
   const signed = await signPhotoUrls(rows);
-  return rows.map((row) => mapPhoto(row, signed.get(row.id) ?? { thumb_url: null, full_url: null }));
+  return rows.map((row) => mapPhoto(row, signed.get(row.id) ?? NO_SIGNED_PHOTO_URLS));
 }
 
 /** The page of photos right before `before`, newest first. */
@@ -743,23 +757,28 @@ async function removeReaction(momentId: string, reaction: ReactionType, actor: A
 async function addPhoto(
   eventId: string,
   photoId: string,
-  versions: PhotoUploadVersions,
+  versions: PhotoUploadVersions & { displayUri: string },
   actor: Actor,
 ): Promise<void> {
   const client = supabase;
-  const { thumb, full } = photoStoragePaths(eventId, photoId);
+  const { thumb, display, full } = photoStoragePaths(eventId, photoId);
 
-  const [thumbBuffer, fullBuffer] = await Promise.all([
+  const [thumbBuffer, displayBuffer, fullBuffer] = await Promise.all([
     fetch(versions.thumbnailUri).then((res) => res.arrayBuffer()),
+    fetch(versions.displayUri).then((res) => res.arrayBuffer()),
     fetch(versions.fullUri).then((res) => res.arrayBuffer()),
   ]);
 
-  const [thumbUpload, fullUpload] = await Promise.all([
+  const uploads = await Promise.all([
     client.storage.from(PHOTO_BUCKET).upload(thumb, thumbBuffer, { contentType: 'image/jpeg' }),
+    client.storage.from(PHOTO_BUCKET).upload(display, displayBuffer, { contentType: 'image/jpeg' }),
     client.storage.from(PHOTO_BUCKET).upload(full, fullBuffer, { contentType: 'image/jpeg' }),
   ]);
-  if (thumbUpload.error) throw thumbUpload.error;
-  if (fullUpload.error) throw fullUpload.error;
+  const uploadError = uploads.find((upload) => upload.error !== null)?.error;
+  if (uploadError) {
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, display, full]);
+    throw uploadError;
+  }
 
   const { data: profile } = await client
     .from('users')
@@ -773,20 +792,20 @@ async function addPhoto(
     .insert({ id: photoId, event_id: eventId, uploaded_by: actor.id, uploaded_by_label: label });
   if (error) {
     // e.g. the per-guest photo limit trigger: don't leave the files orphaned.
-    await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, display, full]);
     throw error;
   }
 }
 
 async function deletePhoto(eventId: string, photoId: string): Promise<void> {
   const client = supabase;
-  const { thumb, full } = photoStoragePaths(eventId, photoId);
+  const { thumb, display, full } = photoStoragePaths(eventId, photoId);
   // Best-effort: a legacy row has nothing at these paths, and a partial
   // Storage failure shouldn't block removing the row itself (same
   // fire-and-forget-cleanup philosophy as markOnboardingComplete — see
   // CLAUDE.md). .remove() never throws, just reports per-path errors we
   // don't act on here.
-  await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+  await client.storage.from(PHOTO_BUCKET).remove([thumb, display, full]);
 
   const { error } = await client.from('photos').delete().eq('id', photoId);
   if (error) throw error;

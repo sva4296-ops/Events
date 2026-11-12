@@ -77,6 +77,8 @@ function BubblePhoto({ messageId, photo, caption }: { messageId: string; photo: 
       <PhotoViewer
         uri={photo.full_url ?? photo.thumb_url}
         cacheKey={`chat-${messageId}-${photo.full_url !== null ? 'full' : 'thumb'}`}
+        placeholderUri={photo.full_url !== null ? photo.thumb_url : undefined}
+        placeholderCacheKey={`chat-${messageId}-thumb`}
         visible={viewerOpen}
         onClose={() => setViewerOpen(false)}
         caption={caption}

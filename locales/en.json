@@ -1874,5 +1874,9 @@
       "alreadyCoOrganizer": "Already a co-organizer.",
       "needPhone": "Add a phone number first: a co-organizer signs in to the app with it."
     }
+  },
+  "guestRemoved": {
+    "title": "You are no longer on this event",
+    "body": "The organizer removed you from the guest list."
   }
 }

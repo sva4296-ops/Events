@@ -1924,5 +1924,9 @@
       "alreadyCoOrganizer": "E deja co-organizator.",
       "needPhone": "Adaugă-i întâi un număr de telefon: co-organizatorul intră în aplicație cu el."
     }
+  },
+  "guestRemoved": {
+    "title": "Nu mai faci parte din eveniment",
+    "body": "Organizatorul te-a scos din lista de invitați."
   }
 }

@@ -18,6 +18,7 @@ import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
 import { eventAccentTokens } from '@/utils/eventAccent';
 import { GuestEventProvider } from '@/hooks/useGuestEvent';
 import { useEvents } from '@/hooks/useEvents';
+import { useKickWhenRemoved } from '@/hooks/useKickWhenRemoved';
 import { FUND_ENABLED } from '@/utils/features';
 import { daysUntilEvent, formatShortDate, isEventPast } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
@@ -70,6 +71,7 @@ export default function GuestEventLayout() {
   const pathname = usePathname();
   const { content } = useEventContent(id ?? '');
   const { hasUnread } = useChatRead(id ?? '');
+  useKickWhenRemoved(id === undefined ? undefined : getEvent(id), hydrated);
 
   if (!hydrated || id === undefined) {
     return <View style={[styles.blank, { backgroundColor: tokens.background[0] }]} />;

@@ -25,6 +25,7 @@ import { LockedFeature } from '@/components/guest/LockedFeature';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { MessageActionsBar, MessageBubble, MessageBubbleSkeleton } from '@/components/guest/MessageBubble';
 import { LongPressRow } from '@/components/LongPressRow';
+import { listenToPrivateBroadcast } from '@/data/privateBroadcast';
 import { MESSAGES_PAGE_SIZE, remoteRepository } from '@/data/remoteEventContentRepository';
 import { supabase } from '@/data/supabaseClient';
 import { fetchAvatarUrls } from '@/data/usersRepository';
@@ -300,17 +301,23 @@ export default function ChatScreen() {
         { event: 'UPDATE', schema: 'public', table: 'message_reactions', filter: `event_id=eq.${id}` },
         () => void queryClient.invalidateQueries({ queryKey: socialKey }),
       )
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'message_reactions' }, (payload) => {
-        const removedId = (payload.old as { id?: string }).id;
-        const known = queryClient
-          .getQueryData<SocialContent>(socialKey)
-          ?.messages.some((message) => message.reactions.some((reaction) => reaction.id === removedId));
-        if (known === true) void queryClient.invalidateQueries({ queryKey: socialKey });
-      })
       .subscribe();
+
+    // A reaction taken back arrives as a Broadcast on this event's private
+    // topic (trigger on_message_reaction_removed_notify, 20261112000003), not
+    // as a postgres_changes DELETE: those can't be filtered, so every un-react
+    // in the app used to reach every open chat.
+    const stopReactionRemovals = listenToPrivateBroadcast(`chat:${id}`, 'reaction_removed', (payload) => {
+      const removedId = (payload as { reaction_id?: string } | undefined)?.reaction_id;
+      const known = queryClient
+        .getQueryData<SocialContent>(socialKey)
+        ?.messages.some((message) => message.reactions.some((reaction) => reaction.id === removedId));
+      if (known === true) void queryClient.invalidateQueries({ queryKey: socialKey });
+    });
 
     return () => {
       void supabase.removeChannel(channel);
+      stopReactionRemovals();
     };
   }, [id, queryClient]);
 

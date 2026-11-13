@@ -59,7 +59,8 @@
       "stageOf": "Stage {{stage}} of 4 · {{name}}",
       "noGuestsYet": "No guests yet",
       "sendInvites": "Send invitations",
-      "today": "Today"
+      "today": "Today",
+      "noDate": "No date"
     }
   },
   "auth": {

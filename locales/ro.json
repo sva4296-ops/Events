@@ -62,7 +62,8 @@
       "stageOf": "Etapa {{stage}} din 4 · {{name}}",
       "noGuestsYet": "Niciun invitat încă",
       "sendInvites": "Trimite invitațiile",
-      "today": "Azi"
+      "today": "Azi",
+      "noDate": "Fără dată"
     }
   },
   "auth": {

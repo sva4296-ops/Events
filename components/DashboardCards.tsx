@@ -1,5 +1,7 @@
+import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 import { EventCover } from '@/components/EventCover';
+import { LineIcon, type Shape } from '@/components/EventTypeIcon';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -46,18 +48,60 @@ function DaysBadge({ days, size }: { days: number | null; size: 'big' | 'small' 
   );
 }
 
+/** Lucide "crown" (ISC), same as the chat's organizer badge and the website's. */
+const CROWN: readonly Shape[] = [
+  {
+    type: 'path',
+    d: 'M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z',
+  },
+  { type: 'path', d: 'M5 21h14' },
+];
+
+export interface EventRole {
+  /** 'owner': your own event (crown, accent). 'member': co-organizer or restaurant (people, neutral). */
+  kind: 'owner' | 'member';
+  label: string;
+}
+
+/** How you're on an event. Kept identical to the website's badge (EventAgenda.tsx). */
+function RolePill({ role }: { role: EventRole }) {
+  const { tokens } = useTheme();
+  const owner = role.kind === 'owner';
+  return (
+    <View
+      style={[
+        styles.rolePill,
+        owner
+          ? { backgroundColor: tokens.accentTint, borderColor: tokens.accentTint }
+          : { backgroundColor: tokens.surface2, borderColor: tokens.border },
+      ]}
+    >
+      {owner ? (
+        <LineIcon shapes={CROWN} size={11} color={tokens.accentText} strokeWidth={2.2} />
+      ) : (
+        <Feather name="users" size={11} color={tokens.textSecondary} />
+      )}
+      <Text style={[styles.rolePillText, { color: owner ? tokens.accentText : tokens.textPrimary }]} numberOfLines={1}>
+        {role.label}
+      </Text>
+    </View>
+  );
+}
+
 /** "Următorul" card: cover, name + countdown, four-segment stage bar, one action. */
 export function DashboardHero({
   event,
   onPress,
   menuActions = [],
   onPressInvite,
+  role = null,
 }: {
   event: AppEvent;
   onPress: () => void;
   /** Edit / Delete, in a bottom sheet on long press. */
   menuActions?: readonly EventMenuAction[];
   onPressInvite: () => void;
+  role?: EventRole | null;
 }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
@@ -101,6 +145,7 @@ export function DashboardHero({
             <Text style={[styles.meta, { color: tokens.textSecondary }]} numberOfLines={1}>
               {eventShortSubtitle(event)}
             </Text>
+            {role !== null ? <RolePill role={role} /> : null}
           </View>
           <DaysBadge days={days} size="big" />
         </View>
@@ -140,11 +185,13 @@ export function DashboardRow({
   onPress,
   menuActions = [],
   showDivider,
+  role = null,
 }: {
   event: AppEvent;
   onPress: () => void;
   menuActions?: readonly EventMenuAction[];
   showDivider: boolean;
+  role?: EventRole | null;
 }) {
   const { tokens } = useTheme();
   const days = daysUntilEvent(event.date);
@@ -172,6 +219,7 @@ export function DashboardRow({
         <Text style={[styles.meta, { color: tokens.textSecondary }]} numberOfLines={1}>
           {eventShortSubtitle(event)}
         </Text>
+        {role !== null ? <RolePill role={role} /> : null}
       </View>
       <DaysBadge days={days} size="small" />
     </TouchableOpacity>
@@ -305,6 +353,21 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     gap: 2,
+  },
+  rolePill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: themeRadius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  rolePillText: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 11,
   },
   rowName: {
     fontSize: 18,

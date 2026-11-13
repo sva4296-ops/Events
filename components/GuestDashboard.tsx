@@ -290,9 +290,12 @@ export function GuestDashboard({ id, embedded = false }: { id: string; embedded?
           showBack
           flowTitle={event.name}
           stepLabel={
+            // "Organizator" only on your own event; a co-organizer sees their role.
             planName !== null
-              ? `${t("event.dashboardSubtitle")} · ${planName}`
-              : t("event.dashboardSubtitle")
+              ? `${canManageCoOrganizers ? t("event.dashboardSubtitle") : t("home.coOrganizer")} · ${planName}`
+              : canManageCoOrganizers
+                ? t("event.dashboardSubtitle")
+                : t("home.coOrganizer")
           }
           right={addGuestButton}
         />

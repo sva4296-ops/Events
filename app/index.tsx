@@ -8,9 +8,10 @@ import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { type EventMenuAction } from '@/components/EventMenu';
-import { DashboardHero, DashboardHeroSkeleton, DashboardRow } from '@/components/DashboardCards';
+import { DashboardHero, DashboardHeroSkeleton, DashboardRow, type EventRole } from '@/components/DashboardCards';
 import { GeneratedAvatar } from '@/components/GeneratedAvatar';
 import { HomeEmptyState } from '@/components/HomeEmptyState';
+import { MonthGroups } from '@/components/MonthGroups';
 import {
   InvitationGroup,
   InvitationListItem,
@@ -135,6 +136,16 @@ export default function DashboardScreen() {
     return actions;
   };
 
+  // Organizator only on your own events (events.organizer_id); same badges as the website.
+  const roleFor = (event: (typeof events)[number]): EventRole | null =>
+    isPrimaryOwner(event)
+      ? { kind: 'owner', label: t('event.dashboardSubtitle') }
+      : isRestaurant(event)
+        ? { kind: 'member', label: t('coOrganizers.relation.restaurant') }
+        : isOwner(event)
+          ? { kind: 'member', label: t('home.coOrganizer') }
+          : null;
+
   // The restaurant only has the Detalii tab; everyone else lands on Acasă.
   const openEvent = (event: (typeof events)[number]) =>
     router.push(isRestaurant(event) ? `/guest/${event.id}/detalii` : `/guest/${event.id}`);
@@ -237,40 +248,51 @@ export default function DashboardScreen() {
                     onPress={() => openEvent(nextEvent)}
                     menuActions={menuFor(nextEvent)}
                     onPressInvite={() => router.push(`/event/${nextEvent.id}`)}
+                    role={roleFor(nextEvent)}
                   />
                 </Animated.View>
               ) : null}
               {upcomingEvents.length > 1 ? (
-                <View>
-                  <Text style={[styles.overline, { color: tokens.textSecondary, borderBottomColor: tokens.border }]}>
+                <View style={styles.monthSection}>
+                  <Text style={[styles.overline, styles.overlinePlain, { color: tokens.textSecondary }]}>
                     {t('home.dashboard.upNext')}
                   </Text>
-                  {upcomingEvents.slice(1).map((event, index) => (
-                    <Animated.View key={event.id} entering={staggerIn(index + 1)}>
+                  <Animated.View entering={staggerIn(1)}>
+                    <MonthGroups
+                      openFirst
+                      events={upcomingEvents.slice(1)}
+                      renderRow={(event, index) => (
+                        <DashboardRow
+                          key={event.id}
+                          event={event}
+                          showDivider={index > 0}
+                          onPress={() => openEvent(event)}
+                          menuActions={menuFor(event)}
+                          role={roleFor(event)}
+                        />
+                      )}
+                    />
+                  </Animated.View>
+                </View>
+              ) : null}
+              {finishedEvents.length > 0 ? (
+                <View style={styles.monthSection}>
+                  <Text style={[styles.overline, styles.overlinePlain, { color: tokens.textSecondary }]}>
+                    {t('home.dashboard.finished')}
+                  </Text>
+                  <MonthGroups
+                    events={finishedEvents}
+                    renderRow={(event, index) => (
                       <DashboardRow
+                        key={event.id}
                         event={event}
                         showDivider={index > 0}
                         onPress={() => openEvent(event)}
                         menuActions={menuFor(event)}
+                        role={roleFor(event)}
                       />
-                    </Animated.View>
-                  ))}
-                </View>
-              ) : null}
-              {finishedEvents.length > 0 ? (
-                <View>
-                  <Text style={[styles.overline, { color: tokens.textSecondary, borderBottomColor: tokens.border }]}>
-                    {t('home.dashboard.finished')}
-                  </Text>
-                  {finishedEvents.map((event, index) => (
-                    <DashboardRow
-                      key={event.id}
-                      event={event}
-                      showDivider={index > 0}
-                      onPress={() => openEvent(event)}
-                      menuActions={menuFor(event)}
-                    />
-                  ))}
+                    )}
+                  />
                 </View>
               ) : null}
             </>
@@ -406,6 +428,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.subtitle,
     fontSize: 18,
+  },
+  // Above the month dropdowns: they're cards, so no rule under the title.
+  monthSection: {
+    gap: spacing.sm,
+  },
+  overlinePlain: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
   },
   overline: {
     fontFamily: typeface.bodySemiBold,

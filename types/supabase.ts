@@ -11,9 +11,11 @@ export type EventTypeRow =
   | 'cause'
   | 'corporate'
   | 'memorial'
-  | 'other';
+  | 'other'
+  | 'spontaneous'
+  | 'venue';
 
-export type RsvpStatusRow = 'pending' | 'confirmed' | 'declined';
+export type RsvpStatusRow = 'pending' | 'confirmed' | 'declined' | 'maybe';
 
 export type ReactionTypeRow = 'love' | 'celebrate';
 
@@ -26,15 +28,34 @@ export interface EventRow {
   event_date: string | null;
   location: string | null;
   welcome_message: string | null;
+  /** Organizer's own WhatsApp invitation line (20261014000002). */
+  invite_intro: string | null;
   created_at: string;
   /** Which plan_features row (by plan_key) this event has picked, if any —
    * see supabase/migrations/20260826000001_event_plan_tier.sql and
    * CLAUDE.md's "Pricing screen". Null until the organizer picks a plan. */
   plan_tier: string | null;
   plan_purchased_at: string | null;
+  /** utils/coverThemes.ts id (20261027000002); null = the static per-type cover. */
+  cover_theme?: string | null;
+  cover_photo_path?: string | null;
   /** Flipped to 'ready' by the advance_album_status() pg_cron job ~72h after
    * event_date — see 20260812000003_album_status_cron.sql. */
   album_status: 'not_started' | 'generating' | 'ready';
+  /** Spontaneous events — 20261022000002_spontaneous_events.sql. */
+  template: 'karaoke' | 'party' | 'tasting' | 'trip' | 'outing' | 'limited' | null;
+  /** 20261027000004 */
+  outing?: 'party' | 'outing' | 'limited' | 'trip' | null;
+  activity?: string | null;
+  start_time: string | null;
+  reply_by: string | null;
+  spot_limit: number | null;
+  /** Venue events — 20261023000002_venue_events.sql. */
+  host_name: string | null;
+  price_info: string | null;
+  booking_times: string[] | null;
+  max_party_size: number | null;
+  public_token: string;
 }
 
 export interface EventGuestRow {
@@ -50,6 +71,7 @@ export interface EventGuestRow {
    * from `invited_at` above, which is just row-creation time. Null until
    * sent. See 20260822000001_bulk_guest_invites.sql. */
   whatsapp_sent_at: string | null;
+  invite_seen_at?: string | null;
   responded_at: string | null;
   dietary_preferences: string[];
   /** Which seating_tables row this guest is assigned to, if any — see
@@ -60,6 +82,14 @@ export interface EventGuestRow {
   /** Per-guest secret for the web RSVP page (povestea-web, /i/[token]) — see
    * 20260929000001_guest_invite_tokens.sql. */
   invite_token: string;
+  plus_one: boolean;
+  bill_sent_at: string | null;
+  bill_confirmed_at: string | null;
+  party_size: number | null;
+  zone_id: string | null;
+  booking_time: string | null;
+  booking_code: string | null;
+  checked_in_at: string | null;
 }
 
 /** Row shape returned by the get_invite_preview(uuid) RPC — see
@@ -112,6 +142,8 @@ export interface ScheduleItemRow {
   title: string;
   location: string | null;
   sort_order: number;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface VenueInfoRow {
@@ -130,6 +162,10 @@ export interface MomentRow {
   organizer_id: string;
   title: string;
   photo_url: string | null;
+  /** moments.icon: a MomentIconId, or null. */
+  icon: string | null;
+  /** Poster's display name, set by a trigger at insert; null for an account without a name. */
+  author_label: string | null;
   created_at: string;
 }
 
@@ -144,6 +180,12 @@ export interface MomentWithReactionsRow extends MomentRow {
   moment_reactions: MomentReactionRow[];
 }
 
+export interface MessageReactionRow {
+  id: string;
+  user_id: string;
+  emoji: string;
+}
+
 export interface MessageRow {
   id: string;
   event_id: string;
@@ -151,6 +193,11 @@ export interface MessageRow {
   sender_label: string;
   content: string;
   created_at: string;
+  photo_width: number | null;
+  photo_height: number | null;
+  edited_at: string | null;
+  /** Embedded by loadSocial; absent on a Realtime payload. */
+  message_reactions?: MessageReactionRow[];
 }
 
 export interface FundRow {
@@ -217,6 +264,9 @@ export interface AccommodationRow {
   name: string;
   detail_line: string | null;
   price_line: string | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
   sort_order: number;
 }
 

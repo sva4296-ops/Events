@@ -5,9 +5,20 @@ export type EventTypeId =
   | 'cause'
   | 'corporate'
   | 'memorial'
-  | 'other';
+  | 'other'
+  | 'spontaneous'
+  /** A bar/restaurant night customers book (business accounts only). */
+  | 'venue';
 
-export type RsvpStatus = 'confirmed' | 'pending' | 'declined';
+/** 'maybe' is only offered on spontaneous events (see 20261022000001_spontaneous_enums.sql). */
+export type RsvpStatus = 'confirmed' | 'pending' | 'declined' | 'maybe';
+
+/** events.template — which tool a spontaneous event's Plan tab uses. */
+export const SPONTANEOUS_TEMPLATES = ['karaoke', 'party', 'tasting', 'trip', 'outing', 'limited'] as const;
+export type SpontaneousTemplate = (typeof SPONTANEOUS_TEMPLATES)[number];
+/** events.outing — the kind of outing picked first in the spontaneous wizard. */
+export const OUTING_KINDS = ['party', 'outing', 'limited', 'trip'] as const;
+export type OutingKind = (typeof OUTING_KINDS)[number];
 
 export type Gradient = readonly [string, string];
 
@@ -25,6 +36,8 @@ export interface EventTypeMeta {
 
 export interface Guest {
   id: string;
+  /** The linked account, once there is one. */
+  userId: string | null;
   name: string;
   status: RsvpStatus;
   respondedAt: string | null;
@@ -36,12 +49,26 @@ export interface Guest {
   /** When the organizer tapped "Send via WhatsApp" for this guest — null
    * means not yet sent. See app/send-invites/[id].tsx. */
   whatsappSentAt: string | null;
+  /** When the guest first opened the invitation; null if never, or before the column existed. */
+  inviteSeenAt: string | null;
   /** The seating table this guest is assigned to, if any — set from the
    * "Assign guests" section on app/table/[id].tsx. A guest belongs to at
    * most one table for a given event. */
   tableId: string | null;
   /** Picked menu option, if any (app/detalii-menu/[id].tsx). */
   menuOptionId: string | null;
+  /** Spontaneous events: bringing one more person. */
+  plusOne: boolean;
+  /** Spontaneous bill split: guest tapped "I've sent my share". */
+  billSentAt: string | null;
+  /** Spontaneous bill split: the organizer ticked the payment off. */
+  billConfirmedAt: string | null;
+  /** Venue events: the booking (null otherwise). */
+  partySize: number | null;
+  zoneId: string | null;
+  bookingTime: string | null;
+  bookingCode: string | null;
+  checkedInAt: string | null;
   /** Personal link token for the web RSVP page (https://events-web-henna.vercel.app/i/<token>, see INVITE_SITE_URL). */
   inviteToken: string;
 }
@@ -79,6 +106,8 @@ export interface AppEvent {
   date: string;
   location: string;
   welcomeMessage: string;
+  /** Organizer's own line in the WhatsApp/SMS invitation; '' = the default per-type line. */
+  inviteIntro: string;
   createdAt: string;
   guests: Guest[];
   /** Empty for guests (RLS). See hooks/useEvents.tsx's isOwner / isPrimaryOwner. */
@@ -88,8 +117,44 @@ export interface AppEvent {
    * app/pricing/[id].tsx and hooks/useEvents.tsx's setPlanTier. */
   planTier: string | null;
   planPurchasedAt: string | null;
+  /** utils/coverThemes.ts id, or null for the static per-type cover. */
+  coverTheme: string | null;
+  /** The organizer's own photo in event-photos; wins over coverTheme on the event page. */
+  coverPhotoPath?: string | null;
   /** events.album_status — 'ready' ~72h after the event date (server cron). */
   albumStatus: 'not_started' | 'generating' | 'ready';
+  /** Spontaneous events only (null otherwise). */
+  template: SpontaneousTemplate | null;
+  outing: OutingKind | null;
+  /** utils/outings.ts activity id ('karaoke', 'mountain'…), 'other' or null. */
+  activity: string | null;
+  /** 'HH:MM', set by the spontaneous wizard. */
+  startTime: string | null;
+  /** 'YYYY-MM-DD' — "Reply by". */
+  replyBy: string | null;
+  /** People, guests' +1 included; null = no limit. Enforced by guard_spot_limit. */
+  spotLimit: number | null;
+  /** Venue events: the venue's name guests see (agency company name at creation). */
+  hostName: string | null;
+  /** Free text, e.g. "Intrare liberă" or "Bilet 30 lei la intrare, include o băutură". */
+  priceInfo: string | null;
+  /** 'HH:MM' arrival slots a customer picks from; empty = any. */
+  bookingTimes: string[];
+  maxPartySize: number;
+  /** The venue's public booking link token (…/i/<publicToken>). */
+  publicToken: string;
+}
+
+/** A bookable area of a venue event (venue_zones). */
+export interface VenueZoneDraft {
+  /** Stable React key while editing. */
+  key: string;
+  /** venue_zones.id when editing an existing zone; null = new. */
+  id: string | null;
+  name: string;
+  detail: string;
+  /** Typed digits. */
+  capacity: string;
 }
 
 /** Work-in-progress event inside the 4-step creation wizard. */
@@ -99,12 +164,30 @@ export interface EventDraft {
   date: string;
   location: string;
   welcomeMessage: string;
+  /** Spontaneous only; ignored for every other type. */
+  template: SpontaneousTemplate | null;
+  outing: OutingKind | null;
+  activity: string | null;
+  startTime: string;
+  replyBy: string;
+  /** Typed digits; empty = no limit. */
+  spotLimit: string;
+  /** Venue only. */
+  zones: VenueZoneDraft[];
+  bookingTimes: string[];
+  priceInfo: string;
+  maxPartySize: string;
+  /** Picked first in the wizard; written to the event right after it's created. Null = skipped. */
+  planTier: string | null;
+  /** utils/coverThemes.ts id; null = static per-type cover. */
+  coverTheme: string | null;
 }
 
 export interface RsvpCounts {
   confirmed: number;
   pending: number;
   declined: number;
+  maybe: number;
   total: number;
 }
 

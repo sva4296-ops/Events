@@ -1,19 +1,19 @@
-import { LinearGradient } from 'expo-linear-gradient';
+import Feather from '@expo/vector-icons/Feather';
 import type { ReactNode } from 'react';
+import { EventCover } from '@/components/EventCover';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ScaleTouchable } from '@/components/ScaleTouchable';
 
-import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { RsvpBadge } from '@/components/RsvpBadge';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
 import type { Invitation } from '@/utils/invitations';
 import { getEventType } from '@/utils/eventTypes';
-import { eventShortSubtitle } from '@/utils/format';
+import { daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
-import { bandGradientLocations, themeRadius } from '@/utils/themeTokens';
+import { themeRadius, typeface } from '@/utils/themeTokens';
 
 /**
  * One invitation row. Warm Story 2.0 stacks these inside a single card on
@@ -24,9 +24,12 @@ export function InvitationListItem({
   invitation,
   onPress,
   showDivider = false,
+  unreadMessages = 0,
 }: {
   invitation: Invitation;
   onPress: () => void;
+  /** Unread chat messages; > 0 shows a small count bubble. */
+  unreadMessages?: number;
   /** Hairline above the row — every row after the first in a group. */
   showDivider?: boolean;
 }) {
@@ -34,6 +37,8 @@ export function InvitationListItem({
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const type = getEventType(event.type);
+  const days = daysUntilEvent(event.date);
+  const past = days !== null && days < 0;
 
   return (
     <ScaleTouchable
@@ -47,15 +52,9 @@ export function InvitationListItem({
         showDivider && { borderTopWidth: 1, borderTopColor: tokens.border },
       ]}
     >
-      <LinearGradient
-        colors={type.band}
-        locations={bandGradientLocations}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.badge}
-      >
-        <EventTypeIcon type={type.id} size={24} color={type.bandInk} />
-      </LinearGradient>
+      {/* Past event: dim the content, not the row, so the divider stays crisp. */}
+      <View style={[styles.content, past && styles.past]}>
+      <EventCover type={type.id} coverTheme={event.coverTheme} photoPath={event.coverPhotoPath} thumbnail style={styles.badge} />
 
       <View style={styles.info}>
         <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
@@ -66,10 +65,23 @@ export function InvitationListItem({
         </Text>
       </View>
 
+      {unreadMessages > 0 ? (
+        <View
+          style={[styles.unread, { backgroundColor: tokens.accentFill }]}
+          accessibilityLabel={t('home.unreadMessages', { count: unreadMessages })}
+        >
+          <Feather name="message-circle" size={12} color={tokens.onAccent} />
+          <Text style={[styles.unreadText, { color: tokens.onAccent }]}>
+            {unreadMessages > 99 ? '99+' : unreadMessages}
+          </Text>
+        </View>
+      ) : null}
+
       <RsvpBadge
         status={guest.status}
         label={guest.status === 'pending' ? t('home.respond') : undefined}
       />
+      </View>
     </ScaleTouchable>
   );
 }
@@ -108,6 +120,19 @@ export function InvitationListItemSkeleton({ showDivider = false }: { showDivide
 }
 
 const styles = StyleSheet.create({
+  unread: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    minHeight: 24,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+  },
+  unreadText: {
+    fontFamily: typeface.bodyBold,
+    fontSize: 12,
+    flexShrink: 1,
+  },
   group: {
     borderRadius: themeRadius.xl,
     borderWidth: 1,
@@ -120,6 +145,15 @@ const styles = StyleSheet.create({
     minHeight: 76,
     paddingVertical: 14,
     paddingHorizontal: spacing.lg,
+  },
+  content: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  past: {
+    opacity: 0.4,
   },
   badge: {
     width: 50,
@@ -134,10 +168,11 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   name: {
+    fontFamily: typeface.bodyBold,
     fontSize: 16,
-    fontWeight: '600',
   },
   date: {
+    fontFamily: typeface.body,
     fontSize: 13,
   },
 });

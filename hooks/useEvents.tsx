@@ -17,14 +17,17 @@ import {
   updateDietaryPreferencesRow,
   updateMenuChoiceRow,
   updateEventRow,
+  updateGuestRow,
   upsertGuestInvitesBatch,
   type BulkGuestEntry,
 } from '@/data/eventsRepository';
+import { showDialog } from '@/components/ActionSheet';
 import { useAgency } from '@/hooks/useAgency';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { AppEvent, CoOrganizerRelation, EventDraft, Guest, RsvpStatus } from '@/types/event';
-import { reportSupabaseError } from '@/utils/reportError';
+import i18n from '@/utils/i18n';
+import { reportSupabaseError, supabaseErrorMessage } from '@/utils/reportError';
 
 interface EventsResult {
   events: AppEvent[];
@@ -33,8 +36,26 @@ interface EventsResult {
   getEvent: (id: string | undefined) => AppEvent | undefined;
   createEvent: (draft: EventDraft) => Promise<AppEvent>;
   updateEvent: (eventId: string, patch: Partial<Omit<AppEvent, 'id' | 'owner_id' | 'agency_id' | 'guests' | 'createdAt' | 'planTier' | 'planPurchasedAt'>>) => Promise<void>;
-  respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>) => void;
-  removeGuest: (eventId: string, guestId: string) => void;
+  /** `plusOne` is only sent for spontaneous events (undefined leaves the column alone). */
+  respondToInvite: (eventId: string, status: Exclude<RsvpStatus, 'pending'>, plusOne?: boolean) => void;
+  /** Pass the guest's co-organizer `memberId`: that row goes first, or
+   * sync_member_guest could add the guest back. Resolves false on failure (already reported). */
+  removeGuest: (eventId: string, guestId: string, memberId?: string | null) => Promise<boolean>;
+  /** Organizer edit of a guest's name and phone (`phone` null = unchanged). Rejects; 23505 = number already listed. */
+  updateGuest: (
+    eventId: string,
+    guestId: string,
+    name: string,
+    phone: string | null,
+    memberId: string | null,
+  ) => Promise<void>;
+  /** Primary owner only (event_members RLS). Invitat ↔ co-organizator for one guest row. */
+  setGuestRole: (
+    eventId: string,
+    guest: { phone: string | null; name: string; userId: string | null },
+    role: 'guest' | 'co_organizer',
+    memberId: string | null,
+  ) => Promise<void>;
   /** Deletes the event and everything under it (rows cascade, photos removed from Storage). */
   deleteEvent: (eventId: string) => Promise<void>;
   addGuest: (eventId: string, email: string, name: string) => Promise<void>;
@@ -70,7 +91,7 @@ interface EventsResult {
     eventId: string,
     phone: string,
     name: string,
-    relation: CoOrganizerRelation | 'restaurant',
+    role: 'co_organizer' | 'restaurant',
   ) => Promise<void>;
   /** The signed-in user's event_members row on this event, if any. */
   myCoOrganizerRole: (event: AppEvent | undefined) => CoOrganizerRelation | 'co_organizer' | 'restaurant' | null;
@@ -130,7 +151,7 @@ export function useEvents(): EventsResult {
     // supabase/migrations/20260813000001_agencies.sql's note on why this is
     // just a dashboard-filtering tag, not a new access-control boundary; an
     // individual user (no agency row) passes null, unaffected.
-    mutationFn: (draft: EventDraft) => insertEvent(draft, user?.id ?? '', agency?.id ?? null),
+    mutationFn: (draft: EventDraft) => insertEvent(draft, user?.id ?? '', agency?.id ?? null, agency?.companyName ?? null),
     onSuccess: (event) => {
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) => [event, ...current]);
       void queryClient.invalidateQueries({ queryKey });
@@ -159,12 +180,20 @@ export function useEvents(): EventsResult {
   );
 
   const removeGuestMutation = useMutation({
-    mutationFn: ({ guestId }: { eventId: string; guestId: string }) => removeGuestRow(guestId),
-    onMutate: ({ eventId, guestId }) => {
+    mutationFn: async ({ guestId, memberId }: { eventId: string; guestId: string; memberId: string | null }) => {
+      // Member row first: on_event_member_sync_guest would otherwise be free to recreate the guest.
+      if (memberId !== null) await removeCoOrganizerRow(memberId);
+      await removeGuestRow(guestId);
+    },
+    onMutate: ({ eventId, guestId, memberId }) => {
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
         current.map((event) =>
           event.id === eventId
-            ? { ...event, guests: event.guests.filter((guest) => guest.id !== guestId) }
+            ? {
+                ...event,
+                guests: event.guests.filter((guest) => guest.id !== guestId),
+                coOrganizers: event.coOrganizers.filter((member) => member.id !== memberId),
+              }
             : event,
         ),
       );
@@ -176,8 +205,77 @@ export function useEvents(): EventsResult {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
   });
   const removeGuest = useCallback(
-    (eventId: string, guestId: string) => removeGuestMutation.mutate({ eventId, guestId }),
+    // Never rejects: onError already reports and rolls back.
+    (eventId: string, guestId: string, memberId: string | null = null) =>
+      removeGuestMutation.mutateAsync({ eventId, guestId, memberId }).then(
+        () => true,
+        () => false,
+      ),
     [removeGuestMutation],
+  );
+
+  /** Refetch the single event afterwards, same as the add flows: the member
+   * triggers may confirm or link the guest row server-side. */
+  const replaceWithFresh = useCallback(
+    (fresh: AppEvent | null) => {
+      if (fresh !== null) {
+        queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
+          current.map((event) => (event.id === fresh.id ? fresh : event)),
+        );
+      }
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    [queryClient, queryKey],
+  );
+
+  const updateGuestMutation = useMutation({
+    mutationFn: async (vars: {
+      eventId: string;
+      guestId: string;
+      name: string;
+      phone: string | null;
+      memberId: string | null;
+    }) => {
+      await updateGuestRow(vars.eventId, vars.guestId, vars.name, vars.phone, vars.memberId);
+      return fetchEventById(vars.eventId);
+    },
+    onSuccess: replaceWithFresh,
+  });
+  const updateGuest = useCallback(
+    async (eventId: string, guestId: string, name: string, phone: string | null, memberId: string | null) => {
+      await updateGuestMutation.mutateAsync({ eventId, guestId, name, phone, memberId });
+    },
+    [updateGuestMutation],
+  );
+
+  const setGuestRoleMutation = useMutation({
+    mutationFn: async (vars: {
+      eventId: string;
+      guest: { phone: string | null; name: string; userId: string | null };
+      role: 'guest' | 'co_organizer';
+      memberId: string | null;
+    }) => {
+      if (vars.role === 'guest') {
+        // They stay on the list as a confirmed guest (nothing removes that row).
+        if (vars.memberId !== null) await removeCoOrganizerRow(vars.memberId);
+      } else if (vars.memberId === null) {
+        // on_event_member_sync_guest confirms their guest row.
+        await insertCoOrganizer(vars.eventId, vars.guest.phone, vars.guest.name, 'co_organizer', vars.guest.userId);
+      }
+      return fetchEventById(vars.eventId);
+    },
+    onSuccess: replaceWithFresh,
+  });
+  const setGuestRole = useCallback(
+    async (
+      eventId: string,
+      guest: { phone: string | null; name: string; userId: string | null },
+      role: 'guest' | 'co_organizer',
+      memberId: string | null,
+    ) => {
+      await setGuestRoleMutation.mutateAsync({ eventId, guest, role, memberId });
+    },
+    [setGuestRoleMutation],
   );
 
   const deleteEventMutation = useMutation({
@@ -335,9 +433,9 @@ export function useEvents(): EventsResult {
       eventId: string;
       phone: string;
       name: string;
-      relation: CoOrganizerRelation | 'restaurant';
+      role: 'co_organizer' | 'restaurant';
     }) => {
-      await insertCoOrganizer(vars.eventId, vars.phone, vars.name, vars.relation);
+      await insertCoOrganizer(vars.eventId, vars.phone, vars.name, vars.role);
       return fetchEventById(vars.eventId);
     },
     onSuccess: (fresh) => {
@@ -350,8 +448,8 @@ export function useEvents(): EventsResult {
     },
   });
   const addCoOrganizer = useCallback(
-    async (eventId: string, phone: string, name: string, relation: CoOrganizerRelation | 'restaurant'): Promise<void> => {
-      await addCoOrganizerMutation.mutateAsync({ eventId, phone, name, relation });
+    async (eventId: string, phone: string, name: string, role: 'co_organizer' | 'restaurant'): Promise<void> => {
+      await addCoOrganizerMutation.mutateAsync({ eventId, phone, name, role });
     },
     [addCoOrganizerMutation],
   );
@@ -388,16 +486,26 @@ export function useEvents(): EventsResult {
   );
 
   const respondToInviteMutation = useMutation({
-    mutationFn: (vars: { eventId: string; status: Exclude<RsvpStatus, 'pending'> }) => {
+    mutationFn: (vars: { eventId: string; status: Exclude<RsvpStatus, 'pending'>; plusOne?: boolean }) => {
       if (user === null) throw new Error('Not signed in.');
-      return respondToInviteRow(vars.eventId, user.id, displayName ?? user.label, vars.status);
+      return respondToInviteRow(vars.eventId, user.id, displayName ?? user.label, vars.status, vars.plusOne);
     },
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
-    onError: (error) => reportSupabaseError(error),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey });
+      void queryClient.invalidateQueries({ queryKey: ['spontaneous', vars.eventId] });
+    },
+    onError: (error) => {
+      // guard_spot_limit (20261022000002_spontaneous_events.sql): no spots left.
+      if (supabaseErrorMessage(error).includes('event_full')) {
+        showDialog({ title: i18n.t('spontaneous.fullTitle'), message: i18n.t('spontaneous.fullBody') });
+        return;
+      }
+      reportSupabaseError(error);
+    },
   });
   const respondToInvite = useCallback(
-    (eventId: string, status: Exclude<RsvpStatus, 'pending'>) =>
-      respondToInviteMutation.mutate({ eventId, status }),
+    (eventId: string, status: Exclude<RsvpStatus, 'pending'>, plusOne?: boolean) =>
+      respondToInviteMutation.mutate({ eventId, status, plusOne }),
     [respondToInviteMutation],
   );
 
@@ -444,14 +552,14 @@ export function useEvents(): EventsResult {
       if (user === null) throw new Error('Not signed in.');
       return updateMenuChoiceRow(vars.eventId, user.id, vars.menuOptionId);
     },
-    // Optimistic, same index-0-is-my-row convention as updateDietaryMutation.
+    // Optimistic, on my own row (a co-organizer sees the whole list, so not index 0).
     onMutate: ({ eventId, menuOptionId }) => {
       queryClient.setQueryData<AppEvent[]>(queryKey, (current = []) =>
         current.map((event) =>
           event.id === eventId
             ? {
                 ...event,
-                guests: event.guests.map((guest, index) => (index === 0 ? { ...guest, menuOptionId } : guest)),
+                guests: event.guests.map((guest) => (guest.userId === user?.id ? { ...guest, menuOptionId } : guest)),
               }
             : event,
         ),
@@ -500,6 +608,8 @@ export function useEvents(): EventsResult {
     updateEvent,
     respondToInvite,
     removeGuest,
+    updateGuest,
+    setGuestRole,
     deleteEvent,
     addGuest,
     addGuestByPhone,

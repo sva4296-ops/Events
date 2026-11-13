@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { fetchMyProfile, saveContactEmail, saveUserName, uploadUserAvatar } from '@/data/usersRepository';
+import {
+  bumpAvatarVersion,
+  fetchMyAvatar,
+  fetchMyProfile,
+  saveContactEmail,
+  saveUserName,
+  uploadUserAvatar,
+} from '@/data/usersRepository';
 import { useAuth } from '@/hooks/useAuth';
 
 interface UserProfileResult {
@@ -14,8 +21,11 @@ interface UserProfileResult {
    * identifier, never verified. See app/edit-profile.tsx and saveEmail. */
   email: string | null;
   /** Signed URL for the private avatars bucket, or null if none uploaded
-   * yet — see data/usersRepository.ts's fetchAvatarUrl. */
+   * yet — see data/usersRepository.ts's fetchMyAvatar. Its own query, so a slow
+   * signing call never holds up the name (and through it, the splash). */
   avatarUrl: string | null;
+  /** Pass to expo-image with avatarUrl, so restarts don't download it again. */
+  avatarCacheKey: string | null;
   /** False until the initial fetch completes — AuthGate's name-step redirect
    * waits on this so it doesn't fire on stale/absent data. */
   hydrated: boolean;
@@ -49,6 +59,14 @@ export function useUserProfile(): UserProfileResult {
     staleTime: 180_000,
   });
 
+  const avatarQueryKey = ['userAvatar', userId] as const;
+  const avatarQuery = useQuery({
+    queryKey: avatarQueryKey,
+    queryFn: () => fetchMyAvatar(userId as string),
+    enabled: userId !== null,
+    staleTime: 30 * 60_000,
+  });
+
   const saveNameMutation = useMutation({
     mutationFn: (vars: { firstName: string; lastName: string }) => {
       if (userId === null) throw new Error('Not signed in.');
@@ -66,11 +84,12 @@ export function useUserProfile(): UserProfileResult {
   });
 
   const uploadAvatarMutation = useMutation({
-    mutationFn: (localUri: string) => {
+    mutationFn: async (localUri: string) => {
       if (userId === null) throw new Error('Not signed in.');
-      return uploadUserAvatar(userId, localUri);
+      await uploadUserAvatar(userId, localUri);
+      await bumpAvatarVersion(userId);
     },
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: avatarQueryKey }),
   });
 
   return {
@@ -78,7 +97,8 @@ export function useUserProfile(): UserProfileResult {
     lastName: query.data?.lastName ?? null,
     displayName: query.data?.displayName ?? null,
     email: query.data?.email ?? null,
-    avatarUrl: query.data?.avatarUrl ?? null,
+    avatarUrl: avatarQuery.data?.url ?? null,
+    avatarCacheKey: avatarQuery.data?.cacheKey ?? null,
     hydrated: userId === null ? true : query.isFetched,
     saveName: async (firstName, lastName) => {
       await saveNameMutation.mutateAsync({ firstName, lastName });

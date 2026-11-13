@@ -1,12 +1,17 @@
-import type { ReactNode } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { closeOpenSwipeRow } from '@/components/SwipeableRow';
-import { useTheme } from '@/hooks/useTheme';
+import { AmbientBackground } from '@/components/AmbientBackground';
+import { CoverStatusContext, EventChromeContext } from '@/components/guest/eventChrome';
+import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
 import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 
 interface GuestScreenProps {
+  /** Draws the event's cover hero on top: Acasă only. */
+  showHero?: boolean;
   children?: ReactNode;
   scroll?: boolean;
   contentStyle?: ViewStyle;
@@ -14,6 +19,8 @@ interface GuestScreenProps {
   topInset?: boolean;
   /** Skips the solid cream fill so a ScreenBackground behind it shows through. */
   transparent?: boolean;
+  /** Screens opened from an event (outside the tabs): its cover theme's accent (null = the app's). */
+  coverTheme?: string | null;
 }
 
 export function GuestScreen({
@@ -22,6 +29,8 @@ export function GuestScreen({
   contentStyle,
   topInset = false,
   transparent = false,
+  coverTheme = null,
+  showHero = false,
 }: GuestScreenProps) {
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
@@ -33,25 +42,56 @@ export function GuestScreen({
     paddingTop: (topInset ? insets.top : 0) + gSpace.lg,
     paddingBottom: tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height + gSpace.lg,
   };
-  const pageStyle = transparent
-    ? styles.pageTransparent
-    : [styles.page, { backgroundColor: tokens.background[0] }];
+  const pageStyle = styles.pageTransparent;
 
-  if (!scroll) {
-    return <View style={[pageStyle, padding, contentStyle]}>{children}</View>;
-  }
+  const [heroBottom, setHeroBottom] = useState<number | null>(null);
+  const [pastHero, setPastHero] = useState(false);
+  const chrome = useContext(EventChromeContext);
+  const coverStatus = useMemo(
+    () => ({
+      reportHeroBottom: setHeroBottom,
+      onScrollY: (y: number) => setPastHero(heroBottom !== null && y > heroBottom - insets.top),
+    }),
+    [heroBottom, insets.top],
+  );
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
 
-  return (
+  const body = !scroll ? (
+    <View style={[pageStyle, padding, contentStyle]}>{children}</View>
+  ) : (
     <ScrollView
       style={pageStyle}
       contentContainerStyle={[styles.content, padding, contentStyle]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      // Scrolling dismisses any revealed swipe actions, as on iOS.
-      onScrollBeginDrag={closeOpenSwipeRow}
+      scrollEventThrottle={64}
+      onScroll={(event) => coverStatus.onScrollY(event.nativeEvent.contentOffset.y)}
     >
+      {showHero ? chrome?.hero : null}
       {children}
     </ScrollView>
+  );
+
+  return (
+    <EventAccentProvider coverTheme={coverTheme}>
+      <CoverStatusContext.Provider value={coverStatus}>
+      {heroBottom !== null && !pastHero && focused ? <StatusBar style="light" /> : null}
+      {transparent ? (
+        body
+      ) : (
+        <View style={[styles.page, { backgroundColor: tokens.background[0] }]}>
+          <AmbientBackground />
+          {body}
+        </View>
+      )}
+      </CoverStatusContext.Provider>
+    </EventAccentProvider>
   );
 }
 

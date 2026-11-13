@@ -49,3 +49,4 @@ yarn-error.*
 
 # Supabase CLI local link/cache state
 supabase/.temp/
+*.apk

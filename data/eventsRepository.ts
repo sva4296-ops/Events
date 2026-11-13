@@ -1,5 +1,7 @@
+import { generateId } from '@/utils/uuid';
 import { supabase } from '@/data/supabaseClient';
-import type { AppEvent, CoOrganizer, CoOrganizerRelation, EventDraft, Guest, InvitePreview, RsvpStatus } from '@/types/event';
+import type { AppEvent, CoOrganizer, EventDraft, Guest, InvitePreview, RsvpStatus } from '@/types/event';
+import { parseSpotLimit } from '@/utils/spontaneous';
 import type {
   EventGuestRow,
   EventMemberRow,
@@ -17,15 +19,25 @@ const SELECT_WITH_GUESTS = '*, event_guests(*), event_members(*)';
 function mapGuestRow(row: EventGuestRow): Guest {
   return {
     id: row.id,
+    userId: row.guest_user_id,
     name: row.guest_name ?? row.guest_email ?? row.guest_phone ?? 'Guest',
     status: row.rsvp_status,
     respondedAt: row.responded_at,
     dietaryPreferences: row.dietary_preferences,
     phone: row.guest_phone,
     whatsappSentAt: row.whatsapp_sent_at,
+    inviteSeenAt: row.invite_seen_at ?? null,
     tableId: row.table_id,
     menuOptionId: row.menu_option_id ?? null,
     inviteToken: row.invite_token,
+    plusOne: row.plus_one ?? false,
+    billSentAt: row.bill_sent_at ?? null,
+    billConfirmedAt: row.bill_confirmed_at ?? null,
+    partySize: row.party_size ?? null,
+    zoneId: row.zone_id ?? null,
+    bookingTime: row.booking_time ?? null,
+    bookingCode: row.booking_code ?? null,
+    checkedInAt: row.checked_in_at ?? null,
   };
 }
 
@@ -63,12 +75,26 @@ function mapEventRow(row: EventWithGuestsRow): AppEvent {
     date: row.event_date ?? '',
     location: row.location ?? '',
     welcomeMessage: row.welcome_message ?? '',
+    inviteIntro: row.invite_intro ?? '',
     createdAt: row.created_at,
     guests: row.event_guests.map(mapGuestRow),
     coOrganizers: (row.event_members ?? []).map(mapMemberRow),
     planTier: row.plan_tier,
     planPurchasedAt: row.plan_purchased_at,
+    coverTheme: row.cover_theme ?? null,
+    coverPhotoPath: row.cover_photo_path ?? null,
     albumStatus: row.album_status,
+    template: row.template ?? null,
+    outing: row.outing ?? null,
+    activity: row.activity ?? null,
+    startTime: row.start_time ?? null,
+    replyBy: row.reply_by ?? null,
+    spotLimit: row.spot_limit ?? null,
+    hostName: row.host_name ?? null,
+    priceInfo: row.price_info ?? null,
+    bookingTimes: row.booking_times ?? [],
+    maxPartySize: row.max_party_size ?? 8,
+    publicToken: row.public_token ?? '',
   };
 }
 
@@ -102,6 +128,8 @@ export async function insertEvent(
   draft: EventDraft,
   organizerId: string,
   agencyId: string | null,
+  /** Venue events: the business name guests see. */
+  hostName: string | null = null,
 ): Promise<AppEvent> {
   const client = supabase;
   const { data, error } = await client
@@ -114,11 +142,48 @@ export async function insertEvent(
       event_date: draft.date.trim().length > 0 ? draft.date.trim() : null,
       location: draft.location.trim(),
       welcome_message: draft.welcomeMessage.trim(),
+      cover_theme: draft.coverTheme,
+      ...(draft.type === 'spontaneous'
+        ? {
+            template: draft.template ?? 'party',
+            outing: draft.outing,
+            activity: draft.activity,
+            start_time: draft.startTime.trim().length > 0 ? draft.startTime.trim() : null,
+            reply_by: draft.replyBy.trim().length > 0 ? draft.replyBy.trim() : null,
+            spot_limit: parseSpotLimit(draft.spotLimit),
+          }
+        : {}),
+      ...(draft.type === 'venue'
+        ? {
+            host_name: hostName,
+            start_time: draft.startTime.trim().length > 0 ? draft.startTime.trim() : null,
+            price_info: draft.priceInfo.trim().length > 0 ? draft.priceInfo.trim() : null,
+            booking_times: draft.bookingTimes,
+            max_party_size: parseSpotLimit(draft.maxPartySize) ?? 8,
+          }
+        : {}),
     })
     .select(SELECT_WITH_GUESTS)
     .single();
   if (error) throw error;
-  return mapEventRow(data as EventWithGuestsRow);
+  const event = mapEventRow(data as EventWithGuestsRow);
+
+  if (draft.type === 'venue') {
+    const zones = draft.zones
+      .map((zone, index) => ({
+        event_id: event.id,
+        name: zone.name.trim(),
+        detail: zone.detail.trim(),
+        capacity: parseSpotLimit(zone.capacity),
+        sort_order: index,
+      }))
+      .filter((zone): zone is typeof zone & { capacity: number } => zone.name.length > 0 && zone.capacity !== null);
+    if (zones.length > 0) {
+      const { error: zonesError } = await client.from('venue_zones').insert(zones);
+      if (zonesError) throw zonesError;
+    }
+  }
+  return event;
 }
 
 export async function updateEventRow(
@@ -133,7 +198,17 @@ export async function updateEventRow(
   }
   if (patch.location !== undefined) columns.location = patch.location;
   if (patch.welcomeMessage !== undefined) columns.welcome_message = patch.welcomeMessage;
+  if (patch.coverTheme !== undefined) columns.cover_theme = patch.coverTheme;
+  if (patch.inviteIntro !== undefined) {
+    columns.invite_intro = patch.inviteIntro.trim().length > 0 ? patch.inviteIntro.trim() : null;
+  }
   if (patch.type !== undefined) columns.type = patch.type;
+  if (patch.startTime !== undefined) columns.start_time = patch.startTime;
+  if (patch.replyBy !== undefined) columns.reply_by = patch.replyBy;
+  if (patch.spotLimit !== undefined) columns.spot_limit = patch.spotLimit;
+  if (patch.priceInfo !== undefined) columns.price_info = patch.priceInfo;
+  if (patch.bookingTimes !== undefined) columns.booking_times = patch.bookingTimes;
+  if (patch.maxPartySize !== undefined) columns.max_party_size = patch.maxPartySize;
   if (Object.keys(columns).length === 0) return;
 
   const { error } = await client.from('events').update(columns).eq('id', eventId);
@@ -168,8 +243,10 @@ export async function respondToInviteRow(
   guestUserId: string,
   guestName: string,
   status: Exclude<RsvpStatus, 'pending'>,
+  plusOne?: boolean,
 ): Promise<void> {
   const client = supabase;
+  const extra = plusOne !== undefined ? { plus_one: plusOne } : {};
   const { data: existing, error: selectError } = await client
     .from('event_guests')
     .select('id')
@@ -187,6 +264,7 @@ export async function respondToInviteRow(
       guest_name: guestName,
       rsvp_status: status,
       responded_at: respondedAt,
+      ...extra,
     });
     if (error) throw error;
     return;
@@ -194,7 +272,7 @@ export async function respondToInviteRow(
 
   const { error } = await client
     .from('event_guests')
-    .update({ rsvp_status: status, responded_at: respondedAt, guest_name: guestName })
+    .update({ rsvp_status: status, responded_at: respondedAt, guest_name: guestName, ...extra })
     .eq('id', existing.id);
   if (error) throw error;
 }
@@ -214,6 +292,39 @@ async function listEventFiles(prefix: string): Promise<string[]> {
     }
     if (data.length < pageSize) return paths;
   }
+}
+
+/** Uploads the new cover first, then points the event at it and removes the old file. */
+export async function setEventCoverPhoto(
+  eventId: string,
+  localUri: string,
+  previousPath: string | null,
+): Promise<void> {
+  const path = `${eventId}/cover/${generateId()}.jpg`;
+  const buffer = await fetch(localUri).then((res) => res.arrayBuffer());
+  const { error: uploadError } = await supabase.storage
+    .from('event-photos')
+    .upload(path, buffer, { contentType: 'image/jpeg', cacheControl: '31536000' });
+  if (uploadError) throw uploadError;
+
+  const { error } = await supabase.from('events').update({ cover_photo_path: path }).eq('id', eventId);
+  if (error) {
+    await supabase.storage.from('event-photos').remove([path]);
+    throw error;
+  }
+  if (previousPath !== null) await supabase.storage.from('event-photos').remove([previousPath]);
+}
+
+export async function removeEventCoverPhoto(eventId: string, path: string): Promise<void> {
+  const { error } = await supabase.from('events').update({ cover_photo_path: null }).eq('id', eventId);
+  if (error) throw error;
+  await supabase.storage.from('event-photos').remove([path]);
+}
+
+/** Null when the file can't be signed: the page falls back to the drawn cover. */
+export async function fetchEventCoverUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from('event-photos').createSignedUrl(path, 24 * 60 * 60);
+  return error ? null : data.signedUrl;
 }
 
 /**
@@ -248,20 +359,63 @@ export async function removeGuestRow(guestId: string): Promise<void> {
  */
 export async function insertCoOrganizer(
   eventId: string,
-  phone: string,
+  phone: string | null,
   name: string,
-  relation: CoOrganizerRelation | 'restaurant',
+  role: 'co_organizer' | 'restaurant',
+  /** Only when there's no phone: a guest row linked to an account but with no number. */
+  userId: string | null = null,
 ): Promise<void> {
-  const restaurant = relation === 'restaurant';
+  const restaurant = role === 'restaurant';
   const client = supabase;
   const { error } = await client.from('event_members').insert({
     event_id: eventId,
     role: restaurant ? 'restaurant' : 'co_organizer',
     invited_phone: phone,
+    user_id: phone === null ? userId : null,
     invited_name: name.length > 0 ? name : null,
-    relation: restaurant ? null : relation,
+    // Labels (Mire, Nașă...) are retired: every co-organizer is just a co-organizer.
+    relation: null,
   });
   if (error) throw error;
+}
+
+/**
+ * Organizer edit of one guest's name and phone (`phone` null = leave it as it
+ * is). A co-organizer's event_members row follows, so the phone auto-link
+ * (on_event_member_insert / on_user_created_link_members) still matches.
+ * A 23505 from here means that number is already on this event's list.
+ */
+export async function updateGuestRow(
+  eventId: string,
+  guestId: string,
+  name: string,
+  phone: string | null,
+  memberId: string | null,
+): Promise<void> {
+  const client = supabase;
+  const guestName = name.trim().length > 0 ? name.trim() : null;
+  const patch: { guest_name: string | null; guest_phone?: string } = { guest_name: guestName };
+  if (phone !== null) patch.guest_phone = phone;
+  // .select() so an RLS-filtered update (0 rows) surfaces instead of passing silently.
+  const { data, error } = await client
+    .from('event_guests')
+    .update(patch)
+    .eq('id', guestId)
+    .eq('event_id', eventId)
+    .select('id');
+  if (error) throw error;
+  if (data.length === 0) throw new Error('Guest not found or not yours to edit.');
+
+  if (memberId !== null) {
+    const memberPatch: { invited_name: string | null; invited_phone?: string } = { invited_name: guestName };
+    if (phone !== null) memberPatch.invited_phone = phone;
+    const { error: memberError } = await client
+      .from('event_members')
+      .update(memberPatch)
+      .eq('id', memberId)
+      .eq('event_id', eventId);
+    if (memberError) throw memberError;
+  }
 }
 
 export async function removeCoOrganizerRow(memberId: string): Promise<void> {
@@ -374,6 +528,11 @@ export async function markGuestWhatsAppSent(guestId: string): Promise<void> {
  * session has no matching pending (or already-linked) invite for this event;
  * the RPC itself only ever matches the caller's own row, never anyone else's.
  */
+/** Best-effort: a failure only means the organizer doesn't see "seen" yet. */
+export async function markInviteSeen(eventId: string): Promise<void> {
+  await supabase.rpc('mark_invite_seen', { p_event_id: eventId });
+}
+
 /**
  * The event a personal invite token belongs to — get_invite_by_token() is
  * granted to anon, so this works before sign-in (app/i/[token].tsx). Null for

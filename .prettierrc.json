@@ -1,0 +1,12 @@
+{
+  "overrides": [
+    {
+      "files": "supabase/migrations/*.sql",
+      "options": {
+        "plugins": ["prettier-plugin-sql-cst"],
+        "parser": "postgresql",
+        "sqlKeywordCase": "lower"
+      }
+    }
+  ]
+}

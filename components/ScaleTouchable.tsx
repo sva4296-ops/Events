@@ -1,4 +1,5 @@
-import { TouchableOpacity, type GestureResponderEvent, type TouchableOpacityProps } from 'react-native';
+import type { Ref } from 'react';
+import { TouchableOpacity, type GestureResponderEvent, type TouchableOpacityProps, type View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
@@ -8,6 +9,8 @@ const SPRING = { damping: 18, stiffness: 320, mass: 0.6 };
 interface ScaleTouchableProps extends TouchableOpacityProps {
   /** Scale while held. 0.97 for buttons, 0.98 for large cards. */
   scaleTo?: number;
+  /** Forwarded to the touchable (React 19 ref-as-prop), e.g. for the tour spotlight. */
+  ref?: Ref<View>;
 }
 
 /**

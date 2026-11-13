@@ -21,6 +21,8 @@ interface FieldProps {
   /** Optional leading icon, e.g. a pin for a location field. */
   icon?: ReactNode;
   maxLength?: number;
+  /** Small control shown at the right of the label, e.g. the AI write button. */
+  action?: ReactNode;
 }
 
 export function Field({
@@ -35,6 +37,7 @@ export function Field({
   keyboardType = 'default',
   icon,
   maxLength,
+  action,
 }: FieldProps) {
   const { tokens } = useTheme();
   const [focused, setFocused] = useState(false);
@@ -43,7 +46,14 @@ export function Field({
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: tokens.textSecondary }]}>{label}</Text>
+      {action !== undefined ? (
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, styles.labelFlex, { color: tokens.textSecondary }]}>{label}</Text>
+          {action}
+        </View>
+      ) : (
+        <Text style={[styles.label, { color: tokens.textSecondary }]}>{label}</Text>
+      )}
       <FocusRing active={focused && !hasError}>
         <View
           style={[
@@ -83,6 +93,15 @@ export function Field({
 const styles = StyleSheet.create({
   container: {
     gap: spacing.sm,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  labelFlex: {
+    flexShrink: 1,
   },
   label: {
     ...typography.label,

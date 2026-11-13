@@ -15,7 +15,7 @@ export function formatEventDate(value: string): string {
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) return trimmed;
 
-  return parsed.toLocaleDateString(undefined, {
+  return parsed.toLocaleDateString(i18n.language, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -24,7 +24,7 @@ export function formatEventDate(value: string): string {
 }
 
 export function countRsvps(guests: readonly Guest[]): RsvpCounts {
-  const counts: RsvpCounts = { confirmed: 0, pending: 0, declined: 0, total: guests.length };
+  const counts: RsvpCounts = { confirmed: 0, pending: 0, declined: 0, maybe: 0, total: guests.length };
   for (const guest of guests) {
     counts[guest.status] += 1;
   }
@@ -73,6 +73,12 @@ export function eventStartTime(value: string, scheduleTimes: readonly string[]):
     .map((match) => Number(match[1]) * 60 + Number(match[2]));
   if (minutes.length > 0) start.setMinutes(Math.min(...minutes));
   return start;
+}
+
+/** The event's day is over (from the next day on). Undated events never are. */
+export function isEventPast(value: string): boolean {
+  const days = daysUntilEvent(value);
+  return days !== null && days < 0;
 }
 
 /**

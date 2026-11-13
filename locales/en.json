@@ -5,6 +5,7 @@
     "declined": "Declined",
     "dateToBeAnnounced": "Date to be announced",
     "delete": "Delete",
+    "deleting": "Deleting…",
     "cancel": "Cancel",
     "edit": "Edit",
     "save": "Save",
@@ -14,7 +15,11 @@
     "guestsSeeOnDetalii": "Guests will see this on the Detalii tab.",
     "eventRsvpSummary": "{{confirmed}} confirmed · {{pending}} pending",
     "choosePlan": "Choose a plan",
-    "viewPlans": "View plans"
+    "viewPlans": "View plans",
+    "close": "Close",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Please try again.",
+    "maybe": "Maybe"
   },
   "home": {
     "tagline": "More than an invitation — the whole story.",
@@ -39,7 +44,24 @@
     "confirmedCount": "confirmed",
     "pendingCount": "pending",
     "respond": "Respond",
-    "coOrganizer": "Co-organizer"
+    "coOrganizer": "Co-organizer",
+    "tabInvited": "Invited",
+    "tabAll": "All",
+    "unreadMessages_one": "{{count}} new message",
+    "unreadMessages_other": "{{count}} new messages",
+    "dashboard": {
+      "next": "Up next",
+      "upNext": "Coming up",
+      "finished": "Finished",
+      "seeAll": "All",
+      "daysShort_one": "day",
+      "daysShort_other": "days",
+      "stageOf": "Stage {{stage}} of 4 · {{name}}",
+      "noGuestsYet": "No guests yet",
+      "sendInvites": "Send invitations",
+      "today": "Today",
+      "noDate": "No date"
+    }
   },
   "auth": {
     "headline": "Step into the story",
@@ -108,9 +130,14 @@
     "phoneLabel": "Phone number",
     "phonePlaceholder": "0712 345 678",
     "selectCountry": "Select a country",
+    "searchCountry": "Search a country or type a prefix",
+    "useCustomPrefix": "Use the prefix {{prefix}}",
+    "noCountryMatch": "No country matches. Type a prefix, e.g. +1242.",
     "errors": {
       "invalidPhone": "Enter a valid phone number."
-    }
+    },
+    "mostUsed": "Most used",
+    "allCountries": "All countries"
   },
   "verify": {
     "headline": "Check your phone",
@@ -130,6 +157,14 @@
     "resendIn": "You can resend the code in "
   },
   "acasa": {
+    "backHome": "Back to the main screen",
+    "coverTitle": "Cover photo",
+    "coverChange": "Choose another photo",
+    "coverRemove": "Remove photo",
+    "countdownAnd": "and",
+    "nextStepsTitle": "What's left to do",
+    "seeAll": "See all",
+    "momentsTitle": "Along the way",
     "sectionLabel": "OUR STORY",
     "emptyOwner": "No moments posted yet. Start the story with a first photo.",
     "emptyGuest": "The organizers haven't posted any moments yet.",
@@ -152,18 +187,37 @@
     "unit_minutes_one": "{{count}} minute",
     "unit_minutes_other": "{{count}} minutes",
     "countdownPast": "The story continues in the album",
-    "momentChip": "Moment",
     "reactions_one": "{{count}} reaction",
     "reactions_other": "{{count}} reactions",
-    "postMoment": "Post a moment"
+    "postMoment": "Post a moment",
+    "momentLongPressHint": "Long press to edit or delete",
+    "scheduleTitle": "Schedule",
+    "todayTitle": "Today",
+    "now": "Now",
+    "upNext": "Up next",
+    "seeSchedule": "See the full schedule",
+    "postedByAgo": "{{name}} · {{time}}",
+    "cantEditOthersTitle": "You can't edit this moment",
+    "cantEditOthersBody": "It was posted by {{name}}. Co-organizers can edit only their own moments; the event owner can edit all of them.",
+    "cantEditOthersBodyUnknown": "Co-organizers can edit only their own moments; the event owner can edit all of them."
   },
   "chat": {
     "sectionLabel": "WEDDING GROUP",
     "subtitle": "Guests talk to each other and with the organizer",
     "empty": "No messages yet. Write the first one!",
     "placeholder": "Write a message…",
+    "photo": "Photo",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "edited": "edited",
+    "editingTitle": "Editing message",
+    "attachPhotos": "Add photos",
+    "takePhoto": "Take a photo",
+    "removePhoto": "Remove photo",
     "send": "Send",
-    "organizerBadge": "Organizer"
+    "organizerBadge": "Organizer",
+    "deleteMessageTitle": "Delete this message?",
+    "deleteMessageBody": "It disappears from the chat for everyone."
   },
   "live": {
     "liveTag": "LIVE",
@@ -186,9 +240,19 @@
     "albumTitle": "Your album",
     "empty": "No photos yet. Photos added in Live show up here.",
     "downloadAll": "Download all photos",
+    "downloadProgress": "Saving {{done}} of {{total}}…",
+    "downloadDoneTitle": "Done!",
+    "downloadDoneBody_one": "Saved one photo to your gallery.",
+    "downloadDoneBody_other": "Saved {{count}} photos to your gallery.",
+    "downloadPartialTitle": "Some photos weren't saved",
+    "downloadPartialBody": "Saved: {{saved}}. Failed: {{failed}}. Check your connection and try again.",
+    "downloadDeniedTitle": "No gallery access",
+    "downloadDeniedBody": "To save the photos, allow gallery access in your phone's settings.",
     "title": "Our album",
-    "summary_one": "{{count}} photo · from {{people}} guests",
-    "summary_other": "{{count}} photos · from {{people}} guests",
+    "summaryPeople_one": "from {{count}} guest",
+    "summaryPeople_other": "from {{count}} guests",
+    "summary_one": "{{count}} photo",
+    "summary_other": "{{count}} photos",
     "filterAll": "All",
     "filterMine": "Mine",
     "emptyMine": "You haven't uploaded any photos yet.",
@@ -198,7 +262,11 @@
     "noLimitOrganizer": "No limit for organizers",
     "limitReached": "Photo limit reached",
     "infoTitle": "How the album works",
-    "infoBody": "• Everyone at the event uploads photos here, and all guests see them.\n• Each guest can upload up to {{limit}} photos. Organizers have no limit.\n• You can delete your own photos at any time.\n• The full album is ready 3 days after the event, when you can download it."
+    "infoBody": "• Everyone at the event uploads photos here, and all guests see them.\n• Each guest can upload up to {{limit}} photos. Organizers have no limit.\n• You can delete your own photos at any time.\n• The full album is ready 3 days after the event, when you can download it.",
+    "closedTitle": "The album is closed",
+    "closedBody_one": "Photos could be added up to {{count}} day after the event.",
+    "closedBody_other": "Photos could be added up to {{count}} days after the event.",
+    "uploadProgress": "Uploading {{done}} of {{total}}…"
   },
   "rsvp": {
     "notFoundTitle": "Invitation not found",
@@ -263,6 +331,7 @@
     "seatCount_one": "{{count}} seat",
     "seatCount_other": "{{count}} seats",
     "seatingYoureHere": "You're here",
+    "menuYourChoice": "Your menu",
     "seatingWithYou": "With you: {{names}}",
     "seatingViewList": "List",
     "seatingViewPlan": "Floor plan",
@@ -305,6 +374,8 @@
       "seatingUnset": "No tables added yet",
       "seatingCount_one": "{{count}} guest seated",
       "seatingCount_other": "{{count}} guests seated",
+      "seatingUnconfirmed_one": "{{count}} unconfirmed",
+      "seatingUnconfirmed_other": "{{count}} unconfirmed",
       "accommodationTitle": "Recommended lodging",
       "accommodationUnset": "No lodging added yet",
       "accommodationCount_one": "{{count}} lodging option",
@@ -321,7 +392,11 @@
       "locked": "Locked"
     },
     "openInMaps": "Open in Maps",
-    "openInWaze": "Waze"
+    "openInWaze": "Waze",
+    "deleteVenueTitle": "Delete the location?",
+    "deleteVenueBody": "\"{{name}}\" will be removed from the event, with its address, map and notes. Guests won't see it anymore.",
+    "venueFromEvent": "From the event details",
+    "addExactVenue": "Add the exact place on the map"
   },
   "fond": {
     "emptyOwner": "No fund yet. Open one so guests can contribute to something that matters to you.",
@@ -354,8 +429,6 @@
     "languageEnglish": "English",
     "languageRomanian": "Română",
     "theme": "Appearance",
-    "themeLight": "Light",
-    "themeDark": "Dark",
     "personalData": "Personal details",
     "groupAccount": "Account",
     "groupEvents": "Events and plans",
@@ -372,7 +445,21 @@
     "notifications": "Notifications",
     "notificationsBlockedTitle": "Notifications are blocked",
     "notificationsBlockedMessage": "You can turn them on in your phone's settings, under PovesteaNoastra → Notifications.",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "themes": {
+      "siteDark": "Site dark",
+      "siteLight": "Site light",
+      "hartie": "Paper",
+      "sampanie": "Champagne",
+      "minimal": "Minimal",
+      "bleumarin": "Navy & coral",
+      "teracota": "Terracotta",
+      "teracotaDark": "Terracotta dark",
+      "visina": "Cherry & powder pink",
+      "sepia": "Sepia (vintage)",
+      "retro": "Retro '70s (vintage)",
+      "cinema": "Old cinema (vintage)"
+    }
   },
   "pricing": {
     "title": "Plans & pricing",
@@ -400,7 +487,11 @@
     "featureVolumeBilling": "Per-event billing",
     "headline": "Pick the right plan for your story",
     "flowTitle": "Plans",
-    "ownerOnly": "Only the main organizer can choose the plan."
+    "ownerOnly": "Only the main organizer can choose the plan.",
+    "paymentsSoonTitle": "Payments coming soon",
+    "paymentsSoonBody": "Paid plans will be available to buy right in the app soon. Until then you can use the Esențial plan.",
+    "subtitleDraft": "Last step: pick a plan and your event is ready. You can upgrade anytime.",
+    "subtitleUpgrade": "Upgrade to unlock picking the theme with AI."
   },
   "planGate": {
     "chatLocked": "Group chat isn't included in this event's current plan.",
@@ -439,6 +530,10 @@
     ]
   },
   "event": {
+    "addCoOrganizer": "Add a co-organizer",
+    "addCoOrganizerHint": "Someone who helps you organize, from their own phone",
+    "coOrganizersPending_one": "{{count}} hasn't joined yet",
+    "coOrganizersPending_other": "{{count}} haven't joined yet",
     "notFound": "Event not found",
     "shareInvitation": "Share invitation",
     "previewAsGuest": "Preview as guest",
@@ -450,6 +545,7 @@
     "sendPendingInvites": "Send pending invites ({{count}})",
     "invitedBadge": "Invited",
     "notSentBadge": "Not sent",
+    "resendInvite": "Resend invite",
     "removeGuestAction": "Remove",
     "removeGuestTitle": "Remove this guest?",
     "removeGuestBody": "{{name}} will no longer appear in the guest list.",
@@ -458,6 +554,12 @@
     "guestsTotal_one": "{{count}} guest",
     "guestsTotal_other": "{{count}} guests",
     "addGuest": "Add guest",
+    "searchShort": "Search",
+    "inviteStageSeen": "Seen",
+    "inviteStageSent": "Sent",
+    "inviteStageNotSent": "Not sent",
+    "sendInvite": "Send the invitation",
+    "confirmSentBody": "If the message to {{name}} went out, we mark it as sent.",
     "sendWhatsApp": "Send on WhatsApp",
     "filterAll": "All",
     "filterConfirmed": "Confirmed",
@@ -465,9 +567,12 @@
     "filterDeclined": "Declined",
     "searchPlaceholder": "Search by name or phone",
     "noMatches": "No guest matches.",
+    "inviteSeen": "Saw the invite, no answer yet",
     "inviteSent": "Invite sent on WhatsApp",
     "inviteNotSent": "Invite not sent yet",
-    "noPhone": "No phone"
+    "noPhone": "No phone",
+    "filterMaybe": "Maybe",
+    "filterCoOrganizers": "Co-organizers"
   },
   "export": {
     "button": "Export list for the venue",
@@ -497,7 +602,8 @@
     "total": "Total",
     "statusConfirmed": "Confirmed",
     "statusPending": "Pending",
-    "statusDeclined": "Declined"
+    "statusDeclined": "Declined",
+    "statusMaybe": "Maybe"
   },
   "bulkInviteForm": {
     "title": "Add multiple guests",
@@ -506,7 +612,8 @@
     "guestNumber": "Guest {{number}}",
     "removeRow": "Remove",
     "addAnother": "+ Add another",
-    "submit": "Add {{count}} guests",
+    "submit_one": "Add {{count}} guest",
+    "submit_other": "Add {{count}} guests",
     "sending": "Adding…",
     "contactsTitle": "Choose contacts",
     "contactsPermissionDenied": "Contacts access is off — you can still add guests manually above, or allow access in Settings to import them.",
@@ -523,11 +630,17 @@
     "empty": "Everyone's been messaged.",
     "sendButton": "Send",
     "sending": "Opening…",
-    "skipButton": "Skip",
+    "confirmSentTitle": "Did you send the invite?",
+    "confirmSentBody": "If the message to {{name}} went out, we'll take them off the list.",
+    "confirmSentYes": "Yes, sent",
+    "confirmSentNo": "Not yet",
     "smsButton": "Send by SMS",
     "flowSubtitle": "Via WhatsApp",
     "messageLabel": "The message",
     "messageHint": "Every guest gets their own name and a personal link.",
+    "introLabel": "Your invitation line",
+    "introPlaceholder": "We'd love you to join us at our wedding...",
+    "introHint": "Optional. Replaces the default line; the greeting with their name, date, place and link are added automatically.",
     "recipients": "Recipients",
     "howItWorks": "WhatsApp opens one guest at a time. You tap Send, and we tick off who got it. For guests without WhatsApp, the phone button opens an SMS with the same message."
   },
@@ -551,12 +664,15 @@
     "nameLabel": "Venue name",
     "addressLabel": "Address",
     "notesLabel": "Practical notes",
-    "notesHint": "One note per line.",
+    "notesHint": "What guests should know: parking, entrance, dress code. Each on a new line. “Tidy with AI” turns them into a clean list.",
     "mapLabel": "Map pin",
     "pickOnMap": "Pick on map",
     "changeOnMap": "Change",
     "removeFromMap": "Remove",
-    "mapHint": "Guests get a navigation button straight to this spot."
+    "mapHint": "Guests get a navigation button straight to this spot.",
+    "namePlaceholder": "Royal House",
+    "addressPlaceholder": "12 Republicii St, Brașov",
+    "notesPlaceholder": "e.g. free parking at the back"
   },
   "menuForm": {
     "coursePhotoAdd": "Add a photo of the dish",
@@ -564,6 +680,7 @@
     "coursePhotoChange": "Change photo",
     "coursePhotoRemove": "Remove photo",
     "addCourse": "Add a course",
+    "addSameCourse": "Add another {{name}}",
     "removeCourse": "Remove {{name}}",
     "courseNamePlaceholder": "Course {{n}}",
     "courseNameA11y": "Name of course {{n}}",
@@ -615,7 +732,9 @@
     "detailsLabel": "Details",
     "detailsPlaceholder": "4★ · 2 min from the castle",
     "priceLabel": "Price",
-    "pricePlaceholder": "from 320 lei/night"
+    "pricePlaceholder": "from 320 lei/night",
+    "locationLabel": "Location",
+    "locationPlaceholder": "12 Republicii St, Brașov"
   },
   "vendorForm": {
     "notAvailableSubtitle": "Only the organizer can edit vendors.",
@@ -688,7 +807,24 @@
     "choosePhoto": "Choose a photo",
     "flowTitle": "New moment",
     "changePhoto": "Change photo",
-    "quickEmoji": "Quick emoji"
+    "editFlowTitle": "Edit moment",
+    "iconLabel": "Icon",
+    "icons": {
+      "rings": "Rings",
+      "cake": "Cake",
+      "camera": "Photos",
+      "glasses": "Glasses",
+      "music": "Music",
+      "food": "Food",
+      "flower": "Flowers",
+      "location": "Location",
+      "gift": "Gift",
+      "heart": "Heart",
+      "baby": "Baby",
+      "sparkles": "Sparkles"
+    },
+    "editingOthers": "Posted by {{name}}. Your changes stay under their name.",
+    "editingOthersUnknown": "Posted by a co-organizer. Your changes stay under their name."
   },
   "onboarding": {
     "step1Title": "It all starts with an invitation",
@@ -711,7 +847,7 @@
   "createWizard": {
     "continue": "Continue",
     "typeTitle": "What are we celebrating?",
-    "typeSubtitle": "Pick the type of event. Each one has its own colors.",
+    "typeSubtitle": "Pick the type of event.",
     "detailsButton": "Preview invitation",
     "detailsTitle": "The story's details",
     "detailsSubtitle": "Everything your guests need to know.",
@@ -722,6 +858,7 @@
     "previewButton": "Looks good",
     "previewTitle": "This is how guests will get it",
     "previewSubtitle": "The link also opens in the browser, no app install needed.",
+    "previewNameFallback": "Your event name",
     "previewNote": "Need a change? Go back and edit the details.",
     "shareTitle": "The story has begun!",
     "shareSubtitle": "Send the invitation to your loved ones. Every guest gets a personal link.",
@@ -736,9 +873,15 @@
     "stepShare": "Share",
     "timeLabel": "Time",
     "previewEdit": "Edit",
-    "shareWhatsApp": "Send on WhatsApp",
-    "shareAddGuests": "Add guests",
-    "shareGoToEvent": "Go to the event"
+    "pickOnMap": "Pick on the map",
+    "discardTitle": "Discard this event?",
+    "discardBody": "Everything you entered will be lost.",
+    "keepEditing": "Keep editing",
+    "discard": "Discard",
+    "stepTheme": "Theme",
+    "shareInvite": "Invite guests",
+    "shareVenue": "Send the booking link",
+    "shareLater": "Later"
   },
   "eventTypes": {
     "wedding": {
@@ -789,9 +932,25 @@
       "countdownUntil": "until the event",
       "countdownToday": "Today's the big day!",
       "stageDay": "The event"
+    },
+    "spontaneous": {
+      "label": "Spontaneous",
+      "description": "Karaoke, a party, a tasting",
+      "countdownUntil": "until we meet",
+      "countdownToday": "It's today!",
+      "stageDay": "The night"
+    },
+    "venue": {
+      "label": "Venue",
+      "description": "For bars and restaurants: customers book",
+      "countdownUntil": "until the night",
+      "countdownToday": "It's tonight!",
+      "stageDay": "The night"
     }
   },
   "mapPicker": {
+    "searchPlaceholder": "Type the address",
+    "addressNotFound": "We couldn't find that address. Try adding the city, or move the map.",
     "title": "Pick the location",
     "hint": "Move the map until the pin is on the spot.",
     "myLocation": "My location",
@@ -803,15 +962,21 @@
   },
   "guestTabs": {
     "home": "Home",
-    "details": "Details",
+    "details": "Plan",
     "fund": "Fund",
+    "guests": "Guests",
     "chat": "Chat",
     "live": "Live",
-    "album": "Album"
+    "album": "Album",
+    "plan": "Plan",
+    "bill": "Bill",
+    "tonight": "Tonight",
+    "book": "Book",
+    "ticket": "Ticket"
   },
   "coOrganizers": {
     "title": "Co-organizers",
-    "subtitle": "Your partner or godparents manage the event from their own phone. The restaurant only manages the venue, menu and seating. Only you can delete the event, choose the plan and see the fund.",
+    "subtitle": "People who help you run the event, each from their own phone.",
     "notAvailableSubtitle": "Only the main organizer can manage co-organizers.",
     "listTitle": "Added",
     "statusActive": "Active",
@@ -828,13 +993,21 @@
     "removeBody": "{{name}} will no longer see or manage this event.",
     "removeLabel": "Remove",
     "relation": {
+      "co_organizer": "Co-organizer",
       "groom": "Groom",
       "bride": "Bride",
       "godfather": "Godfather",
       "godmother": "Godmother",
       "restaurant": "Restaurant"
     },
-    "relationLabel": "Role"
+    "relationLabel": "Role",
+    "pickGuest": "Pick from guests",
+    "addOnly": "Add",
+    "pickGuestTitle": "Pick a guest",
+    "roleInfo": {
+      "co_organizer": "Runs the event with you: guests, schedule, moments, details and chat. Can't delete the event, choose the plan or see the fund.",
+      "restaurant": "Sees only the Plan tab and manages the venue, menus and seating. No access to chat, live, album or the rest of the event."
+    }
   },
   "liveVideo": {
     "start": "Go live with video",
@@ -855,5 +1028,856 @@
     "soonTag": "COMING SOON",
     "soonTitle": "Live video, coming soon",
     "soonBody": "Soon you'll be able to stream the event from your phone, and family who can't come will watch it live from a link."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Choose which notifications you get.",
+    "deviceToggle": "Allow notifications",
+    "deviceOffNote": "Notifications are off. Turn them on to choose what you get.",
+    "alwaysOn": "Always on",
+    "categories": {
+      "organizer": "As organizer",
+      "reminders": "Reminders",
+      "updates": "Event updates",
+      "chat": "Chat"
+    },
+    "types": {
+      "rsvp_response": {
+        "title": "Guest replies",
+        "description": "When a guest confirms or can't make it."
+      },
+      "event_reminder": {
+        "title": "Day-before reminder",
+        "description": "The day before an event you're attending."
+      },
+      "menu_reminder": {
+        "title": "Menu choice reminder",
+        "description": "When the deadline to pick your menu is close."
+      },
+      "event_changed": {
+        "title": "Date or location changes",
+        "description": "When the organizer changes the date, location or venue."
+      },
+      "new_moment": {
+        "title": "New moments",
+        "description": "When the organizer posts a new moment."
+      },
+      "album_ready": {
+        "title": "Album ready",
+        "description": "When the event's story and photos are ready."
+      },
+      "event_cancelled": {
+        "title": "Cancelled events",
+        "description": "Always sent, so you never miss a cancellation."
+      },
+      "chat_message": {
+        "title": "New messages",
+        "description": "One notification when new messages arrive, then quiet until you open the chat."
+      }
+    },
+    "loadFailed": "Couldn't load your notification settings. Check your connection and try again.",
+    "retry": "Try again"
+  },
+  "story": {
+    "close": "Close",
+    "previous": "Previous",
+    "next": "Next",
+    "entryTitle": "The event's story is ready",
+    "entryBody": "The moments, the schedule and the photos, in one story.",
+    "entryCta": "Watch the story",
+    "statsTitle": "In numbers",
+    "statsGuests_one": "guest was there",
+    "statsGuests_other": "guests were there",
+    "statsPhotos_one": "photo",
+    "statsPhotos_other": "photos",
+    "statsMoments_one": "moment shared",
+    "statsMoments_other": "moments shared",
+    "journeyTitle": "The road here",
+    "whenDay": "On the big day",
+    "whenDays_one": "1 day before",
+    "whenDays_other": "{{count}} days before",
+    "whenWeeks_one": "1 week before",
+    "whenWeeks_other": "{{count}} weeks before",
+    "whenMonths_one": "1 month before",
+    "whenMonths_other": "{{count}} months before",
+    "photosTitle": "Through the guests' eyes",
+    "photosCount_one": "1 photo in the album",
+    "photosCount_other": "{{count}} photos in the album",
+    "peopleTitle": "Who captured the moments",
+    "peopleCount_one": "1 person added photos",
+    "peopleCount_other": "{{count}} people added photos",
+    "endTitle": "It's all in the album",
+    "endBody": "Every photo from the event, in one place.",
+    "openAlbum": "Open the album",
+    "types": {
+      "wedding": {
+        "cover": "The wedding story",
+        "day": "The wedding day",
+        "thanks": "Thank you for being with us on our most beautiful day. These memories are yours too."
+      },
+      "baptism": {
+        "cover": "The christening story",
+        "day": "The christening day",
+        "thanks": "Thank you for being with us and our little one on such a special day."
+      },
+      "birthday": {
+        "cover": "The birthday story",
+        "day": "The party",
+        "thanks": "Thank you for celebrating with us. It was a day to remember."
+      },
+      "cause": {
+        "cover": "The story of the cause",
+        "day": "The event day",
+        "thanks": "Thank you for every gesture of support. Together we made a difference."
+      },
+      "corporate": {
+        "cover": "The event story",
+        "day": "The day's agenda",
+        "thanks": "Thank you all for being there and taking part. See you at the next one."
+      },
+      "memorial": {
+        "cover": "In memoriam",
+        "day": "The day's schedule",
+        "thanks": "Thank you for being with us and keeping the memory of our loved one alive."
+      },
+      "other": {
+        "cover": "The event story",
+        "day": "The big day",
+        "thanks": "Thank you for being with us. These memories belong to all of us."
+      }
+    }
+  },
+  "gettingStarted": {
+    "title": "Getting started",
+    "subtitle": "Set up your event in a few steps. Tap “Show me” and we'll point at exactly what to press.",
+    "allDone": "You're all set. Happy planning!",
+    "progress": "{{done}} of {{total}} done",
+    "next": "Next step: {{step}}",
+    "showMe": "Show me",
+    "gotIt": "Got it",
+    "hide": "Hide getting started",
+    "missingTarget": "We can't find that button right now. Try again once the screen has loaded.",
+    "steps": {
+      "event": {
+        "title": "Create the event",
+        "hint": ""
+      },
+      "location": {
+        "title": "Add the location",
+        "hint": "Where it happens, with a pin on the map.",
+        "tip": "Tap here to add the venue. Guests get directions straight to it."
+      },
+      "schedule": {
+        "title": "Plan the day",
+        "hint": "The ceremony, the party and their times.",
+        "tip": "Tap here to add the moments of the day, each with its time and place."
+      },
+      "guests": {
+        "title": "Add guests",
+        "hint": "One by one or straight from your contacts.",
+        "tip": "Tap here to add a guest. You can import several at once from your contacts."
+      },
+      "invites": {
+        "title": "Send the invitations",
+        "hint": "On WhatsApp, each with their own link.",
+        "tip": "Tap here to send the invitations on WhatsApp. Every guest gets their own link to reply.",
+        "missing": "The send button shows up once you've added your first guests."
+      },
+      "moment": {
+        "title": "Post the first moment",
+        "hint": "A photo and a few words for your guests.",
+        "tip": "Tap here to post a moment. Guests see it on Home and can react."
+      },
+      "menu": {
+        "title": "Create the menu",
+        "hint": "The menus guests choose from, course by course.",
+        "tip": "Tap here to add a menu. Confirmed guests pick their menu in the app, until the deadline you set."
+      }
+    }
+  },
+  "ai": {
+    "write": "Write with AI",
+    "improve": "Improve",
+    "tidy": "Tidy with AI",
+    "writing": "Writing…",
+    "undo": "Undo",
+    "quotaTitle": "You've reached today's limit",
+    "quotaBody": "You can use AI writing again tomorrow. Until then you can write the text yourself.",
+    "errorBody": "We couldn't write the text right now. Please try again in a moment.",
+    "eventQuotaTitle": "You've used this event's AI suggestions",
+    "eventQuotaBody": "This event's plan includes a limited number of AI suggestions. Upgrade to get more.",
+    "upgrade": "Upgrade",
+    "withLeft": "{{label}} · {{count}}"
+  },
+  "locationField": {
+    "pointSet": "Map point set"
+  },
+  "checklist": {
+    "title": "Checklist",
+    "subtitle": "Your to-do list, with reminders.",
+    "progress": "{{done}} of {{total}} done",
+    "notAvailable": "Only organizers can see the checklist.",
+    "empty": "Nothing on the list yet. Add your first to-do, like “Hairdresser at 12:00”.",
+    "add": "Add",
+    "addTitle": "New to-do",
+    "editTitle": "Edit",
+    "formSubtitle": "Only organizers see this list.",
+    "titleLabel": "What needs doing",
+    "titlePlaceholder": "Hairdresser",
+    "dateLabel": "Day",
+    "timeLabel": "Time",
+    "noDate": "No due date",
+    "clearDate": "Remove due date",
+    "reminderLabel": "Reminder",
+    "remindNone": "None",
+    "remind_0": "At that time",
+    "remind_15": "15 min before",
+    "remind_30": "30 min before",
+    "remind_60": "1 hour before",
+    "remind_120": "2 hours before",
+    "remind_1440": "1 day before",
+    "reminderHint": "You'll get a notification at {{time}}, on this phone.",
+    "reminderBody": "{{when}}",
+    "deleteTitle": "Remove from the list?",
+    "deleteBody": "“{{title}}” will be removed from the checklist.",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "hubStatusEmpty": "Nothing on the list",
+    "hubStatus": "{{done}} of {{total}} done"
+  },
+  "spontaneous": {
+    "fullTitle": "No spots left",
+    "fullBody": "Every spot is taken. You can answer “Maybe” so the host knows you'd like to come.",
+    "templates": {
+      "karaoke": {
+        "name": "Karaoke",
+        "description": "For a night of mics and courage.",
+        "includes": [
+          "Song queue with voting",
+          "Vote on the time",
+          "Split the cost"
+        ],
+        "namePlaceholder": "Karaoke with Mihai",
+        "messagePlaceholder": "Private room booked, mics ready, no excuses accepted. 🎤",
+        "planTitle": "Song queue",
+        "planSub": "Vote on what we sing first. The top songs open the night.",
+        "planCta": "What are we singing? Vote on the queue.",
+        "pollQuestion": "What time do we meet?",
+        "pollOptions": [
+          "8 pm",
+          "9 pm",
+          "10 pm"
+        ],
+        "billTitle": "Private room + minimum spend"
+      },
+      "party": {
+        "name": "Party",
+        "description": "At home, at a bar or in the park, anytime.",
+        "includes": [
+          "“Who brings what” list",
+          "Vote on the theme",
+          "Split the costs"
+        ],
+        "namePlaceholder": "Housewarming at Ioana's",
+        "messagePlaceholder": "I finally moved! Let's christen the flat with pizza, music and lovely people. 🏠",
+        "planTitle": "Who brings what",
+        "planSub": "Pick what you'll bring. The list updates for everyone.",
+        "planCta": "What are you bringing? Pick from the list so we don't all show up with crisps.",
+        "pollQuestion": "Costume theme?",
+        "pollOptions": [
+          "Yes, costumes!",
+          "No, keep it chill"
+        ],
+        "billTitle": "Food & drinks"
+      },
+      "tasting": {
+        "name": "Wine tasting",
+        "description": "Limited spots, fixed ticket, shared transport.",
+        "includes": [
+          "Limited spots",
+          "Wine rating sheet",
+          "Split ticket + transport"
+        ],
+        "namePlaceholder": "Tasting at Dealu Mare",
+        "messagePlaceholder": "Winery booked for our group: 6 wines, a cheese platter and a sommelier. Limited spots! 🍷",
+        "planTitle": "Tonight's wines",
+        "planSub": "Rate them during the tasting. At the end you'll see the group's favourite.",
+        "planCta": "Rate the wines during the tasting.",
+        "pollQuestion": "How do we get there?",
+        "pollOptions": [
+          "Minibus",
+          "Car-pooling"
+        ],
+        "billTitle": "Tasting ticket"
+      },
+      "trip": {
+        "name": "Trip",
+        "description": "A day or a whole weekend.",
+        "includes": [
+          "Gear list",
+          "Vote",
+          "Shared costs"
+        ],
+        "namePlaceholder": "Mountain weekend",
+        "messagePlaceholder": "Leaving Friday night, back Sunday. Come with us! 🏔️",
+        "planTitle": "Gear to bring",
+        "planSub": "Pick what you'll bring so nothing gets forgotten.",
+        "planCta": "What are you bringing? Pick from the list.",
+        "pollQuestion": "How do we get there?",
+        "pollOptions": [
+          "By car",
+          "By train"
+        ],
+        "billTitle": "Lodging and transport"
+      },
+      "outing": {
+        "name": "Night out",
+        "description": "Restaurant, bar, karaoke, bowling.",
+        "includes": [
+          "Vote",
+          "Bill"
+        ],
+        "namePlaceholder": "Bowling Thursday",
+        "messagePlaceholder": "Going out, join us! 🎳",
+        "planTitle": "The plan",
+        "planSub": "Where and when we meet.",
+        "planCta": "See the plan.",
+        "pollQuestion": "What time do we meet?",
+        "pollOptions": [
+          "19:00",
+          "20:00",
+          "21:00"
+        ],
+        "billTitle": "The bill"
+      },
+      "limited": {
+        "name": "Limited spots",
+        "description": "Tasting, concert, class, match.",
+        "includes": [
+          "Max spots",
+          "Vote",
+          "Bill"
+        ],
+        "namePlaceholder": "Concert night",
+        "messagePlaceholder": "Spots are limited, tell me quickly if you're in. 🎟️",
+        "planTitle": "The plan",
+        "planSub": "Where and when we meet.",
+        "planCta": "See the plan.",
+        "pollQuestion": "Meet before?",
+        "pollOptions": [
+          "Yes, for a coffee",
+          "Straight there"
+        ],
+        "billTitle": "Tickets"
+      }
+    },
+    "wizard": {
+      "stepTemplate": "Template",
+      "templateTitle": "What kind of night out?",
+      "templateSubtitle": "Pick how it's organised. You choose the activity next.",
+      "timeLabel": "Time",
+      "timePlaceholder": "Pick a time",
+      "replyByLabel": "Reply by",
+      "replyByNone": "No deadline",
+      "replyByHint": "Shown on the invitation.",
+      "replyByAfterDate": "The reply deadline has to be before the event.",
+      "spotLimitLabel": "Spot limit (optional)",
+      "spotLimitPlaceholder": "No limit",
+      "spotLimitHint": "People, +1s included.",
+      "stepActivity": "Activity",
+      "activityTitle": "What are you doing?",
+      "activitySubtitle": "For \"{{outing}}\". Adds the right tool and picks the theme.",
+      "adds": "Adds",
+      "tool": "Tool",
+      "theme": "Theme",
+      "title": "Title",
+      "skip": "Skip"
+    },
+    "rsvp": {
+      "question": "Are you coming?",
+      "yes": "I'm in",
+      "maybe": "Maybe",
+      "no": "Can't",
+      "plusOne": "Bringing someone (+1)",
+      "spotsTaken": "Spots taken",
+      "full": "No spots left.",
+      "replyBy": "Reply by {{date}}",
+      "alreadyYes_one": "{{count}} already said yes",
+      "alreadyYes_other": "{{count}} already said yes",
+      "maybeTitle": "You said “maybe”",
+      "maybeBody": "The host can see you're still thinking about “{{eventName}}”. You can change your answer anytime."
+    },
+    "home": {
+      "daysLeft_one": "day left",
+      "daysLeft_other": "days left",
+      "today": "today",
+      "whoComes": "Who's coming",
+      "openGuests": "Open the guest list",
+      "counts": "{{yes}} in · {{maybe}} maybe",
+      "nobodyYet": "Nobody has replied yet.",
+      "fromHost": "Updates from the host",
+      "noUpdates": "No updates yet.",
+      "noUpdatesOwner": "Tap + to tell the group something.",
+      "postUpdate": "Post an update",
+      "seePlan": "See the plan",
+      "seeBill": "See the bill"
+    },
+    "poll": {
+      "eyebrow": "Group vote",
+      "hint": "Tap to vote.",
+      "voted": "Your vote is in ✓ You can change it anytime.",
+      "edit": "Edit the vote",
+      "create": "Create a vote",
+      "emptyOwner": "Time, theme, transport: ask the group and decide without 200 messages.",
+      "formTitle": "Group vote",
+      "formSubtitle": "One question, 2–6 options. Every guest votes.",
+      "questionLabel": "Question",
+      "questionPlaceholder": "What time do we meet?",
+      "optionLabel": "Option {{number}}",
+      "optionPlaceholder": "9 pm",
+      "addOption": "+ Add an option",
+      "removeOption": "Remove option",
+      "delete": "Delete the vote",
+      "deleteTitle": "Delete the vote?",
+      "deleteBody": "The votes cast so far are lost too."
+    },
+    "plan": {
+      "logistics": "Where & how to get there",
+      "noPlace": "Place to be announced",
+      "openMap": "Open in maps",
+      "editPlace": "Edit location",
+      "add": "Add",
+      "you": "You",
+      "iBring": "I'll bring it",
+      "youBring": "You're bringing it",
+      "bringsBy": "{{name}} brings it",
+      "nobody": "Nobody yet. Want to take it?",
+      "covered": "{{covered}} of {{total}} items covered",
+      "alreadyClaimed": "Someone else just took it.",
+      "bringEmpty": "The host hasn't added the list yet.",
+      "bringEmptyOwner": "Add what's needed: pizza, drinks, dessert...",
+      "bringPlaceholder": "E.g. Soft drinks & ice",
+      "songsEmpty": "No songs yet. Suggest the first one!",
+      "songPlaceholder": "Song",
+      "artistPlaceholder": "Artist (optional)",
+      "suggestedBy": "suggested by {{name}}",
+      "upvote_one": "Upvote, {{count}} vote",
+      "upvote_other": "Upvote, {{count}} votes",
+      "winesEmpty": "The host hasn't added the wines yet.",
+      "winesEmptyOwner": "Add the wines from the tasting.",
+      "winePlaceholder": "Wine (e.g. Fetească Neagră 2021)",
+      "wineStylePlaceholder": "Style (e.g. dry red)",
+      "groupAverage": "group average {{value}}",
+      "rateStars_one": "{{count}} star",
+      "rateStars_other": "{{count}} stars",
+      "rateHint": "Tap the stars to rate each wine.",
+      "yourFav": "Your favourite so far: {{name}}"
+    },
+    "bill": {
+      "eyebrow": "Splitting the bill",
+      "edit": "Edit the bill",
+      "total": "total",
+      "people": "people",
+      "perPerson": "per person",
+      "whoPaid": "Who's paid",
+      "host": "The host",
+      "paid": "paid",
+      "sent": "sent",
+      "due": "to pay",
+      "confirm": "Confirm",
+      "undoHint": "Tap to undo the confirmation",
+      "howPay": "How to pay",
+      "noMethod": "The host will tell you.",
+      "iPaid": "I've sent my share ({{amount}})",
+      "youSent": "✓ You've sent your share. The host confirms.",
+      "youPaidConfirmed": "✓ Paid. Thanks!",
+      "undo": "Undo",
+      "maybeNote": "Your share shows up once you confirm you're coming.",
+      "noMoney": "PovesteaNoastra doesn't hold the money, only the tally. Everyone pays the host directly.",
+      "emptyOwner": "Split the cost (room, food, ticket) and see who's paid, without chasing anyone.",
+      "emptyGuest": "The host hasn't added the bill yet.",
+      "create": "Split the cost",
+      "formTitle": "Split the bill",
+      "formSubtitle": "The total is divided by the number of people.",
+      "titleLabel": "What for",
+      "totalLabel": "Total (lei)",
+      "peopleLabel": "How many people split it",
+      "peopleHint": "Including you.",
+      "methodLabel": "How to pay",
+      "methodPlaceholder": "Revolut @name · or cash on arrival",
+      "preview": "{{amount}} per person",
+      "delete": "Delete the bill",
+      "deleteTitle": "Delete the bill?",
+      "deleteBody": "The payment tally is lost too."
+    },
+    "dashboard": {
+      "plusOnes_one": "{{count}} +1",
+      "plusOnes_other": "{{count}} +1s",
+      "spots": "{{taken}}/{{limit}} spots",
+      "withPlusOne": "Bringing someone (+1)"
+    },
+    "outings": {
+      "party": {
+        "name": "Party",
+        "description": "At home, in the park or at a friend's.",
+        "features": "Who brings what · Vote · Costs"
+      },
+      "outing": {
+        "name": "Night out",
+        "description": "Restaurant, bar, karaoke, bowling.",
+        "features": "Vote · Bill"
+      },
+      "limited": {
+        "name": "Limited spots",
+        "description": "Tasting, concert, class, match.",
+        "features": "Max spots · Vote · Bill"
+      },
+      "trip": {
+        "name": "Trip",
+        "description": "A day or a whole weekend.",
+        "features": "Gear list · Vote · Shared costs"
+      }
+    },
+    "activities": {
+      "home": {
+        "name": "At home",
+        "title": "Night at mine"
+      },
+      "grill": {
+        "name": "Barbecue",
+        "title": "Weekend barbecue"
+      },
+      "birthday": {
+        "name": "Someone's birthday",
+        "title": "My birthday"
+      },
+      "movie": {
+        "name": "Movie",
+        "title": "Movie night"
+      },
+      "games": {
+        "name": "Games",
+        "title": "Game night"
+      },
+      "karaoke": {
+        "name": "Karaoke",
+        "title": "Karaoke Friday"
+      },
+      "bowling": {
+        "name": "Bowling",
+        "title": "Bowling Thursday"
+      },
+      "dinner": {
+        "name": "Dinner",
+        "title": "Dinner out"
+      },
+      "bar": {
+        "name": "Bar",
+        "title": "Bar night"
+      },
+      "escape": {
+        "name": "Escape room",
+        "title": "Escape room"
+      },
+      "billiards": {
+        "name": "Billiards",
+        "title": "Billiards night"
+      },
+      "wine": {
+        "name": "Wine tasting",
+        "title": "Wine tasting"
+      },
+      "concert": {
+        "name": "Concert",
+        "title": "Concert night"
+      },
+      "workshop": {
+        "name": "Class or workshop",
+        "title": "Workshop"
+      },
+      "match": {
+        "name": "Match",
+        "title": "Going to the match"
+      },
+      "theatre": {
+        "name": "Theatre",
+        "title": "Theatre night"
+      },
+      "mountain": {
+        "name": "Mountains",
+        "title": "Mountain weekend"
+      },
+      "sea": {
+        "name": "Seaside",
+        "title": "Seaside weekend"
+      },
+      "citybreak": {
+        "name": "City break",
+        "title": "City break"
+      },
+      "camping": {
+        "name": "Camping",
+        "title": "Camping"
+      },
+      "other": {
+        "name": "Something else",
+        "title": ""
+      }
+    },
+    "tools": {
+      "song": "Song queue with votes",
+      "bring": "Who brings what",
+      "wine": "Wine tasting notes",
+      "gear": "Gear to bring",
+      "none": "Vote and bill split"
+    }
+  },
+  "venue": {
+    "wizard": {
+      "stepSetup": "Spots",
+      "setupTitle": "Spots & bookings",
+      "setupSubtitle": "Areas people can book, arrival times and entry.",
+      "namePlaceholder": "Karaoke Night",
+      "messagePlaceholder": "The biggest karaoke night in the Old Town: 2 stages, 4,000 songs and a DJ in between. Book your table early! 🎤",
+      "businessTitle": "You need a business account",
+      "businessBody": "Venue nights are created by bars and restaurants. Add your company details (name and tax ID), then carry on from here.",
+      "businessCta": "Create business account"
+    },
+    "setup": {
+      "zonesTitle": "Areas",
+      "zonesSub": "Where customers can sit and how many people fit in each area.",
+      "zoneLabel": "Area {{number}}",
+      "zoneName": "Name",
+      "zoneNamePlaceholder": "By the stage",
+      "zoneDetail": "Details",
+      "zoneDetailPlaceholder": "tables for 4-6",
+      "zoneCapacity": "People",
+      "addZone": "+ Add an area",
+      "removeZone": "Remove area",
+      "defaultZone": "Main room",
+      "totalCapacity_one": "Total capacity: {{count}} person",
+      "totalCapacity_other": "Total capacity: {{count}} people",
+      "timesTitle": "Arrival times",
+      "timesSub": "The customer picks one when booking. With none selected, they can come anytime.",
+      "addTime": "Add a time",
+      "pickTime": "Pick a time",
+      "priceLabel": "Entry",
+      "pricePlaceholder": "Free entry",
+      "priceHint": "E.g. “30 lei at the door, includes a drink”. Paid at the venue.",
+      "maxPartyLabel": "Max people per booking",
+      "maxPartyHint": "Bigger groups call the venue.",
+      "tooSmall": "“{{zone}}” already has more people booked than the new capacity.",
+      "nameRequired": "Give this area a name (the grey text is just an example).",
+      "capacityRequired": "How many?"
+    },
+    "book": {
+      "cta": "Book your spot",
+      "booking": "Booking...",
+      "saveChange": "Save the change",
+      "freeEntry": "Free entry",
+      "howMany": "How many people?",
+      "people_one": "{{count}} person",
+      "people_other": "{{count}} people",
+      "where": "Where would you like to sit?",
+      "full": "full",
+      "free_one": "{{count}} spot free",
+      "free_other": "{{count}} spots free",
+      "tooMany_one": "Only {{count}} spot left in this area.",
+      "tooMany_other": "Only {{count}} spots left in this area.",
+      "arrival": "Arrival time",
+      "optIn": "I want invitations from {{venue}} (I can stop anytime)",
+      "thisVenue": "this venue",
+      "follow": "Follow {{venue}}",
+      "followNote": "You'll get invitations to the next nights. Stop anytime.",
+      "lineup": "Tonight's programme",
+      "openNight": "Open the night's page",
+      "change": "Change",
+      "cancel": "Cancel booking",
+      "cancelTitle": "Cancel your booking?",
+      "cancelBody": "Your spots go back to other customers.",
+      "zoneFullTitle": "That area just filled up",
+      "zoneFullBody": "The spots were taken meanwhile. Pick another area or fewer people.",
+      "organizerTitle": "You're the organizer: you can't book your own night.",
+      "ownerPreview": "This is the booking page your customers see.",
+      "peopleShort": "ppl",
+      "entry": "Entry",
+      "payAtVenue": "Nothing to pay now. Entry is paid at the venue."
+    },
+    "ticket": {
+      "title": "My ticket",
+      "showAtDoor": "Show the code at the door",
+      "checkedIn": "You're in ✓",
+      "people": "People",
+      "zone": "Area",
+      "arrival": "Arrival",
+      "entry": "Entry"
+    },
+    "home": {
+      "bookingsTitle": "Bookings",
+      "occupancy": "{{booked}} of {{capacity}} spots",
+      "bookingsCount_one": "{{count}} booking",
+      "bookingsCount_other": "{{count}} bookings",
+      "seeBookings": "See bookings",
+      "send": "Send",
+      "yourBooking": "Your booking",
+      "notBooked": "You don't have a booking",
+      "seeTicket": "See ticket"
+    },
+    "bookings": {
+      "title": "Bookings",
+      "editSetup": "Edit areas and times",
+      "statBookings": "bookings",
+      "statPeople": "people",
+      "statInside": "checked in",
+      "byZone": "Occupancy by area",
+      "send": "Send to customers",
+      "list": "All bookings",
+      "search": "Search by name or code",
+      "empty": "No bookings yet. Send the link to your customers.",
+      "noMatch": "Nothing found.",
+      "checkIn": "Check in",
+      "inside": "In"
+    },
+    "send": {
+      "title": "Send to customers",
+      "subtitle": "The booking link, on a status or straight on WhatsApp.",
+      "linkTitle": "Tonight's link",
+      "linkSub": "Post it on your WhatsApp status, Instagram or the venue's group. Anyone who opens it can book.",
+      "share": "Share the link",
+      "customersTitle": "Customers who want invitations",
+      "customersCount_one": "{{count}} customer agreed to get messages.",
+      "customersCount_other": "{{count}} customers agreed to get messages.",
+      "noCustomers": "The list grows on its own: customers who book can tick that they want invitations, and others follow the venue from the night's page.",
+      "sourceBooking": "ticked when booking",
+      "sourceFollow": "follows the venue",
+      "sendTo": "Send {{name}} a WhatsApp",
+      "sent": "Sent",
+      "rule": "Direct messages only to customers who agreed. Status, story and the venue's group are fine anytime."
+    },
+    "tonight": {
+      "invites": "{{venue}} invites you",
+      "tonight": "tonight",
+      "alreadyBooked": "Already booked",
+      "beFirst": "Be the first to book.",
+      "follow": "Follow",
+      "following": "Following",
+      "comingUp": "Coming up at {{venue}}",
+      "bookShort": "Book"
+    },
+    "tabs": {
+      "yourBooking": "Your booking",
+      "noTicket": "No booking yet",
+      "noTicketSub": "Book in seconds and your ticket shows up here.",
+      "editProgramme": "Edit tonight's programme"
+    }
+  },
+  "coverTheme": {
+    "title": "Pick a theme",
+    "subtitle": "Shown on the invitation, in the link and in the feed.",
+    "untitled": "Your event",
+    "back": "Back",
+    "tab": {
+      "invite": "Invitation",
+      "feed": "Feed",
+      "link": "Link"
+    },
+    "suggestedFor": "Suggested for {{category}}",
+    "names": {
+      "petrecere": "Party",
+      "aniversare": "Birthday",
+      "local": "Night out",
+      "karaoke": "Karaoke",
+      "disco": "Disco",
+      "neon": "Neon",
+      "revelion": "New Year",
+      "craciun": "Christmas",
+      "halloween": "Halloween",
+      "nunta": "Wedding",
+      "elegant": "Elegant",
+      "botez": "Baptism",
+      "copii": "Kids",
+      "gradina": "Garden",
+      "plaja": "Beach",
+      "aurora": "Aurora",
+      "corporate": "Corporate",
+      "absolvire": "Graduation",
+      "cina": "Dinner",
+      "minimal": "Minimal",
+      "conferinta": "Conference",
+      "gala": "Gala",
+      "teambuilding": "Team building",
+      "trandafiri": "Roses",
+      "arcada": "Arch",
+      "aurit": "Gilded",
+      "salvie": "Sage",
+      "ingeras": "Little angel",
+      "bleu": "Baby blue",
+      "rozpudrat": "Powder pink",
+      "nori": "Clouds",
+      "retro": "Retro",
+      "sclipici": "Glitter",
+      "jubileu": "Jubilee",
+      "speranta": "Hope",
+      "apa": "Water",
+      "inima": "Heart",
+      "comunitate": "Community",
+      "lansare": "Launch",
+      "lumanare": "Candle",
+      "crini": "Lilies",
+      "amurg": "Dusk",
+      "stele": "Stars",
+      "jazz": "Jazz",
+      "lounge": "Lounge",
+      "terasa": "Terrace",
+      "degustare": "Tasting",
+      "festival": "Festival",
+      "muzica": "Music",
+      "primavara": "Spring"
+    },
+    "linkInvited": "You're invited",
+    "linkCaption": "Chat preview · the link image is still",
+    "classic": "Classic"
+  },
+  "compose": {
+    "title": "Your invitation",
+    "stepName": "Invitation",
+    "whenPlaceholder": "Pick the date below",
+    "themeLabel": "Theme",
+    "detailsLabel": "Details"
+  },
+  "editGuest": {
+    "title": "Edit guest",
+    "notFound": "This guest no longer exists",
+    "nameLabel": "Name",
+    "namePlaceholder": "No name",
+    "roleLabel": "Role",
+    "role": {
+      "guest": "Guest",
+      "co_organizer": "Co-organizer"
+    },
+    "roleHint": {
+      "guest": "Replies, sees the details, the album and the live feed.",
+      "co_organizer": "Runs the event with you from the app: guests, plan, messages. Signs in with their phone number."
+    },
+    "currentRole": " · current role",
+    "demoteNote": "They stay on the list as a confirmed guest, but can no longer manage the event.",
+    "saving": "Saving…",
+    "delete": "Delete guest",
+    "deleteTitle": "Delete this guest?",
+    "deleteBody": "Remove {{name}} from the list? Their invitation link will stop working.",
+    "deleteBodyCoOrganizer": "Remove {{name}} from the list? They will no longer be a co-organizer either. Their invitation link will stop working.",
+    "promotedTitle": "Co-organizer added",
+    "promotedBody": "{{name}} can manage the event from the app by signing in with their phone number. Let them know on WhatsApp.",
+    "theGuest": "The guest",
+    "notifyWhatsApp": "Tell them on WhatsApp",
+    "errors": {
+      "alreadyOnList": "This number is already on the guest list.",
+      "alreadyCoOrganizer": "Already a co-organizer.",
+      "needPhone": "Add a phone number first: a co-organizer signs in to the app with it."
+    }
+  },
+  "guestRemoved": {
+    "title": "You are no longer on this event",
+    "body": "The organizer removed you from the guest list."
   }
 }

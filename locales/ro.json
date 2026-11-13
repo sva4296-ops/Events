@@ -5,6 +5,7 @@
     "declined": "Refuzat",
     "dateToBeAnnounced": "Data va fi anunțată",
     "delete": "Șterge",
+    "deleting": "Se șterge…",
     "cancel": "Renunță",
     "edit": "Editează",
     "save": "Salvează",
@@ -14,7 +15,11 @@
     "guestsSeeOnDetalii": "Invitații vor vedea asta în tab-ul Detalii.",
     "eventRsvpSummary": "{{confirmed}} confirmați · {{pending}} în așteptare",
     "choosePlan": "Alege pachet",
-    "viewPlans": "Vezi planurile"
+    "viewPlans": "Vezi planurile",
+    "close": "Închide",
+    "somethingWentWrong": "Ceva nu a mers",
+    "tryAgain": "Te rugăm să încerci din nou.",
+    "maybe": "Poate"
   },
   "home": {
     "tagline": "Mai mult decât o invitație — întreaga poveste.",
@@ -40,7 +45,26 @@
     "confirmedCount": "confirmați",
     "pendingCount": "în așteptare",
     "respond": "Răspunde",
-    "coOrganizer": "Co-organizator"
+    "coOrganizer": "Co-organizator",
+    "tabInvited": "Invitate",
+    "tabAll": "Toate",
+    "unreadMessages_one": "{{count}} mesaj nou",
+    "unreadMessages_few": "{{count}} mesaje noi",
+    "unreadMessages_other": "{{count}} mesaje noi",
+    "dashboard": {
+      "next": "Următorul",
+      "upNext": "Urmează",
+      "finished": "Încheiate",
+      "seeAll": "Toate",
+      "daysShort_one": "zi",
+      "daysShort_few": "zile",
+      "daysShort_other": "zile",
+      "stageOf": "Etapa {{stage}} din 4 · {{name}}",
+      "noGuestsYet": "Niciun invitat încă",
+      "sendInvites": "Trimite invitațiile",
+      "today": "Azi",
+      "noDate": "Fără dată"
+    }
   },
   "auth": {
     "headline": "Intră în poveste",
@@ -109,9 +133,14 @@
     "phoneLabel": "Număr de telefon",
     "phonePlaceholder": "0712 345 678",
     "selectCountry": "Alege o țară",
+    "searchCountry": "Caută o țară sau scrie un prefix",
+    "useCustomPrefix": "Folosește prefixul {{prefix}}",
+    "noCountryMatch": "Nicio țară găsită. Scrie un prefix, de ex. +1242.",
     "errors": {
       "invalidPhone": "Introdu un număr de telefon valid."
-    }
+    },
+    "mostUsed": "Cele mai folosite",
+    "allCountries": "Toate țările"
   },
   "verify": {
     "headline": "Verifică-ți telefonul",
@@ -131,6 +160,14 @@
     "resendIn": "Poți retrimite codul în "
   },
   "acasa": {
+    "backHome": "Înapoi la ecranul principal",
+    "coverTitle": "Poza de copertă",
+    "coverChange": "Alege altă poză",
+    "coverRemove": "Scoate poza",
+    "countdownAnd": "și",
+    "nextStepsTitle": "Ce mai ai de făcut",
+    "seeAll": "Vezi tot",
+    "momentsTitle": "Din parcurs",
     "sectionLabel": "POVESTEA NOASTRĂ",
     "emptyOwner": "Niciun moment postat încă. Începe povestea cu o primă poză.",
     "emptyGuest": "Organizatorii nu au postat încă niciun moment.",
@@ -156,19 +193,41 @@
     "unit_minutes_few": "{{count}} minute",
     "unit_minutes_other": "{{count}} de minute",
     "countdownPast": "Povestea continuă în album",
-    "momentChip": "Moment",
     "reactions_one": "{{count}} reacție",
     "reactions_few": "{{count}} reacții",
     "reactions_other": "{{count}} de reacții",
-    "postMoment": "Postează un moment"
+    "postMoment": "Postează un moment",
+    "momentLongPressHint": "Ține apăsat ca să editezi sau să ștergi",
+    "scheduleTitle": "Programul",
+    "todayTitle": "Azi",
+    "now": "Acum",
+    "upNext": "Urmează",
+    "seeSchedule": "Vezi tot programul",
+    "postedByAgo": "{{name}} · {{time}}",
+    "cantEditOthersTitle": "Nu poți modifica acest moment",
+    "cantEditOthersBody": "A fost postat de {{name}}. Co-organizatorii își pot modifica doar momentele lor; proprietarul evenimentului le poate modifica pe toate.",
+    "cantEditOthersBodyUnknown": "Co-organizatorii își pot modifica doar momentele lor; proprietarul evenimentului le poate modifica pe toate.",
+    "unitShort_days_few": "zile",
+    "unitShort_hours_few": "ore",
+    "unitShort_minutes_few": "min"
   },
   "chat": {
     "sectionLabel": "GRUPUL NUNȚII",
     "subtitle": "Invitații vorbesc între ei și cu organizatorul",
     "empty": "Niciun mesaj încă. Scrie primul!",
     "placeholder": "Scrie un mesaj…",
+    "photo": "Poză",
+    "today": "Azi",
+    "yesterday": "Ieri",
+    "edited": "editat",
+    "editingTitle": "Editezi mesajul",
+    "attachPhotos": "Adaugă poze",
+    "takePhoto": "Fă o poză",
+    "removePhoto": "Scoate poza",
     "send": "Trimite",
-    "organizerBadge": "Organizator"
+    "organizerBadge": "Organizator",
+    "deleteMessageTitle": "Ștergi mesajul?",
+    "deleteMessageBody": "Mesajul dispare din chat pentru toată lumea."
   },
   "live": {
     "liveTag": "LIVE",
@@ -192,10 +251,22 @@
     "albumTitle": "Albumul vostru",
     "empty": "Nicio poză încă. Pozele adăugate în Live apar aici.",
     "downloadAll": "Descarcă toate pozele",
+    "downloadProgress": "Se salvează {{done}} din {{total}}…",
+    "downloadDoneTitle": "Gata!",
+    "downloadDoneBody_one": "Am salvat o poză în galeria telefonului.",
+    "downloadDoneBody_few": "Am salvat {{count}} poze în galeria telefonului.",
+    "downloadDoneBody_other": "Am salvat {{count}} de poze în galeria telefonului.",
+    "downloadPartialTitle": "Unele poze nu s-au salvat",
+    "downloadPartialBody": "Salvate: {{saved}}. Nereușite: {{failed}}. Verifică internetul și încearcă din nou.",
+    "downloadDeniedTitle": "Fără acces la galerie",
+    "downloadDeniedBody": "Ca să salvăm pozele, permite accesul la galerie din setările telefonului.",
     "title": "Albumul nostru",
-    "summary_one": "{{count}} poză · de la {{people}} invitați",
-    "summary_few": "{{count}} poze · de la {{people}} invitați",
-    "summary_other": "{{count}} de poze · de la {{people}} invitați",
+    "summaryPeople_one": "de la {{count}} invitat",
+    "summaryPeople_few": "de la {{count}} invitați",
+    "summaryPeople_other": "de la {{count}} de invitați",
+    "summary_one": "{{count}} poză",
+    "summary_few": "{{count}} poze",
+    "summary_other": "{{count}} de poze",
     "filterAll": "Toate",
     "filterMine": "Ale mele",
     "emptyMine": "Nu ai urcat încă nicio poză.",
@@ -205,7 +276,12 @@
     "noLimitOrganizer": "Fără limită pentru organizatori",
     "limitReached": "Ai atins limita de poze",
     "infoTitle": "Cum funcționează albumul",
-    "infoBody": "• Toți cei de la eveniment urcă poze aici și toți invitații le văd.\n• Fiecare invitat poate urca maximum {{limit}} de poze. Organizatorii nu au limită.\n• Îți poți șterge oricând pozele tale.\n• Albumul complet e gata la 3 zile după eveniment și atunci îl poți descărca."
+    "infoBody": "• Toți cei de la eveniment urcă poze aici și toți invitații le văd.\n• Fiecare invitat poate urca maximum {{limit}} de poze. Organizatorii nu au limită.\n• Îți poți șterge oricând pozele tale.\n• Albumul complet e gata la 3 zile după eveniment și atunci îl poți descărca.",
+    "closedTitle": "Albumul s-a închis",
+    "closedBody_one": "Pozele se puteau adăuga până la o zi după eveniment.",
+    "closedBody_few": "Pozele se puteau adăuga până la {{count}} zile după eveniment.",
+    "closedBody_other": "Pozele se puteau adăuga până la {{count}} zile după eveniment.",
+    "uploadProgress": "Se urcă {{done}} din {{total}}…"
   },
   "rsvp": {
     "notFoundTitle": "Invitația nu a fost găsită",
@@ -273,6 +349,7 @@
     "seatCount_few": "{{count}} locuri",
     "seatCount_other": "{{count}} de locuri",
     "seatingYoureHere": "Ești aici",
+    "menuYourChoice": "Meniul tău",
     "seatingWithYou": "Alături de tine: {{names}}",
     "seatingViewList": "Listă",
     "seatingViewPlan": "Plan",
@@ -318,6 +395,9 @@
       "seatingCount_one": "{{count}} persoană așezată",
       "seatingCount_few": "{{count}} persoane așezate",
       "seatingCount_other": "{{count}} de persoane așezate",
+      "seatingUnconfirmed_one": "{{count}} neconfirmată",
+      "seatingUnconfirmed_few": "{{count}} neconfirmate",
+      "seatingUnconfirmed_other": "{{count}} de neconfirmate",
       "accommodationTitle": "Cazare recomandată",
       "accommodationUnset": "Nicio cazare adăugată",
       "accommodationCount_one": "{{count}} opțiune de cazare",
@@ -336,7 +416,11 @@
       "locked": "Blocat"
     },
     "openInMaps": "Deschide în Maps",
-    "openInWaze": "Waze"
+    "openInWaze": "Waze",
+    "deleteVenueTitle": "Ștergi locația?",
+    "deleteVenueBody": "„{{name}}” va fi scoasă din eveniment, cu adresa, harta și notițele. Invitații nu o vor mai vedea.",
+    "venueFromEvent": "Din detaliile evenimentului",
+    "addExactVenue": "Adaugă locul exact pe hartă"
   },
   "fond": {
     "emptyOwner": "Niciun fond încă. Deschide unul ca invitații să poată contribui la ceva ce contează pentru voi.",
@@ -371,8 +455,6 @@
     "languageEnglish": "English",
     "languageRomanian": "Română",
     "theme": "Aspect",
-    "themeLight": "Luminos",
-    "themeDark": "Întunecat",
     "personalData": "Date personale",
     "groupAccount": "Cont",
     "groupEvents": "Evenimente și planuri",
@@ -389,7 +471,21 @@
     "notifications": "Notificări",
     "notificationsBlockedTitle": "Notificările sunt blocate",
     "notificationsBlockedMessage": "Le poți activa din setările telefonului, la PovesteaNoastra → Notificări.",
-    "openSettings": "Deschide setările"
+    "openSettings": "Deschide setările",
+    "themes": {
+      "siteDark": "Site dark",
+      "siteLight": "Site light",
+      "hartie": "Hârtie",
+      "sampanie": "Șampanie",
+      "minimal": "Minimal",
+      "bleumarin": "Bleumarin & coral",
+      "teracota": "Teracotă",
+      "teracotaDark": "Teracotă închis",
+      "visina": "Vișină & roz pudrat",
+      "sepia": "Sepia (vintage)",
+      "retro": "Retro '70 (vintage)",
+      "cinema": "Cinema vechi (vintage)"
+    }
   },
   "pricing": {
     "title": "Planuri și prețuri",
@@ -418,7 +514,11 @@
     "featureVolumeBilling": "Facturare pe volum",
     "headline": "Alege planul potrivit poveștii tale",
     "flowTitle": "Planuri",
-    "ownerOnly": "Doar organizatorul principal poate alege pachetul."
+    "ownerOnly": "Doar organizatorul principal poate alege pachetul.",
+    "paymentsSoonTitle": "Plățile vin în curând",
+    "paymentsSoonBody": "Planurile plătite vor putea fi cumpărate direct din aplicație în curând. Până atunci poți folosi planul Esențial.",
+    "subtitleDraft": "Ultimul pas: alege planul și evenimentul e gata. Poți face upgrade oricând.",
+    "subtitleUpgrade": "Fă upgrade ca să deblochezi alegerea temei cu AI."
   },
   "planGate": {
     "chatLocked": "Chatul de grup nu este inclus în planul curent al acestui eveniment.",
@@ -458,6 +558,11 @@
     ]
   },
   "event": {
+    "addCoOrganizer": "Adaugă un co-organizator",
+    "addCoOrganizerHint": "Cineva care te ajută să organizezi, din telefonul lui",
+    "coOrganizersPending_one": "{{count}} nu a intrat încă",
+    "coOrganizersPending_few": "{{count}} nu au intrat încă",
+    "coOrganizersPending_other": "{{count}} nu au intrat încă",
     "notFound": "Evenimentul nu a fost găsit",
     "shareInvitation": "Distribuie invitația",
     "previewAsGuest": "Previzualizează ca invitat",
@@ -469,6 +574,7 @@
     "sendPendingInvites": "Trimite invitațiile în așteptare ({{count}})",
     "invitedBadge": "Invitat",
     "notSentBadge": "Netrimis",
+    "resendInvite": "Retrimite invitația",
     "removeGuestAction": "Elimină",
     "removeGuestTitle": "Elimini invitatul?",
     "removeGuestBody": "{{name}} nu va mai apărea în lista de invitați.",
@@ -478,6 +584,12 @@
     "guestsTotal_few": "{{count}} invitați",
     "guestsTotal_other": "{{count}} de invitați",
     "addGuest": "Adaugă invitat",
+    "searchShort": "Caută",
+    "inviteStageSeen": "Văzută",
+    "inviteStageSent": "Trimisă",
+    "inviteStageNotSent": "Netrimisă",
+    "sendInvite": "Trimite invitația",
+    "confirmSentBody": "Dacă mesajul către {{name}} a plecat, îl marcăm ca trimis.",
     "sendWhatsApp": "Trimite pe WhatsApp",
     "filterAll": "Toți",
     "filterConfirmed": "Confirmați",
@@ -485,9 +597,12 @@
     "filterDeclined": "Refuzați",
     "searchPlaceholder": "Caută după nume sau telefon",
     "noMatches": "Niciun invitat nu se potrivește.",
+    "inviteSeen": "A văzut invitația, n-a răspuns încă",
     "inviteSent": "Invitație trimisă pe WhatsApp",
     "inviteNotSent": "Invitația nu a fost trimisă încă",
-    "noPhone": "Fără telefon"
+    "noPhone": "Fără telefon",
+    "filterMaybe": "Poate",
+    "filterCoOrganizers": "Co-organizatori"
   },
   "export": {
     "button": "Exportă lista pentru restaurant",
@@ -517,7 +632,8 @@
     "total": "Total",
     "statusConfirmed": "Confirmat",
     "statusPending": "În așteptare",
-    "statusDeclined": "Refuzat"
+    "statusDeclined": "Refuzat",
+    "statusMaybe": "Poate"
   },
   "bulkInviteForm": {
     "title": "Adaugă mai mulți invitați",
@@ -526,7 +642,9 @@
     "guestNumber": "Invitat {{number}}",
     "removeRow": "Elimină",
     "addAnother": "+ Adaugă altul",
-    "submit": "Adaugă {{count}} invitați",
+    "submit_one": "Adaugă {{count}} invitat",
+    "submit_few": "Adaugă {{count}} invitați",
+    "submit_other": "Adaugă {{count}} de invitați",
     "sending": "Se adaugă…",
     "contactsTitle": "Alege contacte",
     "contactsPermissionDenied": "Accesul la contacte este dezactivat — poți adăuga invitați manual mai sus, sau permite accesul din Setări pentru a-i importa.",
@@ -543,11 +661,17 @@
     "empty": "Toată lumea a fost contactată.",
     "sendButton": "Trimite",
     "sending": "Se deschide…",
-    "skipButton": "Sari peste",
+    "confirmSentTitle": "Ai trimis invitația?",
+    "confirmSentBody": "Dacă mesajul către {{name}} a plecat, îl scoatem din listă.",
+    "confirmSentYes": "Da, am trimis",
+    "confirmSentNo": "Nu încă",
     "smsButton": "Trimite prin SMS",
     "flowSubtitle": "Prin WhatsApp",
     "messageLabel": "Mesajul",
     "messageHint": "Fiecare invitat primește numele lui și un link personal.",
+    "introLabel": "Mesajul tău de invitație",
+    "introPlaceholder": "Te invităm cu drag la nunta noastră...",
+    "introHint": "Opțional. Înlocuiește fraza standard; salutul cu numele, data, locația și linkul se pun automat.",
     "recipients": "Destinatari",
     "howItWorks": "WhatsApp se deschide pe rând, pentru fiecare invitat. Tu apeși Trimite, iar noi bifăm cine a primit. Pentru cine nu are WhatsApp, butonul cu telefonul deschide SMS-ul cu același mesaj."
   },
@@ -571,12 +695,15 @@
     "nameLabel": "Numele locației",
     "addressLabel": "Adresă",
     "notesLabel": "Note practice",
-    "notesHint": "O notă pe linie.",
+    "notesHint": "Ce e bine să știe invitații: parcare, intrare, ținută. Fiecare informație pe un rând nou. „Aranjează cu AI” le face o listă curată.",
     "mapLabel": "Punct pe hartă",
     "pickOnMap": "Alege pe hartă",
     "changeOnMap": "Schimbă",
     "removeFromMap": "Elimină",
-    "mapHint": "Invitații primesc buton de navigare direct către acest punct."
+    "mapHint": "Invitații primesc buton de navigare direct către acest punct.",
+    "namePlaceholder": "Casa Regală",
+    "addressPlaceholder": "Str. Republicii 12, Brașov",
+    "notesPlaceholder": "ex: parcare gratuită în spate"
   },
   "menuForm": {
     "coursePhotoAdd": "Adaugă o poză cu preparatul",
@@ -584,6 +711,7 @@
     "coursePhotoChange": "Schimbă poza",
     "coursePhotoRemove": "Șterge poza",
     "addCourse": "Adaugă un fel",
+    "addSameCourse": "Adaugă încă un fel la {{name}}",
     "removeCourse": "Șterge {{name}}",
     "courseNamePlaceholder": "Felul {{n}}",
     "courseNameA11y": "Numele felului {{n}}",
@@ -635,7 +763,9 @@
     "detailsLabel": "Detalii",
     "detailsPlaceholder": "4★ · 2 min de castel",
     "priceLabel": "Preț",
-    "pricePlaceholder": "de la 320 lei/noapte"
+    "pricePlaceholder": "de la 320 lei/noapte",
+    "locationLabel": "Locație",
+    "locationPlaceholder": "Str. Republicii 12, Brașov"
   },
   "vendorForm": {
     "notAvailableSubtitle": "Doar organizatorul poate edita furnizorii.",
@@ -708,7 +838,24 @@
     "choosePhoto": "Alege o poză",
     "flowTitle": "Moment nou",
     "changePhoto": "Schimbă poza",
-    "quickEmoji": "Emoji rapid"
+    "editFlowTitle": "Editează momentul",
+    "iconLabel": "Iconiță",
+    "icons": {
+      "rings": "Verighete",
+      "cake": "Tort",
+      "camera": "Fotografii",
+      "glasses": "Pahare",
+      "music": "Muzică",
+      "food": "Mâncare",
+      "flower": "Flori",
+      "location": "Locație",
+      "gift": "Cadou",
+      "heart": "Inimă",
+      "baby": "Bebeluș",
+      "sparkles": "Sclipiri"
+    },
+    "editingOthers": "Postat de {{name}}. Modificările tale rămân sub numele lui.",
+    "editingOthersUnknown": "Postat de un co-organizator. Modificările tale rămân sub numele lui."
   },
   "onboarding": {
     "step1Title": "Totul începe cu o invitație",
@@ -731,7 +878,7 @@
   "createWizard": {
     "continue": "Continuă",
     "typeTitle": "Ce sărbătorim?",
-    "typeSubtitle": "Alege tipul evenimentului. Fiecare are culorile lui.",
+    "typeSubtitle": "Alege tipul evenimentului.",
     "detailsButton": "Previzualizează invitația",
     "detailsTitle": "Detaliile poveștii",
     "detailsSubtitle": "Tot ce trebuie să știe invitații tăi.",
@@ -742,6 +889,7 @@
     "previewButton": "Arată bine",
     "previewTitle": "Așa o vor primi invitații",
     "previewSubtitle": "Linkul se deschide și în browser, fără să instaleze aplicația.",
+    "previewNameFallback": "Numele evenimentului",
     "previewNote": "Vrei să schimbi ceva? Mergi înapoi și editează detaliile.",
     "shareTitle": "Povestea a început!",
     "shareSubtitle": "Trimite invitația celor dragi. Fiecare invitat primește un link personal.",
@@ -756,9 +904,15 @@
     "stepShare": "Partajare",
     "timeLabel": "Ora",
     "previewEdit": "Editează",
-    "shareWhatsApp": "Trimite pe WhatsApp",
-    "shareAddGuests": "Adaugă invitați",
-    "shareGoToEvent": "Mergi la eveniment"
+    "pickOnMap": "Alege pe hartă",
+    "discardTitle": "Renunți la eveniment?",
+    "discardBody": "Tot ce ai completat se va pierde.",
+    "keepEditing": "Continuă editarea",
+    "discard": "Renunță",
+    "stepTheme": "Tema",
+    "shareInvite": "Invită oaspeți",
+    "shareVenue": "Trimite linkul de rezervare",
+    "shareLater": "Mai târziu"
   },
   "eventTypes": {
     "wedding": {
@@ -809,9 +963,25 @@
       "countdownUntil": "până la eveniment",
       "countdownToday": "Azi e ziua cea mare!",
       "stageDay": "Evenimentul"
+    },
+    "spontaneous": {
+      "label": "Spontan",
+      "description": "Karaoke, petrecere, degustare",
+      "countdownUntil": "până ne vedem",
+      "countdownToday": "E azi!",
+      "stageDay": "Seara"
+    },
+    "venue": {
+      "label": "Local",
+      "description": "Pentru baruri și restaurante: clienții rezervă",
+      "countdownUntil": "până la seară",
+      "countdownToday": "E diseară!",
+      "stageDay": "Seara"
     }
   },
   "mapPicker": {
+    "searchPlaceholder": "Scrie adresa",
+    "addressNotFound": "Nu am găsit adresa. Încearcă și cu orașul, sau mută harta.",
     "title": "Alege locația",
     "hint": "Mută harta până când pinul e pe locație.",
     "myLocation": "Locația mea",
@@ -823,15 +993,21 @@
   },
   "guestTabs": {
     "home": "Acasă",
-    "details": "Detalii",
+    "details": "Plan",
     "fund": "Fond",
+    "guests": "Invitați",
     "chat": "Chat",
     "live": "Live",
-    "album": "Album"
+    "album": "Album",
+    "plan": "Plan",
+    "bill": "Notă",
+    "tonight": "Seara",
+    "book": "Rezervă",
+    "ticket": "Bilet"
   },
   "coOrganizers": {
     "title": "Co-organizatori",
-    "subtitle": "Partenerul sau nașii gestionează evenimentul din telefonul lor. Restaurantul gestionează doar locația, meniul și așezarea la mese. Doar tu poți șterge evenimentul, alege pachetul și vedea fondul.",
+    "subtitle": "Oameni care te ajută să organizezi evenimentul, fiecare din telefonul lui.",
     "notAvailableSubtitle": "Doar organizatorul principal poate gestiona co-organizatorii.",
     "listTitle": "Adăugați",
     "statusActive": "Activ",
@@ -848,13 +1024,21 @@
     "removeBody": "{{name}} nu va mai vedea și nu va mai gestiona evenimentul.",
     "removeLabel": "Scoate",
     "relation": {
+      "co_organizer": "Co-organizator",
       "groom": "Mire",
       "bride": "Mireasă",
       "godfather": "Naș",
       "godmother": "Nașă",
       "restaurant": "Restaurant"
     },
-    "relationLabel": "Rol"
+    "relationLabel": "Rol",
+    "pickGuest": "Alege din invitați",
+    "addOnly": "Adaugă",
+    "pickGuestTitle": "Alege un invitat",
+    "roleInfo": {
+      "co_organizer": "Gestionează evenimentul alături de tine: invitați, program, momente, detalii și chat. Nu poate șterge evenimentul, alege pachetul sau vedea fondul.",
+      "restaurant": "Vede doar tab-ul Plan și gestionează locația, meniurile și așezarea la mese. Nu are acces la chat, live, album sau la restul evenimentului."
+    }
   },
   "liveVideo": {
     "start": "Pornește live video",
@@ -875,5 +1059,875 @@
     "soonTag": "ÎN CURÂND",
     "soonTitle": "Live video, în curând",
     "soonBody": "În curând vei putea transmite evenimentul din telefon, iar cei care nu pot veni îl vor urmări în direct dintr-un link."
+  },
+  "notifications": {
+    "title": "Notificări",
+    "subtitle": "Alege ce notificări primești.",
+    "deviceToggle": "Permite notificările",
+    "deviceOffNote": "Notificările sunt oprite. Pornește-le ca să alegi ce primești.",
+    "alwaysOn": "Mereu active",
+    "categories": {
+      "organizer": "Ca organizator",
+      "reminders": "Mementouri",
+      "updates": "Noutăți despre eveniment",
+      "chat": "Chat"
+    },
+    "types": {
+      "rsvp_response": {
+        "title": "Răspunsurile invitaților",
+        "description": "Când un invitat confirmă sau nu poate ajunge."
+      },
+      "event_reminder": {
+        "title": "Memento cu o zi înainte",
+        "description": "Cu o zi înainte de un eveniment la care participi."
+      },
+      "menu_reminder": {
+        "title": "Memento pentru meniu",
+        "description": "Când se apropie termenul de alegere a meniului."
+      },
+      "event_changed": {
+        "title": "Schimbări de dată sau locație",
+        "description": "Când organizatorul schimbă data, locația sau localul."
+      },
+      "new_moment": {
+        "title": "Momente noi",
+        "description": "Când organizatorul postează un moment nou."
+      },
+      "album_ready": {
+        "title": "Album gata",
+        "description": "Când povestea și pozele evenimentului sunt gata."
+      },
+      "event_cancelled": {
+        "title": "Evenimente anulate",
+        "description": "Trimise mereu, ca să nu ratezi o anulare."
+      },
+      "chat_message": {
+        "title": "Mesaje noi",
+        "description": "O notificare când apar mesaje noi, apoi liniște până deschizi chatul."
+      }
+    },
+    "loadFailed": "Nu am putut încărca setările de notificări. Verifică conexiunea și încearcă din nou.",
+    "retry": "Încearcă din nou"
+  },
+  "story": {
+    "close": "Închide",
+    "previous": "Înapoi",
+    "next": "Înainte",
+    "entryTitle": "Povestea evenimentului e gata",
+    "entryBody": "Momentele, programul și pozele, într-un story.",
+    "entryCta": "Vezi povestea",
+    "statsTitle": "În cifre",
+    "statsGuests_one": "invitat a fost alături",
+    "statsGuests_few": "invitați au fost alături",
+    "statsGuests_other": "invitați au fost alături",
+    "statsPhotos_one": "fotografie",
+    "statsPhotos_few": "fotografii",
+    "statsPhotos_other": "fotografii",
+    "statsMoments_one": "moment împărtășit",
+    "statsMoments_few": "momente împărtășite",
+    "statsMoments_other": "momente împărtășite",
+    "journeyTitle": "Drumul până aici",
+    "whenDay": "În ziua cea mare",
+    "whenDays_one": "Cu o zi înainte",
+    "whenDays_few": "Cu {{count}} zile înainte",
+    "whenDays_other": "Cu {{count}} zile înainte",
+    "whenWeeks_one": "Cu o săptămână înainte",
+    "whenWeeks_few": "Cu {{count}} săptămâni înainte",
+    "whenWeeks_other": "Cu {{count}} săptămâni înainte",
+    "whenMonths_one": "Cu o lună înainte",
+    "whenMonths_few": "Cu {{count}} luni înainte",
+    "whenMonths_other": "Cu {{count}} luni înainte",
+    "photosTitle": "Prin ochii invitaților",
+    "photosCount_one": "O fotografie în album",
+    "photosCount_few": "{{count}} fotografii în album",
+    "photosCount_other": "{{count}} fotografii în album",
+    "peopleTitle": "Cei care au surprins momentele",
+    "peopleCount_one": "O persoană a adăugat poze",
+    "peopleCount_few": "{{count}} persoane au adăugat poze",
+    "peopleCount_other": "{{count}} de persoane au adăugat poze",
+    "endTitle": "Totul e în album",
+    "endBody": "Toate pozele evenimentului, într-un singur loc.",
+    "openAlbum": "Deschide albumul",
+    "types": {
+      "wedding": {
+        "cover": "Povestea nunții",
+        "day": "Ziua nunții",
+        "thanks": "Mulțumim că ați fost alături de noi în cea mai frumoasă zi. Amintirile acestea sunt și ale voastre."
+      },
+      "baptism": {
+        "cover": "Povestea botezului",
+        "day": "Ziua botezului",
+        "thanks": "Vă mulțumim că ați fost alături de noi și de cel mic într-o zi atât de specială."
+      },
+      "birthday": {
+        "cover": "Povestea aniversării",
+        "day": "Ziua petrecerii",
+        "thanks": "Mulțumim că ați sărbătorit împreună cu noi. A fost o zi de neuitat."
+      },
+      "cause": {
+        "cover": "Povestea cauzei",
+        "day": "Ziua evenimentului",
+        "thanks": "Mulțumim pentru fiecare gest de susținere. Împreună am făcut o diferență."
+      },
+      "corporate": {
+        "cover": "Povestea evenimentului",
+        "day": "Agenda zilei",
+        "thanks": "Mulțumim tuturor pentru prezență și implicare. Ne vedem la următorul eveniment."
+      },
+      "memorial": {
+        "cover": "In memoriam",
+        "day": "Programul zilei",
+        "thanks": "Vă mulțumim că ați fost alături de noi și ați păstrat vie amintirea celui drag."
+      },
+      "other": {
+        "cover": "Povestea evenimentului",
+        "day": "Ziua cea mare",
+        "thanks": "Mulțumim că ați fost alături de noi. Amintirile acestea sunt ale tuturor."
+      }
+    }
+  },
+  "gettingStarted": {
+    "title": "Primii pași",
+    "subtitle": "Pregătește evenimentul în câțiva pași. Apasă „Arată-mi” și îți arătăm exact unde să apeși.",
+    "allDone": "Totul e pregătit. Spor la organizat!",
+    "progress": "{{done}} din {{total}} gata",
+    "next": "Următorul pas: {{step}}",
+    "showMe": "Arată-mi",
+    "gotIt": "Am înțeles",
+    "hide": "Ascunde primii pași",
+    "missingTarget": "Nu găsim butonul acum. Încearcă din nou după ce se încarcă ecranul.",
+    "steps": {
+      "event": {
+        "title": "Creează evenimentul",
+        "hint": ""
+      },
+      "location": {
+        "title": "Adaugă locația",
+        "hint": "Unde are loc evenimentul, cu punct pe hartă.",
+        "tip": "Apasă aici ca să adaugi locul evenimentului. Invitații vor primi navigare direct până acolo."
+      },
+      "schedule": {
+        "title": "Fă programul zilei",
+        "hint": "Ceremonia, petrecerea și orele lor.",
+        "tip": "Apasă aici ca să adaugi momentele zilei, cu ora și locul fiecăruia."
+      },
+      "guests": {
+        "title": "Adaugă invitați",
+        "hint": "Unul câte unul sau direct din contacte.",
+        "tip": "Apasă aici ca să adaugi un invitat. Poți importa mai mulți deodată din contacte."
+      },
+      "invites": {
+        "title": "Trimite invitațiile",
+        "hint": "Pe WhatsApp, fiecare cu linkul lui personal.",
+        "tip": "Apasă aici ca să trimiți invitațiile pe WhatsApp. Fiecare invitat primește linkul lui pentru răspuns.",
+        "missing": "Butonul de trimitere apare după ce adaugi primii invitați."
+      },
+      "moment": {
+        "title": "Postează primul moment",
+        "hint": "O poză și câteva cuvinte pentru invitați.",
+        "tip": "Apasă aici ca să postezi un moment. Invitații îl văd pe Acasă și pot reacționa."
+      },
+      "menu": {
+        "title": "Creează meniul",
+        "hint": "Meniurile din care aleg invitații, pe feluri.",
+        "tip": "Apasă aici ca să adaugi un meniu. Invitații confirmați își aleg meniul din aplicație, până la termenul pe care îl setezi."
+      }
+    }
+  },
+  "ai": {
+    "write": "Scrie cu AI",
+    "improve": "Îmbunătățește",
+    "tidy": "Aranjează cu AI",
+    "writing": "Se scrie…",
+    "undo": "Anulează",
+    "quotaTitle": "Ai atins limita de azi",
+    "quotaBody": "Poți folosi din nou scrierea cu AI de mâine. Până atunci poți scrie textul de mână.",
+    "errorBody": "Nu am putut genera textul acum. Încearcă din nou în câteva momente.",
+    "eventQuotaTitle": "Ai folosit sugestiile AI ale evenimentului",
+    "eventQuotaBody": "Planul acestui eveniment include un număr limitat de sugestii AI. Fă upgrade ca să primești mai multe.",
+    "upgrade": "Fă upgrade",
+    "withLeft": "{{label}} · {{count}}"
+  },
+  "locationField": {
+    "pointSet": "Punct ales pe hartă"
+  },
+  "checklist": {
+    "title": "Checklist",
+    "subtitle": "Lista ta de lucruri de făcut, cu remindere.",
+    "progress": "{{done}} din {{total}} bifate",
+    "notAvailable": "Doar organizatorii au acces la checklist.",
+    "empty": "Nimic pe listă încă. Adaugă primul lucru de făcut, de exemplu „Coafor la 12:00”.",
+    "add": "Adaugă",
+    "addTitle": "Lucru nou",
+    "editTitle": "Editează",
+    "formSubtitle": "Doar organizatorii văd lista.",
+    "titleLabel": "Ce ai de făcut",
+    "titlePlaceholder": "Mers la coafor",
+    "dateLabel": "Ziua",
+    "timeLabel": "Ora",
+    "noDate": "Fără termen",
+    "clearDate": "Scoate termenul",
+    "reminderLabel": "Reminder",
+    "remindNone": "Fără",
+    "remind_0": "La ora respectivă",
+    "remind_15": "Cu 15 min înainte",
+    "remind_30": "Cu 30 min înainte",
+    "remind_60": "Cu 1 oră înainte",
+    "remind_120": "Cu 2 ore înainte",
+    "remind_1440": "Cu o zi înainte",
+    "reminderHint": "Primești notificare la {{time}}, pe acest telefon.",
+    "reminderBody": "{{when}}",
+    "deleteTitle": "Ștergi din listă?",
+    "deleteBody": "„{{title}}” va fi șters din checklist.",
+    "today": "Azi",
+    "tomorrow": "Mâine",
+    "hubStatusEmpty": "Nimic pe listă",
+    "hubStatus": "{{done}} din {{total}} bifate"
+  },
+  "spontaneous": {
+    "fullTitle": "Nu mai sunt locuri",
+    "fullBody": "Toate locurile sunt ocupate. Poți răspunde „Poate” și organizatorul vede că ai vrea să vii.",
+    "templates": {
+      "karaoke": {
+        "name": "Karaoke",
+        "description": "O seară cu microfoane și curaj.",
+        "includes": [
+          "Coadă de melodii cu vot",
+          "Vot pe oră",
+          "Împărțirea costului"
+        ],
+        "namePlaceholder": "Karaoke cu Mihai",
+        "messagePlaceholder": "Am rezervat camera, microfoanele sunt pregătite, scuzele nu se acceptă. 🎤",
+        "planTitle": "Coada de melodii",
+        "planSub": "Votează ce cântăm primele. Cele mai votate deschid seara.",
+        "planCta": "Ce cântăm? Votează coada de melodii.",
+        "pollQuestion": "La ce oră ne vedem?",
+        "pollOptions": [
+          "20:00",
+          "21:00",
+          "22:00"
+        ],
+        "billTitle": "Camera privată + consumația minimă"
+      },
+      "party": {
+        "name": "Petrecere",
+        "description": "Acasă, într-un bar sau în parc, oricând.",
+        "includes": [
+          "Lista „cine ce aduce”",
+          "Vot pe temă",
+          "Împărțirea costurilor"
+        ],
+        "namePlaceholder": "Housewarming la Ioana",
+        "messagePlaceholder": "M-am mutat în sfârșit! Hai să sfințim casa cu pizza, muzică și oameni faini. 🏠",
+        "planTitle": "Cine ce aduce",
+        "planSub": "Alege ce aduci. Lista se actualizează pentru toți.",
+        "planCta": "Ce aduci? Alege din listă, ca să nu venim toți cu chipsuri.",
+        "pollQuestion": "Facem temă de costume?",
+        "pollOptions": [
+          "Da, costume!",
+          "Nu, relaxat"
+        ],
+        "billTitle": "Mâncare și băuturi"
+      },
+      "tasting": {
+        "name": "Degustare de vin",
+        "description": "Locuri limitate, bilet fix, transport comun.",
+        "includes": [
+          "Locuri limitate",
+          "Fișă de note pentru vinuri",
+          "Bilet + transport împărțit"
+        ],
+        "namePlaceholder": "Degustare la Dealu Mare",
+        "messagePlaceholder": "Am rezervat crama pentru grupul nostru: 6 vinuri, platou de brânzeturi și un somelier. Locuri limitate! 🍷",
+        "planTitle": "Vinurile serii",
+        "planSub": "Dă note în timpul degustării. La final vezi favoritul grupului.",
+        "planCta": "Dă note vinurilor în timpul degustării.",
+        "pollQuestion": "Cum ajungem acolo?",
+        "pollOptions": [
+          "Microbuz",
+          "Cu mașinile"
+        ],
+        "billTitle": "Biletul la degustare"
+      },
+      "trip": {
+        "name": "Excursie",
+        "description": "O zi sau un weekend întreg.",
+        "includes": [
+          "Echipament de luat",
+          "Vot",
+          "Costuri comune"
+        ],
+        "namePlaceholder": "Weekend la munte",
+        "messagePlaceholder": "Plecăm vineri seara, ne întoarcem duminică. Hai cu noi! 🏔️",
+        "planTitle": "Echipament de luat",
+        "planSub": "Alege ce iei tu, ca să nu uităm nimic.",
+        "planCta": "Ce iei cu tine? Alege din listă.",
+        "pollQuestion": "Cu ce mergem?",
+        "pollOptions": [
+          "Cu mașinile",
+          "Cu trenul"
+        ],
+        "billTitle": "Cazare și transport"
+      },
+      "outing": {
+        "name": "Ieșire în oraș",
+        "description": "Restaurant, bar, karaoke, bowling.",
+        "includes": [
+          "Vot",
+          "Nota"
+        ],
+        "namePlaceholder": "Bowling joi",
+        "messagePlaceholder": "Ieșim în oraș, hai și tu! 🎳",
+        "planTitle": "Planul serii",
+        "planSub": "Unde și când ne vedem.",
+        "planCta": "Vezi planul serii.",
+        "pollQuestion": "La ce oră ne vedem?",
+        "pollOptions": [
+          "19:00",
+          "20:00",
+          "21:00"
+        ],
+        "billTitle": "Nota"
+      },
+      "limited": {
+        "name": "Cu locuri limitate",
+        "description": "Degustare, concert, curs, meci.",
+        "includes": [
+          "Locuri maxime",
+          "Vot",
+          "Nota"
+        ],
+        "namePlaceholder": "Mergem la concert",
+        "messagePlaceholder": "Locurile sunt limitate, spune-mi repede dacă vii. 🎟️",
+        "planTitle": "Planul",
+        "planSub": "Unde și când ne vedem.",
+        "planCta": "Vezi planul.",
+        "pollQuestion": "Ne vedem înainte?",
+        "pollOptions": [
+          "Da, la o cafea",
+          "Direct acolo"
+        ],
+        "billTitle": "Bilete"
+      }
+    },
+    "wizard": {
+      "stepTemplate": "Șablon",
+      "templateTitle": "Ce fel de ieșire?",
+      "templateSubtitle": "Alegi cum se organizează. Activitatea o alegi la pasul următor.",
+      "timeLabel": "Ora",
+      "timePlaceholder": "Alege ora",
+      "replyByLabel": "Răspunde până la",
+      "replyByNone": "Fără termen",
+      "replyByHint": "Apare în invitație.",
+      "replyByAfterDate": "Termenul de răspuns trebuie să fie înainte de eveniment.",
+      "spotLimitLabel": "Limită de locuri (opțional)",
+      "spotLimitPlaceholder": "Fără limită",
+      "spotLimitHint": "Persoane, cu tot cu +1.",
+      "stepActivity": "Activitate",
+      "activityTitle": "Ce faceți?",
+      "activitySubtitle": "Pentru „{{outing}}”. Adaugă unealta potrivită și alege tema.",
+      "adds": "Se adaugă",
+      "tool": "Unealtă",
+      "theme": "Temă",
+      "title": "Titlu",
+      "skip": "Sari peste"
+    },
+    "rsvp": {
+      "question": "Vii?",
+      "yes": "Vin",
+      "maybe": "Poate",
+      "no": "Nu pot",
+      "plusOne": "Vin cu cineva (+1)",
+      "spotsTaken": "Locuri ocupate",
+      "full": "Nu mai sunt locuri libere.",
+      "replyBy": "Răspunde până {{date}}",
+      "alreadyYes_one": "{{count}} a zis deja da",
+      "alreadyYes_few": "{{count}} au zis deja da",
+      "alreadyYes_other": "{{count}} au zis deja da",
+      "maybeTitle": "Ai zis „poate”",
+      "maybeBody": "Organizatorul vede că încă te gândești la „{{eventName}}”. Poți schimba răspunsul oricând."
+    },
+    "home": {
+      "daysLeft_one": "zi rămasă",
+      "daysLeft_few": "zile rămase",
+      "daysLeft_other": "de zile rămase",
+      "today": "azi",
+      "whoComes": "Cine vine",
+      "openGuests": "Deschide lista de invitați",
+      "counts": "{{yes}} vin · {{maybe}} poate",
+      "nobodyYet": "Încă n-a răspuns nimeni.",
+      "fromHost": "Noutăți de la organizator",
+      "noUpdates": "Încă nicio noutate.",
+      "noUpdatesOwner": "Apasă + ca să anunți ceva grupului.",
+      "postUpdate": "Anunță ceva grupului",
+      "seePlan": "Vezi planul",
+      "seeBill": "Vezi nota"
+    },
+    "poll": {
+      "eyebrow": "Votul grupului",
+      "hint": "Apasă ca să votezi.",
+      "voted": "Ai votat ✓ Poți schimba oricând.",
+      "edit": "Editează votul",
+      "create": "Creează un vot",
+      "emptyOwner": "Ora, tema, transportul: întreabă grupul și decide fără 200 de mesaje.",
+      "formTitle": "Votul grupului",
+      "formSubtitle": "O întrebare, 2-6 variante. Toți invitații votează.",
+      "questionLabel": "Întrebarea",
+      "questionPlaceholder": "La ce oră ne vedem?",
+      "optionLabel": "Varianta {{number}}",
+      "optionPlaceholder": "21:00",
+      "addOption": "+ Adaugă o variantă",
+      "removeOption": "Șterge varianta",
+      "delete": "Șterge votul",
+      "deleteTitle": "Ștergi votul?",
+      "deleteBody": "Se pierd și voturile date până acum."
+    },
+    "plan": {
+      "logistics": "Unde și cum ajungi",
+      "noPlace": "Locul va fi anunțat",
+      "openMap": "Deschide în hărți",
+      "editPlace": "Editează locația",
+      "add": "Adaugă",
+      "you": "Tu",
+      "iBring": "Aduc eu",
+      "youBring": "Aduci tu",
+      "bringsBy": "Aduce {{name}}",
+      "nobody": "Încă nimeni. Îl iei tu?",
+      "covered": "{{covered}} din {{total}} lucruri acoperite",
+      "alreadyClaimed": "Între timp l-a luat altcineva.",
+      "bringEmpty": "Organizatorul n-a pus încă lista.",
+      "bringEmptyOwner": "Adaugă ce e de adus: pizza, băuturi, desert...",
+      "bringPlaceholder": "Ex.: Băuturi răcoritoare și gheață",
+      "songsEmpty": "Încă nicio melodie. Propune tu prima!",
+      "songPlaceholder": "Melodia",
+      "artistPlaceholder": "Artistul (opțional)",
+      "suggestedBy": "propusă de {{name}}",
+      "upvote_one": "Votează, {{count}} vot",
+      "upvote_few": "Votează, {{count}} voturi",
+      "upvote_other": "Votează, {{count}} de voturi",
+      "winesEmpty": "Organizatorul n-a pus încă vinurile.",
+      "winesEmptyOwner": "Adaugă vinurile din degustare.",
+      "winePlaceholder": "Vinul (ex.: Fetească Neagră 2021)",
+      "wineStylePlaceholder": "Stilul (ex.: roșu sec)",
+      "groupAverage": "media grupului {{value}}",
+      "rateStars_one": "{{count}} stea",
+      "rateStars_few": "{{count}} stele",
+      "rateStars_other": "{{count}} de stele",
+      "rateHint": "Apasă pe stele ca să dai note.",
+      "yourFav": "Favoritul tău până acum: {{name}}"
+    },
+    "bill": {
+      "eyebrow": "Împărțirea notei",
+      "edit": "Editează nota",
+      "total": "total",
+      "people": "persoane",
+      "perPerson": "de persoană",
+      "whoPaid": "Cine a plătit",
+      "host": "Organizatorul",
+      "paid": "plătit",
+      "sent": "trimis",
+      "due": "de plătit",
+      "confirm": "Confirmă",
+      "undoHint": "Apasă ca să anulezi confirmarea",
+      "howPay": "Cum plătești",
+      "noMethod": "Organizatorul îți spune cum.",
+      "iPaid": "Am trimis partea mea ({{amount}})",
+      "youSent": "✓ Ai trimis partea ta. Organizatorul confirmă.",
+      "youPaidConfirmed": "✓ Plătit. Mersi!",
+      "undo": "Anulează",
+      "maybeNote": "Partea ta apare după ce confirmi că vii.",
+      "noMoney": "PovesteaNoastra nu ține banii, doar evidența. Fiecare plătește direct organizatorului.",
+      "emptyOwner": "Împarte costul (camera, mâncarea, biletul) și vezi cine a plătit, fără să alergi după nimeni.",
+      "emptyGuest": "Organizatorul n-a adăugat încă nota.",
+      "create": "Împarte costul",
+      "formTitle": "Împărțirea notei",
+      "formSubtitle": "Totalul se împarte la numărul de persoane.",
+      "titleLabel": "Pentru ce",
+      "totalLabel": "Total (lei)",
+      "peopleLabel": "Câte persoane împart",
+      "peopleHint": "Cu tot cu tine.",
+      "methodLabel": "Cum se plătește",
+      "methodPlaceholder": "Revolut @nume · sau cash la sosire",
+      "preview": "{{amount}} de persoană",
+      "delete": "Șterge nota",
+      "deleteTitle": "Ștergi nota?",
+      "deleteBody": "Se pierde și evidența plăților."
+    },
+    "dashboard": {
+      "plusOnes_one": "{{count}} +1",
+      "plusOnes_few": "{{count}} +1",
+      "plusOnes_other": "{{count}} +1",
+      "spots": "{{taken}}/{{limit}} locuri",
+      "withPlusOne": "Vine cu cineva (+1)"
+    },
+    "outings": {
+      "party": {
+        "name": "Petrecere",
+        "description": "Acasă, în parc sau la cineva.",
+        "features": "Cine ce aduce · Vot · Costuri"
+      },
+      "outing": {
+        "name": "Ieșire în oraș",
+        "description": "Restaurant, bar, karaoke, bowling.",
+        "features": "Vot · Nota"
+      },
+      "limited": {
+        "name": "Cu locuri limitate",
+        "description": "Degustare, concert, curs, meci.",
+        "features": "Locuri maxime · Vot · Nota"
+      },
+      "trip": {
+        "name": "Excursie",
+        "description": "O zi sau un weekend întreg.",
+        "features": "Echipament de luat · Vot · Costuri comune"
+      }
+    },
+    "activities": {
+      "home": {
+        "name": "Acasă",
+        "title": "Seară la mine"
+      },
+      "grill": {
+        "name": "Grătar",
+        "title": "Grătar în weekend"
+      },
+      "birthday": {
+        "name": "Ziua cuiva",
+        "title": "Ziua mea"
+      },
+      "movie": {
+        "name": "Film",
+        "title": "Seară de film"
+      },
+      "games": {
+        "name": "Jocuri",
+        "title": "Seară de jocuri"
+      },
+      "karaoke": {
+        "name": "Karaoke",
+        "title": "Karaoke vineri"
+      },
+      "bowling": {
+        "name": "Bowling",
+        "title": "Bowling joi"
+      },
+      "dinner": {
+        "name": "Cină",
+        "title": "Cină în oraș"
+      },
+      "bar": {
+        "name": "Bar",
+        "title": "Seară la bar"
+      },
+      "escape": {
+        "name": "Escape room",
+        "title": "Escape room"
+      },
+      "billiards": {
+        "name": "Biliard",
+        "title": "Seară de biliard"
+      },
+      "wine": {
+        "name": "Degustare de vin",
+        "title": "Degustare de vin"
+      },
+      "concert": {
+        "name": "Concert",
+        "title": "Mergem la concert"
+      },
+      "workshop": {
+        "name": "Curs sau atelier",
+        "title": "Atelier"
+      },
+      "match": {
+        "name": "Meci",
+        "title": "Mergem la meci"
+      },
+      "theatre": {
+        "name": "Teatru",
+        "title": "Seară la teatru"
+      },
+      "mountain": {
+        "name": "Munte",
+        "title": "Weekend la munte"
+      },
+      "sea": {
+        "name": "Mare",
+        "title": "Weekend la mare"
+      },
+      "citybreak": {
+        "name": "City break",
+        "title": "City break"
+      },
+      "camping": {
+        "name": "Camping",
+        "title": "Camping"
+      },
+      "other": {
+        "name": "Altceva",
+        "title": ""
+      }
+    },
+    "tools": {
+      "song": "Coadă de melodii cu vot",
+      "bring": "Cine ce aduce",
+      "wine": "Fișă de note pentru vinuri",
+      "gear": "Echipament de luat",
+      "none": "Vot și nota de plată"
+    }
+  },
+  "venue": {
+    "wizard": {
+      "stepSetup": "Locuri",
+      "setupTitle": "Locuri și rezervări",
+      "setupSubtitle": "Zonele în care se poate rezerva, orele de sosire și intrarea.",
+      "namePlaceholder": "Seară de karaoke",
+      "messagePlaceholder": "Cea mai mare seară de karaoke din Centrul Vechi: 2 scene, 4.000 de melodii și DJ între ele. Rezervă-ți masa din timp! 🎤",
+      "businessTitle": "Ai nevoie de un cont de firmă",
+      "businessBody": "Serile la local le creează barurile și restaurantele. Adaugă datele firmei (nume și CUI), apoi continui de aici.",
+      "businessCta": "Creează cont de firmă"
+    },
+    "setup": {
+      "zonesTitle": "Zone",
+      "zonesSub": "Unde pot sta clienții și câte persoane încap în fiecare zonă.",
+      "zoneLabel": "Zona {{number}}",
+      "zoneName": "Nume",
+      "zoneNamePlaceholder": "Lângă scenă",
+      "zoneDetail": "Detalii",
+      "zoneDetailPlaceholder": "mese de 4-6",
+      "zoneCapacity": "Persoane",
+      "addZone": "+ Adaugă o zonă",
+      "removeZone": "Șterge zona",
+      "defaultZone": "Sală",
+      "totalCapacity_one": "Capacitate totală: {{count}} persoană",
+      "totalCapacity_few": "Capacitate totală: {{count}} persoane",
+      "totalCapacity_other": "Capacitate totală: {{count}} de persoane",
+      "timesTitle": "Ore de sosire",
+      "timesSub": "Clientul alege una la rezervare. Fără nicio oră aleasă, poate veni oricând.",
+      "addTime": "Adaugă o oră",
+      "pickTime": "Alege ora",
+      "priceLabel": "Intrare",
+      "pricePlaceholder": "Intrare liberă",
+      "priceHint": "Ex.: „Bilet 30 lei la intrare, include o băutură”. Plata se face la local.",
+      "maxPartyLabel": "Maxim persoane pe o rezervare",
+      "maxPartyHint": "Grupurile mai mari sună la local.",
+      "tooSmall": "Zona „{{zone}}” are deja mai multe persoane rezervate decât noua capacitate.",
+      "nameRequired": "Dă un nume zonei (textul gri e doar un exemplu).",
+      "capacityRequired": "Câte persoane?"
+    },
+    "book": {
+      "cta": "Rezervă-ți locul",
+      "booking": "Se rezervă...",
+      "saveChange": "Salvează modificarea",
+      "freeEntry": "Intrare liberă",
+      "howMany": "Câte persoane?",
+      "people_one": "{{count}} persoană",
+      "people_few": "{{count}} persoane",
+      "people_other": "{{count}} de persoane",
+      "where": "Unde vreți să stați?",
+      "full": "plin",
+      "free_one": "{{count}} loc liber",
+      "free_few": "{{count}} locuri libere",
+      "free_other": "{{count}} de locuri libere",
+      "tooMany_one": "Mai e doar {{count}} loc în zona asta.",
+      "tooMany_few": "Mai sunt doar {{count}} locuri în zona asta.",
+      "tooMany_other": "Mai sunt doar {{count}} de locuri în zona asta.",
+      "arrival": "Ora de sosire",
+      "optIn": "Vreau să primesc invitații de la {{venue}} (pot renunța oricând)",
+      "thisVenue": "acest local",
+      "follow": "Urmărește {{venue}}",
+      "followNote": "Primești invitații la serile următoare. Poți renunța oricând.",
+      "lineup": "Programul serii",
+      "openNight": "Deschide pagina serii",
+      "change": "Modifică",
+      "cancel": "Anulează rezervarea",
+      "cancelTitle": "Anulezi rezervarea?",
+      "cancelBody": "Locurile tale se eliberează pentru alți clienți.",
+      "zoneFullTitle": "Zona s-a umplut",
+      "zoneFullBody": "Între timp s-au ocupat locurile. Alege altă zonă sau mai puține persoane.",
+      "organizerTitle": "Ești organizatorul: nu poți rezerva la propria seară.",
+      "ownerPreview": "Așa văd clienții pagina de rezervare.",
+      "peopleShort": "pers.",
+      "entry": "Intrare",
+      "payAtVenue": "Nu plătești nimic acum. Intrarea se achită la local."
+    },
+    "ticket": {
+      "title": "Biletul meu",
+      "showAtDoor": "Arată codul la intrare",
+      "checkedIn": "Ai intrat ✓",
+      "people": "Persoane",
+      "zone": "Zona",
+      "arrival": "Sosire",
+      "entry": "Intrare"
+    },
+    "home": {
+      "bookingsTitle": "Rezervări",
+      "occupancy": "{{booked}} din {{capacity}} locuri",
+      "bookingsCount_one": "{{count}} rezervare",
+      "bookingsCount_few": "{{count}} rezervări",
+      "bookingsCount_other": "{{count}} de rezervări",
+      "seeBookings": "Vezi rezervările",
+      "send": "Trimite",
+      "yourBooking": "Rezervarea ta",
+      "notBooked": "Nu ai o rezervare",
+      "seeTicket": "Vezi biletul"
+    },
+    "bookings": {
+      "title": "Rezervări",
+      "editSetup": "Editează zonele și orele",
+      "statBookings": "rezervări",
+      "statPeople": "persoane",
+      "statInside": "au intrat",
+      "byZone": "Ocupare pe zone",
+      "send": "Trimite clienților",
+      "list": "Toate rezervările",
+      "search": "Caută după nume sau cod",
+      "empty": "Încă nicio rezervare. Trimite linkul clienților.",
+      "noMatch": "Nimic găsit.",
+      "checkIn": "Intrare",
+      "inside": "A intrat"
+    },
+    "send": {
+      "title": "Trimite clienților",
+      "subtitle": "Linkul de rezervare, pe status sau direct pe WhatsApp.",
+      "linkTitle": "Linkul serii",
+      "linkSub": "Pune-l pe statusul de WhatsApp, pe Instagram sau în grupul localului. Oricine îl deschide poate rezerva.",
+      "share": "Distribuie linkul",
+      "customersTitle": "Clienți care vor invitații",
+      "customersCount_one": "{{count}} client a acceptat să primească mesaje.",
+      "customersCount_few": "{{count}} clienți au acceptat să primească mesaje.",
+      "customersCount_other": "{{count}} de clienți au acceptat să primească mesaje.",
+      "noCustomers": "Lista crește singură: clienții care rezervă pot bifa că vor invitații, iar alții urmăresc localul din pagina serii.",
+      "sourceBooking": "a bifat la rezervare",
+      "sourceFollow": "urmărește localul",
+      "sendTo": "Trimite pe WhatsApp lui {{name}}",
+      "sent": "Trimis",
+      "rule": "Mesaje directe doar clienților care au acceptat. Statusul, story-ul și grupul localului se pot folosi oricând."
+    },
+    "tonight": {
+      "invites": "{{venue}} te invită",
+      "tonight": "diseară",
+      "alreadyBooked": "Au rezervat deja",
+      "beFirst": "Fii primul care rezervă.",
+      "follow": "Urmărește",
+      "following": "Urmărești",
+      "comingUp": "Urmează la {{venue}}",
+      "bookShort": "Rezervă"
+    },
+    "tabs": {
+      "yourBooking": "Rezervarea ta",
+      "noTicket": "Încă nu ai o rezervare",
+      "noTicketSub": "Rezervi în câteva secunde și biletul apare aici.",
+      "editProgramme": "Editează programul serii"
+    }
+  },
+  "coverTheme": {
+    "title": "Alege tema",
+    "subtitle": "Apare în invitație, în link și în feed.",
+    "untitled": "Evenimentul tău",
+    "back": "Înapoi",
+    "tab": {
+      "invite": "Invitație",
+      "feed": "Feed",
+      "link": "Link"
+    },
+    "suggestedFor": "Sugerată pentru categoria {{category}}",
+    "names": {
+      "petrecere": "Petrecere",
+      "aniversare": "Aniversare",
+      "local": "Local",
+      "karaoke": "Karaoke",
+      "disco": "Disco",
+      "neon": "Neon",
+      "revelion": "Revelion",
+      "craciun": "Crăciun",
+      "halloween": "Halloween",
+      "nunta": "Nuntă",
+      "elegant": "Elegant",
+      "botez": "Botez",
+      "copii": "Copii",
+      "gradina": "Grădină",
+      "plaja": "Plajă",
+      "aurora": "Aurora",
+      "corporate": "Corporate",
+      "absolvire": "Absolvire",
+      "cina": "Cină",
+      "minimal": "Minimal",
+      "conferinta": "Conferință",
+      "gala": "Gală",
+      "teambuilding": "Team building",
+      "trandafiri": "Trandafiri",
+      "arcada": "Arcadă",
+      "aurit": "Aurit",
+      "salvie": "Salvie",
+      "ingeras": "Îngeraș",
+      "bleu": "Bleu",
+      "rozpudrat": "Roz pudrat",
+      "nori": "Nori",
+      "retro": "Retro",
+      "sclipici": "Sclipici",
+      "jubileu": "Jubileu",
+      "speranta": "Speranță",
+      "apa": "Apă",
+      "inima": "Inimă",
+      "comunitate": "Comunitate",
+      "lansare": "Lansare",
+      "lumanare": "Lumânare",
+      "crini": "Crini",
+      "amurg": "Amurg",
+      "stele": "Stele",
+      "jazz": "Jazz",
+      "lounge": "Lounge",
+      "terasa": "Terasă",
+      "degustare": "Degustare",
+      "festival": "Festival",
+      "muzica": "Muzică",
+      "primavara": "Primăvară"
+    },
+    "linkInvited": "Ești invitat",
+    "linkCaption": "Previzualizarea din chat · imaginea din link e statică",
+    "classic": "Clasic"
+  },
+  "compose": {
+    "title": "Invitația ta",
+    "stepName": "Invitația",
+    "whenPlaceholder": "Alege data mai jos",
+    "themeLabel": "Temă",
+    "detailsLabel": "Detalii"
+  },
+  "editGuest": {
+    "title": "Editează invitatul",
+    "notFound": "Invitatul nu mai există",
+    "nameLabel": "Nume",
+    "namePlaceholder": "Fără nume",
+    "roleLabel": "Rol",
+    "role": {
+      "guest": "Invitat",
+      "co_organizer": "Co-organizator"
+    },
+    "roleHint": {
+      "guest": "Confirmă, vede detaliile, albumul și live-ul.",
+      "co_organizer": "Gestionează evenimentul cu tine din aplicație: invitați, plan, mesaje. Intră cu numărul lui de telefon."
+    },
+    "currentRole": " · rolul actual",
+    "demoteNote": "Rămâne pe listă ca invitat confirmat, dar nu mai poate gestiona evenimentul.",
+    "saving": "Se salvează…",
+    "delete": "Șterge invitatul",
+    "deleteTitle": "Ștergi invitatul?",
+    "deleteBody": "Ștergi {{name}} de pe listă? Linkul lui de invitație nu va mai funcționa.",
+    "deleteBodyCoOrganizer": "Ștergi {{name}} de pe listă? Nu va mai fi nici co-organizator. Linkul lui de invitație nu va mai funcționa.",
+    "promotedTitle": "Co-organizator adăugat",
+    "promotedBody": "{{name}} poate gestiona evenimentul din aplicație, intrând cu numărul lui de telefon. Spune-i pe WhatsApp.",
+    "theGuest": "Invitatul",
+    "notifyWhatsApp": "Anunță-l pe WhatsApp",
+    "errors": {
+      "alreadyOnList": "Numărul acesta e deja pe lista de invitați.",
+      "alreadyCoOrganizer": "E deja co-organizator.",
+      "needPhone": "Adaugă-i întâi un număr de telefon: co-organizatorul intră în aplicație cu el."
+    }
+  },
+  "guestRemoved": {
+    "title": "Nu mai faci parte din eveniment",
+    "body": "Organizatorul te-a scos din lista de invitați."
   }
 }

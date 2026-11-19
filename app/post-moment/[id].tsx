@@ -67,7 +67,8 @@ export default function PostMomentScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      quality: 0.8,
+      // Full quality: processMomentPhoto compresses once; a second pass here blurred photos.
+      quality: 1,
     });
     const asset = result.assets?.[0];
     if (result.canceled || asset === undefined) return;

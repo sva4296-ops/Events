@@ -918,51 +918,72 @@
     "wedding": {
       "label": "Nuntă",
       "description": "Cununie și petrecere",
-      "countdownUntil": "până la nuntă",
-      "countdownToday": "Azi e nunta!",
-      "stageDay": "Nunta"
+      "countdownUntil": "până la „Da”",
+      "countdownToday": "Azi. Ziua noastră.",
+      "stageDay": "Ziua „Da”",
+      "stage1": "Save the date",
+      "stage2": "Pregătiri",
+      "stage4": "Albumul"
     },
     "baptism": {
       "label": "Botez",
       "description": "Primul capitol",
-      "countdownUntil": "până la botez",
-      "countdownToday": "Azi e botezul!",
-      "stageDay": "Botezul"
+      "countdownUntil": "până la primul capitol",
+      "countdownToday": "Azi începe primul capitol.",
+      "stageDay": "Primul capitol",
+      "stage1": "Anunț",
+      "stage2": "Pregătiri",
+      "stage4": "Albumul"
     },
     "birthday": {
       "label": "Aniversare",
       "description": "Ani de sărbătorit",
-      "countdownUntil": "până la aniversare",
-      "countdownToday": "Azi e aniversarea!",
-      "stageDay": "Aniversarea"
+      "countdownUntil": "până la celebrare",
+      "countdownToday": "Azi celebrăm.",
+      "stageDay": "Celebrarea",
+      "stage1": "Save the date",
+      "stage2": "În pregătire",
+      "stage4": "Albumul"
     },
     "cause": {
       "label": "Cauză caritabilă",
       "description": "Strângem fonduri împreună",
-      "countdownUntil": "până la eveniment",
-      "countdownToday": "Azi e ziua evenimentului!",
-      "stageDay": "Evenimentul"
+      "countdownUntil": "până la seara de impact",
+      "countdownToday": "Azi facem diferența.",
+      "stageDay": "Impact",
+      "stage1": "Apel",
+      "stage2": "Mobilizare",
+      "stage4": "Rezultate"
     },
     "corporate": {
       "label": "Corporate",
       "description": "Echipă și parteneri",
-      "countdownUntil": "până la eveniment",
-      "countdownToday": "Azi e ziua evenimentului!",
-      "stageDay": "Evenimentul"
+      "countdownUntil": "până intrăm live",
+      "countdownToday": "Azi. Live.",
+      "stageDay": "Live",
+      "stage1": "Save the date",
+      "stage2": "Agenda",
+      "stage4": "Highlights"
     },
     "memorial": {
       "label": "Comemorare",
       "description": "Un loc al amintirii",
-      "countdownUntil": "până la comemorare",
-      "countdownToday": "Azi e comemorarea",
-      "stageDay": "Comemorarea"
+      "countdownUntil": "până la ziua amintirii",
+      "countdownToday": "Azi ne amintim.",
+      "stageDay": "Ziua amintirii",
+      "stage1": "Anunț",
+      "stage2": "Gânduri",
+      "stage4": "În memorie"
     },
     "other": {
       "label": "Altceva",
       "description": "Orice altă sărbătoare",
-      "countdownUntil": "până la eveniment",
-      "countdownToday": "Azi e ziua cea mare!",
-      "stageDay": "Evenimentul"
+      "countdownUntil": "până la ziua X",
+      "countdownToday": "Azi e ziua X.",
+      "stageDay": "Ziua X",
+      "stage1": "Save the date",
+      "stage2": "Pregătiri",
+      "stage4": "Albumul"
     },
     "spontaneous": {
       "label": "Spontan",
@@ -974,9 +995,12 @@
     "venue": {
       "label": "Local",
       "description": "Pentru baruri și restaurante: clienții rezervă",
-      "countdownUntil": "până la seară",
-      "countdownToday": "E diseară!",
-      "stageDay": "Seara"
+      "countdownUntil": "până la show",
+      "countdownToday": "Diseară. Masa ta e gata.",
+      "stageDay": "În seara asta",
+      "stage1": "Anunț nou",
+      "stage2": "Rezervări",
+      "stage4": "Galerie"
     }
   },
   "mapPicker": {
@@ -1564,108 +1588,183 @@
       "party": {
         "name": "Petrecere",
         "description": "Acasă, în parc sau la cineva.",
-        "features": "Cine ce aduce · Vot · Costuri"
+        "features": "Cine ce aduce · Vot · Costuri",
+        "stage1": "Plan",
+        "stage2": "Confirmări",
+        "stage4": "Galerie"
       },
       "outing": {
         "name": "Ieșire în oraș",
         "description": "Restaurant, bar, karaoke, bowling.",
-        "features": "Vot · Nota"
+        "features": "Vot · Nota",
+        "stage1": "Plan",
+        "stage2": "Cine vine",
+        "stage4": "Galerie"
       },
       "limited": {
         "name": "Cu locuri limitate",
         "description": "Degustare, concert, curs, meci.",
-        "features": "Locuri maxime · Vot · Nota"
+        "features": "Locuri maxime · Vot · Nota",
+        "stage1": "Anunț",
+        "stage2": "Locuri",
+        "stage4": "Galerie"
       },
       "trip": {
         "name": "Excursie",
         "description": "O zi sau un weekend întreg.",
-        "features": "Echipament de luat · Vot · Costuri comune"
+        "features": "Echipament de luat · Vot · Costuri comune",
+        "stage1": "Itinerariu",
+        "stage2": "Bagaje",
+        "stage4": "Jurnal"
       }
     },
     "activities": {
       "home": {
         "name": "Acasă",
-        "title": "Seară la mine"
+        "title": "Seară la mine",
+        "stage": "La mine",
+        "countdownUntil": "până la seara la mine",
+        "countdownToday": "Diseară. La mine."
       },
       "grill": {
         "name": "Grătar",
-        "title": "Grătar în weekend"
+        "title": "Grătar în weekend",
+        "stage": "BBQ",
+        "countdownUntil": "până la BBQ",
+        "countdownToday": "Azi. BBQ."
       },
       "birthday": {
         "name": "Ziua cuiva",
-        "title": "Ziua mea"
+        "title": "Ziua mea",
+        "stage": "Celebrarea",
+        "countdownUntil": "până la celebrare",
+        "countdownToday": "Azi celebrăm."
       },
       "movie": {
         "name": "Film",
-        "title": "Seară de film"
+        "title": "Seară de film",
+        "stage": "Movie night",
+        "countdownUntil": "până la movie night",
+        "countdownToday": "Diseară. Film."
       },
       "games": {
         "name": "Jocuri",
-        "title": "Seară de jocuri"
+        "title": "Seară de jocuri",
+        "stage": "Game night",
+        "countdownUntil": "până la game night",
+        "countdownToday": "Diseară. Game night."
       },
       "karaoke": {
         "name": "Karaoke",
-        "title": "Karaoke vineri"
+        "title": "Karaoke vineri",
+        "stage": "Karaoke night",
+        "countdownUntil": "până la karaoke night",
+        "countdownToday": "Diseară. Microfonul e al tău."
       },
       "bowling": {
         "name": "Bowling",
-        "title": "Bowling joi"
+        "title": "Bowling joi",
+        "stage": "Bowling night",
+        "countdownUntil": "până la bowling",
+        "countdownToday": "Azi. Bowling."
       },
       "dinner": {
         "name": "Cină",
-        "title": "Cină în oraș"
+        "title": "Cină în oraș",
+        "stage": "Dinner",
+        "countdownUntil": "până la cină",
+        "countdownToday": "Diseară. Cină."
       },
       "bar": {
         "name": "Bar",
-        "title": "Seară la bar"
+        "title": "Seară la bar",
+        "stage": "Drinks",
+        "countdownUntil": "până la drinks",
+        "countdownToday": "Diseară. Drinks."
       },
       "escape": {
         "name": "Escape room",
-        "title": "Escape room"
+        "title": "Escape room",
+        "stage": "Escape",
+        "countdownUntil": "până la escape",
+        "countdownToday": "Azi. Escape."
       },
       "billiards": {
         "name": "Biliard",
-        "title": "Seară de biliard"
+        "title": "Seară de biliard",
+        "stage": "Pool night",
+        "countdownUntil": "până la pool night",
+        "countdownToday": "Diseară. Pool."
       },
       "wine": {
         "name": "Degustare de vin",
-        "title": "Degustare de vin"
+        "title": "Degustare de vin",
+        "stage": "Tasting",
+        "countdownUntil": "până la tasting",
+        "countdownToday": "Azi. Tasting."
       },
       "concert": {
         "name": "Concert",
-        "title": "Mergem la concert"
+        "title": "Mergem la concert",
+        "stage": "Live",
+        "countdownUntil": "până la live",
+        "countdownToday": "Azi. Live."
       },
       "workshop": {
         "name": "Curs sau atelier",
-        "title": "Atelier"
+        "title": "Atelier",
+        "stage": "Workshop",
+        "countdownUntil": "până la workshop",
+        "countdownToday": "Azi. Workshop."
       },
       "match": {
         "name": "Meci",
-        "title": "Mergem la meci"
+        "title": "Mergem la meci",
+        "stage": "Matchday",
+        "countdownUntil": "până la matchday",
+        "countdownToday": "Azi e matchday."
       },
       "theatre": {
         "name": "Teatru",
-        "title": "Seară la teatru"
+        "title": "Seară la teatru",
+        "stage": "Showtime",
+        "countdownUntil": "până la showtime",
+        "countdownToday": "Diseară. Showtime."
       },
       "mountain": {
         "name": "Munte",
-        "title": "Weekend la munte"
+        "title": "Weekend la munte",
+        "stage": "Mountain mode",
+        "countdownUntil": "până la munte",
+        "countdownToday": "Azi. Munte."
       },
       "sea": {
         "name": "Mare",
-        "title": "Weekend la mare"
+        "title": "Weekend la mare",
+        "stage": "Beach mode",
+        "countdownUntil": "până la mare",
+        "countdownToday": "Azi. Mare."
       },
       "citybreak": {
         "name": "City break",
-        "title": "City break"
+        "title": "City break",
+        "stage": "City break",
+        "countdownUntil": "până la plecare",
+        "countdownToday": "Azi. Plecăm."
       },
       "camping": {
         "name": "Camping",
-        "title": "Camping"
+        "title": "Camping",
+        "stage": "Off-grid",
+        "countdownUntil": "până ieșim din rețea",
+        "countdownToday": "Azi. Off-grid."
       },
       "other": {
         "name": "Altceva",
-        "title": ""
+        "title": "",
+        "stage": "Ziua X",
+        "countdownUntil": "până la ziua X",
+        "countdownToday": "Azi e ziua X."
       }
     },
     "tools": {

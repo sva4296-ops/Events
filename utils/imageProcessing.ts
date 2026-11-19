@@ -25,8 +25,8 @@ const DISPLAY_LONGEST_EDGE = 2048;
 const DISPLAY_QUALITY = 0.82;
 const FULL_LONGEST_EDGE = 2800;
 const FULL_QUALITY = 0.9;
-const MOMENT_LONGEST_EDGE = 1600;
-const MOMENT_QUALITY = 0.8;
+const MOMENT_LONGEST_EDGE = 2048;
+const MOMENT_QUALITY = 0.85;
 const CHAT_THUMBNAIL_LONGEST_EDGE = 800;
 const CHAT_THUMBNAIL_QUALITY = 0.65;
 const CHAT_FULL_LONGEST_EDGE = 1600;
@@ -96,8 +96,8 @@ export async function processAvatarPhoto(photo: PickedPhoto): Promise<string> {
   return resizeToLongestEdge(photo, AVATAR_LONGEST_EDGE, AVATAR_QUALITY);
 }
 
-/** Single JPEG for a moment's photo: shown full card width in Acasă (app and
- * web), so one mid-size version instead of the thumb/full pair Live uses. */
+/** Single JPEG for a moment's photo: shown in the Acasă card and full screen
+ * on tap, so it's sized like an event photo's display version (2048). */
 export async function processMomentPhoto(photo: PickedPhoto): Promise<string> {
   return resizeToLongestEdge(photo, MOMENT_LONGEST_EDGE, MOMENT_QUALITY);
 }

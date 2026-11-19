@@ -11,7 +11,7 @@ import { EventHero } from '@/components/guest/EventHero';
 import { EventHeaderBar, type HeaderAction } from '@/components/guest/EventHeaderBar';
 import { TabBarIcon, type TabIconId } from '@/components/guest/TabBarIcon';
 import { GettingStartedSheet } from '@/components/tour/GettingStartedSheet';
-import { currentStage, stageDayKey } from '@/components/StoryTimeline';
+import { currentStage, stageKeys } from '@/components/StoryTimeline';
 import { useChatRead } from '@/hooks/useChatRead';
 import { useEventContent } from '@/hooks/useEventContent';
 import { EventAccentProvider, useTheme } from '@/hooks/useTheme';
@@ -110,11 +110,7 @@ export default function GuestEventLayout() {
   }
   const headerSubtitle =
     event !== undefined
-      ? `${formatShortDate(event.date)} · ${t(
-          ['onboarding.stageLaunch', 'onboarding.stageJourney', stageDayKey(event.type), 'onboarding.stageRecap'][
-            currentStage(daysUntilEvent(event.date))
-          ] ?? 'onboarding.stageJourney',
-        )}`
+      ? `${formatShortDate(event.date)} · ${t(stageKeys(event)[currentStage(daysUntilEvent(event.date))] ?? 'onboarding.stageJourney')}`
       : undefined;
 
   // Only Acasă has the cover (and its back and edit); what's specific to another tab goes in a slim bar.

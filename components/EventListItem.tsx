@@ -137,7 +137,7 @@ export function EventListItem({
       </ImageBackground>
 
       <View style={styles.body}>
-        <StoryTimeline stage={stage} type={event.type} />
+        <StoryTimeline stage={stage} story={event} />
 
         <View style={[styles.divider, { backgroundColor: tokens.border }]} />
 

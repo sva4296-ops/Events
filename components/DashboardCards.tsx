@@ -8,14 +8,12 @@ import { Button } from '@/components/Button';
 import { openEventMenu, type EventMenuAction } from '@/components/EventMenu';
 import { ScaleTouchable } from '@/components/ScaleTouchable';
 import { Skeleton } from '@/components/Skeleton';
-import { currentStage, stageDayKey } from '@/components/StoryTimeline';
+import { currentStage, stageKeys } from '@/components/StoryTimeline';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent } from '@/types/event';
 import { countRsvps, daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
 import { pastCoverShade, themeRadius, typeface } from '@/utils/themeTokens';
-
-const STAGE_KEYS = ['onboarding.stageLaunch', 'onboarding.stageJourney', null, 'onboarding.stageRecap'] as const;
 
 /** Big countdown number + unit ("5 / zile"), or "Azi". Hidden for past/undated events. */
 function DaysBadge({ days, size }: { days: number | null; size: 'big' | 'small' }) {
@@ -108,7 +106,7 @@ export function DashboardHero({
   const days = daysUntilEvent(event.date);
   const past = days !== null && days < 0;
   const stage = currentStage(days);
-  const stageName = t(STAGE_KEYS[stage] ?? stageDayKey(event.type));
+  const stageName = t(stageKeys(event)[stage] ?? 'onboarding.stageJourney');
   const counts = countRsvps(event.guests);
   const noGuests = event.guests.length === 0;
 

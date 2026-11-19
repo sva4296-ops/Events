@@ -46,7 +46,7 @@ export function VenueTonight({ event, owner }: { event: AppEvent; owner: boolean
       />
       <EventCountdown
         date={event.date}
-        type={event.type}
+        story={event}
         scheduleTimes={event.startTime !== null ? [event.startTime] : []}
         timeline={false}
       />

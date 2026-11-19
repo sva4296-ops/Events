@@ -30,8 +30,9 @@ interface DetaliiHubCardProps {
 }
 
 /**
- * Warm Story 2.0 Detalii tile (two per row): tinted icon, optional badge top
- * right, title and a one-line status. Tapping opens the sub-screen.
+ * Plan tile (two per row): a big faded icon cropped in the top-right corner,
+ * optional badge top left, title and a one-line status at the bottom.
+ * Tapping opens the sub-screen.
  */
 export function DetaliiHubCard({
   icon,
@@ -57,13 +58,15 @@ export function DetaliiHubCard({
       accessibilityLabel={`${title}, ${status}`}
       style={[
         styles.tile,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface },
+        tokens.surfaceElevatedShadow ?? DARK_SHADOW,
       ]}
     >
+      {/* Crops the icon on its own layer: overflow on the tile would clip its shadow on iOS. */}
+      <View style={styles.backdrop} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Feather name={icon} size={BACKDROP_ICON_SIZE} color={tokens.accentText} style={styles.backdropIcon} />
+      </View>
       <View style={styles.top}>
-        <View style={[styles.iconWrap, { backgroundColor: tokens.accentTint }]}>
-          <Feather name={icon} size={20} color={tokens.accentText} />
-        </View>
         {locked ? (
           <View
             style={[
@@ -93,7 +96,7 @@ export function DetaliiHubCard({
       <View style={styles.info}>
         <Text
           style={[styles.title, { color: tokens.textPrimary }]}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {title}
         </Text>
@@ -116,10 +119,10 @@ export function DetaliiHubCardSkeleton() {
     <View
       style={[
         styles.tile,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface },
       ]}
     >
-      <Skeleton width={40} height={40} radius={14} />
+      <View style={styles.top} />
       <View style={styles.info}>
         <Skeleton height={15} width="55%" radius={4} />
         <Skeleton height={13} width="75%" radius={4} />
@@ -128,6 +131,16 @@ export function DetaliiHubCardSkeleton() {
   );
 }
 
+const BACKDROP_ICON_SIZE = 84;
+// Dark themes have no card shadow token; a deeper one still lifts the tile off the page.
+const DARK_SHADOW = {
+  shadowColor: "#000",
+  shadowOpacity: 0.35,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 4,
+};
+
 const styles = StyleSheet.create({
   tile: {
     flexBasis: "47%",
@@ -135,22 +148,30 @@ const styles = StyleSheet.create({
     minHeight: 112,
     padding: 14,
     borderRadius: 22,
-    borderWidth: 1,
     gap: 10,
     justifyContent: "space-between",
+  },
+  backdrop: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 22,
+    overflow: "hidden",
+  },
+  // Decoration only: sits behind the text, partly outside the tile.
+  backdropIcon: {
+    position: "absolute",
+    top: -4,
+    right: -6,
+    opacity: 0.24,
   },
   top: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    minHeight: 23,
     gap: 6,
-  },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
   },
   badge: {
     flexDirection: "row",
@@ -169,6 +190,8 @@ const styles = StyleSheet.create({
   },
   info: {
     gap: 2,
+    // Keeps the title clear of the icon's widest part.
+    paddingRight: 8,
   },
   title: {
     fontSize: 15,

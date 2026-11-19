@@ -10,10 +10,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { showActionSheet } from '@/components/ActionSheet';
 import { defaultCover, EventCover } from '@/components/EventCover';
 import { CoverStatusContext } from '@/components/guest/eventChrome';
-import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
+import { StoryTimeline, countdownKeys, currentStage, type StoryKind } from '@/components/StoryTimeline';
 import { useEventCoverPhoto } from '@/hooks/useEventCoverPhoto';
 import { useTheme } from '@/hooks/useTheme';
-import type { AppEvent, EventTypeId } from '@/types/event';
+import type { AppEvent } from '@/types/event';
 import { getCoverTheme } from '@/utils/coverThemes';
 import { daysUntilEvent, eventStartTime, formatEventDate } from '@/utils/format';
 import { gSpace } from '@/utils/guestTheme';
@@ -27,12 +27,12 @@ import { themeRadius, typeface, typography } from '@/utils/themeTokens';
  */
 export function EventCountdown({
   date,
-  type,
+  story,
   scheduleTimes,
   timeline = true,
 }: {
   date: string;
-  type: EventTypeId;
+  story: StoryKind;
   scheduleTimes: string[];
   /** A venue night has no story to follow, just a date. */
   timeline?: boolean;
@@ -58,7 +58,8 @@ export function EventCountdown({
     { key: 'hours', value: Math.floor((totalMinutes % 1440) / 60) },
     { key: 'minutes', value: totalMinutes % 60 },
   ] as const;
-  const untilLabel = t(`eventTypes.${type}.countdownUntil`);
+  const words = countdownKeys(story);
+  const untilLabel = t(words.until);
   // The largest non-zero unit is the headline number.
   const leadIndex = Math.max(0, units.findIndex((unit) => unit.value > 0));
   // Whole days use the same calendar count as Home, so the two can't disagree;
@@ -70,7 +71,7 @@ export function EventCountdown({
     days === null || counting || showDays
       ? null
       : days >= 0
-        ? t(`eventTypes.${type}.countdownToday`)
+        ? t(words.today)
         : t('acasa.countdownPast');
 
   // On the day: the next unit along, as in "3 ore, și 20 min până la aniversare".
@@ -100,7 +101,7 @@ export function EventCountdown({
       {headline !== null ? (
         <Text style={[styles.countdownTitle, { color: tokens.textPrimary }]}>{headline}</Text>
       ) : null}
-      {timeline ? <StoryTimeline stage={currentStage(days)} type={type} /> : null}
+      {timeline ? <StoryTimeline stage={currentStage(days)} story={story} /> : null}
     </View>
   );
 }

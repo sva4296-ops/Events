@@ -213,7 +213,7 @@ function StoryAcasa() {
       <GuestScreen transparent showHero>
         {event !== undefined ? <EventCountdown
             date={event.date}
-            type={event.type}
+            story={event}
             scheduleTimes={[]}
           /> : null}
         <MomentCardSkeleton />
@@ -231,7 +231,7 @@ function StoryAcasa() {
       >
         {event !== undefined ? <EventCountdown
             date={event.date}
-            type={event.type}
+            story={event}
             scheduleTimes={content.schedule.map((item) => item.time)}
           /> : null}
 

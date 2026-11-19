@@ -1,10 +1,12 @@
 import Feather from '@expo/vector-icons/Feather';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { MomentIcon, isMomentIconId } from '@/components/MomentIcon';
+import { PhotoViewer } from '@/components/PhotoViewer';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
 import type { Moment, ReactionType } from '@/types/guest';
@@ -35,6 +37,7 @@ export function MomentCard({
 }: MomentCardProps) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   return (
     <TouchableOpacity
@@ -68,13 +71,28 @@ export function MomentCard({
       </View>
 
       {moment.photo_url.length > 0 ? (
-        <Image
-          source={{ uri: moment.photo_url }}
-          cachePolicy="disk"
-          contentFit="cover"
-          recyclingKey={moment.id}
-          style={[styles.photo, { backgroundColor: tokens.surface2 }]}
-        />
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => setViewerOpen(true)}
+          onLongPress={onLongPress}
+          delayLongPress={350}
+          accessibilityRole="imagebutton"
+          accessibilityLabel={moment.title}
+        >
+          <Image
+            source={{ uri: moment.photo_url }}
+            cachePolicy="disk"
+            contentFit="cover"
+            recyclingKey={moment.id}
+            style={[styles.photo, { backgroundColor: tokens.surface2 }]}
+          />
+          <PhotoViewer
+            uri={moment.photo_url}
+            visible={viewerOpen}
+            onClose={() => setViewerOpen(false)}
+            caption={moment.title}
+          />
+        </TouchableOpacity>
       ) : (
         <View style={[styles.photo, styles.photoPlaceholder, { backgroundColor: tokens.surface2 }]}>
           <Feather name="image" size={28} color={tokens.textSecondary} />

@@ -887,51 +887,72 @@
     "wedding": {
       "label": "Wedding",
       "description": "Ceremony and party",
-      "countdownUntil": "until the wedding",
-      "countdownToday": "Today's the wedding!",
-      "stageDay": "The wedding"
+      "countdownUntil": "until “I do”",
+      "countdownToday": "Today. Our day.",
+      "stageDay": "The “I do”",
+      "stage1": "Save the date",
+      "stage2": "Getting ready",
+      "stage4": "The album"
     },
     "baptism": {
       "label": "Baptism",
       "description": "The first chapter",
-      "countdownUntil": "until the baptism",
-      "countdownToday": "Today's the baptism!",
-      "stageDay": "The baptism"
+      "countdownUntil": "until the first chapter",
+      "countdownToday": "Today the first chapter begins.",
+      "stageDay": "First chapter",
+      "stage1": "Announcement",
+      "stage2": "Getting ready",
+      "stage4": "The album"
     },
     "birthday": {
       "label": "Birthday",
       "description": "Years worth celebrating",
-      "countdownUntil": "until the birthday",
-      "countdownToday": "Today's the birthday!",
-      "stageDay": "The birthday"
+      "countdownUntil": "until the celebration",
+      "countdownToday": "Today we celebrate.",
+      "stageDay": "The celebration",
+      "stage1": "Save the date",
+      "stage2": "In the works",
+      "stage4": "The album"
     },
     "cause": {
       "label": "Charity cause",
       "description": "Raising funds together",
-      "countdownUntil": "until the event",
-      "countdownToday": "Today's the day!",
-      "stageDay": "The event"
+      "countdownUntil": "until impact night",
+      "countdownToday": "Today we make a difference.",
+      "stageDay": "Impact",
+      "stage1": "Appeal",
+      "stage2": "Mobilizing",
+      "stage4": "Results"
     },
     "corporate": {
       "label": "Corporate",
       "description": "Team and partners",
-      "countdownUntil": "until the event",
-      "countdownToday": "Today's the day!",
-      "stageDay": "The event"
+      "countdownUntil": "until we go live",
+      "countdownToday": "Today. Live.",
+      "stageDay": "Live",
+      "stage1": "Save the date",
+      "stage2": "Agenda",
+      "stage4": "Highlights"
     },
     "memorial": {
       "label": "Memorial",
       "description": "A place for remembering",
-      "countdownUntil": "until the memorial",
-      "countdownToday": "Today is the memorial",
-      "stageDay": "The memorial"
+      "countdownUntil": "until the day of memory",
+      "countdownToday": "Today we remember.",
+      "stageDay": "Day of memory",
+      "stage1": "Announcement",
+      "stage2": "Thoughts",
+      "stage4": "In memory"
     },
     "other": {
       "label": "Something else",
       "description": "Any other celebration",
-      "countdownUntil": "until the event",
-      "countdownToday": "Today's the big day!",
-      "stageDay": "The event"
+      "countdownUntil": "until day X",
+      "countdownToday": "Today is day X.",
+      "stageDay": "Day X",
+      "stage1": "Save the date",
+      "stage2": "Getting ready",
+      "stage4": "The album"
     },
     "spontaneous": {
       "label": "Spontaneous",
@@ -943,9 +964,12 @@
     "venue": {
       "label": "Venue",
       "description": "For bars and restaurants: customers book",
-      "countdownUntil": "until the night",
-      "countdownToday": "It's tonight!",
-      "stageDay": "The night"
+      "countdownUntil": "until the show",
+      "countdownToday": "Tonight. Your table is ready.",
+      "stageDay": "Tonight",
+      "stage1": "New announcement",
+      "stage2": "Bookings",
+      "stage4": "Gallery"
     }
   },
   "mapPicker": {
@@ -1520,108 +1544,183 @@
       "party": {
         "name": "Party",
         "description": "At home, in the park or at a friend's.",
-        "features": "Who brings what · Vote · Costs"
+        "features": "Who brings what · Vote · Costs",
+        "stage1": "Plan",
+        "stage2": "RSVPs",
+        "stage4": "Gallery"
       },
       "outing": {
         "name": "Night out",
         "description": "Restaurant, bar, karaoke, bowling.",
-        "features": "Vote · Bill"
+        "features": "Vote · Bill",
+        "stage1": "Plan",
+        "stage2": "Who’s coming",
+        "stage4": "Gallery"
       },
       "limited": {
         "name": "Limited spots",
         "description": "Tasting, concert, class, match.",
-        "features": "Max spots · Vote · Bill"
+        "features": "Max spots · Vote · Bill",
+        "stage1": "Announcement",
+        "stage2": "Spots",
+        "stage4": "Gallery"
       },
       "trip": {
         "name": "Trip",
         "description": "A day or a whole weekend.",
-        "features": "Gear list · Vote · Shared costs"
+        "features": "Gear list · Vote · Shared costs",
+        "stage1": "Itinerary",
+        "stage2": "Packing",
+        "stage4": "Journal"
       }
     },
     "activities": {
       "home": {
         "name": "At home",
-        "title": "Night at mine"
+        "title": "Night at mine",
+        "stage": "At mine",
+        "countdownUntil": "until the night at mine",
+        "countdownToday": "Tonight. At mine."
       },
       "grill": {
         "name": "Barbecue",
-        "title": "Weekend barbecue"
+        "title": "Weekend barbecue",
+        "stage": "BBQ",
+        "countdownUntil": "until the BBQ",
+        "countdownToday": "Today. BBQ."
       },
       "birthday": {
         "name": "Someone's birthday",
-        "title": "My birthday"
+        "title": "My birthday",
+        "stage": "The celebration",
+        "countdownUntil": "until the celebration",
+        "countdownToday": "Today we celebrate."
       },
       "movie": {
         "name": "Movie",
-        "title": "Movie night"
+        "title": "Movie night",
+        "stage": "Movie night",
+        "countdownUntil": "until movie night",
+        "countdownToday": "Tonight. Movie."
       },
       "games": {
         "name": "Games",
-        "title": "Game night"
+        "title": "Game night",
+        "stage": "Game night",
+        "countdownUntil": "until game night",
+        "countdownToday": "Tonight. Game night."
       },
       "karaoke": {
         "name": "Karaoke",
-        "title": "Karaoke Friday"
+        "title": "Karaoke Friday",
+        "stage": "Karaoke night",
+        "countdownUntil": "until karaoke night",
+        "countdownToday": "Tonight. The mic is yours."
       },
       "bowling": {
         "name": "Bowling",
-        "title": "Bowling Thursday"
+        "title": "Bowling Thursday",
+        "stage": "Bowling night",
+        "countdownUntil": "until bowling",
+        "countdownToday": "Today. Bowling."
       },
       "dinner": {
         "name": "Dinner",
-        "title": "Dinner out"
+        "title": "Dinner out",
+        "stage": "Dinner",
+        "countdownUntil": "until dinner",
+        "countdownToday": "Tonight. Dinner."
       },
       "bar": {
         "name": "Bar",
-        "title": "Bar night"
+        "title": "Bar night",
+        "stage": "Drinks",
+        "countdownUntil": "until drinks",
+        "countdownToday": "Tonight. Drinks."
       },
       "escape": {
         "name": "Escape room",
-        "title": "Escape room"
+        "title": "Escape room",
+        "stage": "Escape",
+        "countdownUntil": "until the escape",
+        "countdownToday": "Today. Escape."
       },
       "billiards": {
         "name": "Billiards",
-        "title": "Billiards night"
+        "title": "Billiards night",
+        "stage": "Pool night",
+        "countdownUntil": "until pool night",
+        "countdownToday": "Tonight. Pool."
       },
       "wine": {
         "name": "Wine tasting",
-        "title": "Wine tasting"
+        "title": "Wine tasting",
+        "stage": "Tasting",
+        "countdownUntil": "until the tasting",
+        "countdownToday": "Today. Tasting."
       },
       "concert": {
         "name": "Concert",
-        "title": "Concert night"
+        "title": "Concert night",
+        "stage": "Live",
+        "countdownUntil": "until live",
+        "countdownToday": "Today. Live."
       },
       "workshop": {
         "name": "Class or workshop",
-        "title": "Workshop"
+        "title": "Workshop",
+        "stage": "Workshop",
+        "countdownUntil": "until the workshop",
+        "countdownToday": "Today. Workshop."
       },
       "match": {
         "name": "Match",
-        "title": "Going to the match"
+        "title": "Going to the match",
+        "stage": "Matchday",
+        "countdownUntil": "until matchday",
+        "countdownToday": "Today is matchday."
       },
       "theatre": {
         "name": "Theatre",
-        "title": "Theatre night"
+        "title": "Theatre night",
+        "stage": "Showtime",
+        "countdownUntil": "until showtime",
+        "countdownToday": "Tonight. Showtime."
       },
       "mountain": {
         "name": "Mountains",
-        "title": "Mountain weekend"
+        "title": "Mountain weekend",
+        "stage": "Mountain mode",
+        "countdownUntil": "until the mountains",
+        "countdownToday": "Today. Mountains."
       },
       "sea": {
         "name": "Seaside",
-        "title": "Seaside weekend"
+        "title": "Seaside weekend",
+        "stage": "Beach mode",
+        "countdownUntil": "until the sea",
+        "countdownToday": "Today. Sea."
       },
       "citybreak": {
         "name": "City break",
-        "title": "City break"
+        "title": "City break",
+        "stage": "City break",
+        "countdownUntil": "until we leave",
+        "countdownToday": "Today. We leave."
       },
       "camping": {
         "name": "Camping",
-        "title": "Camping"
+        "title": "Camping",
+        "stage": "Off-grid",
+        "countdownUntil": "until we go off-grid",
+        "countdownToday": "Today. Off-grid."
       },
       "other": {
         "name": "Something else",
-        "title": ""
+        "title": "",
+        "stage": "Day X",
+        "countdownUntil": "until day X",
+        "countdownToday": "Today is day X."
       }
     },
     "tools": {

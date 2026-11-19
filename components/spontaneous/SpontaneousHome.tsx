@@ -63,7 +63,7 @@ export function SpontaneousHome({ event, owner }: { event: AppEvent; owner: bool
         />
         <EventCountdown
           date={event.date}
-          type={event.type}
+          story={event}
           scheduleTimes={event.startTime !== null ? [event.startTime] : []}
         />
 

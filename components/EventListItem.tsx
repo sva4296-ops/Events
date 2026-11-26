@@ -11,7 +11,7 @@ import { StoryTimeline, currentStage } from '@/components/StoryTimeline';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent } from '@/types/event';
 import { EVENT_COVERS } from '@/utils/eventCovers';
-import { getEventType } from '@/utils/eventTypes';
+import { eventTypeLabel, getEventType } from '@/utils/eventTypes';
 import { countRsvps, daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
 import { imageScrim, onImage, onImageMuted, pastCoverShade, themeRadius, typeface } from '@/utils/themeTokens';
@@ -87,8 +87,11 @@ export function EventListItem({
         {past ? <View style={[StyleSheet.absoluteFill, { backgroundColor: pastCoverShade }]} /> : null}
 
         <View style={styles.coverTop}>
-          <View style={styles.iconChip}>
-            <EventTypeIcon type={type.id} size={18} color={CHIP_TEXT} />
+          <View style={[styles.chip, styles.typeChip]}>
+            <EventTypeIcon type={type.id} size={16} color={CHIP_TEXT} />
+            <Text style={styles.chipText} numberOfLines={1}>
+              {eventTypeLabel(event, t)}
+            </Text>
           </View>
           {/* Chips stay on the right and wrap onto a second line when they
               don't fit (narrow screens, large text). */}
@@ -218,13 +221,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 6,
   },
-  iconChip: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: CHIP_BG,
-    alignItems: 'center',
-    justifyContent: 'center',
+  typeChip: {
+    minHeight: 32,
+    paddingHorizontal: 10,
+    maxWidth: '55%',
   },
   chip: {
     flexDirection: 'row',

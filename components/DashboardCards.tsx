@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 import { EventCover } from '@/components/EventCover';
-import { LineIcon, type Shape } from '@/components/EventTypeIcon';
+import { EventTypeIcon, LineIcon, type Shape } from '@/components/EventTypeIcon';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/Skeleton';
 import { currentStage, stageKeys } from '@/components/StoryTimeline';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent } from '@/types/event';
+import { eventTypeLabel } from '@/utils/eventTypes';
 import { countRsvps, daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
 import { pastCoverShade, themeRadius, typeface } from '@/utils/themeTokens';
@@ -61,27 +62,26 @@ export interface EventRole {
   label: string;
 }
 
-/** How you're on an event. Kept identical to the website's badge (EventAgenda.tsx). */
-function RolePill({ role }: { role: EventRole }) {
+/** How you're on an event, as an icon only, pinned to the bottom-right of the cover photo. */
+function RoleBadge({ role, size }: { role: EventRole; size: number }) {
   const { tokens } = useTheme();
   const owner = role.kind === 'owner';
+  const icon = Math.round(size * 0.5);
   return (
     <View
+      accessible
+      accessibilityLabel={role.label}
       style={[
-        styles.rolePill,
-        owner
-          ? { backgroundColor: tokens.accentTint, borderColor: tokens.accentTint }
-          : { backgroundColor: tokens.surface2, borderColor: tokens.border },
+        styles.roleBadge,
+        { width: size, height: size, borderRadius: size / 2, borderColor: tokens.surface },
+        { backgroundColor: owner ? tokens.accentFill : tokens.surface },
       ]}
     >
       {owner ? (
-        <LineIcon shapes={CROWN} size={11} color={tokens.accentText} strokeWidth={2.2} />
+        <LineIcon shapes={CROWN} size={icon} color={tokens.onAccent} strokeWidth={2.2} />
       ) : (
-        <Feather name="users" size={11} color={tokens.textSecondary} />
+        <Feather name="users" size={icon} color={tokens.textSecondary} />
       )}
-      <Text style={[styles.rolePillText, { color: owner ? tokens.accentText : tokens.textPrimary }]} numberOfLines={1}>
-        {role.label}
-      </Text>
     </View>
   );
 }
@@ -132,6 +132,17 @@ export function DashboardHero({
         <View style={[styles.nextLabel, { backgroundColor: tokens.surface }]}>
           <Text style={[styles.nextLabelText, { color: tokens.accentText }]}>{t('home.dashboard.next')}</Text>
         </View>
+        <View style={styles.typeChip}>
+          <EventTypeIcon type={event.type} size={14} color={CHIP_TEXT} />
+          <Text style={styles.typeChipText} numberOfLines={1}>
+            {eventTypeLabel(event, t)}
+          </Text>
+        </View>
+        {role !== null ? (
+          <View style={styles.roleOnCover}>
+            <RoleBadge role={role} size={30} />
+          </View>
+        ) : null}
       </EventCover>
 
       <View style={styles.heroBody}>
@@ -143,7 +154,6 @@ export function DashboardHero({
             <Text style={[styles.meta, { color: tokens.textSecondary }]} numberOfLines={1}>
               {eventShortSubtitle(event)}
             </Text>
-            {role !== null ? <RolePill role={role} /> : null}
           </View>
           <DaysBadge days={days} size="big" />
         </View>
@@ -191,6 +201,7 @@ export function DashboardRow({
   showDivider: boolean;
   role?: EventRole | null;
 }) {
+  const { t } = useTranslation();
   const { tokens } = useTheme();
   const days = daysUntilEvent(event.date);
   return (
@@ -203,21 +214,27 @@ export function DashboardRow({
       accessibilityLabel={event.name}
       style={[styles.row, showDivider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tokens.border }]}
     >
-      <EventCover
-        type={event.type}
-        coverTheme={event.coverTheme}
-        photoPath={event.coverPhotoPath}
-        thumbnail
-        style={[styles.thumb, days !== null && days < 0 && styles.pastThumb]}
-      />
+      <View>
+        <EventCover
+          type={event.type}
+          coverTheme={event.coverTheme}
+          photoPath={event.coverPhotoPath}
+          thumbnail
+          style={[styles.thumb, days !== null && days < 0 && styles.pastThumb]}
+        />
+        {role !== null ? (
+          <View style={styles.roleOnThumb}>
+            <RoleBadge role={role} size={20} />
+          </View>
+        ) : null}
+      </View>
       <View style={styles.rowText}>
         <Text style={[styles.rowName, { color: tokens.textPrimary, fontFamily: tokens.displayFont }]} numberOfLines={1}>
           {event.name}
         </Text>
         <Text style={[styles.meta, { color: tokens.textSecondary }]} numberOfLines={1}>
-          {eventShortSubtitle(event)}
+          {eventTypeLabel(event, t)} · {eventShortSubtitle(event)}
         </Text>
-        {role !== null ? <RolePill role={role} /> : null}
       </View>
       <DaysBadge days={days} size="small" />
     </TouchableOpacity>
@@ -238,7 +255,29 @@ export function DashboardHeroSkeleton() {
   );
 }
 
+// On-cover chip colors, same as EventHero's type pill.
+const CHIP_TEXT = '#2A211C';
+
 const styles = StyleSheet.create({
+  typeChip: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    maxWidth: '60%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: themeRadius.pill,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  typeChipText: {
+    flexShrink: 1,
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 12,
+    color: CHIP_TEXT,
+  },
   hero: {
     borderRadius: themeRadius.lg,
     borderWidth: 1,
@@ -352,20 +391,20 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  rolePill: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
+  roleBadge: {
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: themeRadius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'center',
+    borderWidth: 1.5,
   },
-  rolePillText: {
-    fontFamily: typeface.bodySemiBold,
-    fontSize: 11,
+  roleOnCover: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+  },
+  roleOnThumb: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
   },
   rowName: {
     fontSize: 18,

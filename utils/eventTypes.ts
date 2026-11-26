@@ -1,4 +1,6 @@
-import type { EventTypeId, EventTypeMeta, Gradient } from '@/types/event';
+import type { TFunction } from 'i18next';
+
+import type { AppEvent, EventTypeId, EventTypeMeta, Gradient } from '@/types/event';
 
 export const EVENT_TYPES: readonly EventTypeMeta[] = [
   {
@@ -91,6 +93,14 @@ const FALLBACK: EventTypeMeta = EVENT_TYPES[EVENT_TYPES.length - 1] as EventType
 
 export function getEventType(id: EventTypeId | null): EventTypeMeta {
   return EVENT_TYPES.find((type) => type.id === id) ?? FALLBACK;
+}
+
+/** "Nuntă", or "Spontan · Karaoke" for a spontaneous event with a template. */
+export function eventTypeLabel(event: Pick<AppEvent, 'type' | 'template'>, t: TFunction): string {
+  const label = t(`eventTypes.${getEventType(event.type).id}.label`);
+  return event.type === 'spontaneous' && event.template !== null
+    ? `${label} · ${t(`spontaneous.templates.${event.template}.name`)}`
+    : label;
 }
 
 /**

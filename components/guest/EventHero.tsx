@@ -14,7 +14,9 @@ import { StoryTimeline, countdownKeys, currentStage, type StoryKind } from '@/co
 import { useEventCoverPhoto } from '@/hooks/useEventCoverPhoto';
 import { useTheme } from '@/hooks/useTheme';
 import type { AppEvent } from '@/types/event';
+import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { getCoverTheme } from '@/utils/coverThemes';
+import { eventTypeLabel } from '@/utils/eventTypes';
 import { daysUntilEvent, eventStartTime, formatEventDate } from '@/utils/format';
 import { gSpace } from '@/utils/guestTheme';
 import { themeRadius, typeface, typography } from '@/utils/themeTokens';
@@ -224,6 +226,12 @@ export function EventHero({
         </View>
         {/* A dark scrim so the white text reads on any photo or drawn cover. */}
         <LinearGradient colors={['transparent', 'rgba(0,0,0,0.72)']} style={styles.heroText} pointerEvents="none">
+          <View style={styles.typePill}>
+            <EventTypeIcon type={event.type} size={14} color={TYPE_PILL_TEXT} />
+            <Text style={styles.typePillText} numberOfLines={1}>
+              {eventTypeLabel(event, t)}
+            </Text>
+          </View>
           <Text style={styles.heroName} numberOfLines={2}>
             {event.name}
           </Text>
@@ -238,7 +246,26 @@ export function EventHero({
   );
 }
 
+// Same on-cover chip colors as Home's EventListItem.
+const TYPE_PILL_TEXT = '#2A211C';
+
 const styles = StyleSheet.create({
+  typePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 6,
+    borderRadius: themeRadius.pill,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  typePillText: {
+    fontFamily: typeface.bodySemiBold,
+    fontSize: 12,
+    color: TYPE_PILL_TEXT,
+  },
   // Cancels GuestScreen's padding so the cover runs edge to edge.
   hero: {
     marginHorizontal: -gSpace.xl,

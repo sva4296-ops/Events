@@ -10,7 +10,8 @@ import { RsvpBadge } from '@/components/RsvpBadge';
 import { Skeleton } from '@/components/Skeleton';
 import { useTheme } from '@/hooks/useTheme';
 import type { Invitation } from '@/utils/invitations';
-import { getEventType } from '@/utils/eventTypes';
+import { EventTypeIcon } from '@/components/EventTypeIcon';
+import { eventTypeLabel, getEventType } from '@/utils/eventTypes';
 import { daysUntilEvent, eventShortSubtitle } from '@/utils/format';
 import { spacing } from '@/utils/theme';
 import { themeRadius, typeface } from '@/utils/themeTokens';
@@ -60,9 +61,12 @@ export function InvitationListItem({
         <Text style={[styles.name, { color: tokens.textPrimary }]} numberOfLines={1}>
           {event.name}
         </Text>
-        <Text style={[styles.date, { color: tokens.textSecondary }]} numberOfLines={1}>
-          {eventShortSubtitle(event)}
-        </Text>
+        <View style={styles.typeRow}>
+          <EventTypeIcon type={type.id} size={13} color={tokens.textSecondary} />
+          <Text style={[styles.date, styles.typeText, { color: tokens.textSecondary }]} numberOfLines={1}>
+            {eventTypeLabel(event, t)} · {eventShortSubtitle(event)}
+          </Text>
+        </View>
       </View>
 
       {unreadMessages > 0 ? (
@@ -120,6 +124,14 @@ export function InvitationListItemSkeleton({ showDivider = false }: { showDivide
 }
 
 const styles = StyleSheet.create({
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  typeText: {
+    flexShrink: 1,
+  },
   unread: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -8,8 +8,11 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
+import { PhotoViewer } from '@/components/PhotoViewer';
+import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
@@ -53,13 +56,16 @@ export default function DetaliiMenuScreen() {
   const { getEvent, isVenueManager, updateMyDietaryPreferences, updateMyMenuChoice } = useEvents();
   const event = getEvent(id);
   const owner = isVenueManager(event);
+  const { user } = useAuth();
   const { content, deleteMenuOption, saveMenuDeadline } = useEventContent(id ?? '');
   const { tokens } = useTheme();
   const [deadlineOpen, setDeadlineOpen] = useState(false);
+  // A course photo opened full screen (tap on its thumbnail).
+  const [viewer, setViewer] = useState<{ uri: string; caption: string } | null>(null);
 
   if (content === null) {
     return (
-      <Screen>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('detalii.hub.menuTitle')} showBack />
       </Screen>
     );
@@ -67,7 +73,8 @@ export default function DetaliiMenuScreen() {
 
   // RLS already limits a non-organizer's event.guests to just their own row,
   // so [0] is "my" row.
-  const myGuest = owner || event === undefined ? undefined : event.guests[0];
+  // An organizer sees the whole list; a co-organizer's own row is theirs to pick for.
+  const myGuest = owner ? event?.guests.find((guest) => guest.userId === user?.id) : event?.guests[0];
   const myDietary = myGuest?.dietaryPreferences ?? [];
   const myChoice = myGuest?.menuOptionId ?? null;
   const canChoose = myGuest?.status === 'confirmed';
@@ -108,7 +115,7 @@ export default function DetaliiMenuScreen() {
         : t('detalii.menuChooseOpen', { date: lastDayLabel });
 
   return (
-    <GuestScreen topInset>
+    <GuestScreen coverTheme={event?.coverTheme} topInset>
       <Header
         title={t('detalii.hub.menuTitle')}
         subtitle={t('detalii.menuDescription')}
@@ -232,6 +239,42 @@ export default function DetaliiMenuScreen() {
             </View>
           )}
 
+          {/* A co-organizer eats too: same choice as any guest, above the organizer's view. */}
+          {owner && myGuest !== undefined ? (
+            <View style={[styles.menuCard, card]}>
+              <Text style={[styles.summaryTitle, { color: tokens.textPrimary }]}>{t('detalii.menuYourChoice')}</Text>
+              {options.map((option) => {
+                const mine = option.id === myChoice;
+                return (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={styles.titleRow}
+                    onPress={() => choose(option)}
+                    disabled={closed}
+                    activeOpacity={0.7}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: mine, disabled: closed }}
+                  >
+                    <Text style={[styles.optionName, { color: tokens.textPrimary }]} numberOfLines={1}>
+                      {option.name}
+                    </Text>
+                    <View
+                      style={[
+                        styles.radio,
+                        {
+                          borderColor: mine ? tokens.accentFill : tokens.border,
+                          backgroundColor: mine ? tokens.accentFill : 'transparent',
+                        },
+                      ]}
+                    >
+                      {mine ? <Feather name="check" size={13} color={tokens.onAccent} /> : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
+
           <View style={styles.stack}>
             {options.map((option) => {
               const selected = !owner && option.id === myChoice;
@@ -256,16 +299,36 @@ export default function DetaliiMenuScreen() {
                         {selected ? <Feather name="check" size={13} color={tokens.onAccent} /> : null}
                       </View>
                     ) : null}
+                    {owner ? (
+                      <IconCircleButton
+                        size="sm"
+                        icon="edit-2"
+                        accessibilityLabel={t('common.edit')}
+                        onPress={() => router.push(`/menu/${id}?itemId=${option.id}`)}
+                      />
+                    ) : null}
                   </View>
                   {option.courses.map((course, courseIndex) => (
                     // Courses have no id; their order is their identity.
                     <View key={courseIndex} style={styles.courseRow}>
                       {course.photo_url !== null ? (
-                        <Image
-                          source={{ uri: course.photo_url }}
-                          style={[styles.courseThumb, { backgroundColor: tokens.surface2 }]}
-                          accessibilityIgnoresInvertColors
-                        />
+                        <TouchableOpacity
+                          onPress={() =>
+                            setViewer({
+                              uri: course.photo_url ?? '',
+                              caption: [course.name, course.dish].filter((part) => part.trim().length > 0).join(' · '),
+                            })
+                          }
+                          activeOpacity={0.8}
+                          accessibilityRole="imagebutton"
+                          accessibilityLabel={course.dish || course.name}
+                        >
+                          <Image
+                            source={{ uri: course.photo_url }}
+                            style={[styles.courseThumb, { backgroundColor: tokens.surface2 }]}
+                            accessibilityIgnoresInvertColors
+                          />
+                        </TouchableOpacity>
                       ) : null}
                       <Text style={[styles.courseLabel, { color: tokens.textSecondary }]}>{course.name}</Text>
                       <Text style={[styles.courseValue, { color: tokens.textPrimary }]}>{course.dish}</Text>
@@ -289,7 +352,8 @@ export default function DetaliiMenuScreen() {
 
               if (owner) {
                 return (
-                  <SwipeableRow
+                  <LongPressRow
+                title={option.name}
                     key={option.id}
                     actions={[
                       {
@@ -312,7 +376,7 @@ export default function DetaliiMenuScreen() {
                     ]}
                   >
                     <View style={cardStyles}>{courses}</View>
-                  </SwipeableRow>
+                  </LongPressRow>
                 );
               }
 
@@ -365,6 +429,12 @@ export default function DetaliiMenuScreen() {
           ) : null}
         </>
       )}
+      <PhotoViewer
+        uri={viewer?.uri}
+        visible={viewer !== null}
+        onClose={() => setViewer(null)}
+        caption={viewer?.caption}
+      />
     </GuestScreen>
   );
 }
@@ -393,6 +463,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
+    flexShrink: 1,
   },
   courseValue: {
     flex: 1,
@@ -406,11 +477,12 @@ const styles = StyleSheet.create({
     marginTop: gSpace.xs,
   },
   pill: {
-    height: 40,
+    minHeight: 40,
     paddingHorizontal: 14,
     justifyContent: 'center',
     borderRadius: gRadius.pill,
     borderWidth: 1.5,
+    paddingVertical: 4,
   },
   pillText: {
     fontSize: 14,
@@ -482,6 +554,7 @@ const styles = StyleSheet.create({
   selectText: {
     fontSize: 15,
     fontWeight: '600',
+    flexShrink: 1,
   },
   dropdown: {
     borderRadius: themeRadius.md,
@@ -497,5 +570,6 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 15,
+    flexShrink: 1,
   },
 });

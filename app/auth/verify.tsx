@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 14,
+    flexShrink: 1,
   },
   resendButton: {
     alignSelf: 'flex-start',

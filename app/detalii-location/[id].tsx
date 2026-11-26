@@ -1,19 +1,22 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Button, buttonLabelColor } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
+import { LongPressRow } from '@/components/LongPressRow';
 import { Screen } from '@/components/Screen';
 import { VenueMapPreview } from '@/components/VenueMapPreview';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import { fonts, gRadius, gSpace } from '@/utils/guestTheme';
+import { confirmDelete } from '@/utils/confirm';
 import { mapsAvailable, openInMaps, openInWaze } from '@/utils/maps';
 import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
@@ -32,25 +35,70 @@ export default function DetaliiLocationScreen() {
   const { getEvent, isVenueManager } = useEvents();
   const event = getEvent(id);
   const owner = isVenueManager(event);
-  const { content } = useEventContent(id ?? '');
+  const { content, deleteVenue } = useEventContent(id ?? '');
   const { tokens } = useTheme();
 
   if (content === null) {
     return (
-      <Screen>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('detalii.hub.locationTitle')} showBack />
       </Screen>
     );
   }
 
   const hasVenue = content.venue.name.trim().length > 0 || content.venue.address.trim().length > 0;
+  // The free-text location typed when the event was created: shown until a venue is set.
+  const eventLocation = event?.location.trim() ?? '';
   const card = cardStyle(tokens);
 
   return (
-    <GuestScreen topInset>
-      <Header title={t('detalii.hub.locationTitle')} showBack />
+    <GuestScreen coverTheme={event?.coverTheme} topInset>
+      <Header
+        title={t('detalii.hub.locationTitle')}
+        showBack
+        right={
+          owner && hasVenue ? (
+            <IconCircleButton
+              icon="edit-2"
+              accessibilityLabel={t('common.edit')}
+              onPress={() => router.push(`/venue/${id}`)}
+            />
+          ) : undefined
+        }
+      />
 
-      {!hasVenue ? (
+      {!hasVenue && eventLocation.length > 0 ? (
+        <View style={[styles.mapCard, card]}>
+          <View style={styles.venueBody}>
+            <Text style={[styles.venueName, { color: tokens.textPrimary }]}>{eventLocation}</Text>
+            <Text style={[styles.venueAddress, { color: tokens.textSecondary }]}>
+              {t('detalii.venueFromEvent')}
+            </Text>
+            <View style={styles.navRow}>
+              <Button
+                label={t('detalii.openInMaps')}
+                onPress={() => openInMaps({ name: '', address: eventLocation, latitude: null, longitude: null })}
+                icon={<Feather name="navigation" size={18} color={buttonLabelColor('primary', tokens)} />}
+                style={styles.navPrimary}
+              />
+              <Button
+                label={t('detalii.openInWaze')}
+                variant="secondary"
+                onPress={() => openInWaze({ name: '', address: eventLocation, latitude: null, longitude: null })}
+              />
+            </View>
+            {owner ? (
+              <Button
+                label={t('detalii.addExactVenue')}
+                variant="tonal"
+                icon={<Feather name="map-pin" size={18} color={buttonLabelColor('tonal', tokens)} />}
+                onPress={() => router.push(`/venue/${id}`)}
+                style={styles.addExact}
+              />
+            ) : null}
+          </View>
+        </View>
+      ) : !hasVenue ? (
         <EmptyState
           message={owner ? t('detalii.venueEmptyOwner') : t('detalii.venueEmptyGuest')}
           action={
@@ -58,18 +106,25 @@ export default function DetaliiLocationScreen() {
           }
         />
       ) : (
+        // Hold the card to edit or delete the location, like every other list.
+        <LongPressRow
+          title={content.venue.name.trim() || content.venue.address}
+          enabled={owner}
+          actions={[
+            { label: t('common.edit'), tone: 'edit', onPress: () => router.push(`/venue/${id}`) },
+            {
+              label: t('common.delete'),
+              tone: 'delete',
+              onPress: () =>
+                confirmDelete(
+                  t('detalii.deleteVenueTitle'),
+                  t('detalii.deleteVenueBody', { name: content.venue.name.trim() || content.venue.address }),
+                  deleteVenue,
+                ),
+            },
+          ]}
+        >
         <View style={[styles.mapCard, card]}>
-          {owner ? (
-            <TouchableOpacity
-              style={[styles.venueEdit, { backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }]}
-              onPress={() => router.push(`/venue/${id}`)}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Editează locația"
-            >
-              <Feather name="edit-2" size={16} color={tokens.accentText} />
-            </TouchableOpacity>
-          ) : null}
           {mapsAvailable && content.venue.latitude !== null && content.venue.longitude !== null ? (
             <VenueMapPreview latitude={content.venue.latitude} longitude={content.venue.longitude} height={170} />
           ) : (
@@ -105,6 +160,7 @@ export default function DetaliiLocationScreen() {
             </View>
           </View>
         </View>
+        </LongPressRow>
       )}
     </GuestScreen>
   );
@@ -114,17 +170,6 @@ const styles = StyleSheet.create({
   mapCard: {
     borderRadius: themeRadius.xl,
     overflow: 'hidden',
-  },
-  venueEdit: {
-    position: 'absolute',
-    top: gSpace.md,
-    right: gSpace.md,
-    zIndex: 2,
-    width: 44,
-    height: 44,
-    borderRadius: gRadius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   mapPreview: {
     height: 170,
@@ -182,5 +227,8 @@ const styles = StyleSheet.create({
   },
   navPrimary: {
     flex: 1,
+  },
+  addExact: {
+    marginTop: gSpace.sm,
   },
 });

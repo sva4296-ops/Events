@@ -1,18 +1,24 @@
-import Feather from '@expo/vector-icons/Feather';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import Feather from "@expo/vector-icons/Feather";
+import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { StyleSheet, Text, View } from "react-native";
 
-import { EmptyState } from '@/components/EmptyState';
-import { DetaliiHubCard, DetaliiHubCardSkeleton } from '@/components/guest/DetaliiHubCard';
-import { GuestScreen } from '@/components/guest/GuestScreen';
-import { useEventContent } from '@/hooks/useEventContent';
-import { useEvents } from '@/hooks/useEvents';
-import { useGuestEvent } from '@/hooks/useGuestEvent';
-import { usePlanGate } from '@/hooks/usePlanGate';
-import { useTheme } from '@/hooks/useTheme';
-import { gSpace } from '@/utils/guestTheme';
-import { typography } from '@/utils/themeTokens';
+import { EmptyState } from "@/components/EmptyState";
+import {
+  DetaliiHubCard,
+  DetaliiHubCardSkeleton,
+} from "@/components/guest/DetaliiHubCard";
+import { GuestScreen } from "@/components/guest/GuestScreen";
+import { SpontaneousPlan } from "@/components/spontaneous/SpontaneousPlan";
+import { VenueBookTab } from "@/components/venue/VenueTabs";
+import { useEventContent } from "@/hooks/useEventContent";
+import { useEvents } from "@/hooks/useEvents";
+import { useEventTasks } from "@/hooks/useEventTasks";
+import { useGuestEvent } from "@/hooks/useGuestEvent";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import { useTheme } from "@/hooks/useTheme";
+import { gSpace } from "@/utils/guestTheme";
+import { typography } from "@/utils/themeTokens";
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -47,13 +53,23 @@ function DetaliiSkeleton() {
 }
 
 /** The restaurant role only manages these sections. */
-const RESTAURANT_CARDS = ['location', 'menu', 'seating'];
+const RESTAURANT_CARDS = ["location", "menu", "seating"];
 
 export default function DetaliiScreen() {
+  const { event } = useGuestEvent();
+  const { isOwner } = useEvents();
+  if (event?.type === 'spontaneous') return <SpontaneousPlan event={event} owner={isOwner(event)} />;
+  if (event?.type === 'venue') return <VenueBookTab event={event} owner={isOwner(event)} />;
+  return <DetaliiHub />;
+}
+
+function DetaliiHub() {
   const { t } = useTranslation();
   const { id, event } = useGuestEvent();
   const { content } = useEventContent(id);
   const { isVenueManager, isRestaurant } = useEvents();
+  // Owner + co-organizers only (false for guests and the restaurant).
+  const { tasks, organizer } = useEventTasks(id);
   // Organizers and the restaurant both get the editing view of the hub.
   const owner = event !== undefined && isVenueManager(event);
   const restaurant = isRestaurant(event);
@@ -62,91 +78,133 @@ export default function DetaliiScreen() {
 
   if (content === null) return <DetaliiSkeleton />;
 
-  const hasVenue = content.venue.name.trim().length > 0 || content.venue.address.trim().length > 0;
-  const seatedCount = content.seatingTables.reduce((sum, table) => sum + table.seat_count, 0);
+  const hasVenue =
+    content.venue.name.trim().length > 0 ||
+    content.venue.address.trim().length > 0;
+  // The free-text location typed when the event was created, shown until a venue is set.
+  const eventLocation = event?.location.trim() ?? "";
+  // Seats aren't people: count who's actually at a table, starting from the
+  // confirmed; anyone seated who hasn't confirmed is called out separately.
+  const seatedGuests = (event?.guests ?? []).filter((guest) => guest.tableId !== null);
+  const seatedCount = seatedGuests.filter((guest) => guest.status === "confirmed").length;
+  const unconfirmedSeated = seatedGuests.length - seatedCount;
   // A guest's event.guests is RLS-scoped to their own row, so [0] is theirs.
-  const myMenuOptionId = owner ? null : (event?.guests[0]?.menuOptionId ?? null);
-  const myMenuOptionName = content.menuOptions.find((option) => option.id === myMenuOptionId)?.name ?? null;
+  const myMenuOptionId = owner
+    ? null
+    : (event?.guests[0]?.menuOptionId ?? null);
+  const myMenuOptionName =
+    content.menuOptions.find((option) => option.id === myMenuOptionId)?.name ??
+    null;
 
   const cards: DetaliiHubCardEntry[] = [
     {
-      key: 'schedule',
-      icon: 'clock',
-      title: t('detalii.hub.scheduleTitle'),
+      key: "schedule",
+      icon: "clock",
+      title: t("detalii.hub.scheduleTitle"),
       status:
         content.schedule.length === 0
-          ? t('detalii.hub.scheduleUnset')
-          : t('detalii.hub.scheduleCount', { count: content.schedule.length }),
+          ? t("detalii.hub.scheduleUnset")
+          : t("detalii.hub.scheduleCount", { count: content.schedule.length }),
       complete: content.schedule.length > 0,
       route: `/detalii-schedule/${id}`,
     },
     {
-      key: 'location',
-      icon: 'map-pin',
-      title: t('detalii.hub.locationTitle'),
+      key: "location",
+      icon: "map-pin",
+      title: t("detalii.hub.locationTitle"),
       status: hasVenue
         ? content.venue.address.trim().length > 0
           ? content.venue.address
           : content.venue.name
-        : t('detalii.hub.locationUnset'),
-      complete: hasVenue,
+        : eventLocation.length > 0
+          ? eventLocation
+          : t("detalii.hub.locationUnset"),
+      complete: hasVenue || eventLocation.length > 0,
       route: `/detalii-location/${id}`,
     },
     {
-      key: 'menu',
-      icon: 'coffee',
-      title: t('detalii.hub.menuTitle'),
+      key: "menu",
+      icon: "coffee",
+      title: t("detalii.hub.menuTitle"),
       status:
         content.menuOptions.length === 0
-          ? t('detalii.hub.menuUnset')
+          ? t("detalii.hub.menuUnset")
           : owner
-            ? t('detalii.hub.menuOptionsCount', { count: content.menuOptions.length })
+            ? t("detalii.hub.menuOptionsCount", {
+                count: content.menuOptions.length,
+              })
             : myMenuOptionName !== null
-              ? t('detalii.hub.menuGuestChosen', { name: myMenuOptionName })
-              : t('detalii.hub.menuGuest'),
+              ? t("detalii.hub.menuGuestChosen", { name: myMenuOptionName })
+              : t("detalii.hub.menuGuest"),
       complete: content.menuOptions.length > 0,
       route: `/detalii-menu/${id}`,
     },
     {
-      key: 'seating',
-      icon: 'grid',
-      title: t('detalii.hub.seatingTitle'),
+      key: "seating",
+      icon: "grid",
+      title: t("detalii.hub.seatingTitle"),
       status:
         content.seatingTables.length === 0
-          ? t('detalii.hub.seatingUnset')
+          ? t("detalii.hub.seatingUnset")
           : owner
-            ? t('detalii.hub.seatingCount', { count: seatedCount })
-            : t('detalii.hub.seatingGuest'),
+            ? [
+                t("detalii.hub.seatingCount", { count: seatedCount }),
+                ...(unconfirmedSeated > 0
+                  ? [t("detalii.hub.seatingUnconfirmed", { count: unconfirmedSeated })]
+                  : []),
+              ].join(" · ")
+            : t("detalii.hub.seatingGuest"),
       complete: content.seatingTables.length > 0,
       route: `/detalii-seating/${id}`,
     },
     {
-      key: 'accommodation',
-      icon: 'home',
-      title: t('detalii.hub.accommodationTitle'),
+      key: "accommodation",
+      icon: "home",
+      title: t("detalii.hub.accommodationTitle"),
       status: capabilities.lodgingTransportEnabled
         ? content.accommodations.length === 0
-          ? t('detalii.hub.accommodationUnset')
-          : t('detalii.hub.accommodationCount', { count: content.accommodations.length })
-        : t('planGate.hubLockedStatus'),
+          ? t("detalii.hub.accommodationUnset")
+          : t("detalii.hub.accommodationCount", {
+              count: content.accommodations.length,
+            })
+        : t("planGate.hubLockedStatus"),
       complete: content.accommodations.length > 0,
       locked: !capabilities.lodgingTransportEnabled,
-      route: capabilities.lodgingTransportEnabled ? `/detalii-accommodation/${id}` : `/pricing/${id}`,
+      route: capabilities.lodgingTransportEnabled
+        ? `/detalii-accommodation/${id}`
+        : `/pricing/${id}`,
     },
     {
-      key: 'vendors',
-      icon: 'briefcase',
-      title: t('detalii.hub.vendorsTitle'),
+      key: "vendors",
+      icon: "briefcase",
+      title: t("detalii.hub.vendorsTitle"),
       status: capabilities.vendorTaggingEnabled
         ? content.vendors.length === 0
-          ? t('detalii.hub.vendorsUnset')
-          : t('detalii.hub.vendorsCount', { count: content.vendors.length })
-        : t('planGate.hubLockedStatus'),
+          ? t("detalii.hub.vendorsUnset")
+          : t("detalii.hub.vendorsCount", { count: content.vendors.length })
+        : t("planGate.hubLockedStatus"),
       complete: content.vendors.length > 0,
       locked: !capabilities.vendorTaggingEnabled,
-      route: capabilities.vendorTaggingEnabled ? `/detalii-vendors/${id}` : `/pricing/${id}`,
+      route: capabilities.vendorTaggingEnabled
+        ? `/detalii-vendors/${id}`
+        : `/pricing/${id}`,
     },
   ];
+
+  if (organizer) {
+    const doneTasks = tasks.filter((task) => task.done).length;
+    cards.push({
+      key: "checklist",
+      icon: "check-square",
+      title: t("checklist.title"),
+      status:
+        tasks.length === 0
+          ? t("checklist.hubStatusEmpty")
+          : t("checklist.hubStatus", { done: doneTasks, total: tasks.length }),
+      complete: tasks.length > 0,
+      route: `/checklist/${id}`,
+    });
+  }
 
   // A guest only sees sections that actually have something in them: no
   // plan-locked cards (an upsell only the organizer can act on) and no empty
@@ -160,27 +218,30 @@ export default function DetaliiScreen() {
   if (visibleCards.length === 0) {
     return (
       <GuestScreen transparent contentStyle={{ gap: gSpace.md }}>
-        <EmptyState icon="info" message={t('detalii.hub.guestEmpty')} />
+        <EmptyState icon="info" message={t("detalii.hub.guestEmpty")} />
       </GuestScreen>
     );
   }
 
   return (
     <GuestScreen transparent>
-      <Text style={[styles.title, { color: tokens.textPrimary }]}>{t('detalii.hub.hubTitle')}</Text>
+      <Text style={[styles.title, { color: tokens.textPrimary }]}>
+        {t("detalii.hub.hubTitle")}
+      </Text>
       <View style={styles.grid}>
-      {visibleCards.map((card) => (
-        <DetaliiHubCard
-          key={card.key}
-          icon={card.icon}
-          title={card.title}
-          status={card.status}
-          complete={card.complete}
-          locked={card.locked}
-          showStatusDot={owner}
-          onPress={() => router.push(card.route)}
-        />
-      ))}
+        {visibleCards.map((card) => (
+          <DetaliiHubCard
+            key={card.key}
+            icon={card.icon}
+            title={card.title}
+            status={card.status}
+            complete={card.complete}
+            locked={card.locked}
+            showStatusDot={owner}
+            onPress={() => router.push(card.route)}
+            tourKey={owner ? `plan-${card.key}` : undefined}
+          />
+        ))}
       </View>
     </GuestScreen>
   );
@@ -193,8 +254,8 @@ const styles = StyleSheet.create({
     lineHeight: 29,
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
 });

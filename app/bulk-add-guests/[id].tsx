@@ -71,6 +71,7 @@ export default function BulkAddGuestsScreen() {
   if (planHydrated && !canAddGuests) {
     return (
       <Screen
+        coverTheme={event?.coverTheme}
         footer={
           <Button label={t('common.viewPlans')} onPress={() => router.push(`/pricing/${event.id}`)} />
         }
@@ -132,6 +133,7 @@ export default function BulkAddGuestsScreen() {
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen
+        coverTheme={event?.coverTheme}
         footer={
           <Button
             label={busy ? t('bulkInviteForm.sending') : t('bulkInviteForm.submit', { count: validRows.length })}
@@ -230,5 +232,6 @@ const styles = StyleSheet.create({
   rowLabel: {
     ...typography.overline,
     fontSize: 12,
+    flexShrink: 1,
   },
 });

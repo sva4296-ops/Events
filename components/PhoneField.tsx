@@ -1,11 +1,29 @@
+import Feather from '@expo/vector-icons/Feather';
 import { useState } from 'react';
-import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SectionList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { FocusRing } from '@/components/FocusRing';
 import { useTheme } from '@/hooks/useTheme';
-import { COUNTRY_CODES, type CountryCode } from '@/utils/countryCodes';
+import {
+  COUNTRY_CODES,
+  MAIN_COUNTRY_COUNT,
+  countryDisplayName,
+  flagOf,
+  normalizeDialCode,
+  type CountryCode,
+} from '@/utils/countryCodes';
 import { spacing } from '@/utils/theme';
 import { themeRadius, typography } from '@/utils/themeTokens';
 
@@ -36,16 +54,55 @@ export function PhoneField({
   hint,
   error,
 }: PhoneFieldProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { tokens } = useTheme();
   // Edge-to-edge: Android draws modals under the nav bar, so the sheet
   // clears it (3-button nav ~48dp, gesture pill ~24dp, iOS home indicator).
   const insets = useSafeAreaInsets();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [query, setQuery] = useState('');
   const hasError = error !== undefined && error !== null && error.length > 0;
   const borderColor = hasError ? tokens.statusDeclined : focused ? tokens.accentPrimary : tokens.border;
   const selected = COUNTRY_CODES.find((c) => c.dialCode === dialCode) ?? COUNTRY_CODES[0];
+
+  // One box searches by country name, ISO code or prefix. A prefix nobody in
+  // the list has can still be used as typed (the "custom prefix" row).
+  const needle = query.trim().toLowerCase();
+  const typedDialCode = /^\+?[\d\s]+$/.test(needle) ? normalizeDialCode(needle) : null;
+  const nameOf = (c: CountryCode) => countryDisplayName(c, i18n.language);
+  const visibleCountries =
+    needle.length === 0
+      ? COUNTRY_CODES
+      : COUNTRY_CODES.filter(
+          (c) =>
+            nameOf(c).toLowerCase().includes(needle) ||
+            c.name.toLowerCase().includes(needle) ||
+            c.iso.toLowerCase() === needle ||
+            (typedDialCode !== null && c.dialCode.startsWith(typedDialCode)),
+        );
+  // Same grouping as the site's picker: the main markets first, then everyone A-Z.
+  const sections: { title: string | null; data: CountryCode[] }[] =
+    needle.length === 0
+      ? [
+          { title: t('phoneAuth.mostUsed'), data: COUNTRY_CODES.slice(0, MAIN_COUNTRY_COUNT) },
+          {
+            title: t('phoneAuth.allCountries'),
+            data: COUNTRY_CODES.slice(MAIN_COUNTRY_COUNT).sort((a, b) => nameOf(a).localeCompare(nameOf(b))),
+          },
+        ]
+      : [{ title: null, data: visibleCountries }];
+  const customDialCode =
+    typedDialCode !== null && !COUNTRY_CODES.some((c) => c.dialCode === typedDialCode) ? typedDialCode : null;
+
+  const closePicker = () => {
+    setPickerOpen(false);
+    setQuery('');
+  };
+  const pick = (code: string) => {
+    onChangeDialCode(code);
+    closePicker();
+  };
 
   return (
     <View style={styles.container}>
@@ -61,7 +118,7 @@ export function PhoneField({
           >
             <Text style={[styles.dialCodeText, { color: tokens.textPrimary }]}>
               {selected !== undefined && sharedDialCodes(dialCode) === 1
-                ? `${selected.iso} ${selected.dialCode}`
+                ? `${flagOf(selected.iso)} ${selected.dialCode}`
                 : dialCode}
             </Text>
           </TouchableOpacity>
@@ -85,36 +142,82 @@ export function PhoneField({
         <Text style={[styles.hint, { color: tokens.textSecondary }]}>{hint}</Text>
       ) : null}
 
-      <Modal visible={pickerOpen} animationType="slide" transparent onRequestClose={() => setPickerOpen(false)}>
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={() => setPickerOpen(false)}
-        >
-          <View style={[styles.sheet, { backgroundColor: tokens.surfaceElevated, paddingBottom: insets.bottom + spacing.lg }]}>
-            <Text style={[styles.sheetTitle, { color: tokens.textPrimary }]}>
-              {t('phoneAuth.selectCountry')}
-            </Text>
-            <FlatList
-              data={COUNTRY_CODES}
-              keyExtractor={(item) => item.iso}
-              style={styles.list}
-              renderItem={({ item }: { item: CountryCode }) => (
-                <TouchableOpacity
-                  style={styles.option}
-                  onPress={() => {
-                    onChangeDialCode(item.dialCode);
-                    setPickerOpen(false);
+      <Modal visible={pickerOpen} animationType="slide" transparent onRequestClose={closePicker}>
+        <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closePicker}>
+            <TouchableOpacity
+              style={[styles.sheet, { backgroundColor: tokens.surfaceElevated, paddingBottom: insets.bottom + spacing.lg }]}
+              activeOpacity={1}
+              onPress={() => undefined}
+            >
+              <Text style={[styles.sheetTitle, { color: tokens.textPrimary }]}>
+                {t('phoneAuth.selectCountry')}
+              </Text>
+              <View style={[styles.search, { backgroundColor: tokens.surface2, borderColor: tokens.border }]}>
+                <Feather name="search" size={18} color={tokens.textSecondary} />
+                <TextInput
+                  style={[styles.searchInput, { color: tokens.textPrimary }]}
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder={t('phoneAuth.searchCountry')}
+                  placeholderTextColor={tokens.textMuted}
+                  accessibilityLabel={t('phoneAuth.searchCountry')}
+                  autoCorrect={false}
+                  clearButtonMode="while-editing"
+                  returnKeyType="done"
+                  onSubmitEditing={() => {
+                    if (customDialCode !== null) pick(customDialCode);
                   }}
+                />
+              </View>
+              {customDialCode !== null ? (
+                <TouchableOpacity
+                  style={[styles.customRow, { backgroundColor: tokens.accentTint }]}
+                  onPress={() => pick(customDialCode)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
                 >
-                  <Text style={[styles.optionName, { color: tokens.textPrimary }]}>{item.name}</Text>
-                  <Text style={[styles.optionDial, { color: tokens.textSecondary }]}>{item.dialCode}</Text>
+                  <Feather name="plus" size={16} color={tokens.accentText} />
+                  <Text style={[styles.customText, { color: tokens.accentText }]}>
+                    {t('phoneAuth.useCustomPrefix', { prefix: customDialCode })}
+                  </Text>
                 </TouchableOpacity>
-              )}
-            />
-          </View>
-        </TouchableOpacity>
+              ) : null}
+              {visibleCountries.length === 0 && customDialCode === null ? (
+                <Text style={[styles.empty, { color: tokens.textSecondary }]}>{t('phoneAuth.noCountryMatch')}</Text>
+              ) : null}
+              <SectionList
+                sections={sections}
+                keyExtractor={(item) => item.iso}
+                keyboardShouldPersistTaps="handled"
+                stickySectionHeadersEnabled={false}
+                style={styles.list}
+                renderSectionHeader={({ section }) =>
+                  section.title !== null ? (
+                    <Text style={[styles.sectionTitle, { color: tokens.textSecondary }]}>{section.title}</Text>
+                  ) : null
+                }
+                renderItem={({ item }: { item: CountryCode }) => {
+                  const active = item.dialCode === dialCode;
+                  return (
+                    <TouchableOpacity style={styles.option} onPress={() => pick(item.dialCode)} activeOpacity={0.7}>
+                      <Text style={styles.flag}>{flagOf(item.iso)}</Text>
+                      <Text
+                        style={[styles.optionName, { color: tokens.textPrimary }, active && styles.optionActive]}
+                        numberOfLines={1}
+                      >
+                        {nameOf(item)}
+                      </Text>
+                      <Text style={[styles.optionDial, { color: active ? tokens.accentText : tokens.textSecondary }]}>
+                        {item.dialCode}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -160,6 +263,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+  fill: {
+    flex: 1,
+  },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+  },
+  customRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: 14,
+    paddingVertical: spacing.md,
+    borderRadius: 14,
+    marginBottom: spacing.sm,
+  },
+  customText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  empty: {
+    fontSize: 14,
+    paddingVertical: spacing.md,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -170,7 +307,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: themeRadius.sheet,
     paddingTop: spacing.lg,
     paddingHorizontal: spacing.xl,
-    maxHeight: '70%',
+    // Fixed height, so the sheet doesn't jump as the search narrows the list.
+    height: '75%',
   },
   sheetTitle: {
     fontSize: 16,
@@ -178,15 +316,28 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   list: {
-    flexGrow: 0,
+    flex: 1,
   },
   option: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
     paddingVertical: spacing.md,
   },
+  flag: {
+    fontSize: 20,
+  },
+  sectionTitle: {
+    ...typography.label,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
   optionName: {
+    flex: 1,
     fontSize: 15,
+  },
+  optionActive: {
+    fontWeight: '700',
   },
   optionDial: {
     fontSize: 15,

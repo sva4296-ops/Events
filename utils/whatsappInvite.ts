@@ -1,6 +1,6 @@
-import { Linking, Platform, Share } from 'react-native';
+import { AppState, Linking, Platform, Share } from 'react-native';
 
-import type { AppEvent, EventTypeId } from '@/types/event';
+import type { AppEvent, EventTypeId, SpontaneousTemplate } from '@/types/event';
 import { reportSupabaseError } from '@/utils/reportError';
 
 /**
@@ -17,7 +17,8 @@ export const INVITE_SITE_URL = 'https://events-web-henna.vercel.app';
 export interface GuestInviteMessageInput {
   /** Empty string when the organizer didn't type a name. */
   guestName: string;
-  event: Pick<AppEvent, 'type' | 'name' | 'date' | 'location'>;
+  event: Pick<AppEvent, 'type' | 'name' | 'date' | 'location'> & { inviteIntro?: string } &
+    Partial<Pick<AppEvent, 'template' | 'startTime' | 'replyBy'>>;
   inviteToken: string;
 }
 
@@ -34,6 +35,18 @@ const TYPE_COPY: Record<EventTypeId, { emoji: string; line: string }> = {
   corporate: { emoji: '🏢', line: 'Ne-ar bucura să fii prezent.' },
   memorial: { emoji: '', line: 'Prezența ta ne-ar fi de mare sprijin.' },
   other: { emoji: '✨', line: 'Ne-ar bucura să fii alături de noi.' },
+  spontaneous: { emoji: '⚡', line: 'Hai și tu!' },
+  venue: { emoji: '🎟️', line: 'Rezervă-ți locul din timp.' },
+};
+
+/** Spontaneous events: casual tone, per template. */
+const TEMPLATE_COPY: Record<SpontaneousTemplate, { emoji: string; line: string }> = {
+  karaoke: { emoji: '🎤', line: 'Microfoanele sunt pregătite, scuzele nu se acceptă.' },
+  party: { emoji: '🎉', line: 'Hai să ne vedem, o să fie fain!' },
+  tasting: { emoji: '🍷', line: 'Locurile sunt limitate, spune-mi repede dacă vii.' },
+  trip: { emoji: '🎒', line: 'Facem o ieșire din oraș, vino cu noi!' },
+  outing: { emoji: '📍', line: 'Ieșim în oraș, hai și tu!' },
+  limited: { emoji: '🎟️', line: 'Locurile sunt limitate, spune-mi repede dacă vii.' },
 };
 
 /** The message is always Romanian, so the date is too, regardless of the
@@ -57,15 +70,21 @@ function formatInviteDate(value: string): string | null {
  * https://…/i/<token>
  */
 export function buildGuestInviteMessage({ guestName, event, inviteToken }: GuestInviteMessageInput): string {
+  if (event.type === 'spontaneous') return buildSpontaneousMessage({ guestName, event, inviteToken });
   const copy = TYPE_COPY[event.type];
   const name = guestName.trim();
   const memorial = event.type === 'memorial';
   const greeting = memorial
     ? name.length > 0 ? `Bună ziua, ${name},` : 'Bună ziua,'
     : `${name.length > 0 ? `Bună ${name}!` : 'Bună!'} ${copy.emoji}`;
-  const intro = memorial
-    ? `Te invităm la „${event.name.trim()}”. ${copy.line}`
-    : `Te invităm cu drag la „${event.name.trim()}”. ${copy.line}`;
+  // The organizer's own line (send-invites screen) replaces the default one.
+  const custom = event.inviteIntro?.trim() ?? '';
+  const intro =
+    custom.length > 0
+      ? custom
+      : memorial
+        ? `Te invităm la „${event.name.trim()}”. ${copy.line}`
+        : `Te invităm cu drag la „${event.name.trim()}”. ${copy.line}`;
 
   const date = formatInviteDate(event.date);
   const location = event.location.trim();
@@ -79,6 +98,53 @@ export function buildGuestInviteMessage({ guestName, event, inviteToken }: Guest
     ...(details.length > 0 ? ['', ...details] : []),
     '',
     'Invitația ta personală, unde poți confirma dacă ajungi:',
+    buildGuestInviteLink(inviteToken),
+  ].join('\n');
+}
+
+/** "vineri, 30 octombrie" — no year for an event a week or two away. */
+function formatShortInviteDate(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return trimmed;
+  return parsed.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+/**
+ * Bună Ana! 🎤
+ * Te chem la „Karaoke cu Mihai”. Microfoanele sunt pregătite, scuzele nu se acceptă.
+ *
+ * 📅 vineri, 30 octombrie · 21:00
+ * 📍 Sing Sing Bar, Centrul Vechi
+ * ⏳ Răspunde până marți, 27 octombrie
+ *
+ * Spune-mi dacă vii, dintr-un tap:
+ * https://…/i/<token>
+ */
+function buildSpontaneousMessage({ guestName, event, inviteToken }: GuestInviteMessageInput): string {
+  const copy = event.template != null ? TEMPLATE_COPY[event.template] : TYPE_COPY.spontaneous;
+  const name = guestName.trim();
+  const date = formatShortInviteDate(event.date);
+  const time = event.startTime?.trim() ?? '';
+  const when = date !== null ? `📅 ${date}${time.length > 0 ? ` · ${time}` : ''}` : null;
+  const location = event.location.trim();
+  const replyBy = event.replyBy != null ? formatShortInviteDate(event.replyBy) : null;
+  const details = [
+    when,
+    location.length > 0 ? `📍 ${location}` : null,
+    replyBy !== null ? `⏳ Răspunde până ${replyBy}` : null,
+  ].filter((line): line is string => line !== null);
+
+  return [
+    `${name.length > 0 ? `Bună ${name}!` : 'Bună!'} ${copy.emoji}`,
+    // The organizer's own line (send-invites screen) replaces the default one.
+    (event.inviteIntro?.trim() ?? '').length > 0
+      ? (event.inviteIntro?.trim() ?? '')
+      : `Te chem la „${event.name.trim()}”. ${copy.line}`,
+    ...(details.length > 0 ? ['', ...details] : []),
+    '',
+    'Spune-mi dacă vii, dintr-un tap:',
     buildGuestInviteLink(inviteToken),
   ].join('\n');
 }
@@ -197,4 +263,80 @@ export async function sendPhoneMessage(phone: string, message: string, channel: 
       reportSupabaseError(err);
     }
   }
+}
+
+/** The venue's public booking link — same /i/ path as personal invites (app/i/[token].tsx tells them apart). */
+export function buildVenueLink(publicToken: string): string {
+  return `${INVITE_SITE_URL}/i/${publicToken}`;
+}
+
+/**
+ * Venue event ("Local") message for customers and for a status/story:
+ *
+ * 🎤 Karaoke Night — Bar Microfon
+ * 📅 vineri, 30 octombrie · 21:00
+ * 📍 Centrul Vechi, București
+ * 🎟️ Intrare liberă
+ *
+ * Rezervă-ți locul dintr-un tap 👇
+ * https://…/i/<publicToken>
+ *
+ * (direct messages add the opt-out line)
+ */
+export function buildVenueMessage(
+  event: Pick<AppEvent, 'name' | 'date' | 'location' | 'startTime' | 'hostName' | 'priceInfo' | 'publicToken'>,
+  direct: boolean,
+): string {
+  const date = formatInviteDate(event.date);
+  const time = event.startTime?.trim() ?? '';
+  const host = event.hostName?.trim() ?? '';
+  const location = event.location.trim();
+  const lines = [
+    `🎟️ ${event.name.trim()}${host.length > 0 ? ` — ${host}` : ''}`,
+    date !== null ? `📅 ${date}${time.length > 0 ? ` · ${time}` : ''}` : null,
+    location.length > 0 ? `📍 ${location}` : null,
+    `💳 ${event.priceInfo?.trim() || 'Intrare liberă'}`,
+    '',
+    'Rezervă-ți locul dintr-un tap 👇',
+    buildVenueLink(event.publicToken),
+    ...(direct
+      ? ['', `Primești mesajul pentru că ai ales să primești invitații${host.length > 0 ? ` de la ${host}` : ''}. Poți renunța oricând din aplicație.`]
+      : []),
+  ];
+  return lines.filter((line): line is string => line !== null).join('\n');
+}
+
+/**
+ * "Send invites" queue — reached after a bulk save (app/bulk-add-guests/[id].tsx)
+ * or directly from app/event/[id].tsx's "Send pending invites" button.
+ * Pending queue = event.guests where status is 'pending', whatsappSentAt is
+ * still null, and there's a phone to message (an email-only pending guest
+ * has nothing for this screen to do). Derived client-side from the same
+ * events cache useEvents() already holds — no separate fetch.
+ *
+ * "Sent" only ever means the app confirmed opening the wa.me link
+ * (sendGuestWhatsAppInvite's return value) — a guest who was actually
+ * shared via the fallback share sheet is *not* marked sent here, since
+ * there's no way to confirm WhatsApp itself ever opened for them. WhatsApp and SMS can't
+ * report whether a message really went out, so the organizer is asked on coming
+ * back; only a yes takes the guest off this screen. Resending to someone already
+ * marked lives on their row in the guest list.
+ */
+/** Resolves when the user is back from the app we opened (or after 3s if it never left this one). */
+export function waitForReturn(): Promise<void> {
+  return new Promise((resolve) => {
+    let left = false;
+    const finish = () => {
+      subscription.remove();
+      clearTimeout(timer);
+      resolve();
+    };
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') left = true;
+      else if (left) finish();
+    });
+    const timer = setTimeout(() => {
+      if (!left) finish();
+    }, 3000);
+  });
 }

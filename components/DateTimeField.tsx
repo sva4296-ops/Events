@@ -84,7 +84,12 @@ export function DateTimeField({
       {show && Platform.OS === 'ios' ? (
         <TouchableOpacity
           style={styles.done}
-          onPress={() => setShow(false)}
+          onPress={() => {
+            // The iOS wheel only reports a value once it's scrolled, so "Done"
+            // on the preselected one (e.g. today) must commit it explicitly.
+            onChange(value);
+            setShow(false);
+          }}
           activeOpacity={0.75}
           accessibilityRole="button"
         >

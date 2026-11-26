@@ -7,6 +7,7 @@ import { StyleSheet, Text } from 'react-native';
 import { Header } from '@/components/Header';
 import { Screen } from '@/components/Screen';
 import { fetchInviteEventIdByToken } from '@/data/eventsRepository';
+import { resolveVenueToken } from '@/data/venueRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { setPendingRoute } from '@/utils/pendingRoute';
@@ -27,9 +28,13 @@ export default function InviteTokenScreen() {
 
   const query = useQuery({
     queryKey: ['inviteToken', token],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ eventId: string; venue: boolean } | null> => {
       try {
-        return await fetchInviteEventIdByToken(token as string);
+        // A personal invite token first, then a venue's public booking link.
+        const invited = await fetchInviteEventIdByToken(token as string);
+        if (invited !== null) return { eventId: invited, venue: false };
+        const venue = await resolveVenueToken(token as string);
+        return venue !== null ? { eventId: venue, venue: true } : null;
       } catch (err) {
         reportSupabaseError(err);
         throw err;
@@ -39,18 +44,19 @@ export default function InviteTokenScreen() {
     staleTime: Infinity,
     retry: 1,
   });
-  const eventId = query.data ?? null;
+  const resolved = query.data ?? null;
+  const eventId = resolved?.eventId ?? null;
 
   useEffect(() => {
-    if (loading || eventId === null) return;
-    const target = `/invite/${eventId}` as const;
+    if (loading || resolved === null) return;
+    const target = resolved.venue ? `/book/${resolved.eventId}?t=${token ?? ''}` : `/invite/${resolved.eventId}`;
     if (user === null) {
       setPendingRoute(target);
       router.replace('/auth');
     } else {
       router.replace(target);
     }
-  }, [loading, eventId, user]);
+  }, [loading, resolved, user, token]);
 
   const notFound = query.isError || (query.isSuccess && eventId === null);
 

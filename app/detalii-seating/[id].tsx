@@ -10,8 +10,9 @@ import { FloorPlan } from '@/components/FloorPlan';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
 import { fetchTableCompanions } from '@/data/eventsRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventContent } from '@/hooks/useEventContent';
@@ -43,7 +44,8 @@ export default function DetaliiSeatingScreen() {
 
   // RLS already limits a non-organizer's event.guests to just their own row,
   // so [0] is "my" row — same pattern the menu tab's dietary pills already use.
-  const myGuest = owner || event === undefined ? undefined : event.guests[0];
+  // An organizer sees the whole list, so a co-organizer finds their own row by id.
+  const myGuest = owner ? event?.guests.find((guest) => guest.userId === user?.id) : event?.guests[0];
   const myTableId = myGuest?.tableId ?? null;
 
   // Co-assigned names aren't in event.guests for a guest viewer at all (RLS
@@ -52,7 +54,7 @@ export default function DetaliiSeatingScreen() {
   const companionsQuery = useQuery({
     queryKey: ['tableCompanions', id, user?.id ?? null],
     queryFn: () => fetchTableCompanions(id as string),
-    enabled: !owner && myTableId !== null && id !== undefined,
+    enabled: myTableId !== null && id !== undefined,
     staleTime: 30_000,
   });
   const companions = companionsQuery.data ?? [];
@@ -63,7 +65,7 @@ export default function DetaliiSeatingScreen() {
 
   if (content === null) {
     return (
-      <Screen>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('detalii.hub.seatingTitle')} showBack />
       </Screen>
     );
@@ -109,7 +111,7 @@ export default function DetaliiSeatingScreen() {
   ) : null;
 
   return (
-    <GuestScreen topInset scroll={!showPlan} contentStyle={showPlan ? styles.planPage : undefined}>
+    <GuestScreen coverTheme={event?.coverTheme} topInset scroll={!showPlan} contentStyle={showPlan ? styles.planPage : undefined}>
       <Header
         title={t('detalii.hub.seatingTitle')}
         subtitle={t('detalii.seatingDescription')}
@@ -200,9 +202,10 @@ export default function DetaliiSeatingScreen() {
         <View style={styles.stack}>
           {content.seatingTables.map((table) => {
             const assignedCount = event?.guests.filter((guest) => guest.tableId === table.id).length ?? 0;
-            const isMine = !owner && myTableId !== null && table.id === myTableId;
+            const isMine = myTableId !== null && table.id === myTableId;
             return (
-              <SwipeableRow
+              <LongPressRow
+                title={table.name}
                 key={table.id}
                 enabled={owner}
                 actions={[
@@ -253,6 +256,14 @@ export default function DetaliiSeatingScreen() {
                         <Text style={[styles.hereBadgeText, { color: tokens.onAccent }]}>{t('detalii.seatingYoureHere')}</Text>
                       </View>
                     ) : null}
+                    {owner ? (
+                      <IconCircleButton
+                        size="sm"
+                        icon="edit-2"
+                        accessibilityLabel={t('common.edit')}
+                        onPress={() => router.push(`/table/${id}?itemId=${table.id}`)}
+                      />
+                    ) : null}
                   </View>
                   {table.label.length > 0 ? (
                     <Text style={[styles.rowSubtitle, { color: tokens.textSecondary }]}>{table.label}</Text>
@@ -275,7 +286,7 @@ export default function DetaliiSeatingScreen() {
                     </Text>
                   ) : null}
                 </View>
-              </SwipeableRow>
+              </LongPressRow>
             );
           })}
         </View>
@@ -318,11 +329,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: gSpace.sm,
     paddingVertical: 4,
     borderRadius: gRadius.pill,
+    flexShrink: 1,
   },
   hereBadgeText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#FFFFFF',
+    flexShrink: 1,
   },
   rowSubtitle: {
     fontSize: 13,
@@ -346,12 +359,13 @@ const styles = StyleSheet.create({
   },
   segmentItem: {
     flex: 1,
-    height: 40,
+    minHeight: 40,
     borderRadius: 999,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingVertical: 4,
   },
   segmentActive: {
     shadowColor: '#000000',
@@ -363,5 +377,6 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 14,
     fontWeight: '600',
+    flexShrink: 1,
   },
 });

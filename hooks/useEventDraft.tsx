@@ -8,6 +8,18 @@ const EMPTY_DRAFT: EventDraft = {
   date: '',
   location: '',
   welcomeMessage: '',
+  template: null,
+  outing: null,
+  activity: null,
+  startTime: '',
+  replyBy: '',
+  spotLimit: '',
+  zones: [],
+  bookingTimes: [],
+  priceInfo: '',
+  maxPartySize: '8',
+  planTier: null,
+  coverTheme: null,
 };
 
 interface EventDraftContextValue {

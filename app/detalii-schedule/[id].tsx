@@ -7,14 +7,16 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { useTheme } from '@/hooks/useTheme';
 import { confirmDelete } from '@/utils/confirm';
 import { gSpace } from '@/utils/guestTheme';
 import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
+import { openInMaps } from '@/utils/maps';
 
 function cardStyle(tokens: ThemeTokens) {
   return {
@@ -36,7 +38,7 @@ export default function DetaliiScheduleScreen() {
 
   if (content === null) {
     return (
-      <Screen>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('detalii.hub.scheduleTitle')} showBack />
       </Screen>
     );
@@ -45,7 +47,7 @@ export default function DetaliiScheduleScreen() {
   const card = cardStyle(tokens);
 
   return (
-    <GuestScreen topInset>
+    <GuestScreen coverTheme={event?.coverTheme} topInset>
       <Header
         title={t('detalii.hub.scheduleTitle')}
         showBack
@@ -76,7 +78,8 @@ export default function DetaliiScheduleScreen() {
       ) : (
         <View style={styles.stack}>
           {content.schedule.map((item) => (
-            <SwipeableRow
+            <LongPressRow
+                title={item.title}
               key={item.id}
               enabled={owner}
               actions={[
@@ -100,15 +103,40 @@ export default function DetaliiScheduleScreen() {
               ]}
             >
               <View style={[styles.scheduleCard, card]}>
-                <Text style={[styles.time, { color: tokens.accentText }]}>{item.time}</Text>
+                <View style={[styles.timePill, { backgroundColor: tokens.accentFill }]}>
+                  <Text style={[styles.time, { color: tokens.onAccent }]}>{item.time}</Text>
+                </View>
                 <View style={styles.scheduleBody}>
                   <Text style={[styles.scheduleTitle, { color: tokens.textPrimary }]}>{item.title}</Text>
                   <Text style={[styles.scheduleLocation, { color: tokens.textSecondary }]}>
                     {item.location}
                   </Text>
                 </View>
+                {item.latitude !== null && item.longitude !== null ? (
+                  <IconCircleButton
+                    size="sm"
+                    icon="navigation"
+                    accessibilityLabel={t('detalii.openInMaps')}
+                    onPress={() =>
+                      openInMaps({
+                        name: item.location.trim() || item.title,
+                        address: item.location,
+                        latitude: item.latitude,
+                        longitude: item.longitude,
+                      })
+                    }
+                  />
+                ) : null}
+                {owner ? (
+                  <IconCircleButton
+                    size="sm"
+                    icon="edit-2"
+                    accessibilityLabel={t('common.edit')}
+                    onPress={() => router.push(`/schedule/${id}?itemId=${item.id}`)}
+                  />
+                ) : null}
               </View>
-            </SwipeableRow>
+            </LongPressRow>
           ))}
         </View>
       )}
@@ -134,10 +162,16 @@ const styles = StyleSheet.create({
     borderRadius: themeRadius.xl,
     padding: gSpace.xl,
   },
+  timePill: {
+    minWidth: 68,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: themeRadius.pill,
+    alignItems: 'center',
+  },
   time: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: '800',
-    width: 62,
   },
   scheduleBody: {
     flex: 1,

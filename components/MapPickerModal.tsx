@@ -2,7 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import MapView, { type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -42,7 +42,8 @@ function formatAddress(found: Location.LocationGeocodedAddress | undefined): str
  *
  * Full-screen map with a fixed center pin: the organizer pans the map under
  * the pin instead of dragging a marker (one view, no marker re-renders).
- * The address under the pin is looked up only when panning stops.
+ * The address under the pin is looked up only when panning stops. Typing an
+ * address moves the map there, and the same lookup then fills in the result.
  */
 export function MapPickerModal({ initial, onClose, onPick }: MapPickerModalProps) {
   const { t } = useTranslation();
@@ -63,6 +64,8 @@ export function MapPickerModal({ initial, onClose, onPick }: MapPickerModalProps
   const [locating, setLocating] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
   // Nothing is picked until the map has been moved onto a spot (or opened on a saved one).
   const [hasPoint, setHasPoint] = useState(initial !== null);
 
@@ -115,6 +118,29 @@ export function MapPickerModal({ initial, onClose, onPick }: MapPickerModalProps
       setNotice(t('mapPicker.permissionDenied'));
     } finally {
       setLocating(false);
+    }
+  };
+
+  const searchAddress = async () => {
+    const text = query.trim();
+    if (text.length === 0 || searching) return;
+    setNotice(null);
+    setSearching(true);
+    try {
+      const found = (await Location.geocodeAsync(text))[0];
+      if (found === undefined) {
+        setNotice(t('mapPicker.addressNotFound'));
+        return;
+      }
+      userMoved.current = true;
+      mapRef.current?.animateToRegion(
+        { latitude: found.latitude, longitude: found.longitude, latitudeDelta: PIN_DELTA, longitudeDelta: PIN_DELTA },
+        400,
+      );
+    } catch {
+      setNotice(t('mapPicker.addressNotFound'));
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -171,8 +197,23 @@ export function MapPickerModal({ initial, onClose, onPick }: MapPickerModalProps
           >
             <Feather name="x" size={20} color={tokens.textPrimary} />
           </TouchableOpacity>
-          <View style={[styles.titlePill, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-            <Text style={[styles.title, { color: tokens.textPrimary }]}>{t('mapPicker.title')}</Text>
+          <View style={[styles.search, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+            {searching ? (
+              <ActivityIndicator size="small" color={tokens.textSecondary} />
+            ) : (
+              <Feather name="search" size={18} color={tokens.textSecondary} />
+            )}
+            <TextInput
+              style={[styles.searchInput, { color: tokens.textPrimary }]}
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={() => void searchAddress()}
+              placeholder={t('mapPicker.searchPlaceholder')}
+              placeholderTextColor={tokens.textMuted}
+              returnKeyType="search"
+              autoCorrect={false}
+              accessibilityLabel={t('mapPicker.searchPlaceholder')}
+            />
           </View>
         </View>
 
@@ -250,16 +291,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  titlePill: {
-    height: 44,
-    paddingHorizontal: 18,
+  search: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 14,
     borderRadius: themeRadius.pill,
     borderWidth: 1,
-    justifyContent: 'center',
   },
-  title: {
+  searchInput: {
+    flex: 1,
     fontSize: 15,
-    fontWeight: '600',
+    paddingVertical: 8,
   },
   bottom: {
     position: 'absolute',
@@ -274,14 +319,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    height: 44,
+    minHeight: 44,
     paddingHorizontal: 16,
     borderRadius: themeRadius.pill,
     borderWidth: 1,
+    paddingVertical: 4,
   },
   myLocationText: {
     fontSize: 15,
     fontWeight: '600',
+    flexShrink: 1,
   },
   card: {
     borderRadius: themeRadius.xl,

@@ -1,12 +1,12 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from "expo-linear-gradient";
+import type { ReactNode } from "react";
+import { ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { closeOpenSwipeRow } from '@/components/SwipeableRow';
-import { useTheme } from '@/hooks/useTheme';
-import type { Gradient } from '@/types/event';
-import { spacing } from '@/utils/theme';
+import { AmbientBackground } from "@/components/AmbientBackground";
+import { EventAccentProvider, useTheme } from "@/hooks/useTheme";
+import type { Gradient } from "@/types/event";
+import { spacing } from "@/utils/theme";
 
 interface ScreenProps {
   children: ReactNode;
@@ -19,6 +19,11 @@ interface ScreenProps {
   contentStyle?: ViewStyle;
   /** Skips the gradient so a ScreenBackground behind it shows through. */
   transparent?: boolean;
+  /** Screens opened from an event: its cover theme's accent (null = the app's). */
+  coverTheme?: string | null;
+  /** False = content scrolls all the way under the home indicator / nav bar
+   * (no bottom safe-area edge); the screen adds that inset to its own padding. */
+  bottomSafeArea?: boolean;
 }
 
 export function Screen({
@@ -28,6 +33,8 @@ export function Screen({
   scroll = true,
   contentStyle,
   transparent = false,
+  coverTheme = null,
+  bottomSafeArea = true,
 }: ScreenProps) {
   const { tokens } = useTheme();
   const Wrapper = transparent ? TransparentWrapper : LinearGradient;
@@ -35,21 +42,30 @@ export function Screen({
 
   return (
     <Wrapper colors={resolvedGradient} style={styles.fill}>
-      <SafeAreaView style={styles.fill} edges={['top', 'bottom']}>
-        {scroll ? (
-          <ScrollView
-            contentContainerStyle={[styles.content, contentStyle]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            onScrollBeginDrag={closeOpenSwipeRow}
-          >
-            {children}
-          </ScrollView>
-        ) : (
-          <View style={[styles.fill, styles.content, contentStyle]}>{children}</View>
-        )}
-        {footer !== undefined ? <View style={styles.footer}>{footer}</View> : null}
-      </SafeAreaView>
+      {transparent || gradient !== undefined ? null : <AmbientBackground />}
+      <EventAccentProvider coverTheme={coverTheme}>
+        <SafeAreaView
+          style={styles.fill}
+          edges={bottomSafeArea ? ["top", "bottom"] : ["top"]}
+        >
+          {scroll ? (
+            <ScrollView
+              contentContainerStyle={[styles.content, contentStyle]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={[styles.fill, styles.content, contentStyle]}>
+              {children}
+            </View>
+          )}
+          {footer !== undefined ? (
+            <View style={styles.footer}>{footer}</View>
+          ) : null}
+        </SafeAreaView>
+      </EventAccentProvider>
     </Wrapper>
   );
 }

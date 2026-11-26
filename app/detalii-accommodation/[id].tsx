@@ -7,13 +7,15 @@ import { EmptyState } from '@/components/EmptyState';
 import { GuestButton } from '@/components/guest/GuestButton';
 import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Header } from '@/components/Header';
+import { IconCircleButton } from '@/components/IconCircleButton';
 import { Screen } from '@/components/Screen';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { LongPressRow } from '@/components/LongPressRow';
 import { useEventContent } from '@/hooks/useEventContent';
 import { useEvents } from '@/hooks/useEvents';
 import { usePlanGate } from '@/hooks/usePlanGate';
 import { useTheme } from '@/hooks/useTheme';
 import { confirmDelete } from '@/utils/confirm';
+import { openInMaps } from '@/utils/maps';
 import { gSpace } from '@/utils/guestTheme';
 import { themeRadius, type ThemeTokens } from '@/utils/themeTokens';
 
@@ -38,7 +40,7 @@ export default function DetaliiAccommodationScreen() {
 
   if (content === null) {
     return (
-      <Screen>
+      <Screen coverTheme={event?.coverTheme}>
         <Header title={t('detalii.hub.accommodationTitle')} showBack />
       </Screen>
     );
@@ -51,7 +53,7 @@ export default function DetaliiAccommodationScreen() {
   // plan-feature-gating migration).
   if (planHydrated && !capabilities.lodgingTransportEnabled) {
     return (
-      <GuestScreen topInset>
+      <GuestScreen coverTheme={event?.coverTheme} topInset>
         <Header title={t('detalii.hub.accommodationTitle')} showBack />
         <EmptyState
           icon="lock"
@@ -72,7 +74,7 @@ export default function DetaliiAccommodationScreen() {
   const card = cardStyle(tokens);
 
   return (
-    <GuestScreen topInset>
+    <GuestScreen coverTheme={event?.coverTheme} topInset>
       <Header
         title={t('detalii.hub.accommodationTitle')}
         subtitle={t('detalii.accommodationDescription')}
@@ -107,7 +109,8 @@ export default function DetaliiAccommodationScreen() {
       ) : (
         <View style={styles.stack}>
           {content.accommodations.map((entry) => (
-            <SwipeableRow
+            <LongPressRow
+                title={entry.name}
               key={entry.id}
               enabled={owner}
               actions={[
@@ -130,18 +133,51 @@ export default function DetaliiAccommodationScreen() {
                 },
               ]}
             >
-              <View style={[styles.rowCard, card]}>
-                <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{entry.name}</Text>
-                {entry.detail_line.length > 0 ? (
-                  <Text style={[styles.rowSubtitle, { color: tokens.textSecondary }]}>
-                    {entry.detail_line}
-                  </Text>
+              <View style={[styles.rowCard, styles.rowInline, card]}>
+                <View style={styles.rowBody}>
+                  <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{entry.name}</Text>
+                  {entry.detail_line.length > 0 ? (
+                    <Text style={[styles.rowSubtitle, { color: tokens.textSecondary }]}>
+                      {entry.detail_line}
+                    </Text>
+                  ) : null}
+                  {entry.location.length > 0 ? (
+                    <View style={styles.locationRow}>
+                      <Feather name="map-pin" size={12} color={tokens.textSecondary} />
+                      <Text style={[styles.rowMeta, styles.locationText, { color: tokens.textSecondary }]}>
+                        {entry.location}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {entry.price_line.length > 0 ? (
+                    <Text style={[styles.rowMeta, { color: tokens.textSecondary }]}>{entry.price_line}</Text>
+                  ) : null}
+                </View>
+                {entry.location.length > 0 || (entry.latitude !== null && entry.longitude !== null) ? (
+                  <IconCircleButton
+                    size="sm"
+                    icon="navigation"
+                    accessibilityLabel={t('detalii.openInMaps')}
+                    onPress={() =>
+                      openInMaps({
+                        name: entry.name,
+                        address: entry.location,
+                        latitude: entry.latitude,
+                        longitude: entry.longitude,
+                      })
+                    }
+                  />
                 ) : null}
-                {entry.price_line.length > 0 ? (
-                  <Text style={[styles.rowMeta, { color: tokens.textSecondary }]}>{entry.price_line}</Text>
+                {owner ? (
+                  <IconCircleButton
+                    size="sm"
+                    icon="edit-2"
+                    accessibilityLabel={t('common.edit')}
+                    onPress={() => router.push(`/accommodation/${id}?itemId=${entry.id}`)}
+                  />
                 ) : null}
               </View>
-            </SwipeableRow>
+            </LongPressRow>
           ))}
         </View>
       )}
@@ -165,6 +201,15 @@ const styles = StyleSheet.create({
     padding: gSpace.xl,
     gap: 2,
   },
+  rowInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: gSpace.md,
+  },
+  rowBody: {
+    flex: 1,
+    gap: 2,
+  },
   rowTitle: {
     fontSize: 16,
     fontWeight: '700',
@@ -175,5 +220,15 @@ const styles = StyleSheet.create({
   rowMeta: {
     fontSize: 12,
     marginTop: 2,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  locationText: {
+    marginTop: 0,
+    flexShrink: 1,
   },
 });

@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
-import { remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
+import { MESSAGES_PAGE_SIZE, PHOTOS_PAGE_SIZE, remoteRepository, type Actor } from '@/data/remoteEventContentRepository';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import type { DetailsContent, EventContent, ReactionType, TableShape, Venue } from '@/types/guest';
-import { processMomentPhoto, processPhotoVersions, type PickedPhoto } from '@/utils/imageProcessing';
+import type { DetailsContent, EventContent, ReactionType, TableShape, Venue, SocialContent } from '@/types/guest';
+import { type PickedPhoto, processChatPhoto, processMomentPhoto, processPhotoVersions } from '@/utils/imageProcessing';
 import { reportSupabaseError } from '@/utils/reportError';
 import { generateId } from '@/utils/uuid';
 
@@ -21,6 +21,8 @@ export interface ScheduleItemInput {
   time: string;
   title: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface MenuInput {
@@ -54,6 +56,9 @@ export interface AccommodationInput {
   name: string;
   detail_line: string;
   price_line: string;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface VendorInput {
@@ -79,6 +84,20 @@ type ContentCategory = 'social' | 'details' | 'contributions';
  * `content` is still the single merged EventContent every screen has always
  * read; only the caching underneath it is split.
  */
+/** `fresh` plus the loaded items beyond it, which go before it ('start') or after it ('end'). */
+function withEarlierPages<Item extends { id: string; created_at: string }>(
+  loaded: readonly Item[],
+  fresh: readonly Item[],
+  side: 'start' | 'end',
+): Item[] {
+  const freshIds = new Set(fresh.map((item) => item.id));
+  const oldest = side === 'start' ? fresh[0] : fresh[fresh.length - 1];
+  if (oldest === undefined || !loaded.some((item) => freshIds.has(item.id))) return [...fresh];
+  const oldestMs = Date.parse(oldest.created_at);
+  const beyond = loaded.filter((item) => Date.parse(item.created_at) < oldestMs);
+  return side === 'start' ? [...beyond, ...fresh] : [...fresh, ...beyond];
+}
+
 export function useEventContent(eventId: string) {
   const { user } = useAuth();
   const { displayName } = useUserProfile();
@@ -93,7 +112,19 @@ export function useEventContent(eventId: string) {
 
   const socialQuery = useQuery({
     queryKey: socialKey,
-    queryFn: () => remoteRepository.loadSocial(eventId),
+    queryFn: async () => {
+      const fresh = await remoteRepository.loadSocial(eventId);
+      // A refetch brings the latest page only: keep what scrolling already loaded,
+      // unless the pages no longer touch (a long time away), which would leave a gap.
+      const cached = queryClient.getQueryData<SocialContent>(socialKey);
+      return cached === undefined
+        ? fresh
+        : {
+            ...fresh,
+            messages: withEarlierPages(cached.messages, fresh.messages, 'start'),
+            photos: withEarlierPages(cached.photos, fresh.photos, 'end'),
+          };
+    },
     enabled: eventId.length > 0,
     /**
      * Moments, reactions, messages, photos — the "would be Realtime-backed"
@@ -202,8 +233,13 @@ export function useEventContent(eventId: string) {
     onError: (error: unknown) => reportSupabaseError(error),
   });
   const runRemote = useCallback(
-    (write: () => Promise<void>, category: ContentCategory, extraKeys?: readonly QueryKey[]) =>
-      remoteMutation.mutate({ write, category, extraKeys }),
+    // Resolves when the write settles; never rejects (onError already reports),
+    // so a caller can await it, e.g. to keep the delete loader up until done.
+    (write: () => Promise<void>, category: ContentCategory, extraKeys?: readonly QueryKey[]): Promise<void> =>
+      remoteMutation.mutateAsync({ write, category, extraKeys }).then(
+        () => undefined,
+        () => undefined,
+      ),
     [remoteMutation],
   );
 
@@ -226,13 +262,91 @@ export function useEventContent(eventId: string) {
         runRemote(() => remoteRepository.sendMessage(eventId, trimmed, actor), 'social');
       },
 
-      addPhoto: (photo: PickedPhoto) => {
-        runRemote(async () => {
-          const photoId = generateId();
-          const versions = await processPhotoVersions(photo);
-          await remoteRepository.addPhoto(eventId, photoId, versions, actor);
-        }, 'social');
+      /** Patched into the cache for instant feedback; a failure refetches the old text. */
+      editMessage: (messageId: string, text: string) => {
+        const content = text.trim();
+        queryClient.setQueryData<SocialContent>(socialKey, (social) =>
+          social === undefined
+            ? social
+            : {
+                ...social,
+                messages: social.messages.map((message) =>
+                  message.id === messageId ? { ...message, content, edited_at: new Date().toISOString() } : message,
+                ),
+              },
+        );
+        void runRemote(() => remoteRepository.editMessage(messageId, content), 'social').then(() =>
+          queryClient.invalidateQueries({ queryKey: socialKey }),
+        );
       },
+
+      /** Same emoji again removes it; patched into the cache for instant feedback. */
+      toggleMessageReaction: (messageId: string, emoji: string) => {
+        const current = queryClient
+          .getQueryData<SocialContent>(socialKey)
+          ?.messages.find((message) => message.id === messageId)
+          ?.reactions.find((reaction) => reaction.user_id === actor.id);
+        const next = current?.emoji === emoji ? null : emoji;
+        queryClient.setQueryData<SocialContent>(socialKey, (social) =>
+          social === undefined
+            ? social
+            : {
+                ...social,
+                messages: social.messages.map((message) => {
+                  if (message.id !== messageId) return message;
+                  const others = message.reactions.filter((reaction) => reaction.user_id !== actor.id);
+                  return {
+                    ...message,
+                    reactions:
+                      next === null
+                        ? others
+                        : [...others, { id: current?.id ?? generateId(), user_id: actor.id, emoji: next }],
+                  };
+                }),
+              },
+        );
+        runRemote(() => remoteRepository.setMessageReaction(eventId, messageId, next, actor), 'social');
+      },
+
+      /** One message per photo, in order, one at a time (see addPhotos); the
+       * caption goes on the last one. A failed photo doesn't stop the rest. */
+      sendPhotoMessages: (photos: PickedPhoto[], caption: string) =>
+        runRemote(async () => {
+          let firstError: unknown = null;
+          for (const [index, photo] of photos.entries()) {
+            try {
+              const processed = await processChatPhoto(photo);
+              await remoteRepository.sendPhotoMessage(
+                eventId,
+                generateId(),
+                processed,
+                index === photos.length - 1 ? caption.trim() : '',
+                actor,
+              );
+            } catch (error) {
+              firstError ??= error;
+            }
+          }
+          if (firstError !== null) throw firstError;
+        }, 'social'),
+
+      /** Uploads one or more photos, one at a time (resizing several at once
+       * would spike memory). A failed photo doesn't stop the rest; if any
+       * failed, the first error is reported once at the end. */
+      addPhotos: (photos: PickedPhoto[], onProgress?: (done: number, total: number) => void) =>
+        runRemote(async () => {
+          let firstError: unknown = null;
+          for (const [index, photo] of photos.entries()) {
+            try {
+              const versions = await processPhotoVersions(photo);
+              await remoteRepository.addPhoto(eventId, generateId(), versions, actor);
+            } catch (error) {
+              firstError ??= error;
+            }
+            onProgress?.(index + 1, photos.length);
+          }
+          if (firstError !== null) throw firstError;
+        }, 'social'),
 
       /** Stubbed: the `contributions` table has no client insert policy, on
        * purpose — a contribution is meant to land via a Stripe webhook using
@@ -249,11 +363,11 @@ export function useEventContent(eventId: string) {
               },
         ),
 
-      addMoment: (title: string, photo: PickedPhoto | null) => {
+      addMoment: (title: string, photo: PickedPhoto | null, icon: string | null) => {
         runRemote(async () => {
           const momentId = generateId();
           const photoUri = photo === null ? null : await processMomentPhoto(photo);
-          await remoteRepository.createMoment(eventId, momentId, title, photoUri, actor);
+          await remoteRepository.createMoment(eventId, momentId, title, photoUri, icon, actor);
         }, 'social');
       },
 
@@ -262,7 +376,7 @@ export function useEventContent(eventId: string) {
       },
 
       deleteFund: () => {
-        runRemote(() => remoteRepository.deleteFund(eventId), 'details');
+        return runRemote(() => remoteRepository.deleteFund(eventId), 'details');
       },
 
       saveScheduleItem: (item: ScheduleItemInput) => {
@@ -273,19 +387,81 @@ export function useEventContent(eventId: string) {
       },
 
       deleteScheduleItem: (itemId: string) => {
-        runRemote(() => remoteRepository.deleteScheduleItem(itemId), 'details');
+        return runRemote(() => remoteRepository.deleteScheduleItem(itemId), 'details');
+      },
+
+      /** Title edit, plus a new photo when one was picked (null keeps the current one). */
+      updateMoment: (momentId: string, title: string, photo: PickedPhoto | null, icon: string | null) => {
+        runRemote(async () => {
+          const photoUri = photo === null ? null : await processMomentPhoto(photo);
+          await remoteRepository.updateMoment(eventId, momentId, title, photoUri, icon);
+        }, 'social');
       },
 
       deleteMoment: (momentId: string) => {
-        runRemote(() => remoteRepository.deleteMoment(eventId, momentId), 'social');
+        return runRemote(() => remoteRepository.deleteMoment(eventId, momentId), 'social');
       },
 
-      deleteMessage: (messageId: string) => {
-        runRemote(() => remoteRepository.deleteMessage(messageId), 'social');
+      /** Prepends the page before the oldest loaded message. False once there's nothing older. */
+      loadOlderMessages: async (): Promise<boolean> => {
+        const oldest = queryClient.getQueryData<SocialContent>(socialKey)?.messages[0];
+        if (oldest === undefined) return false;
+        const older = await remoteRepository.loadOlderMessages(eventId, oldest.created_at);
+        if (older.length > 0) {
+          queryClient.setQueryData<SocialContent>(socialKey, (social) => {
+            if (social === undefined) return social;
+            const known = new Set(social.messages.map((message) => message.id));
+            return { ...social, messages: [...older.filter((message) => !known.has(message.id)), ...social.messages] };
+          });
+        }
+        return older.length === MESSAGES_PAGE_SIZE;
       },
+
+      deleteMessage: (messageId: string, hasPhoto: boolean) => {
+        // Patched in too: a refetch only replaces the latest page, not older ones.
+        queryClient.setQueryData<SocialContent>(socialKey, (social) =>
+          social === undefined
+            ? social
+            : { ...social, messages: social.messages.filter((message) => message.id !== messageId) },
+        );
+        return runRemote(() => remoteRepository.deleteMessage(eventId, messageId, hasPhoto), 'social');
+      },
+
+      /** Appends the page after the oldest loaded photo. False once there's nothing older. */
+      loadOlderPhotos: async (): Promise<boolean> => {
+        const photos = queryClient.getQueryData<SocialContent>(socialKey)?.photos ?? [];
+        const oldest = photos[photos.length - 1];
+        if (oldest === undefined) return false;
+        const older = await remoteRepository.loadOlderPhotos(eventId, oldest.created_at);
+        if (older.length > 0) {
+          queryClient.setQueryData<SocialContent>(socialKey, (social) => {
+            if (social === undefined) return social;
+            const known = new Set(social.photos.map((photo) => photo.id));
+            return { ...social, photos: [...social.photos, ...older.filter((photo) => !known.has(photo.id))] };
+          });
+        }
+        return older.length === PHOTOS_PAGE_SIZE;
+      },
+
+      loadAllPhotos: () => remoteRepository.loadAllPhotos(eventId),
 
       deletePhoto: (photoId: string) => {
-        runRemote(() => remoteRepository.deletePhoto(eventId, photoId), 'social');
+        // Patched in too: a refetch only replaces the latest page, not older ones.
+        queryClient.setQueryData<SocialContent>(socialKey, (social) => {
+          if (social === undefined) return social;
+          const removed = social.photos.find((photo) => photo.id === photoId);
+          const uploaderIndex = removed === undefined ? -1 : social.photoUploaderIds.indexOf(removed.uploaded_by);
+          return {
+            ...social,
+            photos: social.photos.filter((photo) => photo.id !== photoId),
+            photoUploaderIds: social.photoUploaderIds.filter((_, index) => index !== uploaderIndex),
+          };
+        });
+        return runRemote(() => remoteRepository.deletePhoto(eventId, photoId), 'social');
+      },
+
+      deleteVenue: () => {
+        return runRemote(() => remoteRepository.deleteVenue(eventId), 'details');
       },
 
       updateVenue: (venue: Venue) => {
@@ -331,7 +507,7 @@ export function useEventContent(eventId: string) {
           content?.menuOptions
             .find((option) => option.id === optionId)
             ?.courses.flatMap((course) => (course.photo_path !== null ? [course.photo_path] : [])) ?? [];
-        runRemote(
+        return runRemote(
           async () => {
             await remoteRepository.deleteMenuOption(optionId);
             await remoteRepository.removeMenuPhotos(paths);
@@ -389,7 +565,7 @@ export function useEventContent(eventId: string) {
       },
 
       deleteSeatingTable: (tableId: string) => {
-        runRemote(
+        return runRemote(
           () => remoteRepository.deleteSeatingTable(tableId),
           'details',
           [['events', user?.id ?? null], ['tableCompanions', eventId]],
@@ -404,7 +580,7 @@ export function useEventContent(eventId: string) {
       },
 
       deleteAccommodation: (accommodationId: string) => {
-        runRemote(() => remoteRepository.deleteAccommodation(accommodationId), 'details');
+        return runRemote(() => remoteRepository.deleteAccommodation(accommodationId), 'details');
       },
 
       saveVendor: (item: VendorInput) => {
@@ -415,10 +591,10 @@ export function useEventContent(eventId: string) {
       },
 
       deleteVendor: (vendorId: string) => {
-        runRemote(() => remoteRepository.deleteVendor(vendorId), 'details');
+        return runRemote(() => remoteRepository.deleteVendor(vendorId), 'details');
       },
     }),
-    [eventId, actor, hasReacted, runRemote, content, queryClient, detailsKey, user],
+    [eventId, actor, hasReacted, runRemote, content, queryClient, socialKey, detailsKey, user],
   );
 
   return { content, hasReacted, reactionCount, ...actions };

@@ -50,7 +50,7 @@ export function EventHeaderBar({ name, subtitle, showBack = false, actions = [] 
       {showBack ? (
         <TouchableOpacity
           style={buttonStyle}
-          onPress={() => router.navigate('/')}
+          onPress={() => router.dismissTo('/')}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Înapoi la ecranul principal"

@@ -1,14 +1,32 @@
 import Feather from '@expo/vector-icons/Feather';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { CoverArt } from '@/components/CoverArt';
 import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { ScaleTouchable } from '@/components/ScaleTouchable';
 import { useTheme } from '@/hooks/useTheme';
 import type { EventTypeMeta } from '@/types/event';
+import type { EventTypeId } from '@/types/event';
+import { getCoverTheme } from '@/utils/coverThemes';
 import { haptics } from '@/utils/haptics';
-import { bandGradientLocations, themeRadius } from '@/utils/themeTokens';
+import { themeRadius, typeface } from '@/utils/themeTokens';
+
+/**
+ * The warmest of each type's five themes, so the first screen of the wizard
+ * reads warm and inviting (no cold blue grid for corporate, no grey memorial).
+ */
+const CARD_THEME: Record<EventTypeId, string> = {
+  wedding: 'nunta',
+  baptism: 'ingeras',
+  birthday: 'aniversare',
+  cause: 'inima',
+  corporate: 'gala',
+  memorial: 'amurg',
+  venue: 'terasa',
+  spontaneous: 'karaoke',
+  other: 'festival',
+};
 
 interface TypeTileProps {
   type: EventTypeMeta;
@@ -16,11 +34,17 @@ interface TypeTileProps {
   onPress: () => void;
 }
 
-/** Warm Story 2.0 type tile: two per row, type band icon, name + one-line description, check when selected. */
+/**
+ * A picture card for the type step, two per row: the type's signature cover
+ * theme with its name over it, one line below.
+ * Reads as a catalogue of moods rather than a grid of icon boxes.
+ */
 export function TypeTile({ type, selected, onPress }: TypeTileProps) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const label = t(`eventTypes.${type.id}.label`);
+  const cover = getCoverTheme(CARD_THEME[type.id])!;
+  const ink = cover.light ? '#2B2740' : '#FFFFFF';
 
   return (
     <ScaleTouchable
@@ -29,81 +53,75 @@ export function TypeTile({ type, selected, onPress }: TypeTileProps) {
         haptics.tap();
         onPress();
       }}
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       accessibilityRole="radio"
       accessibilityState={{ selected, checked: selected }}
       accessibilityLabel={label}
-      style={[
-        styles.tile,
-        {
-          backgroundColor: tokens.surface,
-          borderColor: selected ? tokens.accentPrimary : tokens.border,
-          borderWidth: selected ? 2 : 1.5,
-        },
-      ]}
+      style={styles.tile}
     >
-      <LinearGradient
-        colors={type.band}
-        locations={bandGradientLocations}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.icon}
-      >
-        <EventTypeIcon type={type.id} size={24} color={type.bandInk} />
-      </LinearGradient>
-
-      <View style={styles.text}>
-        <Text style={[styles.label, { color: tokens.textPrimary }]}>{label}</Text>
-        <Text style={[styles.description, { color: tokens.textSecondary }]} numberOfLines={2}>
-          {t(`eventTypes.${type.id}.description`)}
-        </Text>
+      <View style={[styles.frame, { borderColor: selected ? tokens.accentFill : 'transparent' }]}>
+        <CoverArt theme={cover} style={styles.cover}>
+          <View style={styles.coverInner}>
+            <EventTypeIcon type={type.id} size={20} color={ink} strokeWidth={1.6} />
+            <Text style={[styles.label, { color: ink, fontFamily: tokens.displayFont }, tokens.coverBase !== undefined && styles.labelWideFont]} numberOfLines={2}>
+              {label}
+            </Text>
+          </View>
+          {selected ? (
+            <View style={[styles.check, { backgroundColor: tokens.accentFill }]}>
+              <Feather name="check" size={14} color={tokens.onAccent} />
+            </View>
+          ) : null}
+        </CoverArt>
       </View>
-
-      {selected ? (
-        <View style={[styles.check, { backgroundColor: tokens.accentFill }]}>
-          <Feather name="check" size={15} color={tokens.onAccent} />
-        </View>
-      ) : null}
+      <Text style={[styles.description, { color: tokens.textSecondary }]} numberOfLines={2}>
+        {t(`eventTypes.${type.id}.description`)}
+      </Text>
     </ScaleTouchable>
   );
 }
 
 const styles = StyleSheet.create({
+  // Fraunces (the site themes) runs wide: "Comemorare" broke mid-word at the usual size.
+  labelWideFont: {
+    fontSize: 20,
+  },
   tile: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    minHeight: 132,
-    padding: 16,
+    width: '48%',
+    gap: 8,
+  },
+  frame: {
+    borderWidth: 2,
+    borderRadius: themeRadius.xl + 3,
+    padding: 2,
+  },
+  cover: {
+    aspectRatio: 1,
     borderRadius: themeRadius.xl,
+  },
+  coverInner: {
+    flex: 1,
     justifyContent: 'space-between',
-    gap: 12,
-  },
-  icon: {
-    width: 48,
-    height: 48,
-    borderRadius: themeRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    gap: 2,
+    padding: 14,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  description: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 22,
+    lineHeight: 26,
   },
   check: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    top: 10,
+    right: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  description: {
+    fontFamily: typeface.body,
+    fontSize: 13,
+    lineHeight: 17,
+    paddingHorizontal: 4,
   },
 });

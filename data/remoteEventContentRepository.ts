@@ -58,6 +58,18 @@ const PHOTO_BUCKET = 'event-photos';
 /** Regenerated on every loadSocial (staleTime 30s for this query — see useEventContent.tsx), so this only needs to outlive one render, not be long-lived. */
 const PHOTO_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
+const CHAT_PHOTO_SIGNED_URL_TTL_SECONDS = 24 * 60 * 60;
+const CHAT_PHOTO_SIGNED_URL_REUSE_MS = 23 * 60 * 60 * 1000;
+/** Files never change, so a year. */
+const CHAT_PHOTO_CACHE_CONTROL = '31536000';
+
+/**
+ * A new signed URL is a new cache key for the image loader, so re-signing on
+ * every loadSocial would re-download (and flash) each chat photo on every
+ * refresh. URLs are kept here and reused until shortly before they expire.
+ */
+const signedChatPhotos = new Map<string, { thumb_url: string; full_url: string; signedAt: number }>();
+
 /**
  * Moment photos share the event-photos bucket (same RLS: first path segment is
  * the eventId). moments.photo_url stores this path, not a URL; loadSocial
@@ -72,16 +84,35 @@ function menuPhotoStoragePath(eventId: string, photoId: string): string {
   return `${eventId}/menu/${photoId}.jpg`;
 }
 
+function chatPhotoStoragePaths(eventId: string, messageId: string) {
+  return {
+    thumb: `${eventId}/chat/${messageId}/thumb.jpg`,
+    full: `${eventId}/chat/${messageId}/full.jpg`,
+  };
+}
+
 function isMomentStoragePath(eventId: string, value: string | null): value is string {
   return value !== null && value.startsWith(`${eventId}/moments/`);
 }
 
+/** display.jpg only exists for photos uploaded from the app after the
+ * three-size change; older ones (and web uploads) have thumb + full only, so
+ * readers fall back from display_url to full_url. */
 function photoStoragePaths(eventId: string, photoId: string) {
   return {
     thumb: `${eventId}/${photoId}/thumb.jpg`,
+    display: `${eventId}/${photoId}/display.jpg`,
     full: `${eventId}/${photoId}/full.jpg`,
   };
 }
+
+interface SignedPhotoUrls {
+  thumb_url: string | null;
+  display_url: string | null;
+  full_url: string | null;
+}
+
+const NO_SIGNED_PHOTO_URLS: SignedPhotoUrls = { thumb_url: null, display_url: null, full_url: null };
 
 interface FundDraft {
   title: string;
@@ -91,7 +122,15 @@ interface FundDraft {
 }
 
 function mapSchedule(row: ScheduleItemRow): ScheduleItem {
-  return { id: row.id, event_id: row.event_id, time: row.time, title: row.title, location: row.location ?? '' };
+  return {
+    id: row.id,
+    event_id: row.event_id,
+    time: row.time,
+    title: row.title,
+    location: row.location ?? '',
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
+  };
 }
 
 function mapVenue(eventId: string, row: VenueInfoRow | null): Venue {
@@ -116,6 +155,8 @@ function mapMoment(row: MomentRow): Moment {
     organizer_id: row.organizer_id,
     title: row.title,
     photo_url: row.photo_url ?? '',
+    icon: row.icon ?? null,
+    author_label: row.author_label ?? null,
     created_at: row.created_at,
   };
 }
@@ -125,6 +166,7 @@ function mapReaction(momentId: string, row: MomentReactionRow): MomentReaction {
 }
 
 function mapMessage(row: MessageRow): Message {
+  const signed = signedChatPhotos.get(row.id);
   return {
     id: row.id,
     event_id: row.event_id,
@@ -132,6 +174,17 @@ function mapMessage(row: MessageRow): Message {
     sender_label: row.sender_label,
     content: row.content,
     created_at: row.created_at,
+    edited_at: row.edited_at ?? null,
+    photo:
+      row.photo_width !== null && row.photo_height !== null
+        ? {
+            width: row.photo_width,
+            height: row.photo_height,
+            thumb_url: signed?.thumb_url ?? null,
+            full_url: signed?.full_url ?? null,
+          }
+        : null,
+    reactions: row.message_reactions ?? [],
   };
 }
 
@@ -158,7 +211,7 @@ function mapContribution(row: ContributionRow): Contribution {
   };
 }
 
-function mapPhoto(row: PhotoRow, signed: { thumb_url: string | null; full_url: string | null }): Photo {
+function mapPhoto(row: PhotoRow, signed: SignedPhotoUrls): Photo {
   return {
     id: row.id,
     event_id: row.event_id,
@@ -166,6 +219,7 @@ function mapPhoto(row: PhotoRow, signed: { thumb_url: string | null; full_url: s
     uploaded_by_label: row.uploaded_by_label,
     url: row.url,
     thumb_url: signed.thumb_url,
+    display_url: signed.display_url,
     full_url: signed.full_url,
     created_at: row.created_at,
   };
@@ -180,8 +234,8 @@ function mapPhoto(row: PhotoRow, signed: { thumb_url: string | null; full_url: s
  */
 async function signPhotoUrls(
   rows: PhotoRow[],
-): Promise<Map<string, { thumb_url: string | null; full_url: string | null }>> {
-  const result = new Map<string, { thumb_url: string | null; full_url: string | null }>();
+): Promise<Map<string, SignedPhotoUrls>> {
+  const result = new Map<string, SignedPhotoUrls>();
   if (rows.length === 0) return result;
 
   const paths = rows.flatMap((row) => Object.values(photoStoragePaths(row.event_id, row.id)));
@@ -192,9 +246,10 @@ async function signPhotoUrls(
 
   const signedUrlByPath = new Map((data ?? []).map((entry) => [entry.path, entry.signedUrl]));
   for (const row of rows) {
-    const { thumb, full } = photoStoragePaths(row.event_id, row.id);
+    const { thumb, display, full } = photoStoragePaths(row.event_id, row.id);
     result.set(row.id, {
       thumb_url: signedUrlByPath.get(thumb) ?? null,
+      display_url: signedUrlByPath.get(display) ?? null,
       full_url: signedUrlByPath.get(full) ?? null,
     });
   }
@@ -203,20 +258,75 @@ async function signPhotoUrls(
 
 /** One batched signing call for every Storage-backed moment photo; an
  * individual signing failure just leaves that card photo-less. */
+/** How many album photos load at a time. */
+export const PHOTOS_PAGE_SIZE = 30;
+
+/** How many chat messages load at a time, on opening and on each scroll up. */
+export const MESSAGES_PAGE_SIZE = 50;
+
+/**
+ * Signed URLs differ on every request, so an image cache keyed on the URL would miss on
+ * every refetch. Reused until half their lifetime; updateMoment drops a replaced photo's.
+ */
+const signedMomentPhotos = new Map<string, { url: string; signedAt: number }>();
+
 async function signMomentPhotos(eventId: string, rows: MomentRow[]): Promise<Map<string, string>> {
-  const paths = rows.map((row) => row.photo_url).filter((value) => isMomentStoragePath(eventId, value));
+  const paths = rows.map((row) => row.photo_url).filter((value): value is string => value !== null && isMomentStoragePath(eventId, value));
   const result = new Map<string, string>();
-  if (paths.length === 0) return result;
+  const now = Date.now();
+  const missing: string[] = [];
+  for (const path of paths) {
+    const known = signedMomentPhotos.get(path);
+    if (known !== undefined && now - known.signedAt < (PHOTO_SIGNED_URL_TTL_SECONDS * 1000) / 2) result.set(path, known.url);
+    else missing.push(path);
+  }
+  if (missing.length === 0) return result;
 
   const { data, error } = await supabase.storage
     .from(PHOTO_BUCKET)
-    .createSignedUrls(paths, PHOTO_SIGNED_URL_TTL_SECONDS);
+    .createSignedUrls(missing, PHOTO_SIGNED_URL_TTL_SECONDS);
   if (error) throw error;
 
   for (const entry of data ?? []) {
-    if (entry.path !== null && entry.signedUrl) result.set(entry.path, entry.signedUrl);
+    if (entry.path !== null && entry.signedUrl) {
+      result.set(entry.path, entry.signedUrl);
+      signedMomentPhotos.set(entry.path, { url: entry.signedUrl, signedAt: now });
+    }
   }
   return result;
+}
+
+/** Fills signedChatPhotos for these rows; mapMessage reads from it. */
+async function signChatPhotos(rows: MessageRow[]): Promise<void> {
+  const now = Date.now();
+  const missing = rows.filter((row) => {
+    if (row.photo_width === null) return false;
+    const signed = signedChatPhotos.get(row.id);
+    return signed === undefined || now - signed.signedAt > CHAT_PHOTO_SIGNED_URL_REUSE_MS;
+  });
+  if (missing.length === 0) return;
+
+  const paths = missing.flatMap((row) => Object.values(chatPhotoStoragePaths(row.event_id, row.id)));
+  const { data, error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .createSignedUrls(paths, CHAT_PHOTO_SIGNED_URL_TTL_SECONDS);
+  if (error) throw error;
+
+  const signedUrlByPath = new Map((data ?? []).map((entry) => [entry.path, entry.signedUrl]));
+  for (const row of missing) {
+    const { thumb, full } = chatPhotoStoragePaths(row.event_id, row.id);
+    const thumbUrl = signedUrlByPath.get(thumb);
+    const fullUrl = signedUrlByPath.get(full);
+    if (thumbUrl && fullUrl) {
+      signedChatPhotos.set(row.id, { thumb_url: thumbUrl, full_url: fullUrl, signedAt: now });
+    }
+  }
+}
+
+/** For the Chat screen's Realtime subscription: the raw row has no signed URLs yet. */
+async function mapIncomingMessage(row: MessageRow): Promise<Message> {
+  await signChatPhotos([row]);
+  return mapMessage(row);
 }
 
 function mapMenu(eventId: string, row: MenuRow | null): Menu | null {
@@ -271,6 +381,18 @@ function mapSeatingTable(row: SeatingTableRow): SeatingTable {
   };
 }
 
+/** "HH:MM" -> minutes since midnight; anything unparsable (or empty) sorts last. */
+function scheduleMinutes(time: string): number {
+  const match = /^(\d{1,2}):(\d{2})/.exec(time.trim());
+  if (match === null) return Number.MAX_SAFE_INTEGER;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+/** The day's program in clock order, whatever order the items were added in (stable for equal times). */
+function sortScheduleByTime(items: ScheduleItem[]): ScheduleItem[] {
+  return [...items].sort((a, b) => scheduleMinutes(a.time) - scheduleMinutes(b.time));
+}
+
 function mapAccommodation(row: AccommodationRow): Accommodation {
   return {
     id: row.id,
@@ -278,6 +400,9 @@ function mapAccommodation(row: AccommodationRow): Accommodation {
     name: row.name,
     detail_line: row.detail_line ?? '',
     price_line: row.price_line ?? '',
+    location: row.location ?? '',
+    latitude: row.latitude,
+    longitude: row.longitude,
   };
 }
 
@@ -307,8 +432,15 @@ async function loadSocial(eventId: string): Promise<SocialContent> {
       .select('*, moment_reactions(*)')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false }),
-    client.from('messages').select('*').eq('event_id', eventId).order('created_at', { ascending: true }),
-    client.from('photos').select('*').eq('event_id', eventId).order('created_at', { ascending: false }),
+    // Only the latest page: the rest loads as the chat scrolls up (loadOlderMessages).
+    client
+      .from('messages')
+      .select('*, message_reactions(id, user_id, emoji)')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false })
+      .limit(MESSAGES_PAGE_SIZE),
+    // Only the latest page: the rest loads as the album scrolls (loadOlderPhotos).
+    client.from('photos').select('*').eq('event_id', eventId).order('created_at', { ascending: false }).limit(PHOTOS_PAGE_SIZE),
   ]);
 
   for (const res of [momentsRes, messagesRes, photosRes]) {
@@ -327,14 +459,20 @@ async function loadSocial(eventId: string): Promise<SocialContent> {
   const photoRows = photosRes.data as PhotoRow[];
   const signedByPhotoId = await signPhotoUrls(photoRows);
   const photos = photoRows.map((row) =>
-    mapPhoto(row, signedByPhotoId.get(row.id) ?? { thumb_url: null, full_url: null }),
+    mapPhoto(row, signedByPhotoId.get(row.id) ?? NO_SIGNED_PHOTO_URLS),
   );
+
+  const messageRows = (messagesRes.data as MessageRow[]).reverse();
+  await signChatPhotos(messageRows);
+
+  const photoUploaderIds = await fetchPhotoUploaderIds(eventId);
 
   return {
     moments,
     reactions,
-    messages: (messagesRes.data as MessageRow[]).map(mapMessage),
+    messages: messageRows.map(mapMessage),
     photos,
+    photoUploaderIds,
   };
 }
 
@@ -396,7 +534,7 @@ async function loadDetails(eventId: string): Promise<DetailsContent> {
 
   return {
     fund: fundRow === null ? null : mapFund(fundRow),
-    schedule: (scheduleRes.data as ScheduleItemRow[]).map(mapSchedule),
+    schedule: sortScheduleByTime((scheduleRes.data as ScheduleItemRow[]).map(mapSchedule)),
     venue: mapVenue(eventId, venueRes.data as VenueInfoRow | null),
     menu: mapMenu(eventId, menuRes.data as MenuRow | null),
     menuOptions,
@@ -441,9 +579,147 @@ async function sendMessage(eventId: string, content: string, actor: Actor): Prom
   if (error) throw error;
 }
 
-async function deleteMessage(messageId: string): Promise<void> {
+/** messageId is generated by the caller, like addPhoto's photoId: the Storage
+ * path has to exist before the row points at it. */
+async function sendPhotoMessage(
+  eventId: string,
+  messageId: string,
+  photo: PhotoUploadVersions & { width: number; height: number },
+  caption: string,
+  actor: Actor,
+): Promise<void> {
+  const client = supabase;
+  const { thumb, full } = chatPhotoStoragePaths(eventId, messageId);
+
+  const [thumbBuffer, fullBuffer] = await Promise.all([
+    fetch(photo.thumbnailUri).then((res) => res.arrayBuffer()),
+    fetch(photo.fullUri).then((res) => res.arrayBuffer()),
+  ]);
+
+  const options = { contentType: 'image/jpeg', cacheControl: CHAT_PHOTO_CACHE_CONTROL };
+  const [thumbUpload, fullUpload] = await Promise.all([
+    client.storage.from(PHOTO_BUCKET).upload(thumb, thumbBuffer, options),
+    client.storage.from(PHOTO_BUCKET).upload(full, fullBuffer, options),
+  ]);
+  if (thumbUpload.error || fullUpload.error) {
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+    throw thumbUpload.error ?? fullUpload.error;
+  }
+
+  const { error } = await client.from('messages').insert({
+    id: messageId,
+    event_id: eventId,
+    sender_id: actor.id,
+    sender_label: actor.label,
+    content: caption,
+    photo_width: photo.width,
+    photo_height: photo.height,
+  });
+  if (error) {
+    // e.g. the chat plan trigger: don't leave the files orphaned.
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+    throw error;
+  }
+}
+
+/** Pages through a query with PostgREST's 1000-row cap. */
+async function fetchPhotoUploaderIds(eventId: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from('photos')
+      .select('uploaded_by')
+      .eq('event_id', eventId)
+      .range(from, from + 999);
+    if (error) throw error;
+    ids.push(...data.map((row: { uploaded_by: string }) => row.uploaded_by));
+    if (data.length < 1000) return ids;
+  }
+}
+
+async function mapPhotoRows(rows: PhotoRow[]): Promise<Photo[]> {
+  const signed = await signPhotoUrls(rows);
+  return rows.map((row) => mapPhoto(row, signed.get(row.id) ?? NO_SIGNED_PHOTO_URLS));
+}
+
+/** The page of photos right before `before`, newest first. */
+async function loadOlderPhotos(eventId: string, before: string): Promise<Photo[]> {
+  const { data, error } = await supabase
+    .from('photos')
+    .select('*')
+    .eq('event_id', eventId)
+    .lt('created_at', before)
+    .order('created_at', { ascending: false })
+    .limit(PHOTOS_PAGE_SIZE);
+  if (error) throw error;
+  return mapPhotoRows(data as PhotoRow[]);
+}
+
+/** The whole album, for saving it to the phone. */
+async function loadAllPhotos(eventId: string): Promise<Photo[]> {
+  const all: Photo[] = [];
+  for (let from = 0; ; from += 200) {
+    const { data, error } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false })
+      .range(from, from + 199);
+    if (error) throw error;
+    all.push(...(await mapPhotoRows(data as PhotoRow[])));
+    if (data.length < 200) return all;
+  }
+}
+
+/** The page of messages right before `before`, oldest first. */
+async function loadOlderMessages(eventId: string, before: string): Promise<Message[]> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*, message_reactions(id, user_id, emoji)')
+    .eq('event_id', eventId)
+    .lt('created_at', before)
+    .order('created_at', { ascending: false })
+    .limit(MESSAGES_PAGE_SIZE);
+  if (error) throw error;
+  const rows = (data as MessageRow[]).reverse();
+  await signChatPhotos(rows);
+  return rows.map(mapMessage);
+}
+
+async function deleteMessage(eventId: string, messageId: string, hasPhoto: boolean): Promise<void> {
   const client = supabase;
   const { error } = await client.from('messages').delete().eq('id', messageId);
+  if (error) throw error;
+  if (hasPhoto) {
+    const { thumb, full } = chatPhotoStoragePaths(eventId, messageId);
+    // Best-effort, same as deletePhoto: the message is already gone.
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+    signedChatPhotos.delete(messageId);
+  }
+}
+
+async function editMessage(messageId: string, content: string): Promise<void> {
+  const { error } = await supabase.rpc('edit_message', { p_message_id: messageId, p_content: content });
+  if (error) throw error;
+}
+
+/** Null removes it. One per person per message, so a new emoji replaces the old. */
+async function setMessageReaction(
+  eventId: string,
+  messageId: string,
+  emoji: string | null,
+  actor: Actor,
+): Promise<void> {
+  const client = supabase;
+  const { error } =
+    emoji === null
+      ? await client.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', actor.id)
+      : await client
+          .from('message_reactions')
+          .upsert(
+            { message_id: messageId, event_id: eventId, user_id: actor.id, emoji },
+            { onConflict: 'message_id,user_id' },
+          );
   if (error) throw error;
 }
 
@@ -481,23 +757,28 @@ async function removeReaction(momentId: string, reaction: ReactionType, actor: A
 async function addPhoto(
   eventId: string,
   photoId: string,
-  versions: PhotoUploadVersions,
+  versions: PhotoUploadVersions & { displayUri: string },
   actor: Actor,
 ): Promise<void> {
   const client = supabase;
-  const { thumb, full } = photoStoragePaths(eventId, photoId);
+  const { thumb, display, full } = photoStoragePaths(eventId, photoId);
 
-  const [thumbBuffer, fullBuffer] = await Promise.all([
+  const [thumbBuffer, displayBuffer, fullBuffer] = await Promise.all([
     fetch(versions.thumbnailUri).then((res) => res.arrayBuffer()),
+    fetch(versions.displayUri).then((res) => res.arrayBuffer()),
     fetch(versions.fullUri).then((res) => res.arrayBuffer()),
   ]);
 
-  const [thumbUpload, fullUpload] = await Promise.all([
+  const uploads = await Promise.all([
     client.storage.from(PHOTO_BUCKET).upload(thumb, thumbBuffer, { contentType: 'image/jpeg' }),
+    client.storage.from(PHOTO_BUCKET).upload(display, displayBuffer, { contentType: 'image/jpeg' }),
     client.storage.from(PHOTO_BUCKET).upload(full, fullBuffer, { contentType: 'image/jpeg' }),
   ]);
-  if (thumbUpload.error) throw thumbUpload.error;
-  if (fullUpload.error) throw fullUpload.error;
+  const uploadError = uploads.find((upload) => upload.error !== null)?.error;
+  if (uploadError) {
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, display, full]);
+    throw uploadError;
+  }
 
   const { data: profile } = await client
     .from('users')
@@ -511,20 +792,20 @@ async function addPhoto(
     .insert({ id: photoId, event_id: eventId, uploaded_by: actor.id, uploaded_by_label: label });
   if (error) {
     // e.g. the per-guest photo limit trigger: don't leave the files orphaned.
-    await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+    await client.storage.from(PHOTO_BUCKET).remove([thumb, display, full]);
     throw error;
   }
 }
 
 async function deletePhoto(eventId: string, photoId: string): Promise<void> {
   const client = supabase;
-  const { thumb, full } = photoStoragePaths(eventId, photoId);
+  const { thumb, display, full } = photoStoragePaths(eventId, photoId);
   // Best-effort: a legacy row has nothing at these paths, and a partial
   // Storage failure shouldn't block removing the row itself (same
   // fire-and-forget-cleanup philosophy as markOnboardingComplete — see
   // CLAUDE.md). .remove() never throws, just reports per-path errors we
   // don't act on here.
-  await client.storage.from(PHOTO_BUCKET).remove([thumb, full]);
+  await client.storage.from(PHOTO_BUCKET).remove([thumb, display, full]);
 
   const { error } = await client.from('photos').delete().eq('id', photoId);
   if (error) throw error;
@@ -541,6 +822,7 @@ async function createMoment(
   momentId: string,
   title: string,
   photoUri: string | null,
+  icon: string | null,
   actor: Actor,
 ): Promise<void> {
   const client = supabase;
@@ -561,11 +843,46 @@ async function createMoment(
     organizer_id: actor.id,
     title,
     photo_url: photoPath,
+    icon,
   });
   if (error) {
     if (photoPath !== null) await client.storage.from(PHOTO_BUCKET).remove([photoPath]);
     throw error;
   }
+}
+
+/**
+ * Edit a moment's title and, optionally, replace its photo. A new photo goes
+ * to the moment's own Storage path (upsert), so photo_url keeps pointing at
+ * the same path; a moment that had no photo gets it set here.
+ */
+async function updateMoment(
+  eventId: string,
+  momentId: string,
+  title: string,
+  newPhotoUri: string | null,
+  icon: string | null,
+): Promise<void> {
+  const client = supabase;
+  const patch: { title: string; icon: string | null; photo_url?: string } = { title, icon };
+
+  if (newPhotoUri !== null) {
+    const photoPath = momentStoragePath(eventId, momentId);
+    const buffer = await fetch(newPhotoUri).then((res) => res.arrayBuffer());
+    const { error: uploadError } = await client.storage
+      .from(PHOTO_BUCKET)
+      .upload(photoPath, buffer, { contentType: 'image/jpeg', upsert: true });
+    // TEMP debug (remove after): what Storage answers to the upsert.
+    console.log('[updateMoment] storage upload', { photoPath, uploadError });
+    if (uploadError) throw uploadError;
+    signedMomentPhotos.delete(photoPath);
+    patch.photo_url = photoPath;
+  }
+
+  const { data, error } = await client.from('moments').update(patch).eq('id', momentId).select('id');
+  // TEMP debug (remove after): the row update result. 0 rows with no error = RLS filtered it out.
+  console.log('[updateMoment] moments update', { momentId, patch, data, error });
+  if (error) throw error;
 }
 
 async function deleteMoment(eventId: string, momentId: string): Promise<void> {
@@ -600,6 +917,8 @@ interface ScheduleItemDraft {
   time: string;
   title: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 async function saveScheduleItem(eventId: string, item: ScheduleItemDraft, sortOrder: number): Promise<void> {
@@ -607,13 +926,21 @@ async function saveScheduleItem(eventId: string, item: ScheduleItemDraft, sortOr
   if (item.id === null) {
     const { error } = await client
       .from('schedule_items')
-      .insert({ event_id: eventId, time: item.time, title: item.title, location: item.location, sort_order: sortOrder });
+      .insert({
+        event_id: eventId,
+        time: item.time,
+        title: item.title,
+        location: item.location,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        sort_order: sortOrder,
+      });
     if (error) throw error;
     return;
   }
   const { error } = await client
     .from('schedule_items')
-    .update({ time: item.time, title: item.title, location: item.location })
+    .update({ time: item.time, title: item.title, location: item.location, latitude: item.latitude, longitude: item.longitude })
     .eq('id', item.id);
   if (error) throw error;
 }
@@ -621,6 +948,12 @@ async function saveScheduleItem(eventId: string, item: ScheduleItemDraft, sortOr
 async function deleteScheduleItem(itemId: string): Promise<void> {
   const client = supabase;
   const { error } = await client.from('schedule_items').delete().eq('id', itemId);
+  if (error) throw error;
+}
+
+/** Removes the event's location (the single venue_info row); the app then shows the empty state. */
+async function deleteVenue(eventId: string): Promise<void> {
+  const { error } = await supabase.from('venue_info').delete().eq('event_id', eventId);
   if (error) throw error;
 }
 
@@ -797,6 +1130,9 @@ interface AccommodationDraft {
   name: string;
   detail_line: string;
   price_line: string;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 async function saveAccommodation(
@@ -811,6 +1147,9 @@ async function saveAccommodation(
       name: item.name,
       detail_line: item.detail_line,
       price_line: item.price_line,
+      location: item.location,
+      latitude: item.latitude,
+      longitude: item.longitude,
       sort_order: sortOrder,
     });
     if (error) throw error;
@@ -818,7 +1157,14 @@ async function saveAccommodation(
   }
   const { error } = await client
     .from('accommodations')
-    .update({ name: item.name, detail_line: item.detail_line, price_line: item.price_line })
+    .update({
+      name: item.name,
+      detail_line: item.detail_line,
+      price_line: item.price_line,
+      location: item.location,
+      latitude: item.latitude,
+      longitude: item.longitude,
+    })
     .eq('id', item.id);
   if (error) throw error;
 }
@@ -871,10 +1217,17 @@ async function deleteVendor(vendorId: string): Promise<void> {
 
 export const remoteRepository = {
   loadSocial,
+  loadOlderMessages,
+  loadOlderPhotos,
+  loadAllPhotos,
   loadDetails,
   loadContributions,
   sendMessage,
+  sendPhotoMessage,
+  setMessageReaction,
+  editMessage,
   deleteMessage,
+  mapIncomingMessage,
   // Exported so the Chat screen's Realtime subscription (app/guest/[id]/chat.tsx)
   // can map a postgres_changes payload's raw row the same way loadSocial does,
   // instead of duplicating this mapping and risking drift if a column is added.
@@ -884,12 +1237,14 @@ export const remoteRepository = {
   addPhoto,
   deletePhoto,
   createMoment,
+  updateMoment,
   deleteMoment,
   saveFund,
   deleteFund,
   saveScheduleItem,
   deleteScheduleItem,
   updateVenue,
+  deleteVenue,
   saveMenu,
   saveMenuOption,
   deleteMenuOption,

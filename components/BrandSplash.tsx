@@ -1,9 +1,8 @@
-import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
 
-import { useTheme } from '@/hooks/useTheme';
 import {
   MARK_DOT_RADIUS,
   MARK_END,
@@ -11,22 +10,37 @@ import {
   MARK_RATIO,
   MARK_START,
   MARK_STOPS,
+  MARK_STROKE_LENGTH,
   MARK_STROKE_WIDTH,
+  MARK_UNITS_WIDTH,
   MARK_VIEWBOX,
 } from '@/utils/brandMark';
-import { typography } from '@/utils/themeTokens';
+import { THEMES, typography } from '@/utils/themeTokens';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+/** One fixed look, whatever the phone's dark mode or the app theme: the native splash runs
+ * before any JS can read the saved theme. Must match app.json's splash backgroundColor. */
+const SPLASH_TOKENS = THEMES.siteDark;
 
 /** Must match app.json's splash imageWidth × 0.7 (the mark fills 70% of splash-icon.png). */
 const MARK_WIDTH = 180;
 const MARK_HEIGHT = MARK_WIDTH / MARK_RATIO;
+/**
+ * The SVG is drawn at this multiple of its on-screen size and scaled down.
+ * react-native-svg rasterizes at layout size, so scaling it up for the
+ * heartbeat would stretch that bitmap and look pixelated.
+ */
+const SUPERSAMPLE = 2;
 /** How far the mark glides up to make room for the wordmark. */
 const LIFT = 56;
+/** Length of the light that runs along the thread, in viewBox units. */
+const SPARK_LENGTH = 34;
 
 interface BrandSplashProps {
-  /** Fires when the sequence ends, before the fade — the parent routes here. */
-  onReveal: () => void;
+  /** Holds the mark still (identical to the native splash) until the app underneath is ready. */
+  ready: boolean;
   /** Fires once the overlay has fully faded out and can be unmounted. */
   onFinished: () => void;
 }
@@ -34,33 +48,55 @@ interface BrandSplashProps {
 /**
  * Warm Story 2.0 animated splash. The native splash (assets/splash-icon.png,
  * see app.json) already shows the full mark, centered, at exactly this size,
- * so the hand-off is seamless. From there:
- *   1. the gold dot pulses, then the purple one (beginning → recap),
- *   2. the mark glides up while the wordmark and tagline rise in under it,
- *   3. the overlay fades out.
- * Theme-aware background; the mark's own gradient is brand identity and
- * stays fixed in both modes. About 1.9s end to end.
+ * on the same background, so the two read as one screen. From there:
+ *   1. the heart beats twice (lub-dub) while the gold dot pulses,
+ *   2. a soft light runs along the thread, from the gold dot through the
+ *      heart to the purple dot, which pulses as it arrives,
+ *   3. the mark glides up while the wordmark and tagline rise in under it,
+ *   4. the overlay fades out.
+ * About 2.3s end to end, starting only once the app is ready (see SplashGate), since
+ * rendering the first screen keeps JS busy and would freeze it halfway.
  */
-export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
-  const { tokens } = useTheme();
+export function BrandSplash({ ready, onFinished }: BrandSplashProps) {
+  const tokens = SPLASH_TOKENS;
+  const beat = useRef(new Animated.Value(1)).current;
   const goldPulse = useRef(new Animated.Value(0)).current;
   const purplePulse = useRef(new Animated.Value(0)).current;
+  const spark = useRef(new Animated.Value(0)).current;
   const lift = useRef(new Animated.Value(0)).current;
   const wordmark = useRef(new Animated.Value(0)).current;
   const tagline = useRef(new Animated.Value(0)).current;
   const overlay = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // SVG props (the dots' radius) can't run on the native driver.
+    if (!ready) return;
+
+    // SVG props (dot radius, dash offset) can't run on the native driver.
     const pulse = (value: Animated.Value) =>
       Animated.sequence([
         Animated.timing(value, { toValue: 1, duration: 180, easing: Easing.out(Easing.quad), useNativeDriver: false }),
         Animated.spring(value, { toValue: 0, friction: 4, tension: 120, useNativeDriver: false }),
       ]);
 
+    const beatTo = (toValue: number, duration: number) =>
+      Animated.timing(beat, { toValue, duration, easing: Easing.inOut(Easing.quad), useNativeDriver: true });
+
+    const heartbeat = Animated.sequence([
+      beatTo(1.1, 130),
+      beatTo(1, 120),
+      beatTo(1.06, 110),
+      beatTo(1, 160),
+    ]);
+
     const sequence = Animated.sequence([
-      Animated.delay(150),
-      pulse(goldPulse),
+      Animated.delay(120),
+      Animated.parallel([heartbeat, pulse(goldPulse)]),
+      Animated.timing(spark, {
+        toValue: 1,
+        duration: 560,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: false,
+      }),
       pulse(purplePulse),
       Animated.parallel([
         Animated.timing(lift, {
@@ -84,12 +120,11 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
           useNativeDriver: true,
         }),
       ]),
-      Animated.delay(320),
+      Animated.delay(280),
     ]);
 
     sequence.start(({ finished }) => {
       if (!finished) return;
-      onReveal();
       Animated.timing(overlay, {
         toValue: 0,
         duration: 320,
@@ -98,7 +133,7 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
     });
 
     return () => sequence.stop();
-  }, [goldPulse, purplePulse, lift, wordmark, tagline, overlay, onReveal, onFinished]);
+  }, [ready, beat, goldPulse, purplePulse, spark, lift, wordmark, tagline, overlay, onFinished]);
 
   const rise = (value: Animated.Value) => ({
     opacity: value,
@@ -107,32 +142,58 @@ export function BrandSplash({ onReveal, onFinished }: BrandSplashProps) {
   const dotRadius = (value: Animated.Value) =>
     value.interpolate({ inputRange: [0, 1], outputRange: [MARK_DOT_RADIUS, MARK_DOT_RADIUS * 1.7] });
 
-  return (
-    <Animated.View style={[styles.overlay, { opacity: overlay }]}>
-      <LinearGradient colors={tokens.background} style={StyleSheet.absoluteFill} />
+  // One short dash with a gap longer than the whole path: offset +SPARK_LENGTH
+  // hides it before the start, -MARK_STROKE_LENGTH carries it past the end.
+  const sparkOffset = spark.interpolate({ inputRange: [0, 1], outputRange: [SPARK_LENGTH, -MARK_STROKE_LENGTH] });
+  const sparkOpacity = spark.interpolate({ inputRange: [0, 0.08, 0.9, 1], outputRange: [0, 0.75, 0.75, 0] });
 
-      {/* The mark starts dead-center (matching the native splash), then glides up. */}
+  return (
+    <Animated.View style={[styles.overlay, { opacity: overlay, backgroundColor: tokens.background[0] }]}>
+      <StatusBar style="light" />
+
+      {/* The mark starts dead-center (matching the native splash), beats, then glides up. */}
       <Animated.View
         style={{ transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -LIFT] }) }] }}
       >
-        <Svg width={MARK_WIDTH} height={MARK_HEIGHT} viewBox={MARK_VIEWBOX} style={styles.mark}>
-          <Defs>
-            <SvgLinearGradient id="splashThread" x1="0" y1="0" x2="60" y2="0" gradientUnits="userSpaceOnUse">
-              {MARK_STOPS.map((stop) => (
-                <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
-              ))}
-            </SvgLinearGradient>
-          </Defs>
-          <Path
-            d={MARK_PATH}
-            stroke="url(#splashThread)"
-            strokeWidth={MARK_STROKE_WIDTH}
-            strokeLinecap="round"
-            fill="none"
-          />
-          <AnimatedCircle cx={MARK_START.x} cy={MARK_START.y} r={dotRadius(goldPulse)} fill={MARK_STOPS[0].color} />
-          <AnimatedCircle cx={MARK_END.x} cy={MARK_END.y} r={dotRadius(purplePulse)} fill={MARK_STOPS[2].color} />
-        </Svg>
+        <Animated.View style={{ transform: [{ scale: Animated.multiply(beat, 1 / SUPERSAMPLE) }] }}>
+          <Svg width={MARK_WIDTH * SUPERSAMPLE} height={MARK_HEIGHT * SUPERSAMPLE} viewBox={MARK_VIEWBOX} style={styles.mark}>
+            <Defs>
+              <SvgLinearGradient
+                id="splashThread"
+                x1="0"
+                y1="0"
+                x2={MARK_UNITS_WIDTH}
+                y2="0"
+                gradientUnits="userSpaceOnUse"
+              >
+                {MARK_STOPS.map((stop) => (
+                  <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+                ))}
+              </SvgLinearGradient>
+            </Defs>
+            <Path
+              d={MARK_PATH}
+              stroke="url(#splashThread)"
+              strokeWidth={MARK_STROKE_WIDTH}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            <AnimatedPath
+              d={MARK_PATH}
+              stroke="#FFFFFF"
+              strokeOpacity={sparkOpacity}
+              strokeWidth={MARK_STROKE_WIDTH * 0.55}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={[SPARK_LENGTH, MARK_STROKE_LENGTH + SPARK_LENGTH]}
+              strokeDashoffset={sparkOffset}
+              fill="none"
+            />
+            <AnimatedCircle cx={MARK_START.x} cy={MARK_START.y} r={dotRadius(goldPulse)} fill={MARK_STOPS[0].color} />
+            <AnimatedCircle cx={MARK_END.x} cy={MARK_END.y} r={dotRadius(purplePulse)} fill={MARK_STOPS[2].color} />
+          </Svg>
+        </Animated.View>
       </Animated.View>
 
       <View style={styles.textBlock} pointerEvents="none">

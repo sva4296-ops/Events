@@ -996,7 +996,8 @@
     "bill": "Bill",
     "tonight": "Tonight",
     "book": "Book",
-    "ticket": "Ticket"
+    "ticket": "Ticket",
+    "bookings": "Bookings"
   },
   "coOrganizers": {
     "title": "Co-organizers",

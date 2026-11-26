@@ -1,19 +1,21 @@
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { EventTypeIcon } from '@/components/EventTypeIcon';
 import { EventCountdown, EventHero } from '@/components/guest/EventHero';
 import { GuestScreen } from '@/components/guest/GuestScreen';
+import { PostMomentBar } from '@/components/guest/PostMomentBar';
 import { Skeleton } from '@/components/Skeleton';
 import { Eyebrow } from '@/components/spontaneous/parts';
-import { VenueHomeCard } from '@/components/venue/VenueHomeCard';
 import { useTheme } from '@/hooks/useTheme';
 import { useVenue } from '@/hooks/useVenue';
 import type { AppEvent } from '@/types/event';
 import type { VenueBooking } from '@/types/venue';
 import { daysUntilEvent } from '@/utils/format';
+import { floatingTabBar, gSpace, tabBarBottomInset } from '@/utils/guestTheme';
 import { haptics } from '@/utils/haptics';
 import { AVATAR_COLORS, AVATAR_INK, formatSpontaneousWhen } from '@/utils/spontaneous';
 import { themeRadius } from '@/utils/themeTokens';
@@ -31,74 +33,82 @@ export function VenueTonight({ event, owner }: { event: AppEvent; owner: boolean
   const { venue } = useVenue(event.id);
   const days = daysUntilEvent(event.date);
   const booked = venue?.myBooking?.status === 'confirmed';
+  const insets = useSafeAreaInsets();
+  // Room for the owner's programme button above the tab bar, as on Acasă's "Post a moment".
+  const barClearance = {
+    paddingBottom: tabBarBottomInset(insets.bottom) + floatingTabBar.gap + floatingTabBar.height + gSpace.xxl + 56,
+  };
 
   return (
-    <GuestScreen transparent>
-      <EventHero
-        event={event}
-        canEdit={owner && (days === null || days >= 0)}
-        meta={[formatSpontaneousWhen(event.date, event.startTime), event.location.trim()].filter((part) => part.length > 0).join(' · ')}
-        extraAction={{
-          icon: 'clipboard',
-          label: t('venue.bookings.title'),
-          onPress: () => router.push(`/venue-bookings/${event.id}`),
-        }}
-      />
-      <EventCountdown
-        date={event.date}
-        story={event}
-        scheduleTimes={event.startTime !== null ? [event.startTime] : []}
-        timeline={false}
-      />
-      {!owner ? (
-        <Button
-          label={booked ? t('venue.home.seeTicket') : t('venue.book.cta')}
-          onPress={() => {
-            haptics.press();
-            router.push(booked ? `/guest/${event.id}/fond` : `/guest/${event.id}/detalii`);
-          }}
+    <View style={styles.flex}>
+      <GuestScreen transparent contentStyle={owner ? barClearance : undefined}>
+        <EventHero
+          event={event}
+          canEdit={owner && (days === null || days >= 0)}
+          meta={[formatSpontaneousWhen(event.date, event.startTime), event.location.trim()].filter((part) => part.length > 0).join(' · ')}
+        />
+        <EventCountdown
+          date={event.date}
+          story={event}
+          scheduleTimes={event.startTime !== null ? [event.startTime] : []}
+          timeline={false}
+        />
+        {!owner ? (
+          <Button
+            label={booked ? t('venue.home.seeTicket') : t('venue.book.cta')}
+            onPress={() => {
+              haptics.press();
+              router.push(booked ? `/guest/${event.id}/fond` : `/guest/${event.id}/detalii`);
+            }}
+          />
+        ) : null}
+
+        {venue === null ? (
+          <Skeleton height={90} radius={24} />
+        ) : (
+          <>
+            <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+              <Eyebrow right={t('venue.book.people', { count: venue.bookedPeople })}>{t('venue.tonight.alreadyBooked')}</Eyebrow>
+              {venue.bookerInitials.length === 0 ? (
+                <Text style={[styles.muted, { color: tokens.textSecondary }]}>{t('venue.tonight.beFirst')}</Text>
+              ) : (
+                <View style={styles.avatars}>
+                  {venue.bookerInitials.slice(0, MAX_AVATARS).map((initials, index) => (
+                    <View
+                      key={`${initials}-${index}`}
+                      style={[
+                        styles.avatar,
+                        index > 0 && styles.overlap,
+                        { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length], borderColor: tokens.surface },
+                      ]}
+                    >
+                      <Text style={styles.avatarText}>{initials}</Text>
+                    </View>
+                  ))}
+                  {venue.bookedPeople > venue.bookerInitials.length ? (
+                    <View style={[styles.avatar, styles.overlap, { backgroundColor: tokens.accentTint, borderColor: tokens.surface }]}>
+                      <Text style={[styles.moreText, { color: tokens.accentText }]}>+{venue.bookedPeople - venue.bookerInitials.length}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            </View>
+
+            <VenueLineup venue={venue} />
+            {/* The venue's own card is for customers to follow it; nothing to do on it for the venue. */}
+            {owner ? null : <VenuePlaceCard venue={venue} owner={false} />}
+            <VenueUpcoming venue={venue} />
+          </>
+        )}
+      </GuestScreen>
+      {owner ? (
+        <PostMomentBar
+          icon="clock"
+          label={t('venue.tabs.editProgramme')}
+          onPress={() => router.push(`/detalii-schedule/${event.id}`)}
         />
       ) : null}
-
-      {owner ? <VenueHomeCard event={event} owner /> : null}
-
-      {venue === null ? (
-        <Skeleton height={90} radius={24} />
-      ) : (
-        <>
-          <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-            <Eyebrow right={t('venue.book.people', { count: venue.bookedPeople })}>{t('venue.tonight.alreadyBooked')}</Eyebrow>
-            {venue.bookerInitials.length === 0 ? (
-              <Text style={[styles.muted, { color: tokens.textSecondary }]}>{t('venue.tonight.beFirst')}</Text>
-            ) : (
-              <View style={styles.avatars}>
-                {venue.bookerInitials.slice(0, MAX_AVATARS).map((initials, index) => (
-                  <View
-                    key={`${initials}-${index}`}
-                    style={[
-                      styles.avatar,
-                      index > 0 && styles.overlap,
-                      { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length], borderColor: tokens.surface },
-                    ]}
-                  >
-                    <Text style={styles.avatarText}>{initials}</Text>
-                  </View>
-                ))}
-                {venue.bookedPeople > venue.bookerInitials.length ? (
-                  <View style={[styles.avatar, styles.overlap, { backgroundColor: tokens.accentTint, borderColor: tokens.surface }]}>
-                    <Text style={[styles.moreText, { color: tokens.accentText }]}>+{venue.bookedPeople - venue.bookerInitials.length}</Text>
-                  </View>
-                ) : null}
-              </View>
-            )}
-          </View>
-
-          <VenueLineup venue={venue} />
-          <VenuePlaceCard venue={venue} owner={owner} />
-          <VenueUpcoming venue={venue} />
-        </>
-      )}
-    </GuestScreen>
+    </View>
   );
 }
 

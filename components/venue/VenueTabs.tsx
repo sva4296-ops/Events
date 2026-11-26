@@ -8,7 +8,6 @@ import { GuestScreen } from '@/components/guest/GuestScreen';
 import { Skeleton } from '@/components/Skeleton';
 import { Eyebrow } from '@/components/spontaneous/parts';
 import { VenueBookingPanel } from '@/components/venue/VenueBookingPanel';
-import { VenueHomeCard } from '@/components/venue/VenueHomeCard';
 import { VenueTicket } from '@/components/venue/VenueTicket';
 import { useTheme } from '@/hooks/useTheme';
 import { useVenue } from '@/hooks/useVenue';
@@ -28,25 +27,17 @@ export function VenueBookTab({ event, owner }: { event: AppEvent; owner: boolean
           {event.name} · {formatSpontaneousWhen(event.date, event.startTime)}
         </Text>
       </View>
-      {owner ? <VenueHomeCard event={event} owner /> : null}
       {venue === null ? <Skeleton height={220} radius={22} /> : <VenueBookingPanel venue={venue} token={null} owner={owner} />}
     </GuestScreen>
   );
 }
 
-/** Fond on a venue night = "Ticket". */
-export function VenueTicketTab({ event, owner }: { event: AppEvent; owner: boolean }) {
+/** Fond on a venue night = "Ticket" (customers only; the tab is hidden for the venue). */
+export function VenueTicketTab({ event }: { event: AppEvent }) {
   const { t } = useTranslation();
   const { venue } = useVenue(event.id);
   const mine = venue?.myBooking?.status === 'confirmed' ? venue.myBooking : null;
 
-  if (owner) {
-    return (
-      <GuestScreen transparent>
-        <VenueHomeCard event={event} owner />
-      </GuestScreen>
-    );
-  }
   return (
     <GuestScreen transparent>
       {venue === null ? (

@@ -26,7 +26,7 @@ export default function FondScreen() {
   const { event } = useGuestEvent();
   const { isOwner } = useEvents();
   if (event?.type === 'spontaneous') return <SpontaneousBill event={event} owner={isOwner(event)} />;
-  if (event?.type === 'venue') return <VenueTicketTab event={event} owner={isOwner(event)} />;
+  if (event?.type === 'venue') return <VenueTicketTab event={event} />;
   return <FundScreen />;
 }
 

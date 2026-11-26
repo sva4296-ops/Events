@@ -50,6 +50,7 @@ const VENUE_TAB_OVERRIDES: Record<string, { labelKey: string; icon: TabIconId }>
   index: { labelKey: 'guestTabs.tonight', icon: 'tonight' },
   detalii: { labelKey: 'guestTabs.book', icon: 'book' },
   fond: { labelKey: 'guestTabs.ticket', icon: 'ticket' },
+  invitati: { labelKey: 'guestTabs.bookings', icon: 'guests' },
 };
 
 function getActiveTab(pathname: string): ActiveTab {
@@ -97,6 +98,10 @@ export default function GuestEventLayout() {
   if (!FUND_ENABLED && !spontaneous && !venueEvent && activeTab === 'fond') {
     return <Redirect href={`/guest/${id}`} />;
   }
+  // Book and Ticket are the customer's side; the venue runs everything from Acasă.
+  if (venueEvent && owner && (activeTab === 'fond' || activeTab === 'detalii')) {
+    return <Redirect href={`/guest/${id}`} />;
+  }
   // Finished events keep only Acasă and Album; any other tab lands on Acasă.
   // A spontaneous event's bill is usually settled after the night, so it stays too.
   if (past && activeTab !== 'acasa' && activeTab !== 'album' && !(spontaneous && activeTab === 'fond')) {
@@ -104,7 +109,7 @@ export default function GuestEventLayout() {
   }
   // The guest list is the organizers' (a guest's RLS only returns their own
   // row); a venue night has its bookings instead.
-  const guestsTab = owner && !venueEvent;
+  const guestsTab = owner;
   if (!guestsTab && activeTab === 'invitati') {
     return <Redirect href={`/guest/${id}`} />;
   }
@@ -117,13 +122,13 @@ export default function GuestEventLayout() {
   const headerActions: HeaderAction[] =
     past || !owner
       ? []
-      : activeTab === 'detalii' && venueEvent
+      : activeTab === 'invitati' && venueEvent
         ? [
             {
-              key: 'programme',
-              icon: 'clock',
-              accessibilityLabel: t('venue.tabs.editProgramme'),
-              onPress: () => router.push(`/detalii-schedule/${id}`),
+              key: 'venue-setup',
+              icon: 'sliders',
+              accessibilityLabel: t('venue.bookings.editSetup'),
+              onPress: () => router.push(`/venue-setup/${id}`),
             },
           ]
         : activeTab === 'fond' && spontaneous
@@ -203,7 +208,8 @@ export default function GuestEventLayout() {
                       tab.name === 'live' ||
                       (tab.name === 'invitati' && !guestsTab) ||
                       (past && tab.name !== 'index' && tab.name !== 'album' && !(spontaneous && tab.name === 'fond')) ||
-                      (!FUND_ENABLED && !spontaneous && !venueEvent && tab.name === 'fond')
+                      (!FUND_ENABLED && !spontaneous && !venueEvent && tab.name === 'fond') ||
+                      (venueEvent && owner && (tab.name === 'fond' || tab.name === 'detalii'))
                         ? null
                         : undefined,
                     title: t(tab.labelKey),

@@ -9,7 +9,17 @@ import { floatingTabBar, tabBarBottomInset } from '@/utils/guestTheme';
 import { spacing } from '@/utils/theme';
 
 /** A tab's main action, just above the tab bar: "Post a moment", "Add guest". */
-export function PostMomentBar({ label, onPress, targetRef }: { label: string; onPress: () => void; targetRef?: Ref<View> }) {
+export function PostMomentBar({
+  label,
+  onPress,
+  targetRef,
+  icon = 'plus',
+}: {
+  label: string;
+  onPress: () => void;
+  targetRef?: Ref<View>;
+  icon?: keyof typeof Feather.glyphMap;
+}) {
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
   return (
@@ -17,7 +27,7 @@ export function PostMomentBar({ label, onPress, targetRef }: { label: string; on
       <View ref={targetRef} collapsable={false}>
         <Button
           label={label}
-          icon={<Feather name="plus" size={20} color={buttonLabelColor('primary', tokens)} />}
+          icon={<Feather name={icon} size={20} color={buttonLabelColor('primary', tokens)} />}
           onPress={onPress}
         />
       </View>

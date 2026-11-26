@@ -1027,7 +1027,8 @@
     "bill": "Notă",
     "tonight": "Seara",
     "book": "Rezervă",
-    "ticket": "Bilet"
+    "ticket": "Bilet",
+    "bookings": "Rezervări"
   },
   "coOrganizers": {
     "title": "Co-organizatori",

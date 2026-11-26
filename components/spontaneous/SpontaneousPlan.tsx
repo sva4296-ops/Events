@@ -181,11 +181,9 @@ function SongQueue({ items, owner, hook }: { items: PlanItem[]; owner: boolean; 
 
   return (
     <>
-      <SpCard style={styles.listCard}>
-        {ranked.length === 0 ? (
-          <Text style={[styles.empty, { color: tokens.textSecondary }]}>{t('spontaneous.plan.songsEmpty')}</Text>
-        ) : (
-          ranked.map((item, index) => {
+      {ranked.length > 0 ? (
+        <SpCard style={styles.listCard}>
+          {ranked.map((item, index) => {
             const voted = hook.hasUpvoted(item.id);
             return (
               <DeletableRow key={item.id} enabled={owner || item.addedBy === hook.userId} title={item.title} onDelete={() => hook.removeItem(item.id)}>
@@ -220,9 +218,9 @@ function SongQueue({ items, owner, hook }: { items: PlanItem[]; owner: boolean; 
                 </View>
               </DeletableRow>
             );
-          })
-        )}
-      </SpCard>
+          })}
+        </SpCard>
+      ) : null}
       <AddRow
         placeholder={t('spontaneous.plan.songPlaceholder')}
         secondPlaceholder={t('spontaneous.plan.artistPlaceholder')}
@@ -235,67 +233,62 @@ function SongQueue({ items, owner, hook }: { items: PlanItem[]; owner: boolean; 
 function BringList({ items, owner, hook }: { items: PlanItem[]; owner: boolean; hook: Hook }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
-  const covered = items.filter((item) => item.claimedBy !== null).length;
 
   return (
     <>
-      <SpCard style={styles.listCard}>
-        {items.length === 0 ? (
-          <Text style={[styles.empty, { color: tokens.textSecondary }]}>
-            {owner ? t('spontaneous.plan.bringEmptyOwner') : t('spontaneous.plan.bringEmpty')}
-          </Text>
-        ) : (
-          items.map((item, index) => {
-            const mine = item.claimedBy !== null && item.claimedBy === hook.userId;
-            const taken = item.claimedBy !== null && !mine;
-            return (
-              <DeletableRow key={item.id} enabled={owner} title={item.title} onDelete={() => hook.removeItem(item.id)}>
-                <View style={[styles.row, index > 0 && { borderTopColor: tokens.border, borderTopWidth: 1 }]}>
-                  <View style={styles.rowText}>
-                    <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{item.title}</Text>
-                    <Text style={[styles.rowSub, { color: tokens.textSecondary }]}>
-                      {item.claimedBy === null
-                        ? t('spontaneous.plan.nobody')
-                        : mine
-                          ? t('spontaneous.plan.youBring')
-                          : t('spontaneous.plan.bringsBy', { name: item.claimedByLabel ?? '' })}
-                    </Text>
-                  </View>
-                  {taken ? (
-                    <View style={[styles.doneDot, { backgroundColor: tokens.statusConfirmedSoft }]}>
-                      <Feather name="check" size={15} color={tokens.statusConfirmed} />
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => {
-                        haptics.tap();
-                        hook.toggleClaim(item.id);
-                      }}
-                      accessibilityRole="button"
-                      style={[
-                        styles.pill,
-                        mine
-                          ? { backgroundColor: tokens.accentFill, borderColor: tokens.accentFill }
-                          : { backgroundColor: tokens.surface, borderColor: tokens.accentPrimary },
-                      ]}
-                    >
-                      {mine ? <Feather name="check" size={14} color={tokens.onAccent} /> : null}
-                      <Text style={[styles.pillText, { color: mine ? tokens.onAccent : tokens.accentText }]}>
-                        {mine ? t('spontaneous.plan.you') : t('spontaneous.plan.iBring')}
+      {/* The owner sees only the add field below; an empty card here read like an input. */}
+      {items.length === 0 && owner ? null : (
+        <SpCard style={styles.listCard}>
+          {items.length === 0 ? (
+            <Text style={[styles.empty, { color: tokens.textSecondary }]}>{t('spontaneous.plan.bringEmpty')}</Text>
+          ) : (
+            items.map((item, index) => {
+              const mine = item.claimedBy !== null && item.claimedBy === hook.userId;
+              const taken = item.claimedBy !== null && !mine;
+              return (
+                <DeletableRow key={item.id} enabled={owner} title={item.title} onDelete={() => hook.removeItem(item.id)}>
+                  <View style={[styles.row, index > 0 && { borderTopColor: tokens.border, borderTopWidth: 1 }]}>
+                    <View style={styles.rowText}>
+                      <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{item.title}</Text>
+                      <Text style={[styles.rowSub, { color: tokens.textSecondary }]}>
+                        {item.claimedBy === null
+                          ? t('spontaneous.plan.nobody')
+                          : mine
+                            ? t('spontaneous.plan.youBring')
+                            : t('spontaneous.plan.bringsBy', { name: item.claimedByLabel ?? '' })}
                       </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </DeletableRow>
-            );
-          })
-        )}
-      </SpCard>
-      {items.length > 0 ? (
-        <Text style={[styles.footnote, { color: tokens.textSecondary }]}>
-          {t('spontaneous.plan.covered', { covered, total: items.length })}
-        </Text>
-      ) : null}
+                    </View>
+                    {taken ? (
+                      <View style={[styles.doneDot, { backgroundColor: tokens.statusConfirmedSoft }]}>
+                        <Feather name="check" size={15} color={tokens.statusConfirmed} />
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => {
+                          haptics.tap();
+                          hook.toggleClaim(item.id);
+                        }}
+                        accessibilityRole="button"
+                        style={[
+                          styles.pill,
+                          mine
+                            ? { backgroundColor: tokens.accentFill, borderColor: tokens.accentFill }
+                            : { backgroundColor: tokens.surface, borderColor: tokens.accentPrimary },
+                        ]}
+                      >
+                        {mine ? <Feather name="check" size={14} color={tokens.onAccent} /> : null}
+                        <Text style={[styles.pillText, { color: mine ? tokens.onAccent : tokens.accentText }]}>
+                          {mine ? t('spontaneous.plan.you') : t('spontaneous.plan.iBring')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </DeletableRow>
+              );
+            })
+          )}
+        </SpCard>
+      )}
       {owner ? (
         <AddRow placeholder={t('spontaneous.plan.bringPlaceholder')} onAdd={(title) => hook.addItem('bring', title, null)} />
       ) : null}
@@ -326,48 +319,49 @@ function WineSheet({
 
   return (
     <>
-      <SpCard style={styles.listCard}>
-        {items.length === 0 ? (
-          <Text style={[styles.empty, { color: tokens.textSecondary }]}>
-            {owner ? t('spontaneous.plan.winesEmptyOwner') : t('spontaneous.plan.winesEmpty')}
-          </Text>
-        ) : (
-          items.map((item, index) => {
-            const mine = hook.myRating(item.id);
-            const avg = average(item.id);
-            return (
-              <DeletableRow key={item.id} enabled={owner} title={item.title} onDelete={() => hook.removeItem(item.id)}>
-                <View style={[styles.row, index > 0 && { borderTopColor: tokens.border, borderTopWidth: 1 }]}>
-                  <View style={styles.rowText}>
-                    <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{item.title}</Text>
-                    <Text style={[styles.rowSub, { color: tokens.textSecondary }]}>
-                      {[item.detail, avg !== null ? t('spontaneous.plan.groupAverage', { value: avg.toFixed(1) }) : null]
-                        .filter((part): part is string => part !== null && part.length > 0)
-                        .join(' · ')}
-                    </Text>
+      {/* The owner sees only the add field below; an empty card here read like an input. */}
+      {items.length === 0 && owner ? null : (
+        <SpCard style={styles.listCard}>
+          {items.length === 0 ? (
+            <Text style={[styles.empty, { color: tokens.textSecondary }]}>{t('spontaneous.plan.winesEmpty')}</Text>
+          ) : (
+            items.map((item, index) => {
+              const mine = hook.myRating(item.id);
+              const avg = average(item.id);
+              return (
+                <DeletableRow key={item.id} enabled={owner} title={item.title} onDelete={() => hook.removeItem(item.id)}>
+                  <View style={[styles.row, index > 0 && { borderTopColor: tokens.border, borderTopWidth: 1 }]}>
+                    <View style={styles.rowText}>
+                      <Text style={[styles.rowTitle, { color: tokens.textPrimary }]}>{item.title}</Text>
+                      <Text style={[styles.rowSub, { color: tokens.textSecondary }]}>
+                        {[item.detail, avg !== null ? t('spontaneous.plan.groupAverage', { value: avg.toFixed(1) }) : null]
+                          .filter((part): part is string => part !== null && part.length > 0)
+                          .join(' · ')}
+                      </Text>
+                    </View>
+                    <View style={styles.stars}>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <TouchableOpacity
+                          key={n}
+                          onPress={() => {
+                            haptics.tap();
+                            hook.rate(item.id, n);
+                          }}
+                          hitSlop={4}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('spontaneous.plan.rateStars', { count: n })}
+                        >
+                          <Text style={[styles.star, { color: n <= mine ? tokens.accentGold : tokens.border }]}>★</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
-                  <View style={styles.stars}>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <TouchableOpacity
-                        key={n}
-                        onPress={() => {
-                          haptics.tap();
-                          hook.rate(item.id, n);
-                        }}
-                        hitSlop={4}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('spontaneous.plan.rateStars', { count: n })}
-                      >
-                        <Text style={[styles.star, { color: n <= mine ? tokens.accentGold : tokens.border }]}>★</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </DeletableRow>
-            );
-          })
-        )}
-      </SpCard>
+                </DeletableRow>
+              );
+            })
+          )}
+        </SpCard>
+      )}
       {items.length > 0 ? (
         <Text style={[styles.footnote, { color: tokens.textSecondary }]}>
           {favourite !== undefined ? t('spontaneous.plan.yourFav', { name: favourite.title }) : t('spontaneous.plan.rateHint')}
@@ -463,11 +457,13 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 8,
   },
+  // No fixed height: on iOS a fixed-height TextInput drops the text below center.
   input: {
-    height: 46,
+    minHeight: 46,
     borderRadius: 14,
     borderWidth: 1,
     paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
   },
   addButton: {

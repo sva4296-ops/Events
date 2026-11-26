@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { startTour } from "@/components/tour/Tour";
 import { useEventContent } from "@/hooks/useEventContent";
 import { useEvents } from "@/hooks/useEvents";
+import type { EventTypeId } from "@/types/event";
 import i18n from "@/utils/i18n";
 
 export type GettingStartedKey =
@@ -45,6 +46,12 @@ function tour(
   };
 }
 
+/** Steps an event type doesn't need: spontaneous has no venue/schedule/menu in its Plan tab. */
+const SKIPPED_BY_TYPE: Partial<Record<EventTypeId, ReadonlySet<GettingStartedKey>>> = {
+  spontaneous: new Set(["location", "schedule", "menu"]),
+  birthday: new Set(["menu"]),
+};
+
 /**
  * The organizer's "Primii pași" checklist for one event. Every step is read
  * from data the app already has, so it ticks itself as things get done.
@@ -64,7 +71,7 @@ export function useGettingStarted(eventId: string) {
   const toAcasa = () => router.navigate(`/guest/${eventId}`);
   const toGuests = () => router.navigate(`/guest/${eventId}/invitati`);
 
-  const steps: GettingStartedStep[] = [
+  const allSteps: GettingStartedStep[] = [
     { key: "event", done: true, showMe: null },
     { key: "location", done: hasVenue, showMe: tour("location", toPlan) },
     {
@@ -95,6 +102,9 @@ export function useGettingStarted(eventId: string) {
       showMe: tour("moment", toAcasa),
     },
   ];
+
+  const skipped = event === undefined ? undefined : SKIPPED_BY_TYPE[event.type];
+  const steps = skipped === undefined ? allSteps : allSteps.filter((step) => !skipped.has(step.key));
 
   const doneCount = steps.filter((step) => step.done).length;
 
